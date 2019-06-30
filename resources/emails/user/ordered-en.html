@@ -1,0 +1,80 @@
+<div>
+  <p>
+  Thank you for your order,
+  </p>
+
+  <p>
+  we received your order {{order._id}}<br />
+  in total price {{order.prices.priceTotal}} {{order.prices.currency.symbol}}<br />
+  made {{order.dates.dateCreated}}.<br />
+  </p>
+
+  <p>
+  Here are details of your order:
+  </p>
+
+  <p>
+  ID {{order._id}} (use this ID when you communicate with us)
+  </p>
+
+  <p>
+  Invoice Address:<br />
+  ----------------<br />
+  Name: {{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}<br />
+  Street: {{order.addresses.invoiceAddress.street}}<br />
+  {{order.addresses.invoiceAddress.street2}}<br />
+  ZIP: {{order.addresses.invoiceAddress.zip}}<br />
+  City: {{order.addresses.invoiceAddress.city}}<br />
+  Country: {{order.addresses.invoiceAddress.country}}<br />
+  Phone: {{order.addresses.invoiceAddress.phone}}<br />
+  {{#if order.data.paymentData.name.en}}<br />
+  ----<br />
+  Payment: {{order.data.paymentData.name.en}}<br />
+  Payment price: {{ order.data.paymentData.price }}
+  {{/if}}
+  </p>
+
+  <p>
+  {{#if order.addresses.deliveryAddress}}
+  Delivery Address:<br />
+  ----------------<br />
+  Name: {{order.addresses.deliveryAddress.nameFirst}} {{order.addresses.deliveryAddress.nameLast}}<br />
+  Street: {{order.addresses.deliveryAddress.street}}<br />
+  {{order.addresses.deliveryAddress.street2}}<br />
+  ZIP: {{order.addresses.deliveryAddress.zip}}<br />
+  City: {{order.addresses.deliveryAddress.city}}<br />
+  Country: {{order.addresses.deliveryAddress.country}}<br />
+  Phone: {{order.addresses.deliveryAddress.phone}}
+  {{/if}}
+  {{#if order.data.deliveryData.codename.physical.value}}
+  ----<br />
+  Delivery type: {{order.data.deliveryData.codename.physical.value}}<br />
+  Delivery price: {{ order.data.deliveryData.codename.physical.price }}
+  {{/if}}
+  </p>
+
+  <p>
+  Items:<br />
+  ----------------<br />
+  {{#order.items}}
+  ---- Item ID: {{_id}} ----<br />
+  Item name: {{name.en}}<br />
+  Item price: {{price}}<br />
+  {{/order.items}}
+  </p>
+
+  <p>
+  Totals:<br />
+  ----------------<br />
+  Items without tax: {{order.prices.priceItemsNoTax}}<br />
+  Items with tax: {{order.prices.priceItems}}<br />
+  ----<br />
+  Price of Delivery: {{order.prices.priceDelivery}}<br />
+  Price of Payment: {{order.prices.pricePayment}}<br />
+  ----<br />
+  Order Total: {{order.prices.priceTotal}}
+  </p>
+
+
+  <p>Your team of  {{webname}}</p>
+</div>

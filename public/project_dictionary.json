@@ -1,0 +1,1127 @@
+{
+  "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/",
+  "dictionary": {
+    "records": [
+      {
+        "phrase": "In stock",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Na sklade"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductBox.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "In stock",
+                "selector": "html \u003e body \u003e template \u003e article.tile.is-child.box \u003e p:nth-child(4) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "In stock"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductDetail.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "In stock",
+                "selector": "html \u003e body \u003e template \u003e div.container.product-detail \u003e div.column \u003e p:nth-child(4) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "In stock"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Add to Cart",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Pridať do košíka"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductBox.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Add to Cart",
+                "selector": "html \u003e body \u003e template \u003e article.tile.is-child.box \u003e div:nth-child(5) \u003e button.button.is-link \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Add to Cart"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductDetail.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Add to Cart",
+                "selector": "html \u003e body \u003e template \u003e div.container.product-detail \u003e div.column \u003e div \u003e button.button.is-link \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Add to Cart"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Products",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Produkty"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryList.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Products",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(1) \u003e div.column \u003e h1.title.is-1.title-products",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Products"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Products",
+                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e router-link.navbar-item:nth-child(3)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Products"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Categories",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Kategórie"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryList.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Categories",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(2) \u003e div.column.is-3 \u003e nav.panel \u003e p.panel-heading",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Categories"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Profile",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Profil"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Me.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Profile",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns:nth-child(1) \u003e div.column \u003e h1.title.is-1",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Profile"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Your Settings",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Tvoje nastavenia"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Me.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Your Settings",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e p.panel-heading \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Your Settings"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Basic information",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Základné informácie"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Me.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Basic information",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e a.panel-block:nth-child(2) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Basic information"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "User address",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Fakturačná adresa"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Me.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "User address",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e a.panel-block:nth-child(3) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "User address"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Delivery addresses",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Doručovacia adresa"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Me.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Delivery addresses",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e a.panel-block:nth-child(4) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Delivery addresses"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Remember my login on this computer",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Pamätať si moje prihlásenie na tomto počítači"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Remember my login on this computer",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4 \u003e form \u003e div.field:nth-child(3) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Remember my login on this computer"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Login",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Prihlásiť"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Login",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4 \u003e form \u003e button.button.is-medium.is-primary",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Login"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Change Image",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Zmeniť obrázok"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Change Image",
+                "selector": "html \u003e body \u003e template \u003e div \u003e section \u003e form \u003e div.columns.is-variable.is-2.is-centered \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Change Image"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Username",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Užívateľské meno"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Username",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-12 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Username"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Change Username",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Zmeniť užívateľské meno"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Change Username",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Change Username"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Email Confirm",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Potvrdiť e-mail"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Email Confirm",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Email Confirm"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Change your Email",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Zmeniť e-mail"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Change your Email",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Change your Email"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Old Password",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Staré heslo"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Old Password",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-6 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Old Password"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Password",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Heslo"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Password",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Password"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Password Confirm",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Potvrdiť heslo"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Password Confirm",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Password Confirm"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Change your Password",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Zmeniť heslo"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Change your Password",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Change your Password"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Home",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Domov"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Home",
+                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e router-link.navbar-item:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Home"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Info",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Info"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Info",
+                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e a.navbar-item:nth-child(2)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Info"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Services",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Služby"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Services",
+                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e router-link.navbar-item:nth-child(4)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Services"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Articles",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Články"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Articles",
+                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e a.navbar-item:nth-child(5)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Articles"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Articles",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.has-dropdown.is-hoverable:nth-child(3) \u003e div.navbar-dropdown \u003e a.navbar-item:nth-child(2) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Articles"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Cart",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Košík"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Cart",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.userCart \u003e router-link.navbar-link.userCartLink \u003e span:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Cart"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Total price",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Cena spolu"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Total price",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.userCart \u003e router-link.navbar-link.userCartLink \u003e div.navbar-dropdown \u003e div:nth-child(2) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Total price"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Go to Cart",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Ísť do košíka"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Go to Cart",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.userCart \u003e router-link.navbar-link.userCartLink \u003e div.navbar-dropdown \u003e router-link.button.is-success",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Go to Cart"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Orders",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Objednávky"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Orders",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.has-dropdown.is-hoverable:nth-child(3) \u003e div.navbar-dropdown \u003e a.navbar-item:nth-child(1) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Orders"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Sign up",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Registrovať"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Sign up",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.buttons \u003e router-link.navbar-item.button.is-primary \u003e strong",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Sign up"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Log in",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Prihlásiť"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Log in",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.buttons \u003e router-link.navbar-item.button.is-light \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Log in"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Logout",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Odhlásiť"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Logout",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.buttons \u003e a.button.is-light",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Logout"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Is your business ready to grow?",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Je Vaše podnikanie pripravené rásť?"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/Homepage.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Is your business ready to grow?",
+                "selector": "html \u003e body \u003e template \u003e div.hello \u003e h1.title.is-1",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Is your business ready to grow?"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

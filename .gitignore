@@ -1,0 +1,13 @@
+.DS_Store
+node_modules/
+coverage/
+npm-debug.log
+stats.json
+yarn-error.log
+
+data/
+db
+.env
+public/static/ups
+publicx
+docker-compose.env

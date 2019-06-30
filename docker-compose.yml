@@ -1,0 +1,104 @@
+version: "3.0"
+
+services:
+
+  api:
+    build:
+      context: .
+    image: wradgio/stretchshop:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: api
+      PORT: 3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=api"
+      - "traefik.port=3000"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.frontend.rule=PathPrefix:/"
+
+  users:
+    build:
+      context: .
+    image: wradgio/stretchshop_private:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: users
+    links:
+      - mongo
+    depends_on:
+      - mongo
+
+  products:
+    build:
+      context: .
+    image: wradgio/stretchshop_private:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: products
+    links:
+      - mongo
+    depends_on:
+      - mongo
+
+  categories:
+    build:
+      context: .
+    image: wradgio/stretchshop_private:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: categories
+    links:
+      - mongo
+    depends_on:
+      - mongo
+
+  cart:
+    build:
+      context: .
+    image: wradgio/stretchshop_private:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: cart
+    links:
+      - mongo
+    depends_on:
+      - mongo
+
+  orders:
+    build:
+      context: .
+    image: wradgio/stretchshop_private:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: orders
+    links:
+      - mongo
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo
+    restart: on-failure
+    volumes:
+      - ./db:/data/db
+      - ./dbconf:/etc/mongo
+    ports:
+      - "27017:27017"
+    command: mongod --auth
+
+  nats-server:
+    image: nats
+    entrypoint: "/gnatsd -D --user yourNATSlogin --pass yourNATSpassword"
+    ports:
+      - "4222:4222"
+
+  traefik:
+    image: traefik
+    command: --web --docker --docker.domain=docker.localhost --logLevel=INFO --docker.exposedbydefault=false
+    ports:
+      - "3000:80"
+      - "3001:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev/null:/traefik.toml
