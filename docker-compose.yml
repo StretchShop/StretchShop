@@ -89,7 +89,7 @@ services:
 
   nats-server:
     image: nats
-    entrypoint: "/gnatsd -D --user yourNATSlogin --pass yourNATSpassword"
+    # entrypoint: "/gnatsd -D --user yourNATSlogin --pass yourNATSpassword"
     ports:
       - "4222:4222"
 

@@ -286,7 +286,7 @@ module.exports = {
 					.then(() => this.adapter.findOne({ email: email }))
 					.then(user => {
 						if (!user) {
-							return this.Promise.reject(new MoleculerClientError("Email or password is invalid!", 422, "", [{ field: "email", message: "is not found"}]));
+							return this.Promise.reject(new MoleculerClientError("Email or password is invalid!", 422, "", [{ field: "email", message: "wrong credentials"}]));
 						}
 						if ( !user.activated || user.activated.toString().trim()=='' || user.activated>new Date() ) {
 							return this.Promise.reject(new MoleculerClientError("User not activated", 422, "", [{ field: "email", message: "not activated"}]));
@@ -294,7 +294,7 @@ module.exports = {
 
 						return bcrypt.compare(password, user.password).then(res => {
 							if (!res)
-								return Promise.reject(new MoleculerClientError("Wrong password!", 422, "", [{ field: "email", message: "is not found"}]));
+								return Promise.reject(new MoleculerClientError("Wrong password!", 422, "", [{ field: "email", message: "wrong credentials"}]));
 
 							// Transform user entity (remove password and all protected fields)
 							return this.transformDocuments(ctx, {}, user);
@@ -637,7 +637,7 @@ module.exports = {
 					if (templates.txt) {
 						mailOptions.text = templates.txt;
 					}
-					console.log("\nTrying to send emaill with these options:", mailOptions);
+					console.log("\nTrying to send email with these options:", mailOptions);
 
 					let emailSentResponse = new Promise(function(resolve, reject) {
 						transporter.sendMail(mailOptions, (error, info) => {

@@ -1,6 +1,6 @@
 "use strict";
 
-require('dotenv').config()
+require('dotenv').config();
 const _ = require("lodash");
 const ApiGateway = require("moleculer-web");
 const Cookies = require('cookies');
@@ -93,10 +93,10 @@ module.exports = {
 
 				// Products
 				"GET /products/:category": "products.productsList",
-				//"POST /products/:category": "products.productsList",
+				"POST /products/find": "products.findWithCount",
+				"POST /products/:category": "products.productsList", // needed for category with filter url
 				"GET /products/:category/detail/:product": "products.detail",
 				"PUT /products": "products.import",
-				"POST /products/find": "products.find",
 				"POST /products/count": "products.count",
 				"DELETE /products": "products.delete",
 

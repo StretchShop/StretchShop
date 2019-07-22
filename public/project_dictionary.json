@@ -1,5 +1,5 @@
 {
-  "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/",
+  "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue",
   "dictionary": {
     "records": [
       {
@@ -54,6 +54,57 @@
         ]
       },
       {
+        "phrase": "Price",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Cena"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductBox.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Price",
+                "selector": "html \u003e body \u003e template \u003e article.tile.is-child.box \u003e p:nth-child(5) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Price"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Price",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(3) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Price"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "Add to Cart",
         "language": {
           "code": "en",
@@ -74,7 +125,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Add to Cart",
-                "selector": "html \u003e body \u003e template \u003e article.tile.is-child.box \u003e div:nth-child(5) \u003e button.button.is-link \u003e span",
+                "selector": "html \u003e body \u003e template \u003e article.tile.is-child.box \u003e div:nth-child(6) \u003e button.button.is-link \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -181,6 +232,303 @@
                   {
                     "langCode": "en",
                     "translation": "Categories"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Category filter",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Filter kategórií"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Category filter",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e p.panel-heading",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Category filter"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(2) \u003e p.control.has-icons-left \u003e input.input.is-small",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(3) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(4) \u003e div.column.is-12 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(5) \u003e div.column.is-12 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(6) \u003e div.column.is-4 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(6) \u003e div.column.is-8 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(7) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(7) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2.is-centered \u003e div.column.is-6 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(3) \u003e div.column.is-12 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(4) \u003e div.column.is-12 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(5) \u003e div.column.is-4 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(5) \u003e div.column.is-8 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(6) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(6) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-1.is-centered \u003e div.column.is-6 \u003e div.field \u003e div.control.is-clearfix \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
                   }
                 ]
               }
@@ -548,6 +896,24 @@
                 ]
               }
             ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Email Confirm",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Email Confirm"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -647,6 +1013,24 @@
                 ]
               }
             ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Password",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Password"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -672,6 +1056,24 @@
               {
                 "stringOrig": "Password Confirm",
                 "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Password Confirm"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Password Confirm",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -709,6 +1111,1555 @@
                   {
                     "langCode": "en",
                     "translation": "Change your Password"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Cart",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Košík"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Cart",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns:nth-child(1) \u003e div.column \u003e h1.title.is-1",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Cart"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Cart",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.userCart \u003e router-link.navbar-link.userCartLink \u003e span:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Cart"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "User",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Užívateľ"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "User",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.b-tabs.block \u003e nav.tabs.is-boxed.is-centered \u003e ul \u003e li:nth-child(1) \u003e a \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "User"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Delivery Payment",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Doručenie a Platba"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Delivery Payment",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.b-tabs.block \u003e nav.tabs.is-boxed.is-centered \u003e ul \u003e li:nth-child(2) \u003e a \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Delivery Payment"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Delivery Payment",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e h2.title.is-2",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Delivery Payment"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Summary",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Zhrnutie"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Summary",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.b-tabs.block \u003e nav.tabs.is-boxed.is-centered \u003e ul \u003e li:nth-child(3) \u003e a \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Summary"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Summary.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Summary",
+                "selector": "html \u003e body \u003e template \u003e div \u003e h2.title.is-2",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Summary"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Price delivery",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Cena doručenia"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Price delivery",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(2) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Price delivery"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Price payment",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Cena za spracovanie platby"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Price payment",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(3) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Price payment"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Total price",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Cena spolu"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Total price",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(4) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Total price"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Total price",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(5) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Total price"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Total price",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.userCart \u003e router-link.navbar-link.userCartLink \u003e div.navbar-dropdown \u003e div:nth-child(2) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Total price"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Clear Cart",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Vyprázdniť košík"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Clear Cart",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e button.button.is-danger \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Clear Cart"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Your cart is empty",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Tvoj košík je prázdny"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Your cart is empty",
+                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(2) \u003e h3.title.is-3 \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Your cart is empty"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Your Address",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Tvoja adresa"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Your Address",
+                "selector": "html \u003e body \u003e template \u003e div \u003e h2.title.is-2",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Your Address"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Already registered?",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Si už zaregistrovaný?"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Already registered?",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Already registered?"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Log in",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Prihlásiť"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Log in",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e router-link",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Log in"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Log in",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.buttons \u003e router-link.navbar-item.button.is-light \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Log in"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Email",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Email"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Email",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Email"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Logged in as",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Prihlásený ako"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Logged in as",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div:nth-child(2) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Logged in as"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "First Name",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Meno"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "First Name",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "First Name"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "First Name",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "First Name"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Last Name",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Priezvisko"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Last Name",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(3) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Last Name"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Last Name",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Last Name"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Street",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Ulica"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Street",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(4) \u003e div.column.is-12 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Street"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Street",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(3) \u003e div.column.is-12 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Street"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Street 2",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Ulica 2"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Street 2",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(5) \u003e div.column.is-12 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Street 2"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Street 2",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(4) \u003e div.column.is-12 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Street 2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "ZIP",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "PSČ"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "ZIP",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(6) \u003e div.column.is-4 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "ZIP"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "ZIP",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(5) \u003e div.column.is-4 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "ZIP"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "City",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Mesto"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "City",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(6) \u003e div.column.is-8 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "City"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "City",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(5) \u003e div.column.is-8 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "City"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "State",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Štát (časť štátu)"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "State",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(7) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "State"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "State",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(6) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "State"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Country",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Krajina"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Country",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(7) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Country"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Country",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(6) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Country"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Phone",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Telefón"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Phone",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2.is-centered \u003e div.column.is-6 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Phone"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Phone",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-1.is-centered \u003e div.column.is-6 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Phone"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Set user order data",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Nastaviť užívateľské dáta objednávky"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/User.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Set user order data",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e button.button.is-success \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Set user order data"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Order Finished",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Objednávka dokončená"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Finished.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Order Finished",
+                "selector": "html \u003e body \u003e template \u003e div \u003e h1.title.is-2",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Order Finished"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Thank you for your order. ID of your order is",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Ďakujeme za tvoju objednávku. Tvoju objednávku evidujeme pod ID"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Finished.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Thank you for your order. ID of your order is",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-12 \u003e p \u003e span:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Thank you for your order. ID of your order is"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "we\u0027ve sent you email about it.",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Poslali sme ti o tom email."
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Finished.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "we\u0027ve sent you email about it.",
+                "selector": "html \u003e body \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-12 \u003e p \u003e span:nth-child(3)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "we\u0027ve sent you email about it."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Pay The order",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Uhradiť objednávku"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Finished.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Pay The order",
+                "selector": "#payment-braintree-payment-button",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Pay The order"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Delivery",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Doručenie"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Delivery",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div:nth-child(1) \u003e h3.title.is-3.has-text-left",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Delivery"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "goods",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "tovar"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "goods",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div:nth-child(1) \u003e div.deliveryType \u003e div.control \u003e div \u003e h4.title.is-4.has-text-left \u003e span:nth-child(2)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "goods"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Use custom delivery address",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Použiť inú adresu doručenia"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Use custom delivery address",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e label.blockLabel \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Use custom delivery address"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Previously used addresses:",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Predtým použíté adresy:"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Previously used addresses:",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(1) \u003e div.column.is-12 \u003e div.field.for-select \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Previously used addresses:"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Please select",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Prosím vyber"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Please select",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.deliveryAddressBlock \u003e div.deliveryAddressWrapper.is-clearfix \u003e div.columns.is-variable.is-2:nth-child(1) \u003e div.column.is-12 \u003e div.field.for-select \u003e select.select \u003e option:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Please select"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Payment",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Platba"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Payment",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div:nth-child(3) \u003e h3.title.is-3.has-text-left",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Payment"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Renew my subscription",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Obnoviť moje predplatné"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Renew my subscription",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div.subscriptionBlock \u003e label \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Renew my subscription"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Set delivery and payment",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Nastaviť doručenie a platbu"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Set delivery and payment",
+                "selector": "html \u003e body \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e button.button.is-success \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Set delivery and payment"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "This would be your order:",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Takto vyzerá vaša objednávka:"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Summary.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "This would be your order:",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(1) \u003e div.column.is-12",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This would be your order:"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "I agree to the",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Súhlasím s"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Summary.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "I agree to the",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-12 \u003e label.checkbox \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "I agree to the"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "terms and conditions",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Obchodnými a reklamačnými podmienkami"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Summary.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "terms and conditions",
+                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-12 \u003e label.checkbox \u003e a",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "terms and conditions"
                   }
                 ]
               }
@@ -859,72 +2810,6 @@
         ]
       },
       {
-        "phrase": "Cart",
-        "language": {
-          "code": "en",
-          "lang": "en"
-        },
-        "translates": [
-          {
-            "langCode": "sk",
-            "translation": "Košík"
-          }
-        ],
-        "occurrences": [
-          {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
-            "selector": "[translate]",
-            "type": "text",
-            "blockName": "texts",
-            "translationStrings": [
-              {
-                "stringOrig": "Cart",
-                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.userCart \u003e router-link.navbar-link.userCartLink \u003e span:nth-child(1)",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Cart"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "phrase": "Total price",
-        "language": {
-          "code": "en",
-          "lang": "en"
-        },
-        "translates": [
-          {
-            "langCode": "sk",
-            "translation": "Cena spolu"
-          }
-        ],
-        "occurrences": [
-          {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
-            "selector": "[translate]",
-            "type": "text",
-            "blockName": "texts",
-            "translationStrings": [
-              {
-                "stringOrig": "Total price",
-                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.userCart \u003e router-link.navbar-link.userCartLink \u003e div.navbar-dropdown \u003e div:nth-child(2) \u003e span",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Total price"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
         "phrase": "Go to Cart",
         "language": {
           "code": "en",
@@ -1016,39 +2901,6 @@
                   {
                     "langCode": "en",
                     "translation": "Sign up"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "phrase": "Log in",
-        "language": {
-          "code": "en",
-          "lang": "en"
-        },
-        "translates": [
-          {
-            "langCode": "sk",
-            "translation": "Prihlásiť"
-          }
-        ],
-        "occurrences": [
-          {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
-            "selector": "[translate]",
-            "type": "text",
-            "blockName": "texts",
-            "translationStrings": [
-              {
-                "stringOrig": "Log in",
-                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.buttons \u003e router-link.navbar-item.button.is-light \u003e span",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Log in"
                   }
                 ]
               }

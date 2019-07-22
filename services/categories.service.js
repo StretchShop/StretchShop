@@ -144,7 +144,38 @@ module.exports = {
 								// that have categories ordered like this category
 								found['subs'] = subs;
 								found['subsSlugs'] = this.getAllPathSlugs(subs);
-								return found;
+
+								let categoriesToListProductsIn = [ctx.params.categoryPath];
+								if (found.subsSlugs && found.subsSlugs.length>0) {
+									categoriesToListProductsIn = found.subsSlugs;
+									categoriesToListProductsIn.push(ctx.params.categoryPath);
+								}
+								if ( categoriesToListProductsIn.length<1 ) {
+								  categoriesToListProductsIn = [categoriesToListProductsIn];
+								}
+
+								// count products inside this category and its subcategories
+								return ctx.call('products.count', {
+									"query": {
+										"categories": {"$in": categoriesToListProductsIn}
+									}
+								})
+								.then(productsCount => {
+									found['count'] = productsCount;
+									// return found;
+									return ctx.call("products.getMinMaxPrice", {
+										categories: categoriesToListProductsIn
+									}).then(minMaxPrice => {
+										if ( minMaxPrice.length>0 ) {
+											minMaxPrice = minMaxPrice[0];
+											if ( typeof minMaxPrice._id !== "undefined" ) {
+												delete minMaxPrice._id;
+											}
+										}
+										found['minMaxPrice'] = minMaxPrice;
+										return found;
+									});
+								});
 							});
 						} else { // no category found, create one
 							return Promise.reject(new MoleculerClientError("Category not found!", 400, "", [{ field: "product", message: "not found"}]));

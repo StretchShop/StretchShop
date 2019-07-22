@@ -1,5 +1,6 @@
 "use strict";
 
+require('dotenv').config();
 const { MoleculerClientError } = require("moleculer").Errors;
 
 const passGenerator = require('generate-password');
@@ -128,17 +129,18 @@ module.exports = {
 
 		order: {
 			sendingOrder: {
-				url: "https://cw.sk/archive/testarea/stretchshopbridgeapi/",
-				port: "80",
-				login: "fester",
-				password: "mrkvasalat"
+				url: process.env.SENDING_ORDER_URL,
+				port: process.env.SENDING_ORDER_PORT,
+				login: process.env.SENDING_ORDER_LOGIN,
+				password: process.env.SENDING_ORDER_PWD
 			},
 			deliveryMethods: [
 				{
 					codename: "personaly",
 					type: "physical",
 					name: {
-						"en": "Personaly on Branch"
+						"en": "Personaly on Branch",
+						"sk": "Osobne na Pobočke"
 					},
 					prices: [
 						{
@@ -151,7 +153,8 @@ module.exports = {
 					codename: "courier",
 					type: "physical",
 					name: {
-						"en": "Courier"
+						"en": "Courier",
+						"sk": "Kuriér"
 					},
 					prices: [
 						{
@@ -168,7 +171,8 @@ module.exports = {
 					codename: "download",
 					type: "digital",
 					name: {
-						"en": "Download"
+						"en": "Download",
+						"sk": "Stiahnuť"
 					},
 					prices: [
 						{
@@ -187,7 +191,8 @@ module.exports = {
 					codename: "cod",
 					type: "product",
 					name: {
-						"en": "Cash On Delivery"
+						"en": "Cash On Delivery",
+						"sk": "Platba Pri Doručení"
 					},
 					prices: [
 						{
@@ -203,7 +208,8 @@ module.exports = {
 				{
 					codename: "online",
 					name: {
-						"en": "Pay online (Card, PayPal)"
+						"en": "Pay online (Card, PayPal)",
+						"sk": "Zaplatiť online (Karta, PayPal)",
 					},
 					prices: [
 						{
@@ -255,12 +261,15 @@ module.exports = {
 			},
 			handler(ctx) {
 				let updateResult = this.settings.emptyUpdateResult;
+				console.log("\n\n"+'order.progress - intro (IN):', ctx.meta, "\n\n");
 
 				return ctx.call('cart.me')
 				.then(cart => {
+					console.log("\n\n"+'order.progress - cart result (CR):', cart, "\n\n");
 					if (cart.order && cart.order.toString().trim()!="") { // order exists, get it
 						return this.adapter.findById(cart.order)
 						.then(order => {
+							console.log("\n\n"+'order.progress - order result (OR):', cart, "\n\n");
 							if ( order && order.status=="cart" ) {
 								// update order items
 								if ( cart.items ) {
@@ -272,7 +281,7 @@ module.exports = {
 								this.settings.orderTemp = order;
 								updateResult = this.processOrder(ctx);
 								this.getAvailableOrderSettings();
-								console.log('updateResult', updateResult);
+								console.log("\n\n"+'order.progress - cart order found updated (COFU):', updateResult, "\n\n");
 								// if no params (eg. only refreshed), return original order
 								if ( !ctx.params.orderParams || Object.keys(ctx.params.orderParams).length<1 ) {
 									let orderProcessedResult = {};
@@ -290,13 +299,10 @@ module.exports = {
 								// order ready to save and send - update order data in related variables
 								order = this.settings.orderTemp;
 								cart.order = order._id;
-								console.log(' _______ 1 --- ');
 								return ctx.call('cart.updateCartItemAmount', {cartId: cart._id, cart: cart})
 								.then(cart2 => {
-									console.log(' _______ 2 --- ');
 									return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 									.then(orderUpdated => {
-										console.log(' _______ 3 --- ');
 										// if order was processed with errors, add them to result for frontend
 										let orderProcessedResult = {};
 										orderProcessedResult.order = orderUpdated;
@@ -360,7 +366,7 @@ module.exports = {
 							}
 						});
 					} else { // order does not exist, create it
-						console.log("\n\n"+'CREATE order - no order'+"\n\n");
+						console.log("\n\n"+'CREATE order - no order (NO):'+"\n\n");
 						return this.createOrderAction(cart, ctx, this.adapter);
 					}
 				}); // cart end
@@ -460,7 +466,6 @@ module.exports = {
 				let tokenResponse = new Promise(function(resolve, reject) {
 					self.settings.paymentsConfigs.braintree.gateway.clientToken.generate({}, function (err, response) {
 						if (response && response.clientToken) {
-							//console.log("braintree response.clientToken: ", response.clientToken);
 					    resolve(response.clientToken);
 						}
 						if (err) {
@@ -471,7 +476,6 @@ module.exports = {
 				});
 
 				return tokenResponse.then(token => {
-					//console.log('result token:', token);
 					return { result: "success", token: token };
 				});
 			}
@@ -605,9 +609,9 @@ module.exports = {
 			// save new order
 			return adapter.insert(order)
 			.then(orderNew => {
-				//console.log("\n\n----------new order saved--------", orderNew);
-				cart.order = orderNew._id;
-				return ctx.call('cart.updateCartItemAmount', {cartId: cart._id, cart: cart})
+				cart.order = orderNew._id; // order id is not saved to cart
+				console.log("\n\n order after save (OAS) -----: ", orderNew);
+				return ctx.call('cart.updateMyCart', {"cartNew": cart})
 				.then(cart2 => {
 					let orderProcessedResult = {};
 					orderProcessedResult.order = orderNew;
@@ -635,7 +639,6 @@ module.exports = {
 
 			if (this.settings.orderTemp) {
 			// update order params
-				// console.log("\n\nthis.settings.orderTemp:", this.settings.orderTemp, "\n\nctx.params.orderParams:", ctx.params.orderParams,"\n\n====================================\n\n");
 				if ( typeof ctx.params.orderParams !== "undefined" && ctx.params.orderParams ) {
 					this.settings.orderTemp = this.updateBySentParams(this.settings.orderTemp, ctx.params.orderParams);
 					console.log("\n ctx.meta \n", ctx.meta);
@@ -648,8 +651,6 @@ module.exports = {
 					}
 				}
 				this.settings.orderTemp.dates.dateChanged = new Date();
-
-				// console.log("this.settings.orderTemp: ", this.settings.orderTemp);
 
 				if (this.checkCartItems()) {
 					if (this.checkUserData(ctx)) { // check if (invoice address) is set and valid
@@ -780,12 +781,10 @@ module.exports = {
 
 
 		checkIfUserEmailExists(ctx) {
-			console.log('CTX:', ctx.params.orderParams);
+			console.log('CTX:', ctx.params);
 			if ( ctx.params.orderParams && ctx.params.orderParams.addresses && ctx.params.orderParams.addresses.invoiceAddress ) {
 				let self = this;
 				console.log(' --- -- - 3.1 - ');
-
-
 			}
 		},
 
@@ -997,7 +996,6 @@ module.exports = {
 
 		/**
 		 * Run Actions that should follow After Order was checked and Saved
-		 * Have
 		 *
 		 * @returns {Object} order complete result with result, errors
 		 */
@@ -1005,6 +1003,7 @@ module.exports = {
 				let self = this;
 
 			// 1. if set url, send order. If no url or send was success, set status to Sent.
+			console.log('this.settings.order.sendingOrder: ', this.settings.order.sendingOrder);
 			if ( this.settings.order.sendingOrder && this.settings.order.sendingOrder.url && this.settings.order.sendingOrder.url.toString().trim()!='' ) {
 				let auth = "Basic " + Buffer.from(this.settings.order.sendingOrder.login + ':' + this.settings.order.sendingOrder.password).toString('base64');
 				return fetch(this.settings.order.sendingOrder.url+"?action=order", {

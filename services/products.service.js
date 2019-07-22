@@ -9,15 +9,15 @@ const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
 /**
- * Product represents one product as definition with properties
- * that means not as page, defined by url, that can group multiple products with
+ * Product represents one product as definition with properties.
+ * That means not as page, defined by url, that can group multiple products with
  * different properties, but as item, that has different properties than any
  * other product available. eg.:
- * Product #1 - T-shirt Jam - url: /t-shirt-jam - size M, color Red
- * Product #2 - T-shirt Jam - url: /t-shirt-jam - size M, color Blue
- * Product #3 - T-shirt Jam - url: /t-shirt-jam - size L, color Red
+ * Product #1 - T-shirt Jam - url: /t-shirt-jam-m-red - size M, color Red
+ * Product #2 - T-shirt Jam - url: /t-shirt-jam-m-blue - size M, color Blue
+ * Product #3 - T-shirt Jam - url: /t-shirt-jam-l-red - size L, color Red
  *
- * When loading url /t-shirt-jam all these three products will be loaded and
+ * When loading url of detail product /t-shirt-jam all these three products will be loaded and
  * used for creating available options for ordering in front-end app.
  */
 
@@ -117,28 +117,46 @@ module.exports = {
 			handler(ctx) {
 				return ctx.call('categories.detail', { categoryPath: ctx.params.category })
 					.then(category => {
-            console.log('category: ', category);
 						// 1. category exists
 						if (category) {
 							let categoriesToListProductsIn = [ctx.params.category];
 							if (category.subsSlugs && category.subsSlugs.length>0) {
 								categoriesToListProductsIn = category.subsSlugs;
+                categoriesToListProductsIn.push(ctx.params.category);
 							}
               if ( categoriesToListProductsIn.length<1 ) {
                 categoriesToListProductsIn = [categoriesToListProductsIn];
               }
 
-							return ctx.call("products.find", {
-								"query": {
-									"categories": {"$in": categoriesToListProductsIn}
-								},
-                "limit": (ctx.params.filter<=100 ? ctx.params.filter : 100)
-							})
+
+              // fix filter if needed
+              let filter = { query: {}, limit: 100};
+              if (typeof ctx.params.filter !== 'undefined' && ctx.params.filter) {
+                filter = ctx.params.filter;
+                if (typeof filter.query === 'undefined' || !filter.query) {
+                  filter.query = {};
+                }
+              }
+              // set categories if from detail
+              filter["query"]["categories"] = {
+                "$in": categoriesToListProductsIn
+              };
+              // set max of results
+              if (filter.limit>100) {
+                filter.limit = 100;
+              }
+              if (typeof filter.sort === "undefined" || !filter.sort) {
+                filter.sort = "price";
+              }
+
+							return ctx.call("products.find", filter)
 								.then(categoryProducts => {
 									let result = {
 										'categoryDetail': category,
 										'products': categoryProducts
 									};
+
+                  // TODO - check if this can be removed, if data not already in category var
 									return ctx.call("categories.find", {
 										"query": {
 											parentPathSlug: category.pathSlug
@@ -146,26 +164,92 @@ module.exports = {
 									})
 									.then(categoriesList => {
 										result['categories'] = categoriesList;
-										// return result;
-                    return ctx.call("products.getMinMaxPrice", {
-                      categories: categoriesToListProductsIn
-                    }).then(minMaxPrice => {
-                      console.log('product.minMaxPrice: ', minMaxPrice);
-                      if ( minMaxPrice.length>0 ) {
-                        minMaxPrice = minMaxPrice[0];
-                        if ( typeof minMaxPrice._id !== "undefined" ) {
-                          delete minMaxPrice._id;
-                        }
-                      }
-                      result['filter'] = {
-                        'minMaxPrice': minMaxPrice
-                      }
-                      return result;
-                    });
+                    if ( JSON.stringify(filter.query) != '{"categories":{"$in":'+JSON.stringify(categoriesToListProductsIn)+'}}' ) {
+                      return ctx.call('products.count', filter)
+      								.then(filteredProductsCount => {
+                        result['filteredProductsCount'] = filteredProductsCount;
+                        return result;
+                      });
+                    }
+										return result;
 									});
 								});
 						}
 					});
+			}
+		},
+
+    /**
+		 * Add item to user's cart
+		 *
+		 * @actions
+		 * @param {Object} user - User entity
+		 *
+		 * @returns {Object} Created entity & token
+		 */
+		findWithCount: {
+			// auth: "",
+			params: {
+				query: { type: "object", optional: true },
+        limit: { type: "number", optional: true },
+        offset: { type: "number", optional: true },
+        sort: { type: "string", optional: true }
+			},
+			handler(ctx) {
+        // fix filter if needed
+        let filter = { query: {}, limit: 100};
+        if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
+          filter.query = ctx.params.query;
+        }
+        let categories = [];
+        if (typeof ctx.params.query.categories["$in"] !== "undefined") {
+          categories = ctx.params.query.categories["$in"];
+        }
+        // set offset
+        if (ctx.params.offset && ctx.params.offset>0) {
+          filter.offset = ctx.params.offset;
+        }
+        // set max of results
+        if (filter.limit>100) {
+          filter.limit = 100;
+        }
+        filter.sort = "price";
+        if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
+          filter.sort = ctx.params.sort;
+        }
+
+				return ctx.call("products.find", filter)
+				.then(categoryProducts => {
+					let result = {
+						'categories': categories,
+						'products': categoryProducts
+					};
+
+          // return result;
+          return ctx.call("products.getMinMaxPrice", {
+            categories: categories
+          }).then(minMaxPrice => {
+            if ( minMaxPrice.length>0 ) {
+              minMaxPrice = minMaxPrice[0];
+              if ( typeof minMaxPrice._id !== "undefined" ) {
+                delete minMaxPrice._id;
+              }
+            }
+            result['filter'] = {
+              'minMaxPrice': minMaxPrice
+            }
+            // count products inside this category and its subcategories
+            return ctx.call('products.count', {
+              "query": filter.query
+            })
+            .then(productsCount => {
+              result['filteredProductsCount'] = productsCount;
+              return result;
+            });
+          });
+
+        });
+
 			}
 		},
 
@@ -215,23 +299,24 @@ module.exports = {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
-				console.log(ctx.params.product);
 				return this.adapter.findById(ctx.params.product)
 					.then(found => {
 						if (found) { // product found, return it
-							return this.adapter.find({
-								"query": {
-									"variationGroupId": found.variationGroupId,
-									"_id": { "$ne": found._id }
-								}
-							})
-							.then(variations => {
-								if (!found.data) {
-									found.data = {};
-								}
-								found.data.variations = variations;
-								return found;
-							});
+              if (typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
+  							return this.adapter.find({
+  								"query": {
+  									"variationGroupId": found.variationGroupId,
+  									"_id": { "$ne": found._id }
+  								}
+  							})
+  							.then(variations => {
+  								if (!found.data) {
+  									found.data = {};
+  								}
+  								found.data.variations = variations;
+  								return found;
+  							});
+              }
 							return found;
 						} else { // no product found, create one
 							return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found"}]));
@@ -252,7 +337,6 @@ module.exports = {
       // },
       handler(ctx) {
         let categories = ctx.params.categories;
-        console.log( '----aggr----'+"\n", categories);
         return this.adapter.collection.aggregate([
           { "$match": {
             "categories": {"$in": categories}
@@ -302,7 +386,6 @@ module.exports = {
   									if (found) { // product found, update it
   										return mythis.validateEntity(entity)
   											.then(() => {
-  												console.log("found: ", entity);
   												if (!entity.dates) {
   													entity.dates = {};
   												}
@@ -360,7 +443,6 @@ module.exports = {
 
   				// return multiple promises results
   				return Promise.all(promises).then(prom => {
-  					console.log("\n\n------------import prom---:", prom);
   			    return prom;
   				});
         } else { // not admin user

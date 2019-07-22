@@ -328,6 +328,40 @@ module.exports = {
 			}
 		},
 
+
+		updateMyCart: {
+			cache: false,
+			params: {
+				cartNew: { type: "object" }
+			},
+			handler(ctx) {
+				// get user's cart
+				return ctx.call("cart.me")
+					.then(cart => {
+						if (cart && cart.length>0) {
+							cart = cart[0];
+						}
+
+						// update old cart according to new one, if property set, otherwise keep old
+						if ( ctx.params.cartNew ) {
+							for (var property in ctx.params.cartNew) {
+								if (cart.hasOwnProperty(property) && ctx.params.cartNew.hasOwnProperty(property)) {
+									cart[property] = ctx.params.cartNew[property];
+								}
+							}
+						}
+
+						cart.dateUpdated = new Date();
+						// update cart in variable and datasource
+						ctx.meta.cart = cart
+						console.log('cart.updateCart newCart: ', cart);
+						return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
+						.then(doc => this.transformDocuments(ctx, {}, doc))
+						.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+					});
+			}
+		}
+
 	},
 
 
