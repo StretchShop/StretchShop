@@ -92,7 +92,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Price",
-                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(3) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(4) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -207,17 +207,12 @@
         ]
       },
       {
-        "phrase": "Categories",
+        "phrase": "Sub-Categories",
         "language": {
           "code": "en",
           "lang": "en"
         },
-        "translates": [
-          {
-            "langCode": "sk",
-            "translation": "Kategórie"
-          }
-        ],
+        "translates": [],
         "occurrences": [
           {
             "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryList.vue",
@@ -226,12 +221,12 @@
             "blockName": "texts",
             "translationStrings": [
               {
-                "stringOrig": "Categories",
+                "stringOrig": "Sub-Categories",
                 "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(2) \u003e div.column.is-3 \u003e nav.panel \u003e p.panel-heading",
                 "translations": [
                   {
                     "langCode": "en",
-                    "translation": "Categories"
+                    "translation": "Sub-Categories"
                   }
                 ]
               }
@@ -288,7 +283,7 @@
             "translationStrings": [
               {
                 "stringOrig": "",
-                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(2) \u003e p.control.has-icons-left \u003e input.input.is-small",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(3) \u003e p.control.has-icons-left \u003e input.input.is-small",
                 "translations": [
                   {
                     "langCode": "en",
@@ -537,6 +532,34 @@
         ]
       },
       {
+        "phrase": "Sort by",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Sort by",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(5) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Sort by"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "Profile",
         "language": {
           "code": "en",
@@ -557,7 +580,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Profile",
-                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns:nth-child(1) \u003e div.column \u003e h1.title.is-1",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div:nth-child(1) \u003e div.columns:nth-child(1) \u003e div.column \u003e h1.title.is-1",
                 "translations": [
                   {
                     "langCode": "en",
@@ -590,7 +613,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Your Settings",
-                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e p.panel-heading \u003e span",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e p.panel-heading \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -623,7 +646,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Basic information",
-                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e a.panel-block:nth-child(2) \u003e span",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e a.panel-block:nth-child(2) \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -656,7 +679,7 @@
             "translationStrings": [
               {
                 "stringOrig": "User address",
-                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e a.panel-block:nth-child(3) \u003e span",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e a.panel-block:nth-child(3) \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -689,11 +712,151 @@
             "translationStrings": [
               {
                 "stringOrig": "Delivery addresses",
-                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e a.panel-block:nth-child(4) \u003e span",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e a.panel-block:nth-child(4) \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
                     "translation": "Delivery addresses"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Unauthorized",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Me.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Unauthorized",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div:nth-child(2) \u003e div.columns \u003e div.column \u003e h1.title.is-1",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Unauthorized"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "It may help if you",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Me.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "It may help if you",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div:nth-child(2) \u003e div.columns \u003e div.column \u003e p \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "It may help if you"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "log in",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Me.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "log in",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div:nth-child(2) \u003e div.columns \u003e div.column \u003e p \u003e router-link",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "log in"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Wrong credentials",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Wrong credentials",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.field.email \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Wrong credentials"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Account not activated. Check your mailbox for activation email.",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Account not activated. Check your mailbox for activation email.",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.field.email \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(2)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Account not activated. Check your mailbox for activation email."
                   }
                 ]
               }
@@ -722,7 +885,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Remember my login on this computer",
-                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4 \u003e form \u003e div.field:nth-child(3) \u003e span",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.field:nth-child(3) \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -755,11 +918,443 @@
             "translationStrings": [
               {
                 "stringOrig": "Login",
-                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4 \u003e form \u003e button.button.is-medium.is-primary",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e button.button.is-medium.is-primary",
                 "translations": [
                   {
                     "langCode": "en",
                     "translation": "Login"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Forgot your password? Reset your password",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Forgot your password? Reset your password",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(3) \u003e p",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Forgot your password? Reset your password"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Reset password",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Reset.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Reset password",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns:nth-child(1) \u003e div.column \u003e h1.title.is-1",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Reset password"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "This email couldn\u0027t be found",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Reset.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "This email couldn\u0027t be found",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6 \u003e div.field.email \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This email couldn\u0027t be found"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "We are sending you email",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Reset.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "We are sending you email",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(2) \u003e h2.title.is-2",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "We are sending you email"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Check your mailbox for verification email (if not found check, also you spam folder).",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Reset.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Check your mailbox for verification email (if not found check, also you spam folder).",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(2) \u003e p",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Check your mailbox for verification email (if not found check, also you spam folder)."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Register.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Check your mailbox for verification email (if not found check, also you spam folder).",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(2) \u003e p",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Check your mailbox for verification email (if not found check, also you spam folder)."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "This field cannot be empty",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Register.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "This field cannot be empty",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-12 \u003e div.field.username \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This field cannot be empty"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "This field cannot be empty",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field.email \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This field cannot be empty"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "This field cannot be empty",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(2) \u003e div.field.email2 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This field cannot be empty"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "This field cannot be empty",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(4) \u003e div.column.is-6:nth-child(1) \u003e div.field.password \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This field cannot be empty"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "This field cannot be empty",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(4) \u003e div.column.is-6:nth-child(2) \u003e div.field.password2 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This field cannot be empty"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Values do not match",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Register.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Values do not match",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(2) \u003e div.field.email2 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(2)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Values do not match"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Values do not match",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(4) \u003e div.column.is-6:nth-child(2) \u003e div.field.password2 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(2)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Values do not match"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Your registration was successfull, we are sending you email",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Register.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Your registration was successfull, we are sending you email",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(2) \u003e h2.title.is-2",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Your registration was successfull, we are sending you email"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Verify",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Verify.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Verify",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns \u003e div.column \u003e h1.title.is-1",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Verify"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Activation link is not valid anymore (valid only for 2 hours)",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Verify.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Activation link is not valid anymore (valid only for 2 hours)",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns \u003e div.column \u003e div \u003e p.has-text-danger",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Activation link is not valid anymore (valid only for 2 hours)"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "If more than 2 hours passed, try to",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Verify.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "If more than 2 hours passed, try to",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns \u003e div.column \u003e div \u003e p:nth-child(2) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "If more than 2 hours passed, try to"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "reset your password",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Verify.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "reset your password",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div.columns \u003e div.column \u003e div \u003e p:nth-child(2) \u003e router-link",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "reset your password"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Drop your files here or click to upload",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Drop your files here or click to upload",
+                "selector": "#meInfo \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-4.has-text-centered:nth-child(2) \u003e form \u003e div.field \u003e b-upload \u003e section.section \u003e div.content.has-text-centered \u003e p.dropFilesOrClick",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Drop your files here or click to upload"
                   }
                 ]
               }
@@ -788,7 +1383,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Change Image",
-                "selector": "html \u003e body \u003e template \u003e div \u003e section \u003e form \u003e div.columns.is-variable.is-2.is-centered \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
+                "selector": "#meInfo \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-4.has-text-centered:nth-child(2) \u003e form \u003e button.button.is-success \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -821,7 +1416,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Username",
-                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-12 \u003e div.field \u003e label.label",
+                "selector": "#meInfo \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-12 \u003e div.field \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -854,7 +1449,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Change Username",
-                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
+                "selector": "#meInfo \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(1) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -887,7 +1482,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Email Confirm",
-                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "selector": "#meInfo \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -938,7 +1533,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Change your Email",
-                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
+                "selector": "#meInfo \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -971,7 +1566,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Old Password",
-                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-6 \u003e div.field \u003e label.label",
+                "selector": "#meInfo \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-6 \u003e div.field \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1004,7 +1599,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Password",
-                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
+                "selector": "#meInfo \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1055,7 +1650,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Password Confirm",
-                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "selector": "#meInfo \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1106,7 +1701,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Change your Password",
-                "selector": "html \u003e body \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
+                "selector": "#meInfo \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1139,7 +1734,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Cart",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns:nth-child(1) \u003e div.column \u003e h1.title.is-1",
+                "selector": "#orderCart \u003e div.columns:nth-child(1) \u003e div.column \u003e h1.title.is-1",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1190,7 +1785,7 @@
             "translationStrings": [
               {
                 "stringOrig": "User",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.b-tabs.block \u003e nav.tabs.is-boxed.is-centered \u003e ul \u003e li:nth-child(1) \u003e a \u003e span",
+                "selector": "#orderCart \u003e div.columns.is-variable.is-8:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.b-tabs.block \u003e nav.tabs.is-boxed.is-centered \u003e ul \u003e li:nth-child(1) \u003e a \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1223,7 +1818,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Delivery Payment",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.b-tabs.block \u003e nav.tabs.is-boxed.is-centered \u003e ul \u003e li:nth-child(2) \u003e a \u003e span",
+                "selector": "#orderCart \u003e div.columns.is-variable.is-8:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.b-tabs.block \u003e nav.tabs.is-boxed.is-centered \u003e ul \u003e li:nth-child(2) \u003e a \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1274,7 +1869,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Summary",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.b-tabs.block \u003e nav.tabs.is-boxed.is-centered \u003e ul \u003e li:nth-child(3) \u003e a \u003e span",
+                "selector": "#orderCart \u003e div.columns.is-variable.is-8:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.b-tabs.block \u003e nav.tabs.is-boxed.is-centered \u003e ul \u003e li:nth-child(3) \u003e a \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1292,7 +1887,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Summary",
-                "selector": "html \u003e body \u003e template \u003e div \u003e h2.title.is-2",
+                "selector": "#summary \u003e h2.title.is-2",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1325,7 +1920,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Price delivery",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(2) \u003e span",
+                "selector": "#orderCart \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(2) \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1358,7 +1953,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Price payment",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(3) \u003e span",
+                "selector": "#orderCart \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(3) \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1391,7 +1986,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Total price",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(4) \u003e span",
+                "selector": "#orderCart \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(4) \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1401,7 +1996,7 @@
               },
               {
                 "stringOrig": "Total price",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(5) \u003e span",
+                "selector": "#orderCart \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div:nth-child(5) \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1452,7 +2047,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Clear Cart",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e button.button.is-danger \u003e span",
+                "selector": "#orderCart \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e button.button.is-danger \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1485,7 +2080,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Your cart is empty",
-                "selector": "html \u003e body \u003e template \u003e div.container.order-step-1.cart-detail \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(2) \u003e h3.title.is-3 \u003e span",
+                "selector": "#orderCart \u003e div.columns.is-variable.is-8:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(2) \u003e h3.title.is-3 \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -2589,7 +3184,7 @@
             "translationStrings": [
               {
                 "stringOrig": "This would be your order:",
-                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(1) \u003e div.column.is-12",
+                "selector": "#summary \u003e form \u003e div.columns.is-variable.is-2:nth-child(1) \u003e div.column.is-12",
                 "translations": [
                   {
                     "langCode": "en",
@@ -2622,7 +3217,7 @@
             "translationStrings": [
               {
                 "stringOrig": "I agree to the",
-                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-12 \u003e label.checkbox \u003e span",
+                "selector": "#summary \u003e form \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-12 \u003e label.checkbox \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -2655,7 +3250,7 @@
             "translationStrings": [
               {
                 "stringOrig": "terms and conditions",
-                "selector": "html \u003e body \u003e template \u003e div \u003e form \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-12 \u003e label.checkbox \u003e a",
+                "selector": "#summary \u003e form \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-12 \u003e label.checkbox \u003e a",
                 "translations": [
                   {
                     "langCode": "en",

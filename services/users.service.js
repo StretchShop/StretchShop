@@ -132,6 +132,11 @@ module.exports = {
 				// get other details - user and translation
 				coreData.user = null;
 				coreData.translation = null
+				coreData.settings = {
+						assets: {
+							url: process.env.ASSETS_URL
+						}
+				};
 				if ( ctx.meta.user && ctx.meta.user._id ) {
 					return ctx.call('users.me')
 					.then(user => {
@@ -224,40 +229,38 @@ module.exports = {
 					.then(() => {
 						entity.password = bcrypt.hashSync(entity.password, 10);
 						let keepItForLater = entity.password;
+						let hashedPwd = entity.password;
 						entity.type = "user";
 						entity.bio = entity.bio || "";
 						entity.image = entity.image || null;
 						entity.createdAt = new Date();
 						entity.lastVerifyDate = new Date();
+						if ( !entity.settings ) {
+							entity.settings = {
+								language: ctx.meta.localsDefault.lang,
+								currency: ctx.meta.localsDefault.currency
+							};
+						}
 
 						return this.adapter.insert(entity)
 							.then(doc => this.transformDocuments(ctx, {}, doc))
 							.then(user => this.transformEntity(user, true, ctx.meta.token))
 							.then(entity => {
-								let hash = bcrypt.hashSync(keepItForLater.toString().substring(7), 10)
-								hash = encodeURIComponent(hash.substring(7));
-								let re = new RegExp("\\.", 'g');
-								let email = entity.user.email.toString().replace(re, '--').replace('@', '---');
-								let confirm_link = ctx.meta.siteSettings.url+'/user/verify/'+encodeURIComponent(email)+'/'+hash; // using email to identify and hash to verify
+								this.entityChanged("created", entity, ctx).then(() => entity);
 								console.log("\n\n User Created: ", entity, "\n\n\n");
-								// return entity;
-								return ctx.call("users.sendEmail", { // TODO - in future change to send emails in separate process
-									settings: {
-										to: entity.user.email
-									},
-									template: 'registration',
-									data: {
-										webname: "StretchShop",
-										username: entity.user.username,
-										email: entity.user.email,
-										confirm_link: confirm_link
-									}
-								})
-								.then(json => {
-									this.entityChanged("created", json, ctx).then(() => json);
-									console.log("\nemail sent _____---... "+"\n\n");
-									return entity;
-								});
+
+								// send email separately asynchronously not waiting for response
+								let emailData = {
+									"entity": entity,
+									"keepItForLater": this.buildHashSourceFromEntity(hashedPwd, entity.createdAt),
+									"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
+									"language": entity.user.settings.language,
+									"templateName": "registration"
+								};
+								this.sendVerificationEmail(emailData, ctx);
+
+								// return user data
+								return entity;
 							});
 					});
 			}
@@ -386,6 +389,7 @@ module.exports = {
 						return this.transformDocuments(ctx, {}, user);
 					})
 					.then(user => {
+						console.log("____idf-_:", user);
 						return this.transformEntity(user, true, (ctx.meta.token ? ctx.meta.token : null));
 					})
 					.catch((error) => {
@@ -446,6 +450,9 @@ module.exports = {
 							}
 							return this.adapter.findById(findId)
 							.then(found => {
+							if ( typeof newData["password"] !== "undefined" ) {
+								newData["password"] = bcrypt.hashSync(newData["password"], 10);
+							}
 								// loop found object, update it with new data
 								for (var property in newData) {
 								    if (newData.hasOwnProperty(property) && found.hasOwnProperty(property)) {
@@ -455,10 +462,7 @@ module.exports = {
 										}
 								}
 								newData.updatedAt = new Date();
-								const update = {
-									"$set": found
-								};
-								return this.adapter.updateById(ctx.meta.user._id, update);
+								return this.adapter.updateById(ctx.meta.user._id, this.prepareForUpdate(found));
 							});
 						}
 						return Promise.reject(new MoleculerClientError("User not valid", 422, "", [{ field: "user", message: "invalid"}]));
@@ -469,6 +473,34 @@ module.exports = {
 
 			}
 		},
+
+
+
+
+		/**
+		 * Update current user entity.
+		 * Auth is required!
+		 *
+		 * @actions
+		 *
+		 * @param {Object} user - Modified fields
+		 * @returns {Object} User entity
+		 */
+		updateMyProfileImage: {
+			auth: "required",
+			params: {
+				data: { type: "object" }
+			},
+			handler(ctx) {
+				const newData = ctx.params.data;
+				let user = ctx.meta.user;
+				user.image = newData.image
+
+				newData.updatedAt = new Date();
+				return this.adapter.updateById(ctx.meta.user._id, this.prepareForUpdate(user));
+			}
+		},
+
 
 		/**
 		 * Get a user profile.
@@ -566,9 +598,9 @@ module.exports = {
 				return this.adapter.count({ "query": { "username": ctx.params.username } })
 				.then(count => {
 					if (count>0) {
-						return true;
+						return Promise.reject(new MoleculerClientError("User already exists", 422, "", [{ field: "username", message: "exists" }]));
 					}
-					return false;
+					return this.Promise.resolve(false);
 				});
 			}
 		},
@@ -579,11 +611,10 @@ module.exports = {
 				email: { type: "email" }
 			},
 			handler(ctx) {
-				return false;
 				let resx =  this.adapter.count({ "query": { "email": ctx.params.email } })
 				.then(count => {
 					if (count>0) {
-						return this.Promise.resolve(true);
+						return Promise.reject(new MoleculerClientError("Email already exists", 422, "", [{ field: "email", message: "exists" }]));
 					}
 					return this.Promise.resolve(false);
 				});
@@ -609,14 +640,21 @@ module.exports = {
 			params: {
 				template: { type: "string", min: 3 },
 				data: { type: "object" },
-				settings: { type: "object", optional: true }
+				settings: { type: "object", optional: true },
+				functionSettings: { type: "object", optional: true }
 			},
 			handler(ctx) {
 				ctx.params.settings = (typeof ctx.params.settings !== 'undefined') ?  ctx.params.settings : null;
-				let langCode = ctx.meta.localsDefault.lang;
+				ctx.params.functionSettings = (typeof ctx.params.functionSettings !== 'undefined') ?  ctx.params.functionSettings : null;
+				// set language of template
+				let langCode = ctx.meta.localsDefault.lang
+				if ( ctx.params.functionSettings && typeof ctx.params.functionSettings.language !== "undefined" && ctx.params.functionSettings.language ) {
+					langCode = ctx.params.functionSettings.language;
+				}
 				if ( typeof langCode.code !== 'undefined' ) {
 					langCode = langCode.code;
 				}
+				// load templates
 				return emailTemplate(ctx.params.template+"-"+langCode, ctx.params.data)
 				.then((templates)=>{
 					let transporter = nodemailer.createTransport(this.settings.mailSettings.smtp);
@@ -687,20 +725,19 @@ module.exports = {
 				let action = (typeof ctx.params.action !== 'undefined') ?  ctx.params.action : 'reg';
 				let re = new RegExp("\-\-", 'g');
 				let email = ctx.params.email.toString().replace('---', '@').replace(re, '.');
-				let TIME_TO_PAST = 60 * 60 * 1000 * 2;
-				let oldDate = new Date((new Date().getTime()) - TIME_TO_PAST);
+				const TIME_TO_PAST = 60 * 60 * 1000 * 2;
+				let oldDate = new Date();
+				oldDate.setTime( (new Date().getTime()) - TIME_TO_PAST );
 				let hash = "$2b$10$"+ctx.params.hash;
-				console.log("\n user.verifyHash", {
-					email: email,
-					hash: hash,
-					oldDate: oldDate
-				});
-				return this.adapter.findOne({ email: email, activated: {"$exists": false}, lastVerifyDate: {"$gt": oldDate} })
+				return this.adapter.findOne({ email: email, activated: {"$exists": false} }) //, lastVerifyDate: {"$gt": oldDate}
 				.then((found) => {
+					let date1 = new Date(found.lastVerifyDate);
+					let date2 = new Date(oldDate);
 					if ( found && found.password && found.password.toString().trim()!='' ) {
-						return bcrypt.compare(hash, found.password).then(res => {
+						let wannabeHash = this.buildHashSourceFromEntity(found.password, found.createdAt);
+						return bcrypt.compare(hash, wannabeHash).then(res => {
 							found.activated = new Date();
-							return this.adapter.updateById(found._id, found)
+							return this.adapter.updateById(found._id, this.prepareForUpdate(found))
 							.then(doc => this.transformDocuments(ctx, {}, doc))
 							.then(user => this.transformEntity(user, true, ctx.meta.token))
 							.then(json => this.entityChanged("updated", json, ctx).then(() => json));
@@ -731,20 +768,41 @@ module.exports = {
 				email: { type: "string" }
 			},
 			handler(ctx) {
-				let TIME_TO_PAST = 60 * 60 * 1000 * 2;
+				let TIME_TO_PAST = 60 * 60 * 1000 * 2; // 2 hours
 				let oldDate = new Date((new Date().getTime()) - TIME_TO_PAST);
-				return this.adapter.findOne({ email: ctx.params.email, lastVerifyDate: {"$gt": oldDate} })
+				return this.adapter.findOne({ email: ctx.params.email })
 				.then((found) => {
-					if ( found && found.password && found.password.toString().trim()!='' ) {
-						return bcrypt.compare(hash, found.password).then(res => {
-							found.activated = new Date();
-							return this.adapter.updateById(found._id, found)
-							.then(doc => this.transformDocuments(ctx, {}, doc))
-							.then(user => this.transformEntity(user, true, ctx.meta.token))
-							.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+					if ( found ) {
+						// TODO - if found, update activation date, so activation link will work
+						console.log("\n\n Reset password: ", found, "\n\n\n");
+						delete found.activated;
+
+						let forUpdateWithRemove = this.prepareForUpdate(found);
+						forUpdateWithRemove["$unset"] = { activated: "" };
+
+						return this.adapter.updateById(found._id, forUpdateWithRemove).then(updated => {
+							if ( !updated.settings ) {
+								updated.settings = {
+									language: ctx.meta.localsDefault.lang,
+									currency: ctx.meta.localsDefault.currency
+								};
+							}
+							let entity = { user : updated };
+
+							// send email separately asynchronously not waiting for response
+							let emailData = {
+								"entity": entity,
+								"keepItForLater": this.buildHashSourceFromEntity(entity.user.password, entity.createdAt),
+								"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
+								"language": entity.user.settings.language,
+								"templateName": "pwdreset" // TODO - create email templates
+							};
+							this.sendVerificationEmail(emailData, ctx);
+
+							return entity.user;
 						});
 					}
-					return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed"}]));
+					return Promise.reject(new MoleculerClientError("Account reset failed - try again", 422, "", [{ field: "email", message: "not found"}]));
 				});
 				/**
 				 * - verify hash (by email) & date stored in lastVerifyDate (2 hours),
@@ -832,7 +890,7 @@ module.exports = {
 		 */
 		transformProfile(ctx, user, loggedInUser) {
 			//user.image = user.image || "https://www.gravatar.com/avatar/" + crypto.createHash("md5").update(user.email).digest("hex") + "?d=robohash";
-			user.image = user.image || "https://static.productionready.io/images/smiley-cyrus.jpg";
+			user.image = user.image || "";
 
 			if (loggedInUser) {
 				return ctx.call("follows.has", { user: loggedInUser._id.toString(), follow: user._id.toString() })
@@ -967,7 +1025,56 @@ module.exports = {
 				 }
 			 }
 			 return isValidTransLang;
-		 }
+		 },
+
+
+		 sendVerificationEmail(emailData, ctx) {
+			 // get hash
+			 let hash = bcrypt.hashSync(emailData.keepItForLater.toString().substring(7), 10)
+			 hash = encodeURIComponent(hash.substring(7));
+			 // get email string
+			 let re = new RegExp("\\.", 'g');
+			 let email = emailData.entity.user.email.toString().replace(re, '--').replace('@', '---');
+			 // create activation link
+			 let confirmLink = emailData.url+'/user/verify/'+encodeURIComponent(email)+'/'+hash; // using email to identify and hash to verify
+			 // setup object for sending email
+			 let emailSetup = {
+			 	settings: {
+			 		to: emailData.entity.user.email
+			 	},
+				functionSettings: {
+					language: emailData.lang
+				},
+			 	template: emailData.templateName,
+			 	data: {
+			 		webname: "StretchShop", // TODO - get name from config
+			 		username: emailData.entity.user.username,
+			 		email: emailData.entity.user.email,
+			 		confirm_link: confirmLink
+			 	}
+			 };
+
+			 // sending email
+			 ctx.call("users.sendEmail", emailSetup).then(json => {
+				 console.log("\nemail sent _____---... "+json+"\n\n");
+			 });
+		},
+
+
+		prepareForUpdate(object) { // TODO - unify into mixin
+			let objectToSave = JSON.parse(JSON.stringify(object));
+			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
+				delete objectToSave._id;
+			}
+			return { "$set": objectToSave };
+		},
+
+
+		buildHashSourceFromEntity(string1, string2) {
+			let comboString = string1.substr(12,10)+string2+string1.substr(30);
+			let hashSource = bcrypt.hashSync(comboString, 10);
+			return hashSource;
+		},
 
 
 	},

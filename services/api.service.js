@@ -1,15 +1,15 @@
 "use strict";
 
-require('dotenv').config();
+require("dotenv").config();
 const _ = require("lodash");
 const ApiGateway = require("moleculer-web");
-const Cookies = require('cookies');
-const crypto = require('crypto');
+const Cookies = require("cookies");
+const crypto = require("crypto");
 const { UnAuthorizedError } = ApiGateway.Errors;
-// const fs = require('fs');
-const fs = require('fs-extra');
-var formidable = require('formidable'),
-		util = require('util');
+// const fs = require("fs");
+const fs = require("fs-extra");
+var formidable = require("formidable"),
+		util = require("util");
 
 module.exports = {
 	name: "api",
@@ -24,7 +24,7 @@ module.exports = {
         // Configures the Access-Control-Allow-Methods CORS header.
         methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
         // Configures the Access-Control-Allow-Headers CORS header.
-        allowedHeaders: ['Content-Type', 'Origin', 'X-Requested-With', 'Accept', 'Authorization', 'Timeout', 'Cookie', 'Set-Cookie', 'cookie'],
+        allowedHeaders: ["Content-Type", "Origin", "X-Requested-With", "Accept", "Authorization", "Timeout", "Cookie", "Set-Cookie", "cookie"],
         // Configures the Access-Control-Expose-Headers CORS header.
         exposedHeaders: [],
         // Configures the Access-Control-Allow-Credentials CORS header.
@@ -55,8 +55,8 @@ module.exports = {
 
 				// Current user
 				"GET /user": "users.me",
-				"GET /user/verify/:email/:hash": "users.verifyHash",
-				"GET /user/reset/:email": "users.resetPassword",
+				"POST /user/verify": "users.verifyHash",
+				"POST /user/reset": "users.resetPassword",
 				"PUT /user": "users.updateUser",
 				"POST /user/image": function (req, res) {
             this.parseUploadedFile(req, res);
@@ -179,7 +179,11 @@ module.exports = {
 		},
 
 		siteSettings: {
-			url: "https://stretchshop.cw.sk"
+			url: process.env.SITE_URL || "https://stretchshop.app",
+			name: process.env.SITE_NAME || "StretchShop",
+			supportEmail: process.env.SITE_SUPPORT_EMAIL || "support@stretchshop.app",
+			imgLogo: process.env.SITE_IMG_LOGO || "/assets/_site/site-logo.png",
+			imgSiteEmailHeader: process.env.SITE_IMG_EMAIL_HEADER || "/assets/_site/site-email-header-image.png"
 		},
 
 		// logRequestParams: "info",
@@ -212,9 +216,9 @@ module.exports = {
 		parseCookies(cookiesString) {
 			var list = {};
 
-	    cookiesString && cookiesString.split(';').forEach(function( cookie ) {
-	        var parts = cookie.split('=');
-	        list[parts.shift().trim()] = decodeURI(parts.join('='));
+	    cookiesString && cookiesString.split(";").forEach(function( cookie ) {
+	        var parts = cookie.split("=");
+	        list[parts.shift().trim()] = decodeURI(parts.join("="));
 	    });
 
 	    return list;
@@ -224,16 +228,16 @@ module.exports = {
 		 * Manage user independent application cookies - eg. cart
 		 */
 		cookiesManagement(ctx, route, req, res) {
-			var cookiesTool = new Cookies(req, res, { keys: ['Lvj1MalbaTe6k'] })
+			var cookiesTool = new Cookies(req, res, { keys: ["Lvj1MalbaTe6k"] })
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;
 			if ( !cookies.cart ) {
 				const name = "cart";
-				const hash = crypto.createHash('sha256');
+				const hash = crypto.createHash("sha256");
 				const userCookieString = ctx.meta.remoteAddress + "--" + new Date().toISOString();
 				hash.update(userCookieString);
-				const value = hash.digest('hex');
+				const value = hash.digest("hex");
 				cookiesTool.set(name, value, { signed: true })
 				ctx.meta.cookies[name] = value;
 			}
@@ -259,7 +263,7 @@ module.exports = {
 			ctx.meta.siteSettings.translation = this.settings.translation;
 			this.cookiesManagement(ctx, route, req, res);
 
-			let token = '';
+			let token = "";
 			if (req.headers.authorization) {
 				let type = req.headers.authorization.split(" ")[0];
 				if (type === "Token" || type === "Bearer")
@@ -268,12 +272,12 @@ module.exports = {
 
 			return this.Promise.resolve(token)
 				.then(token => {
-					if (token && token.toString().trim()!=='') {
+					if (token && token.toString().trim()!=="") {
 						// Verify JWT token
 						return ctx.call("users.resolveToken", { token: token })
 							.then(user => {
 								console.log("\napi.tokenresolved.user: ", user);
-								if ( typeof user !== 'undefined' && user && user.length>0 ) {
+								if ( typeof user !== "undefined" && user && user.length>0 ) {
 									user = user[0];
 								}
 								if (user) {
@@ -351,20 +355,20 @@ module.exports = {
 		 * simple function to split string into
 		 */
 		stringChunk(str, chunkSize) {
- 			chunkSize = (typeof chunkSize === 'undefined') ? 2 : chunkSize;
- 			let resultString = '';
+ 			chunkSize = (typeof chunkSize === "undefined") ? 2 : chunkSize;
+ 			let resultString = "";
 
  			if ( str.length>0 ) {
  				let resultArray = [];
- 				let chunk = '';
+ 				let chunk = "";
  		 		for ( let i = 0; i<str.length; i=(i+chunkSize) ) {
  		 			chunk = str.substring(i,i+chunkSize);
- 		 			if ( chunk.trim()!='' ) {
+ 		 			if ( chunk.trim()!="" ) {
  		 				resultArray.push(chunk);
  		 			}
  		 		}
  		 		if (resultArray.length) {
- 		 			resultString = resultArray.join('/');
+ 		 			resultString = resultArray.join("/");
  		 		}
  		  } else {
  		  	resultString = str;
@@ -374,6 +378,48 @@ module.exports = {
  		},
 
 
+		getActiveUploadPath(req) {
+			let paths = [
+				{
+					url: "/user/image",
+					destination: "users/profile",
+					fileName: ["profile"],
+					validUserTypes: ["user", "admin"],
+					stringToChunk: req.$ctx.meta.user._id.toString(),
+					chunkSize: 6,
+					postAction: "users.updateMyProfileImage"
+				},
+				{
+					url: "/products/:id/image",
+					destination: "products/:id",
+					fileName: [":orderCode", "default"],
+					validUserTypes: ["admin"],
+					stringToChunk: req.productOrderCode ? req.productOrderCode : '',
+					chunkSize: 3,
+					postAction: "products.updateProductImage",
+				},
+				{
+					url: "/categories/:id/image",
+					destination: "categories/:id",
+					fileName: [":id", "default"],
+					validUserTypes: ["admin"],
+					stringToChunk: req.productOrderCode ? req.productOrderCode : '',
+					chunkSize: 3,
+					postAction: "categories.updateCategoryImage",
+				}
+			];
+
+			for ( let i=0; i<paths.length; i++ ) {
+				if ( paths[i].url===req.url ) {
+					return paths[i];
+					break;
+				}
+			}
+
+			return null;
+		},
+
+
 		/**
 		 * parse form with uploaded files, copy files according to paths
 		 */
@@ -381,28 +427,7 @@ module.exports = {
 			// parse a file upload
 			let self = this;
 	    let form = new formidable.IncomingForm();
-			let paths = [
-				{
-					url: "/user/image",
-					destination: "users/profile",
-					fileName: "profile",
-					validUserTypes: ['user', 'admin'],
-					stringToChunk: req.$ctx.meta.user._id,
-					chunkSize: 6
-				},
-				{ url: "/products/:id/image", destination: "products/:id" },
-				{ url: "/categories/:id/image", destination: "categories/:id" }
-			];
-
-			console.log("\nctx.meta.user: -- ", req.$ctx.meta.user);
-			let activePath = null;
-
-			for ( let i=0; i<paths.length; i++ ) {
-				if ( paths[i].url===req.url ) {
-					activePath = paths[i];
-					break;
-				}
-			}
+			let activePath = this.getActiveUploadPath(req);
 
 			/*
 			 * can process form, move file and launch related action, because:
@@ -418,7 +443,7 @@ module.exports = {
 					// TODO - add multiple promises as in import - after all done, create message and send
 					for (var property in files) {
 				    if (files.hasOwnProperty(property)) {
-			        console.log("\n"+property+" ---- :", files[property].path, files[property].name);
+			        console.log("\n"+property+" ---- :", files[property]);
 							let fileFrom = files[property].path;
 							let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH+activePath.destination;
 							let urlBaseDir = process.env.ASSETS_PATH+activePath.destination;
@@ -426,22 +451,31 @@ module.exports = {
 							// set new filename
 							let re = /(?:\.([^.]+))?$/;
 							let fileExt = re.exec(files[property].name);
-							let resultFileName = activePath.fileName+"."+fileExt[1];
+							let resultFileName = activePath.fileName.join('-')+"."+fileExt[1];
+							let resultFullPath = targetDir+"/"+resultFileName;
 							// set result paths
-							let fileToSave = copyBaseDir+"/"+targetDir+"/"+resultFileName;
-							let fileToUrl = urlBaseDir+"/"+targetDir+"/"+resultFileName;
+							let fileToSave = copyBaseDir+"/"+resultFullPath;
+							let fileToUrl = urlBaseDir+"/"+resultFullPath;
 							console.log(fileFrom, fileToSave, fileToUrl, targetDir);
 							promises.push(
 								fs.ensureDir(copyBaseDir+"/"+targetDir)
 								.then(() => {
 									return self.moveFile(fileFrom, fileToSave).then(result => {
-										return { id: property, from: files[property].name, to: fileToUrl, success: true };
+										return {
+											id: property,
+											from: files[property].name,
+											to: fileToUrl,
+											path: resultFullPath,
+											name: resultFileName,
+											success: true,
+											action: (activePath.postAction) ? activePath.postAction : null
+										};
 									});
 								})
 								.catch(err => {
 									console.log("\nensureDir err: ", err);
 								  console.error(err);
-									return { id: property, from: files[property].name, success: false, error: err };
+									return { "id": property, "from": files[property].name, "success": false, "error": err };
 								})); // push with ensureDir end
 				    }
 					}
@@ -451,13 +485,21 @@ module.exports = {
 					return Promise.all(promises).then((values) => {
 							let fileErrors = false;
 							values.forEach((v) => {
-								if ( v.success!==true ) {
+								if ( v.success !== true ) {
 									fileErrors = true;
 								}
+								// if available, run post action
+								if ( v.action ) {
+									req.$ctx.call(v.action, { data: {image: v.path} });
+								}
 							});
-							res.writeHead(200, {'content-type': 'application/json'});
-							res.end(util.inspect({success: true, errors: fileErrors, files: values}));
-					    return promises;
+							res.writeHead(200, {"content-type": "application/json"});
+							res.end(util.inspect(JSON.stringify({
+								success: true,
+								errors: fileErrors,
+								files: values
+							})));
+					    return values;
 					});
 				});
 			}
