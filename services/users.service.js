@@ -11,6 +11,7 @@ const fs = require('fs');
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 const emailTemplate = require("../mixins/email.mixin");
+const validateAddress = require("../mixins/validate.address.mixin");
 
 module.exports = {
 	name: "users",
@@ -442,6 +443,27 @@ module.exports = {
 
 					})
 					.then(() => {
+						// validate address(es) and return error if they are not valid (missing some field)
+						let errors = [];
+						let keys = 0;
+						if (newData.addresses && newData.addresses.length>0) {
+							Object.keys(newData.addresses).forEach(function(key){
+								let address = newData.addresses[key];
+								let type = (address && address.type) ? address.type : "invoice";
+								let validatioResult = validateAddress(address);
+								if ( validatioResult.result && validatioResult.errors.length>0 ) {
+									keys++;
+									validatioResult.errors.forEach(function(error){
+										errors.push({ key: key, name: error.name, action: error.action });
+									});
+								}
+							});
+						}
+						if ( errors.length>0 ) {
+							return Promise.reject(new MoleculerClientError("Invalid address", 422, "", errors));
+						}
+					})
+					.then(() => {
 						// get user only if it's logged and new data id&username&email is same as logged or logged user is admin
 						if ( this.userCanUpdate(loggedUser, newData) ) {
 							let findId = loggedUser._id;
@@ -478,7 +500,7 @@ module.exports = {
 
 
 		/**
-		 * Update current user entity.
+		 * Update current user image
 		 * Auth is required!
 		 *
 		 * @actions
