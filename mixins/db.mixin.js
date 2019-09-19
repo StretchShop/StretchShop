@@ -13,7 +13,15 @@ module.exports = function(collection) {
 		return {
 			mixins: [DbService],
 			adapter: new MongoAdapter(process.env.MONGO_URI, { useNewUrlParser: true }),
-			collection
+			collection,
+			methods: {
+				fixStringToId(idString) {
+					if ( typeof this.adapter.stringToObjectID !== 'undefined' ) {
+						return this.adapter.stringToObjectID(idString);
+					}
+					return idString;
+				}
+			}
 		};
 	}
 
@@ -32,6 +40,9 @@ module.exports = function(collection) {
 					const eventName = `${this.name}.entity.${type}`;
 					this.broker.emit(eventName, { meta: ctx.meta, entity: json });
 				});
+			},
+			fixStringToId(idString) {
+				return idString;
 			}
 		}
 	};

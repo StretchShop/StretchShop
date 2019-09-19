@@ -87,22 +87,21 @@ module.exports = {
 				ttl: 30
 			},
 			handler(ctx) {
-				if ( ctx.meta.cookies.cart && ctx.meta.cart ) { // we have cart in meta
+				let cartCookie = (ctx.meta && ctx.meta.cookies && ctx.meta.cookies.cart) ? ctx.meta.cookies.cart : null;
+				if ( cartCookie && ctx.meta.cart ) { // we have cart in meta
 					return ctx.meta.cart;
 				} else { // no cart in meta, find it in datasource
 					return ctx.call("cart.find", {
 						"query": {
-							hash: ctx.meta.cookies.cart
+							hash: cartCookie
 						}
 					})
 					.then(found => {
-						console.log("\n\n _______0 ---- cart.found: ", found);
 						if (found && found.constructor===Array && found[0] && found[0].constructor!==Array ) {
 							// cart found in datasource, save to meta
 							if ( found && found.length>0 ) {
 								found = found[0];
 							}
-							console.log("\n\n _______0 ---- cart.found TRUE: ", found);
 							ctx.meta.cart = found;
 							return ctx.meta.cart;
 						} else { // no cart found in datasource, create one
@@ -117,7 +116,7 @@ module.exports = {
 							let entity = {
 								user: userId,
 								ip: ctx.meta.remoteAddress || null,
-								hash: ctx.meta.cookies.cart || null,
+								hash: cartCookie || null,
 								order: orderId,
 								dateCreated: new Date(),
 								dateUpdated: new Date(),
@@ -170,7 +169,6 @@ module.exports = {
 						return productAvailable;
 					})
 					.then(productAvailable => {
-
 						return ctx.call("cart.me")
 						.then(cart => {
 								if (cart && cart.length>0) {
@@ -199,8 +197,12 @@ module.exports = {
 									}
 									cart.items[isInCart].amount = newAmount;
 								} else { // not in cart
-									productAvailable.amount = ctx.params.amount;
-									cart.items.push(productAvailable);
+									if ( typeof productAvailable === "object" && typeof productAvailable !== "Array" ) {
+										productAvailable.amount = ctx.params.amount;
+										cart.items.push(productAvailable);
+									} else {
+										cart.items = null;
+									}
 								}
 								// TODO - update stockAmount of product
 								cart.dateUpdated = new Date();
@@ -401,22 +403,11 @@ module.exports = {
 	  },
 
 
-		fixStringToId(idString) {
-			console.log( "\n\ntypeof this.adapter.stringToObjectID: ", typeof this.adapter.stringToObjectID );
-			if ( typeof this.adapter.stringToObjectID !== 'undefined' ) {
-				console.log("\nBefore: \n", typeof idString, "\n", idString, "\nAfter: \n", typeof this.adapter.stringToObjectID(idString), "\n", this.adapter.stringToObjectID(idString));
-				return this.adapter.stringToObjectID(idString);
-			}
-			return idString;
-		},
-
-
 		prepareForUpdate(object) {
 			let objectToSave = JSON.parse(JSON.stringify(object));
 			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
 				delete objectToSave._id;
 			}
-			console.log("\n\objectToSave: ", objectToSave);
 			return { "$set": objectToSave };
 		}
 	},

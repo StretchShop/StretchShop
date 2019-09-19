@@ -193,7 +193,8 @@ module.exports = {
 				query: { type: "object", optional: true },
         limit: { type: "number", optional: true },
         offset: { type: "number", optional: true },
-        sort: { type: "string", optional: true }
+        sort: { type: "string", optional: true },
+        minimalData: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
         // fix filter if needed
@@ -201,6 +202,7 @@ module.exports = {
         if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
           filter.query = ctx.params.query;
         }
+        // if categories sent, use them
         let categories = [];
         if (typeof ctx.params.query.categories["$in"] !== "undefined") {
           categories = ctx.params.query.categories["$in"];
@@ -210,9 +212,13 @@ module.exports = {
           filter.offset = ctx.params.offset;
         }
         // set max of results
+        if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
+          filter.limit = ctx.params.limit;
+        }
         if (filter.limit>100) {
           filter.limit = 100;
         }
+        // sort
         filter.sort = "price";
         if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
           filter.sort = ctx.params.sort;
@@ -225,28 +231,31 @@ module.exports = {
 						'products': categoryProducts
 					};
 
-          // return result;
-          return ctx.call("products.getMinMaxPrice", {
-            categories: categories
-          }).then(minMaxPrice => {
-            if ( minMaxPrice.length>0 ) {
-              minMaxPrice = minMaxPrice[0];
-              if ( typeof minMaxPrice._id !== "undefined" ) {
-                delete minMaxPrice._id;
+          if (typeof ctx.params.minimalData !== "undefined" && ctx.params.minimalData==true) {
+            return result;
+          } else {
+            return ctx.call("products.getMinMaxPrice", {
+              categories: categories
+            }).then(minMaxPrice => {
+              if ( minMaxPrice.length>0 ) {
+                minMaxPrice = minMaxPrice[0];
+                if ( typeof minMaxPrice._id !== "undefined" ) {
+                  delete minMaxPrice._id;
+                }
               }
-            }
-            result['filter'] = {
-              'minMaxPrice': minMaxPrice
-            }
-            // count products inside this category and its subcategories
-            return ctx.call('products.count', {
-              "query": filter.query
-            })
-            .then(productsCount => {
-              result['filteredProductsCount'] = productsCount;
-              return result;
+              result['filter'] = {
+                'minMaxPrice': minMaxPrice
+              }
+              // count products inside this category and its subcategories
+              return ctx.call('products.count', {
+                "query": filter.query
+              })
+              .then(productsCount => {
+                result['filteredProductsCount'] = productsCount;
+                return result;
+              });
             });
-          });
+          }
 
         });
 
@@ -273,7 +282,7 @@ module.exports = {
         let self = this;
         Object.keys(queryObject).forEach(function(key,index) {
           if (key==='_id' && typeof queryObject[key] === "string") {
-            queryObject[key] = self.adapter.stringToObjectID(queryObject[key]);
+            queryObject[key] = self.fixStringToId(queryObject[key]);
           }
         });
         return this.adapter.find({
@@ -302,26 +311,52 @@ module.exports = {
 				return this.adapter.findById(ctx.params.product)
 					.then(found => {
 						if (found) { // product found, return it
-              if (typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
-  							return this.adapter.find({
-  								"query": {
-  									"variationGroupId": found.variationGroupId,
-  									"_id": { "$ne": found._id }
-  								}
-  							})
-  							.then(variations => {
-  								if (!found.data) {
-  									found.data = {};
-  								}
-  								found.data.variations = variations;
-  								return found;
-  							});
+              if (found.categories.length>0) {
+                return ctx.call("categories.detail", {categoryPath: found.categories[0]} )
+                .then(parentCategoryDetail => {
+                  found["parentCategoryDetail"] = parentCategoryDetail;
+                  return found;
+                });
+              } else {
+                found["parentCategoryDetail"] = null;
               }
-							return found;
 						} else { // no product found, create one
 							return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found"}]));
 						}
-					});
+					})
+          .then(found => {
+            // optional data
+            if (typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
+              return this.adapter.find({
+                "query": {
+                  "variationGroupId": found.variationGroupId,
+                  "_id": { "$ne": found._id }
+                }
+              })
+              .then(variations => {
+                if (!found.data) {
+                  found.data = {};
+                }
+                found.data.variations = variations;
+                return found;
+              });
+            }
+            return found;
+          })
+          .then(found => {
+            if (typeof found.data!=="undefined" && found.data.related && found.data.related.products && found.data.related.products.length>0) {
+              return this.adapter.find({
+                "query": {
+                  "orderCode": {"$in": found.data.related.products}
+                }
+              })
+              .then(related => {
+                found.data.related.productResults = related;
+                return found;
+              });
+            }
+            return found;
+          });
 			}
 		},
 

@@ -622,7 +622,7 @@ module.exports = {
 					if (count>0) {
 						return Promise.reject(new MoleculerClientError("User already exists", 422, "", [{ field: "username", message: "exists" }]));
 					}
-					return this.Promise.resolve(false);
+					return {result: {userExists: false}};
 				});
 			}
 		},
@@ -633,14 +633,13 @@ module.exports = {
 				email: { type: "email" }
 			},
 			handler(ctx) {
-				let resx =  this.adapter.count({ "query": { "email": ctx.params.email } })
+				return this.adapter.count({ "query": { "email": ctx.params.email } })
 				.then(count => {
 					if (count>0) {
-						return Promise.reject(new MoleculerClientError("Email already exists", 422, "", [{ field: "email", message: "exists" }]));
+						return this.Promise.reject(new MoleculerClientError("Email already exists", 422, "", [{ field: "email", message: "exists" }]));
 					}
-					return this.Promise.resolve(false);
+					return {result: {emailExists: false}};
 				});
-				return resx;
 			}
 		},
 

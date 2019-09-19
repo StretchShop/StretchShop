@@ -130,16 +130,20 @@ module.exports = {
 							found = found[0];
 							return ctx.call("categories.find", {
 								"query": {
-									"parentPath": {"$in": [found.slug]}
+									"$or": [
+										{"parentPath": {"$in": [found.slug]}},
+										{"slug": {"$in": found.parentPath}},
+									]
 								}
 							})
-							.then(subs => {
+							.then(matchingCategories => {
 								let childParentPath = [];
 								if (found.parentPath && found.parentPath.length>0) {
 									childParentPath = found.parentPath.slice();
 								}
 								childParentPath.push(found.slug);
-								subs = this.extractChildCategoriesByArrayOrder(subs, childParentPath);
+								found['parentCategories'] = this.extractParentCategoriesByArrayOrder(matchingCategories, found.parentPath);;
+								let subs = this.extractChildCategoriesByArrayOrder(matchingCategories, childParentPath);
 								// TODO - make function that picks only those categories,
 								// that have categories ordered like this category
 								found['subs'] = subs;
@@ -361,13 +365,24 @@ module.exports = {
 			for (var i=0; i<childCategories.length; i++) {
 				let addChild = true;
 				for (var j=0; j<masterArray.length; j++) {
-					console.log( " ----- ----- ----- ----- ----- " );
-					console.log( childCategories[i].parentPath[j] +" != "+ masterArray[j] );
 					if ( childCategories[i].parentPath[j] != masterArray[j] ) {
 						addChild = false;
 					}
 				}
 				if (addChild) {
+					result.push(childCategories[i]);
+				}
+			}
+
+			return result;
+		},
+
+		// get only categories that match child category order
+		extractParentCategoriesByArrayOrder(childCategories, masterArray) {
+			let result = [];
+
+			for (var i=0; i<childCategories.length; i++) {
+				if ( masterArray.indexOf(childCategories[i].slug)>-1 ) {
 					result.push(childCategories[i]);
 				}
 			}

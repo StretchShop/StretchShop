@@ -6,6 +6,8 @@ const { MoleculerClientError } = require("moleculer").Errors;
 const passGenerator = require('generate-password');
 const fetch 		= require('node-fetch');
 const braintree = require("braintree");
+const paypal = require('paypal-rest-sdk');
+const payments = paypal.v1.payments;
 
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
@@ -31,7 +33,8 @@ module.exports = {
 			"lang", "country", "addresses",
 			"prices", "items",
 			"data",
-			"notes"
+			"notes",
+			"settings"
 		],
 
 		/** Validator schema for entity */
@@ -55,7 +58,8 @@ module.exports = {
 					dateChanged: { type: "date" },
 					dateSent: { type: "date" },
 					datePaid: { type: "date" },
-					dateExpeded: { type: "date" }
+					dateExpeded: { type: "date" },
+					emailSent: { type: "date" }
 				}
 			},
 			lang: { type: "string", min: 2 },
@@ -118,7 +122,8 @@ module.exports = {
 					customerNote: { type: "string" },
 					sellerNote: { type: "string" },
 				}
-			}
+			},
+			settings: { type: "object" }
 
 		},
 
@@ -206,10 +211,27 @@ module.exports = {
 					]
 				},
 				{
-					codename: "online",
+					codename: "online_paypal_paypal",
 					name: {
-						"en": "Pay online (Card, PayPal)",
-						"sk": "Zaplatiť online (Karta, PayPal)",
+						"en": "Pay online with Paypal (Card, PayPal)",
+						"sk": "Zaplatiť online cez Paypal (Karta, PayPal)",
+					},
+					prices: [
+						{
+							"range": {"from": 0, "to": 500},
+							"price": 2
+						},
+						{
+							"range": {"from": 500, "to": 1000000},
+							"price": 0
+						}
+					]
+				},
+				{
+					codename: "online_braintree",
+					name: {
+						"en": "Pay online with Braintree (Card, PayPal)",
+						"sk": "Zaplatiť online cez Braintree (Karta, PayPal)",
 					},
 					prices: [
 						{
@@ -235,10 +257,17 @@ module.exports = {
 
 		paymentsConfigs: {
 			braintree: {
-				enviroment: process.env.BRAINTREE_ENV==='production' ? braintree.Environment.Production : braintree.Environment.Sandbox,
+				environment: (process.env.BRAINTREE_ENV==="production" || process.env.BRAINTREE_ENV==="live") ? braintree.Environment.Production : braintree.Environment.Sandbox,
 				merchantId: process.env.BRAINTREE_MERCHANT_ID,
 				publicKey: process.env.BRAINTREE_PUBLIC_KEY,
 				privateKey: process.env.BRAINTREE_PRIVATE_KEY,
+				gateway: null
+			},
+			paypal: {
+				environment: (process.env.PAYPAL_ENV==="production" || process.env.PAYPAL_ENV==="live") ? "live" : "sandbox",
+				merchantId: process.env.PAYPAL_CLIENT_ID,
+				publicKey: null,
+				privateKey: process.env.PAYPAL_SECRET,
 				gateway: null
 			}
 		}
@@ -421,12 +450,13 @@ module.exports = {
 			}
 		},
 
+
 		/**
 		 * List user orders if logged in
 		 *
 		 * @actions
 		 *
-		 * @returns {Object} User entity
+		 * @returns {Object} Orders list
 		 */
 		listOrders: {
 			// cache: {
@@ -434,25 +464,59 @@ module.exports = {
 			// },
 			auth: "required",
 			params: {
-				filter: { type: "object", optional: true }
+				query: { type: "object", optional: true },
+        limit: { type: "number", optional: true },
+        offset: { type: "number", optional: true },
+        sort: { type: "string", optional: true },
+				fullData: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
 				// check if we have logged user
 				if ( ctx.meta.user._id ) { // we have user
-					if ( !ctx.params.filter ) {
-						ctx.params.filter = {};
+					let filter = { query: {}, limit: 20};
+	        if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
+	          filter.query = ctx.params.query;
+	        }
+					// admin can browse all orders
+					if ( ctx.meta.user.type=='admin' && typeof ctx.params.fullData!=="undefined" && ctx.params.fullData==true ) {
+					} else {
+						filter.query["user.id"] = ctx.meta.user._id.toString();
 					}
-					ctx.params.filter["user.id"] = ctx.meta.user._id;
-					return ctx.call("orders.find", {
-						"query": ctx.params.filter
-					})
-						.then(found => {
-							if (found) { // cart found in datasource, save to meta
-								return found;
-							} else { // no cart found in datasource, create one
-								return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
-							}
-						});
+					filter.query["$or"] = [{"status":"sent"}, {"status":"paid"}];
+	        // set offset
+	        if (ctx.params.offset && ctx.params.offset>0) {
+	          filter.offset = ctx.params.offset;
+	        }
+	        // set max of results
+	        if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
+	          filter.limit = ctx.params.limit;
+	        }
+	        if (filter.limit>20) {
+	          filter.limit = 20;
+	        }
+					// sort
+	        filter.sort = "-dates.dateCreated";
+	        if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
+	          filter.sort = ctx.params.sort;
+	        }
+
+					if ( filter.query && filter.query._id && filter.query._id.trim()!="" ) {
+						filter.query._id = this.fixStringToId(filter.query._id);
+						filter.limit = 1;
+					}
+
+					console.log("order filter: ", filter, JSON.stringify(filter));
+
+					// send query
+					return ctx.call("orders.find", filter)
+					.then(found => {
+						if (found) { // cart found in datasource, save to meta
+							console.log("listOrders.found", found);
+							return found;
+						} else { // no cart found in datasource, create one
+							return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
+						}
+					});
 				}
 
 			}
@@ -523,7 +587,200 @@ module.exports = {
 					});
 				});
 			}
- 		}
+ 		},
+
+		/**
+		 * send payment info to PayPal and get redirect url  or error message
+		 */
+		paypalOrderCheckout: {
+			params: {
+				orderId: { type: "string", min: 3 },
+				checkoutData: { type: "object", optional: true }
+			},
+			handler(ctx) {
+				let result = { success: false, url: null, message: "error" };
+				let self = this;
+
+				// get order data
+				return this.adapter.findById(ctx.params.orderId)
+				.then(order => {
+					if ( order ) {
+						let paymentType = order.data.paymentData.codename.replace("online_paypal_","");
+
+						let items = [];
+						for (let i=0; i<order.items.length; i++ ) {
+							items.push({
+								"name": order.items[i].name[order.lang.code],
+								"sku": order.items[i].orderCode,
+								"price": order.items[i].price,
+								"currency": order.prices.currency.code,
+								"quantity": order.items[i].amount
+							});
+						}
+						items.push({
+							"name": order.data.paymentData.name[order.lang.code],
+							"sku": order.data.paymentData.name[order.lang.code],
+							"price": order.prices.pricePayment,
+							"currency": order.prices.currency.code,
+							"quantity": 1
+						});
+						let deliveryName = "Delivery - ";
+						if (order.data.deliveryData.codename && order.data.deliveryData.codename.physical) {
+							deliveryName += order.data.deliveryData.codename.physical.value;
+						}
+						if (order.data.deliveryData.codename && order.data.deliveryData.codename.digital) {
+							deliveryName += order.data.deliveryData.codename.digital.value;
+						}
+						items.push({
+							"name": deliveryName,
+							"sku": deliveryName,
+							"price": order.prices.priceDelivery,
+							"currency": order.prices.currency.code,
+							"quantity": 1
+						});
+						// TODO - add price of delivery and payment
+
+						let client = this.createPayPalHttpClient();
+
+						let url = ctx.meta.siteSettings.url;
+						if ( process.env.NODE_ENV=="development" ) {
+							url = "http://localhost:3000";
+						}
+
+						let payment = {
+							"intent": "sale",
+							"payer": {
+								"payment_method": paymentType
+							},
+							"redirect_urls": {
+								"cancel_url": url +"/backdirect/order/paypal/cancel",
+								"return_url": url +"/backdirect/order/paypal/return"
+							},
+							"transactions": [{
+								"item_list": {
+									"items": items
+								},
+								"amount": {
+									"currency": order.prices.currency.code,
+									"total": parseFloat(this.roundNumber(order.prices.priceTotal).toFixed(2)) // TODO - fix to rounding when saving
+								},
+								// "note_to_payer": "Order ID "+order._id,
+								"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
+							}]
+						};
+						console.log("\n\n PAYMENT:\n", payment, "\n", payment.transactions[0].item_list.items, "\n", payment.transactions[0].amount, "\n\n");
+
+						let request = new payments.PaymentCreateRequest();
+						request.requestBody(payment);
+
+						return client.execute(request).then((response) => {
+							order.data.paymentData.paymentRequestId = response.result.id;
+							return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+							.then(orderUpdated => {
+								console.log(orderUpdated);
+								return { order: orderUpdated, payment: response };
+							});
+						})
+						.then(responses => {
+							console.log("response.statusCode", responses.payment.statusCode, "\n\n");
+							console.log("response.result", responses.payment.result, "\n\n");
+
+							if (responses.payment.result) {
+								for (let i=0; i<responses.payment.result.links.length; i++) {
+									if (responses.payment.result.links[i].rel=="approval_url") {
+										result.url = responses.payment.result.links[i].href;
+										break;
+									}
+								}
+							}
+							if ( result.url!=null && typeof result.url=="string" && result.url.trim()!="" ) {
+								result.success = true;
+							}
+							return result;
+						}).catch((error) => {
+							console.error(error.statusCode);
+							console.error(error.message);
+							result.message = error.message;
+							return result;
+						});
+					} // if order
+				});
+
+				return result;
+			}
+		},
+
+		/**
+		 * process PayPal result after user paid and returned to website
+		 */
+		paypalResult: {
+			params: {
+				result: { type: "string", min: 3 },
+				PayerID: { type: "string" },
+				paymentId: { type: "string" }
+			},
+			handler(ctx) {
+				let self = this;
+
+				console.log("paypalResult:", ctx.params);
+				if ( ctx.params.result == "return" ) {
+					// get order data
+					return ctx.call("orders.find", {
+						"query": {
+							"data.paymentData.paymentRequestId": ctx.params.paymentId
+						}
+					})
+					.then(orders => {
+						console.log("paypalResult.orders:", orders);
+						if ( orders && orders.length>0 && orders[0] ) {
+							let order = orders[0];
+
+						  const execute_payment_json = {
+						    "payer_id": ctx.params.PayerID,
+						    "transactions": [{
+									"amount": {
+										"currency": order.prices.currency.code,
+										"total": parseFloat(this.roundNumber(order.prices.priceTotal).toFixed(2)) // TODO - fix to rounding when saving
+									}
+						    }]
+						  };
+
+							let client = this.createPayPalHttpClient();
+							let request = new payments.PaymentExecuteRequest(ctx.params.paymentId);
+							request.requestBody(execute_payment_json);
+
+							return client.execute(request).then((response) => {
+								console.log("\n\n---------- PAYPAL RESPONSE ----------\npaypalResult response:", response);
+								console.log("\n\npaypalResult response.result.payer.payer_info:", response.result.payer.payer_info);
+								console.log("\n\npaypalResult response.result.transactions:", response.result.transactions);
+								console.log("\n\npaypalResult response.result.links:", response.result.links);
+
+								order.dates.datePaid = new Date();
+								order.status = "paid";
+								order.data.paymentData.lastStatus = response.result.state;
+								order.data.paymentData.lastDate = new Date();
+								order.data.paymentData.lastResponseResult = response.result;
+								return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+								.then(orderUpdated => {
+									console.log(orderUpdated);
+									let urlPathPrefix = "/";
+									if ( process.env.NODE_ENV=="development" ) {
+										urlPathPrefix = "http://localhost:8080/";
+									}
+									console.log( { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
+									return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
+								});
+							}).catch((error) => {
+								console.error(error.statusCode);
+								console.error(error.message);
+							});
+						}
+					});
+				} else {
+					// payment not finished
+				}
+			}
+		}
 
 	},
 
@@ -718,7 +975,6 @@ module.exports = {
 		 */
 		checkCartItems() {
 			if ( this.settings.orderTemp && this.settings.orderTemp.items ) {
-				console.log("this.settings.orderTemp.items.length: ", this.settings.orderTemp.items.length);
 				if ( this.settings.orderTemp.items.length>0 ) {
 					return true;
 				} else {
@@ -900,7 +1156,7 @@ module.exports = {
 				this.settings.orderTemp.prices.priceItems = 0;
 				this.settings.orderTemp.prices.priceItemsNoTax = 0;
 				this.settings.orderTemp.items.forEach(function(value){
-					self.settings.orderTemp.prices.priceItems += value.price;
+					self.settings.orderTemp.prices.priceItems += (value.price * value.amount);
 					if ( value.tax && value.tax!=null ) {
 						tax = value.tax;
 					}
@@ -909,6 +1165,9 @@ module.exports = {
 					let taxOnly = value.price / (1 + tax);
 					self.settings.orderTemp.prices.priceTaxTotal += taxOnly;
 				});
+				this.settings.orderTemp.prices.priceItems = this.roundNumber(this.settings.orderTemp.prices.priceItems);
+				this.settings.orderTemp.prices.priceItemsNoTax = this.roundNumber(this.settings.orderTemp.prices.priceItemsNoTax);
+				this.settings.orderTemp.prices.priceTaxTotal = this.roundNumber(this.settings.orderTemp.prices.priceTaxTotal);
 			}
 
 			// count other totals
@@ -916,10 +1175,12 @@ module.exports = {
 				this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
 					this.settings.orderTemp.prices.priceDelivery +
 					this.settings.orderTemp.prices.pricePayment;
+				this.settings.orderTemp.prices.priceTotal = this.roundNumber(this.settings.orderTemp.prices.priceTotal);
 				let priceDeliveryNoTax = this.settings.orderTemp.prices.priceDelivery / (1 + tax);
 				let pricePaymentNoTax = this.settings.orderTemp.prices.pricePayment / (1 + tax);
 				this.settings.orderTemp.prices.priceTotalNoTax = this.settings.orderTemp.prices.priceItemsNoTax +
 					priceDeliveryNoTax + pricePaymentNoTax;
+				this.settings.orderTemp.prices.priceTotalNoTax = this.roundNumber(this.settings.orderTemp.prices.priceTotalNoTax);
 			}
 		},
 
@@ -1031,7 +1292,7 @@ module.exports = {
 								if ( success ) {
 									orderProcessedResult.order = updatedOrder;
 									orderProcessedResult.order.status = "sent";
-									orderProcessedResult.order.emailSent = new Date();
+									orderProcessedResult.order.dates.emailSent = new Date();
 									// save with sent status and email sent date after it
 									return this.adapter.updateById(orderProcessedResult.order._id, self.prepareForUpdate(orderProcessedResult.order))
 									.then(orderUpdated => {
@@ -1054,7 +1315,7 @@ module.exports = {
 				return self.orderAfterAcceptedActions(ctx, orderProcessedResult)
 				.then(success => {
 					if ( success ) {
-						orderProcessedResult.order.emailSent = new Date();
+						orderProcessedResult.order.dates.emailSent = new Date();
 						// save after it
 						return orderProcessedResult;
 					}
@@ -1145,6 +1406,7 @@ module.exports = {
 					console.log('Email order SENT:', booleanResult);
 					return true;
 				});
+				return true;
 			});
 			return false;
 		},
@@ -1188,6 +1450,36 @@ module.exports = {
 			return { "$set": objectToSave };
 		},
 
+		/**
+		 * thanks to
+		 * https://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-only-if-necessary
+		 * and
+		 * https://plnkr.co/edit/uau8BlS1cqbvWPCHJeOy?p=preview
+		 */
+		roundNumber(num, scaleParam) {
+			let scale = (typeof scaleParam=="undefined") ? scaleParam : 2;
+			if (Math.round(num) != num) {
+		    if (Math.pow(0.1, scale) > num) {
+		      return 0;
+		    }
+		    var sign = Math.sign(num);
+		    var arr = ("" + Math.abs(num)).split(".");
+		    if (arr.length > 1) {
+		      if (arr[1].length > scale) {
+		        var integ = +arr[0] * Math.pow(10, scale);
+		        var dec = integ + (+arr[1].slice(0, scale) + Math.pow(10, scale));
+		        var proc = +arr[1].slice(scale, scale + 1)
+		        if (proc >= 5) {
+		          dec = dec + 1;
+		        }
+		        dec = sign * (dec - Math.pow(10, scale)) / Math.pow(10, scale);
+		        return dec;
+		      }
+		    }
+		  }
+		  return num;
+		},
+
 		paymentBraintreeGateway() {
 			this.settings.paymentsConfigs.braintree.gateway = braintree.connect({
 			  environment: braintree.Environment.Sandbox,
@@ -1228,6 +1520,18 @@ module.exports = {
 				}
 			};
 			return userData;
+		},
+
+		createPayPalHttpClient() {
+			let env;
+			if (this.settings.paymentsConfigs.paypal.environment === 'live') {
+				// Live Account details
+				env = new paypal.core.LiveEnvironment(this.settings.paymentsConfigs.paypal.merchantId, this.settings.paymentsConfigs.paypal.privateKey);
+			} else {
+				env = new paypal.core.SandboxEnvironment(this.settings.paymentsConfigs.paypal.merchantId, this.settings.paymentsConfigs.paypal.privateKey);
+			}
+
+			return new paypal.core.PayPalHttpClient(env);
 		}
 	},
 

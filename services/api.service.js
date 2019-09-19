@@ -19,12 +19,12 @@ module.exports = {
 		// Global CORS settings for all routes
     cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev") ? {
         // Configures the Access-Control-Allow-Origin CORS header.
-        origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:8080",
+        origin: "http://localhost:3000",
 				// origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:4200",
         // Configures the Access-Control-Allow-Methods CORS header.
         methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
         // Configures the Access-Control-Allow-Headers CORS header.
-        allowedHeaders: ["Content-Type", "Origin", "X-Requested-With", "Accept", "Authorization", "Timeout", "Cookie", "Set-Cookie", "cookie"],
+        allowedHeaders: ["Content-Type", "Origin", "X-Requested-With", "Accept", "Authorization", "Timeout", "Cookie", "Set-Cookie", "cookie", "x-xsrf-token"],
         // Configures the Access-Control-Expose-Headers CORS header.
         exposedHeaders: [],
         // Configures the Access-Control-Allow-Credentials CORS header.
@@ -109,11 +109,14 @@ module.exports = {
 				"GET /order/progress": "orders.progress",
 				"POST /order/progress": "orders.progress",
 				"POST /order/list": "orders.listOrders",
-				"GET /order/detail/:id": "orders.detail",
 				"REST /webhook/:service": "orders.paymentWebhook",
 				// Payment Braintree
 				"GET /users/btut": "orders.braintreeClientToken",
 				"POST /order/btcheckout": "orders.braintreeOrderPaymentCheckout",
+				// Payment PayPal
+				"POST /order/paypalcheckout": "orders.paypalOrderCheckout",
+				"GET /order/paypalipn": "orders.paypalIpn",
+				"GET /order/paypal/:result": "orders.paypalResult",
 
 				// Pages
 				"POST /pages/:slug": "pages.show",
@@ -135,6 +138,26 @@ module.exports = {
 					extended: false
 				}
 			}
+		},{
+			path: "/backdirect",
+
+		  // Action aliases
+		  aliases: {
+				"GET /order/paypal/:result": "orders.paypalResult"
+		  },
+
+      onAfterCall(ctx, route, req, res, data) {
+          // Async function which return with Promise
+					if (data && data.redirect && data.redirect.trim()!="") {
+						res.statusCode = 302;
+			      res.setHeader("Location", data.redirect);
+			      return null;
+					}
+          return data;
+      },
+
+		  mappingPolicy: "restrict",
+
 		},{
 			path: "/",
 
@@ -166,7 +189,7 @@ module.exports = {
 				{ code: "sk", name: "Slovakia" },
 				{ code: "us", name: "USA" }
 			],
-			currency: "EUR",
+			currency: "EUR", // currency codes only in internationaly accepted format, that is accepted by PayPal
 			currencies: [
 				{ code: "EUR", symbol: "€", ratio: 1 },
 				{ code: "USD", symbol: "$", ratio: 1.1 }
@@ -283,7 +306,7 @@ module.exports = {
 								if (user) {
 									this.logger.info("\nAuthenticated via JWT: ", user.username);
 									// Reduce user fields (it will be transferred to other nodes)
-									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type"]);
+									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "settings"]);
 									ctx.meta.token = token;
 									ctx.meta.userID = user._id;
 								}
