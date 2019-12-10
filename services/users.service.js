@@ -3,6 +3,7 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 
 //const crypto 		= require("crypto");
+require("dotenv").config();
 const bcrypt 		= require("bcryptjs");
 const jwt 			= require("jsonwebtoken");
 const nodemailer = require('nodemailer');
@@ -12,6 +13,9 @@ const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 const emailTemplate = require("../mixins/email.mixin");
 const validateAddress = require("../mixins/validate.address.mixin");
+const HelpersMixin = require("../mixins/helpers.mixin");
+
+const NavigationMain = require("../resources/navigation/navigation-main");
 
 module.exports = {
 	name: "users",
@@ -20,7 +24,8 @@ module.exports = {
 		CacheCleanerMixin([
 			"cache.clean.users",
 			"cache.clean.follows",
-		])
+		]),
+		HelpersMixin
 	],
 
 	/**
@@ -130,6 +135,8 @@ module.exports = {
 					}
 				}
 
+				coreData.navigation = NavigationMain;
+
 				// get other details - user and translation
 				coreData.user = null;
 				coreData.translation = null
@@ -186,9 +193,6 @@ module.exports = {
 					}
 					return coreData;
 				}
-
-				return coreData;
-
 			}
 		},
 
@@ -203,7 +207,15 @@ module.exports = {
 		 */
 		create: {
 			params: {
-				user: { type: "object" }
+				user: { type: "object", props: {
+					username: { type: "string" },
+					email: { type: "string" },
+					password: { type: "string" },
+					settings: { type: "object", props: {
+						language: { type: "string" },
+						currency: { type: "string" }
+					} }
+				} }
 			},
 			handler(ctx) {
 				let entity = ctx.params.user;
@@ -214,7 +226,7 @@ module.exports = {
 							return this.adapter.findOne({ username: entity.username })
 								.then(found => {
 									if (found)
-										return Promise.reject(new MoleculerClientError("Username is exist!", 422, "", [{ field: "username", message: "is exist"}]));
+										return Promise.reject(new MoleculerClientError("Username is exist!", 422, "", [{ field: "username", message: "exists"}]));
 
 								});
 					})
@@ -223,7 +235,7 @@ module.exports = {
 							return this.adapter.findOne({ email: entity.email })
 								.then(found => {
 									if (found)
-										return Promise.reject(new MoleculerClientError("Email is exist!", 422, "", [{ field: "email", message: "is exist"}]));
+										return Promise.reject(new MoleculerClientError("Email is exist!", 422, "", [{ field: "email", message: "exists"}]));
 								});
 
 					})
@@ -361,7 +373,6 @@ module.exports = {
 						});
 					}
 				});
-				return null;
 			}
 		},
 
@@ -856,7 +867,99 @@ module.exports = {
 					}
 					return translation;
 				});
-				return translation;
+			}
+		},
+
+
+		deleteUserImage: {
+			auth: "required",
+			params: {
+				type: { type: "string" },
+				code: { type: "string", min: 3 },
+				image: { type: "string" }
+			},
+			handler(ctx) {
+				let self = this;
+				console.log("\n\nctx.meta.siteSettings:", ctx.meta.siteSettings);
+				console.log("\n\nctx.params:", ctx.params);
+				console.log("\n\nctx.meta.user:", ctx.meta.user);
+				// for type = "products"
+				if ( ctx.meta.user && ctx.meta.user.email ) {
+					if ( ctx.params.type=="products" ) {
+						return ctx.call("products.find", {
+							"query": { "orderCode": ctx.params.code }
+						})
+						.then(products => {
+							let deleteProductImage = false;
+							if ( products && products[0] ) {
+								if ( ctx.meta.user.type=="admin" ) {
+									console.log("\n\n You can delete "+ctx.params.type+" image, because you are admin ("+ctx.meta.user.type+"=='admin')", ctx.meta.user.type=="admin");
+									deleteProductImage = true;
+								} else if ( products && products[0] && products[0].publisher==ctx.meta.user.email ) {
+									console.log("\n\n You can "+ctx.params.type+" image, because you are publisher ("+products[0].publisher+"=="+ctx.meta.user.email+")", products[0].publisher==ctx.meta.user.email);
+									deleteProductImage = true;
+								}
+								if (deleteProductImage===true) {
+									let productCodePath = self.stringChunk(products[0].orderCode, 3);
+									let path = ctx.meta.siteSettings.assets.folder +"/"+ process.env.ASSETS_PATH + ctx.params.type +"/"+ productCodePath +"/"+ ctx.params.image;
+									return new Promise((resolve, reject) => {
+										fs.unlink(path, (err) => {
+									  	if (err) {
+									    	console.error("\n\n deleteUserImage error:", err);
+									    	reject( {success: false, message: "delete failed"} );
+									  	}
+											console.log("\n\n DELETED file: ", path);
+											resolve( {success: true, message: "file deleted"} );
+										});
+									})
+									.then(result => {
+										return result;
+									})
+									.catch(error => {
+				            return error;
+				          });
+								}
+							}
+						});
+					} else if ( ctx.params.type=="categories" ) {
+						return ctx.call("categories.find", {
+							"query": { "slug": ctx.params.code }
+						})
+						.then(categories => {
+							let deleteCategoryImage = false;
+							if ( categories && categories[0] ) {
+								if ( ctx.meta.user.type=="admin" ) {
+									console.log("\n\n You can delete "+ctx.params.type+" image, because you are admin ("+ctx.meta.user.type+"=='admin')", ctx.meta.user.type=="admin");
+									deleteCategoryImage = true;
+								} else if ( categories && categories[0] && categories[0].publisher==ctx.meta.user.email ) {
+									console.log("\n\n You can "+ctx.params.type+" image, because you are publisher ("+categories[0].publisher+"=="+ctx.meta.user.email+")", categories[0].publisher==ctx.meta.user.email);
+									deleteCategoryImage = true;
+								}
+								if (deleteCategoryImage===true) {
+									let productCodePath = categories[0].slug;
+									let path = ctx.meta.siteSettings.assets.folder +"/"+ process.env.ASSETS_PATH + ctx.params.type +"/"+ productCodePath +"/"+ ctx.params.image;
+									return new Promise((resolve, reject) => {
+										fs.unlink(path, (err) => {
+									  	if (err) {
+									    	console.error("\n\n deleteUserImage error:", err);
+									    	reject( {success: false, message: "delete failed"} );
+									  	}
+											console.log("\n\n DELETED file: ", path);
+											resolve( {success: true, message: "file deleted"} );
+										});
+									})
+									.then(result => {
+										return result;
+									})
+									.catch(error => {
+				            return error;
+				          });
+								}
+							}
+						});
+					}
+				}
+				return "Hi there!";
 			}
 		}
 

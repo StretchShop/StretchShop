@@ -159,7 +159,16 @@ module.exports = {
 								}
 
 								// count products inside this category and its subcategories
-								return ctx.call('products.count', {
+								/* 
+								set conservativeType where products & services are merged
+								as they are listed with same engine (products), and pages 
+								are separated because of custom listing engine (services)
+								*/
+								let conservativeType = found.type;
+								if (conservativeType=="services") {
+									conservativeType = "products";
+								}
+								return ctx.call(conservativeType+'.count', {
 									"query": {
 										"categories": {"$in": categoriesToListProductsIn}
 									}
@@ -167,18 +176,23 @@ module.exports = {
 								.then(productsCount => {
 									found['count'] = productsCount;
 									// return found;
-									return ctx.call("products.getMinMaxPrice", {
-										categories: categoriesToListProductsIn
-									}).then(minMaxPrice => {
-										if ( minMaxPrice.length>0 ) {
-											minMaxPrice = minMaxPrice[0];
-											if ( typeof minMaxPrice._id !== "undefined" ) {
-												delete minMaxPrice._id;
-											}
-										}
-										found['minMaxPrice'] = minMaxPrice;
+									if (found.type=="pages") {
+										found['minMaxPrice'] = { min: null, max: null };
 										return found;
-									});
+									} else {
+										return ctx.call("products.getMinMaxPrice", {
+											categories: categoriesToListProductsIn
+										}).then(minMaxPrice => {
+											if ( minMaxPrice.length>0 ) {
+												minMaxPrice = minMaxPrice[0];
+												if ( typeof minMaxPrice._id !== "undefined" ) {
+													delete minMaxPrice._id;
+												}
+											}
+											found['minMaxPrice'] = minMaxPrice;
+											return found;
+										});
+									}
 								});
 							});
 						} else { // no category found, create one
@@ -219,6 +233,16 @@ module.exports = {
 								mythis.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
+
+											if ( entity && entity.dates ) {
+												Object.keys(entity.dates).forEach(function(key) {
+													let date = entity.dates[key];
+													if ( date && date!=null && date.trim()!="" ) {
+														entity.dates[key] = new Date(entity.dates[key]);
+													}
+												});
+											}
+
 											return mythis.validateEntity(entity)
 												.then(() => {
   												console.log("found: ", entity);
@@ -229,6 +253,7 @@ module.exports = {
   												entity.dates.dateSynced = new Date();
                           let entityId = entity.id;
                           delete entity.id;
+                          delete entity._id;
           								const update = {
           									"$set": entity
           								};

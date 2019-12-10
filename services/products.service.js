@@ -153,7 +153,7 @@ module.exports = {
 								.then(categoryProducts => {
 									let result = {
 										'categoryDetail': category,
-										'products': categoryProducts
+										'results': categoryProducts
 									};
 
                   // TODO - check if this can be removed, if data not already in category var
@@ -204,7 +204,7 @@ module.exports = {
         }
         // if categories sent, use them
         let categories = [];
-        if (typeof ctx.params.query.categories["$in"] !== "undefined") {
+        if ( ctx.params.query.categories && typeof ctx.params.query.categories["$in"] !== "undefined") {
           categories = ctx.params.query.categories["$in"];
         }
         // set offset
@@ -228,7 +228,7 @@ module.exports = {
 				.then(categoryProducts => {
 					let result = {
 						'categories': categories,
-						'products': categoryProducts
+						'results': categoryProducts
 					};
 
           if (typeof ctx.params.minimalData !== "undefined" && ctx.params.minimalData==true) {
@@ -312,7 +312,10 @@ module.exports = {
 					.then(found => {
 						if (found) { // product found, return it
               if (found.categories.length>0) {
-                return ctx.call("categories.detail", {categoryPath: found.categories[0]} )
+                return ctx.call("categories.detail", {
+									categoryPath: found.categories[0],
+									type: "products"
+								})
                 .then(parentCategoryDetail => {
                   found["parentCategoryDetail"] = parentCategoryDetail;
                   return found;
@@ -418,7 +421,18 @@ module.exports = {
   							// add product results into result variable
   							mythis.adapter.findById(entity.id)
   								.then(found => {
-  									if (found) { // product found, update it
+										if (found) { // product found, update it
+											console.log("\n\n product entity found:", entity);
+
+											if ( entity && entity.dates ) {
+												Object.keys(entity.dates).forEach(function(key) {
+													let date = entity.dates[key];
+													if ( date && date!=null && date.trim()!="" ) {
+														entity.dates[key] = new Date(entity.dates[key]);
+													}
+												});
+											}
+
   										return mythis.validateEntity(entity)
   											.then(() => {
   												if (!entity.dates) {
@@ -428,6 +442,7 @@ module.exports = {
   												entity.dates.dateSynced = new Date();
                           let entityId = entity.id;
                           delete entity.id;
+                          delete entity._id;
           								const update = {
           									"$set": entity
           								};
@@ -540,6 +555,69 @@ module.exports = {
 			} // handler end
 		},
 
+    updateProductImage: {
+			auth: "required",
+			params: {
+				data: { type: "object" },
+				params: { type: "object" }
+			},
+			handler(ctx) {
+        let self = this;
+        console.log("updateProductImage ctx.params:", ctx.params);
+        if (ctx.params.params && ctx.params.params.orderCode) {
+          if (ctx.params.params.type=="gallery") {
+            this.adapter.find({
+              "query": {
+                "orderCode": ctx.params.params.orderCode
+              }
+            })
+            .then(product => {
+              if (product) {
+                if ( product[0] ) {
+                  product = product[0];
+                }
+                // let extension =
+                // self.adapter.updateById(product._id, {
+                //  "$set": {
+                //    data.gallery.images: ["p1.jpg", ...]
+                //  }
+                // });
+              }
+            });
+          }
+        }
+        return;
+      }
+    },
+
+    // check product authorship
+    checkAuthor: {
+      auth: "required",
+      params: {
+        data: { type: "object" }
+      },
+      handler(ctx) {
+        if (ctx.params.data && ctx.params.data.orderCode && ctx.params.data.publisher) {
+          return this.adapter.find({
+            "query": {
+              "orderCode": ctx.params.data.orderCode,
+              "publisher": ctx.params.data.publisher
+            }
+          })
+          .then(products => {
+            // console.log("product.checkAuthor", products);
+            if (products && products.length>0 && products[0].orderCode==ctx.params.data.orderCode) {
+              return true;
+            }
+          })
+          .catch(err => {
+            console.log("\n PRODUCT checkAuthor ERROR: ", err);
+            return false;
+          });
+        }
+        return false;
+      }
+    }
 
 
 	}, // *** actions end

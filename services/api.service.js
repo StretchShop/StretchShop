@@ -3,6 +3,7 @@
 require("dotenv").config();
 const _ = require("lodash");
 const ApiGateway = require("moleculer-web");
+const HelpersMixin = require("../mixins/helpers.mixin");
 const Cookies = require("cookies");
 const crypto = require("crypto");
 const { UnAuthorizedError } = ApiGateway.Errors;
@@ -10,16 +11,18 @@ const { UnAuthorizedError } = ApiGateway.Errors;
 const fs = require("fs-extra");
 var formidable = require("formidable"),
 		util = require("util");
+const apiV1 = require("../resources/routes/apiV1");
+var util = require('util')
 
 module.exports = {
 	name: "api",
-	mixins: [ApiGateway],
+	mixins: [ApiGateway, HelpersMixin],
 
 	settings: {
 		// Global CORS settings for all routes
     cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev") ? {
         // Configures the Access-Control-Allow-Origin CORS header.
-        origin: "http://localhost:3000",
+        origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:8080",
 				// origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:4200",
         // Configures the Access-Control-Allow-Methods CORS header.
         methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
@@ -35,110 +38,9 @@ module.exports = {
 
 		port: process.env.PORT || 3000,
 
-		routes: [{
-			path: "/api",
-
-			authorization: true,
-
-			aliases: {
-				// core data
-				"GET /coredata": "users.getCoreData",
-				"GET /coredata/translation": "users.readTranslation",
-
-				// Users
-				"POST /users/login": "users.login", // Login
-				"GET /users/logout": "users.logout", // Logout
-				//"REST /users": "users", // list Users
-				"POST /users/checkemail": "users.checkIfEmailExists",
-				"POST /users/checkusername": "users.checkIfUserExists",
-				"POST /users/register": "users.create",
-
-				// Current user
-				"GET /user": "users.me",
-				"POST /user/verify": "users.verifyHash",
-				"POST /user/reset": "users.resetPassword",
-				"PUT /user": "users.updateUser",
-				"POST /user/image": function (req, res) {
-            this.parseUploadedFile(req, res);
-        },
-
-				// Articles
-				"GET /articles/feed": "articles.feed",
-				"REST /articles": "articles",
-				"GET /tags": "articles.tags",
-
-				// Comments
-				"GET /articles/:slug/comments": "articles.comments",
-				"POST /articles/:slug/comments": "articles.addComment",
-				"PUT /articles/:slug/comments/:commentID": "articles.updateComment",
-				"DELETE /articles/:slug/comments/:commentID": "articles.removeComment",
-
-				// Favorites
-				"POST /articles/:slug/favorite": "articles.favorite",
-				"DELETE /articles/:slug/favorite": "articles.unfavorite",
-
-				// Profile
-				"GET /profiles/:username": "users.profile",
-				"POST /profiles/:username/follow": "users.follow",
-				"DELETE /profiles/:username/follow": "users.unfollow",
-
-				// Cart
-				"GET /cart": "cart.me",
-				"POST /cart": "cart.updateCartItemAmount",
-				"POST /cart/find": "cart.find",
-				"PUT /cart": "cart.add",
-				"DELETE /cart": "cart.delete",
-				"DELETE /cart/:itemId": "cart.delete",
-				"DELETE /cart/:itemId/:amount": "cart.delete",
-
-				// Products
-				"GET /products/:category": "products.productsList",
-				"POST /products/find": "products.findWithCount",
-				"POST /products/:category": "products.productsList", // needed for category with filter url
-				"GET /products/:category/detail/:product": "products.detail",
-				"PUT /products": "products.import",
-				"POST /products/count": "products.count",
-				"DELETE /products": "products.delete",
-
-				// Categories
-				"PUT /categories": "categories.import",
-				"POST /categories/find": "categories.find",
-				"DELETE /categories": "categories.delete",
-
-				// Order
-				"GET /order/progress": "orders.progress",
-				"POST /order/progress": "orders.progress",
-				"POST /order/list": "orders.listOrders",
-				"REST /webhook/:service": "orders.paymentWebhook",
-				// Payment Braintree
-				"GET /users/btut": "orders.braintreeClientToken",
-				"POST /order/btcheckout": "orders.braintreeOrderPaymentCheckout",
-				// Payment PayPal
-				"POST /order/paypalcheckout": "orders.paypalOrderCheckout",
-				"GET /order/paypalipn": "orders.paypalIpn",
-				"GET /order/paypal/:result": "orders.paypalResult",
-
-				// Pages
-				"POST /pages/:slug": "pages.show",
-			},
-
-			// Disable to call not-mapped actions
-			mappingPolicy: "restrict",
-
-			// Set CORS headers
-			//cors: true,
-
-			// Parse body content
-			bodyParsers: {
-				json: {
-					strict: false,
-					limit: 1024*1024*10
-				},
-				urlencoded: {
-					extended: false
-				}
-			}
-		},{
+		routes: [
+			apiV1, // routes from external file
+		{
 			path: "/backdirect",
 
 		  // Action aliases
@@ -205,7 +107,7 @@ module.exports = {
 			url: process.env.SITE_URL || "https://stretchshop.app",
 			name: process.env.SITE_NAME || "StretchShop",
 			supportEmail: process.env.SITE_SUPPORT_EMAIL || "support@stretchshop.app",
-			imgLogo: process.env.SITE_IMG_LOGO || "/assets/_site/site-logo.png",
+			imgLogo: process.env.SITE_IMG_LOGO || "/assets/_site/logo.svg",
 			imgSiteEmailHeader: process.env.SITE_IMG_EMAIL_HEADER || "/assets/_site/site-email-header-image.png"
 		},
 
@@ -284,6 +186,7 @@ module.exports = {
 			ctx.meta.mailSettings = this.settings.mailSettings;
 			ctx.meta.siteSettings = this.settings.siteSettings;
 			ctx.meta.siteSettings.translation = this.settings.translation;
+			ctx.meta.siteSettings.assets = this.settings.assets;
 			this.cookiesManagement(ctx, route, req, res);
 
 			let token = "";
@@ -374,32 +277,13 @@ module.exports = {
 		    });
 		},
 
-		/**
-		 * simple function to split string into
-		 */
-		stringChunk(str, chunkSize) {
- 			chunkSize = (typeof chunkSize === "undefined") ? 2 : chunkSize;
- 			let resultString = "";
-
- 			if ( str.length>0 ) {
- 				let resultArray = [];
- 				let chunk = "";
- 		 		for ( let i = 0; i<str.length; i=(i+chunkSize) ) {
- 		 			chunk = str.substring(i,i+chunkSize);
- 		 			if ( chunk.trim()!="" ) {
- 		 				resultArray.push(chunk);
- 		 			}
- 		 		}
- 		 		if (resultArray.length) {
- 		 			resultString = resultArray.join("/");
- 		 		}
- 		  } else {
- 		  	resultString = str;
- 		  }
-
- 			return resultString;
- 		},
-
+		getProductFileNameByType(params) {
+			if ( params.type && params.type=="gallery" ) {
+				return ["p:number"];
+			} else {
+				return [":orderCode", "default"];
+			}
+		},
 
 		getActiveUploadPath(req) {
 			let paths = [
@@ -408,34 +292,58 @@ module.exports = {
 					destination: "users/profile",
 					fileName: ["profile"],
 					validUserTypes: ["user", "admin"],
-					stringToChunk: req.$ctx.meta.user._id.toString(),
+					stringToChunk: (req.$ctx.meta.user && req.$ctx.meta.user._id) ? req.$ctx.meta.user._id.toString() : "",
 					chunkSize: 6,
 					postAction: "users.updateMyProfileImage"
 				},
 				{
-					url: "/products/:id/image",
-					destination: "products/:id",
-					fileName: [":orderCode", "default"],
-					validUserTypes: ["admin"],
-					stringToChunk: req.productOrderCode ? req.productOrderCode : '',
+					url: "/products/upload/:orderCode/:type",
+					destination: "products",
+					fileName: this.getProductFileNameByType(req.$params),
+					validUserTypes: ["author", "admin"],
+					checkAuthorAction: "products.checkAuthor",
+					checkAuthorActionParams: {
+						"orderCode": req.$params.orderCode,
+						"publisher": req.$ctx.meta.user.email
+					},
+					stringToChunk: req.$params.orderCode ? req.$params.orderCode : '',
 					chunkSize: 3,
 					postAction: "products.updateProductImage",
 				},
 				{
-					url: "/categories/:id/image",
-					destination: "categories/:id",
-					fileName: [":id", "default"],
-					validUserTypes: ["admin"],
-					stringToChunk: req.productOrderCode ? req.productOrderCode : '',
-					chunkSize: 3,
+					url: "/pages/upload/:slug",
+					destination: "pages/editor",
+					fileName: ["----ORIGINAL----"], // keep original name - only for WYSIWYG editor
+					validUserTypes: ["author", "admin"],
+					checkAuthorAction: "pages.checkAuthor",
+					checkAuthorActionParams: {
+						"slug": req.$params.slug,
+						"publisher": req.$ctx.meta.user.email
+					},
+					stringToChunk: req.$params.slug ? req.$params.slug : '',
+					chunkSize: 0, // do not chunk, use the whole string
+					postAction: "pages.updatePageImage",
+				},
+				{
+					url: "/categories/upload/:slug",
+					destination: "categories",
+					fileName: [":slug"],
+					validUserTypes: ["user","admin"],
+					checkAuthorAction: "categories.checkAuthor",
+					checkAuthorActionParams: {
+						"slug": req.$params.slug,
+						"publisher": req.$ctx.meta.user.email
+					},
+					stringToChunk: req.$params.slug ? req.$params.slug : '',
+					chunkSize: 0,
 					postAction: "categories.updateCategoryImage",
 				}
 			];
 
 			for ( let i=0; i<paths.length; i++ ) {
-				if ( paths[i].url===req.url ) {
+				let requestPathPattern = "/"+req.$alias.path;
+				if ( paths[i].url == requestPathPattern ) {
 					return paths[i];
-					break;
 				}
 			}
 
@@ -445,36 +353,40 @@ module.exports = {
 
 		/**
 		 * parse form with uploaded files, copy files according to paths
+		 * supports ONLY JPG files for now
 		 */
-		parseUploadedFile(req, res) {
-			// parse a file upload
+		parseUploadedFile(req, res, activePath) {
 			let self = this;
+			console.log("\n\nparseUploadedFile #1");
 	    let form = new formidable.IncomingForm();
-			let activePath = this.getActiveUploadPath(req);
-
-			/*
-			 * can process form, move file and launch related action, because:
-			 * 1. path is valid
-			 * 2. user is authentificated
-			 * 3. user can upload to that path
-			 */
-			if ( activePath && activePath.validUserTypes && req.$ctx.meta.user.type &&
-				activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
-				form.parse(req, function(err, fields, files) {
+			console.log("parseUploadedFile #2");
+			return form.parse(req, function(err, fields, files) {
 					let promises = [];
+					console.log("parseUploadedFile #3", files, fields);
+					if ( err ) {
+						console.log("\n\n !!! parseUploadedFile ERROR:", err);
+					}
 
-					// TODO - add multiple promises as in import - after all done, create message and send
+					// multiple promises as in import - after all done, create message and send
 					for (var property in files) {
 				    if (files.hasOwnProperty(property)) {
 			        console.log("\n"+property+" ---- :", files[property]);
 							let fileFrom = files[property].path;
-							let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH+activePath.destination;
-							let urlBaseDir = process.env.ASSETS_PATH+activePath.destination;
-							let targetDir = self.stringChunk(activePath.stringToChunk, activePath.chunkSize);
+							let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH + self.stringReplaceParams(activePath.destination, req.$params);
+							let urlBaseDir = process.env.ASSETS_PATH + self.stringReplaceParams(activePath.destination, req.$params);
+							let targetDir = activePath.stringToChunk;
+							if (activePath.chunkSize>0) {
+								targetDir = self.stringChunk(activePath.stringToChunk, activePath.chunkSize);
+							}
 							// set new filename
 							let re = /(?:\.([^.]+))?$/;
 							let fileExt = re.exec(files[property].name);
-							let resultFileName = activePath.fileName.join('-')+"."+fileExt[1];
+							let fileNameReplaced = self.arrayReplaceParams( activePath.fileName, req.$params );
+							fileNameReplaced = self.arrayReplaceParams( fileNameReplaced, fields );
+							let resultFileName = files[property].name;
+							if ( fileNameReplaced.join('-') !== "----ORIGINAL----" ) { // if not set to keep original name - only for WYSIWYG editor
+								resultFileName = fileNameReplaced.join('-')+"."+fileExt[1];
+							}
 							let resultFullPath = targetDir+"/"+resultFileName;
 							// set result paths
 							let fileToSave = copyBaseDir+"/"+resultFullPath;
@@ -505,7 +417,8 @@ module.exports = {
 
 					// after form processed and wait for all promises to finish
 					// return multiple promises results
-					return Promise.all(promises).then((values) => {
+					return Promise.all(promises)
+					.then((values) => {
 							let fileErrors = false;
 							values.forEach((v) => {
 								if ( v.success !== true ) {
@@ -513,22 +426,82 @@ module.exports = {
 								}
 								// if available, run post action
 								if ( v.action ) {
-									req.$ctx.call(v.action, { data: {image: v.path} });
+									req.$ctx.call(v.action, {
+										data: {
+											image: v.path,
+											success: v.success,
+											from: v.from
+										},
+										params: req.$params
+									});
 								}
 							});
-							res.writeHead(200, {"content-type": "application/json"});
+							let headers = res.getHeaders();
+							console.log("\n\n RES:", headers);
+							if ( typeof headers['content-type'] !== "undefined" ) {
+								res.writeHead(200, {"content-type": "application/json"});
+							}
 							res.end(util.inspect(JSON.stringify({
 								success: true,
 								errors: fileErrors,
 								files: values
 							})));
 					    return values;
-					});
+					})
+          .catch(err => {
+            console.log("\n parseUploadedFile Promise.all ERROR: ", err);
+            return null;
+          });
 				});
-			}
 			console.log("\napi.parseUploadedFile.problem", req.url);
-
 	    return;
+		},
+
+
+		/**
+		 *
+		 */
+		processUpload(req, res) {
+			// get active path with variables
+			let self = this;
+			let activePath = this.getActiveUploadPath(req);
+
+			let authorChecked = false;
+			console.log ( "\n\n ----------- xxxxxxxxxxx", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author")>-1, activePath.checkAuthorAction, activePath.checkAuthorActionParams, "\n\n ----------- " );
+			// check if upload path is valid and has set validUserTypes
+			if ( activePath && activePath.validUserTypes ) {
+				// check if author is in array of activePath.validUserTypes and file was uploaded by author
+				if ( activePath.validUserTypes.indexOf("author")>-1
+				&& activePath.checkAuthorAction && activePath.checkAuthorActionParams ) {
+					// check if uploaded by author
+					req.$ctx.call(activePath.checkAuthorAction, {
+						data: activePath.checkAuthorActionParams
+					})
+					.then(result => {
+						console.log("processUpload author:", result);
+						if (result==true) {
+							// user is author
+							self.parseUploadedFile(req, res, activePath);
+						} else {
+							/**
+							 * for other users
+							 * can process form, move file and launch related action, because:
+							 * 1. path is valid
+							 * 2. user is authentificated
+							 * 3. user can upload to that path
+							 */
+							if ( req.$ctx.meta.user.type &&
+								activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
+									self.parseUploadedFile(req, res, activePath);
+							}
+						}
+					});
+				} else if ( activePath && activePath.validUserTypes && // check if user or admin
+					activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
+						self.parseUploadedFile(req, res, activePath);
+				}
+			}
+
 		},
 
 		/**

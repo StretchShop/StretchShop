@@ -57,6 +57,4 @@ module.exports = function(emailTemplateName, inputData, requiredFormats){
 
     return newResults;
   });
-
-  return results;
 };

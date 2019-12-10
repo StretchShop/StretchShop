@@ -705,8 +705,6 @@ module.exports = {
 						});
 					} // if order
 				});
-
-				return result;
 			}
 		},
 
@@ -926,7 +924,6 @@ module.exports = {
 				} else {
 					return { "id": 0, "name": "missing cart items", "success": false };
 				}
-				return this.settings.orderTemp;
 			}
 
 			return false;
@@ -1406,9 +1403,7 @@ module.exports = {
 					console.log('Email order SENT:', booleanResult);
 					return true;
 				});
-				return true;
 			});
-			return false;
 		},
 
 
