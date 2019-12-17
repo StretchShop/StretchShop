@@ -4,18 +4,26 @@ services:
 
   api:
     build:
-      context: .
-    image: wradgio/stretchshop:latest
+      context: ../..
+    image: wradgio/stretchshop_private:latest
     env_file: docker-compose.env
     environment:
       SERVICES: api
       PORT: 3000
+    # links:
+    #   - redis
+    # depends_on:
+    #   - redis
     labels:
       - "traefik.enable=true"
       - "traefik.backend=api"
       - "traefik.port=3000"
       - "traefik.frontend.entryPoints=http"
       - "traefik.frontend.rule=PathPrefix:/"
+    volumes:
+      - /var/www/html/stretchshop.cw.sk/static:/app/public/assets/_s
+    #deploy:
+    #  replicas: 2
 
   users:
     build:
@@ -25,9 +33,13 @@ services:
     environment:
       SERVICES: users
     links:
+      # - redis
       - mongo
     depends_on:
+      # - redis
       - mongo
+    #deploy:
+    #  replicas: 2
 
   products:
     build:
@@ -37,9 +49,13 @@ services:
     environment:
       SERVICES: products
     links:
+      # - redis
       - mongo
     depends_on:
+      # - redis
       - mongo
+    #deploy:
+    #  replicas: 2
 
   categories:
     build:
@@ -49,9 +65,13 @@ services:
     environment:
       SERVICES: categories
     links:
+      # - redis
       - mongo
     depends_on:
+      # - redis
       - mongo
+    #deploy:
+    #  replicas: 2
 
   cart:
     build:
@@ -61,9 +81,13 @@ services:
     environment:
       SERVICES: cart
     links:
+      # - redis
       - mongo
     depends_on:
+      # - redis
       - mongo
+    #deploy:
+    #  replicas: 2
 
   orders:
     build:
@@ -73,15 +97,44 @@ services:
     environment:
       SERVICES: orders
     links:
+      # - redis
       - mongo
     depends_on:
+      # - redis
       - mongo
+    #deploy:
+    #  replicas: 2
+
+  # redis:
+  #   image: redis:alpine
+
+  pages:
+    build:
+      context: .
+    image: wradgio/stretchshop_private:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: pages
+    links:
+      # - redis
+      - mongo
+    depends_on:
+      # - redis
+      - mongo
+    #deploy:
+    #  replicas: 2
+
+  # redis:
+  #   image: redis:alpine
 
   mongo:
     image: mongo
+    # image: mvertes/alpine-mongo
+    # image: bitnami/mongodb
     restart: on-failure
     volumes:
       - ./db:/data/db
+      # - ./dbentry:/docker-entrypoint-initdb.d
       - ./dbconf:/etc/mongo
     ports:
       - "27017:27017"
@@ -89,13 +142,20 @@ services:
 
   nats-server:
     image: nats
-    # entrypoint: "/gnatsd -D --user yourNATSlogin --pass yourNATSpassword"
+    entrypoint: "/gnatsd -D --user defaultUsername --pass defaultPassword" # -D debug , -V trace
     ports:
       - "4222:4222"
 
   traefik:
-    image: traefik
-    command: --web --docker --docker.domain=docker.localhost --logLevel=INFO --docker.exposedbydefault=false
+    image: traefik:1.7
+    command:
+      - "--api"
+      - "--docker"
+      - "--docker.watch"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=traefik"
+      - "traefik.port=8080"
     ports:
       - "3000:80"
       - "3001:8080"

@@ -11,4 +11,3 @@ db
 .env
 public/static/ups
 publicx
-docker-compose.env
