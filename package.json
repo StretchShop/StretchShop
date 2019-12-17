@@ -1,7 +1,8 @@
 {
   "name": "stretchshop",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "Fast & scalable e-commerce",
+  "license": "GPL-3.0",
   "scripts": {
     "dev": "moleculer-runner --repl --hot services",
     "start": "moleculer-runner",
