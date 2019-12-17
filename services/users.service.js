@@ -71,19 +71,19 @@ module.exports = {
 
 		mailSettings: {
 			defaultOptions: {
-				from: '"Marcel Zúbrik" <marcel.zubrik@cw.sk>',
+				from: process.env.EMAIL_DEFAULTS_FROM || '"StretchShop support" <support@example.tld>',
 				to: "",
-				subject: "StretchShop - ",
-				text: 'Hello world?', // plain text body
-        html: '<b>Hello world?</b>' // html body
+				subject: process.env.EMAIL_DEFAULTS_SUBJECT || "StretchShop - ",
+				text: 'Hello world!', // plain text body
+        html: '<b>Hello world!</b>' // html body
 			},
 			smtp: {
-				host: "smtp.ethereal.email",
-				port: 587,
-				secure: false, // true for 465, false for other ports
+				host: process.env.EMAIL_SMTP_HOST || "smtp.ethereal.email",
+				port: process.env.EMAIL_SMTP_PORT || 587,
+				secure: process.env.EMAIL_SMTP_SECURE || false, // true for 465, false for other ports
 				auth: {
-					user: "rnjf3guchntadc2k@ethereal.email",
-					pass: "mraDMqTUtn7TVzdaR3"
+					user: process.env.EMAIL_SMTP_AUTH_USER || "",
+					pass: process.env.EMAIL_SMTP_AUTH_PASS || ""
 				}
 			}
 		},

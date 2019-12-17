@@ -13,6 +13,29 @@ const DbService = require("../mixins/db.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
+/**
+ * Page is represented by two parts:
+ *  - static template file, which can be same for all languages or localized eg. ./resources/pages/info-en.html
+ *  - record in "pages" table in database.
+ * It enables:
+ *  - templating, 
+ *  - templates can be used even without table record,
+ *  - *.json supports metadata files, that support.
+ * 
+ * Every page template has its own directory in ./resources/pages
+ * Templates can be grouped into groups in this directory
+ * To set group, use its name before name separated by "---" (3 dashes) 
+ * 
+ * Database record enables to:
+ *  - list in categories (if set),
+ *  - search.
+ * 
+ * Both - template json and database record - do support:
+ * 	- pages - slugs to related pages - show in left menu,
+ *  - categories - slugs to categories - show in parent directory page listing.
+ * If both are present, only data from database record are used.
+ */
+
 module.exports = {
 	name: "pages",
 	mixins: [
@@ -332,54 +355,136 @@ module.exports = {
 				if ( pageSlugArray.length>1 ) {
 					templateName = pageSlugArray[1];
 				}
-				let filepath = "./resources/pages/"+templateName+"/"+pageName+"/"+pageName+"-"+lang+".html";
+				let parentDir = "./resources/pages/"+templateName+"/"+pageName+"/";
+				let filepath = parentDir+pageName+"-"+lang+".html";
 				filepath = pathResolve(filepath);
-				console.log("page.detail filepath:", filepath);
 				
+				// get template for that page
 				return self.getCorrectFile(filepath)
-				.then( (result) => {
-					let staticData = null;
-					console.log("page file read result:", result);
-					let regex = /<\!-- {{editor_WYSIWYG}} \/\/-->/gmi, regExResult, occurences = [];
-					while ( (regExResult = regex.exec(result)) ) {
-						occurences.push(regExResult.index);
-					}
-					if ( occurences.length>0 ) {
-						return self.adapter.find({
-							"query": {
-								"slug": ctx.params.page
-							}
-						})
-						.then(page => {
-							if ( page && page.length>0 && typeof page[0] !== "undefined" ) {
-								page = page[0];
-							}
-							if (page && page.data && page.data.blocks && page.data.blocks.length>0) {
-								result = result.replace(
-									"<!-- {{editor_WYSIWYG}} //-->",
-									'<div data-editable data-name="content">'+page.data.blocks[0][ctx.params.lang]+'</div>'
-								);
-							}
-							return { body: result, data: page };
-						})
-						.then( result => {
-							if (ctx.params.category && result.data.categories.length>0) {
-								return ctx.call("categories.detail", {
-									categoryPath: result.data.categories[0],
-									type: "pages"
-								})
-								.then(parentCategoryDetail => {
-									result.data["parentCategoryDetail"] = parentCategoryDetail;
-									return result;
-								});
-							} else {
-								result.data["parentCategoryDetail"] = null;
+				.then( (template) => {
+					let result = { 
+						body: template, 
+						data: null, 
+						global: {}, 
+						staticData: null 
+					};
+					// get template static metadata
+					// TODO - check if exists, if not, set default value {}
+					return self.readFile(parentDir+pageName+".json")
+					.then( (staticData) => {
+						// return static metadata
+						staticData = JSON.parse(staticData);
+						result.staticData = staticData;
+						return result;
+					})
+					.catch( err => {
+						console.log("readFile error:", err);
+					})
+					.then( result => {
+						// check if WYSIWYG editor placeholder exists in string
+						let regex = /<\!-- {{editor_WYSIWYG}} \/\/-->/gmi, regExResult, occurences = [];
+						while ( (regExResult = regex.exec(result.body)) ) {
+							occurences.push(regExResult.index);
+						}
+						// if WYSIWYG exists, check for record in page table
+						if ( occurences.length>0 ) {
+							return self.adapter.find({
+								"query": {
+									"slug": ctx.params.page
+								}
+							})
+							.then(page => {
+								// if WYSIWYG found, take first record
+								if ( page && page.length>0 && typeof page[0] !== "undefined" ) {
+									page = page[0];
+								}
+								// if WYSIWYG found, place first block
+								if (page && page.data && page.data.blocks && page.data.blocks.length>0) {
+									result.body = result.body.replace(
+										"<!-- {{editor_WYSIWYG}} //-->",
+										'<div data-editable data-name="content">'+page.data.blocks[0][ctx.params.lang]+'</div>'
+									);
+								}
+								// set page data into result
+								result.data = page;
 								return result;
-							}
-						});
-					}
-	
-					return { body: result, data: null };
+							})
+							.then( result => {
+								// TODO - move into separate function
+								// preparing to get parent category for breadcrumbs
+								let category = null;
+								// check what data for categories will be used
+								let hasStaticCategories = ( result.staticData && result.staticData.categories && result.staticData.categories.length>0 );
+								if ( hasStaticCategories ) {
+									category = result.staticData.categories[0];
+								}
+								let hasCategories = ( result.data && result.data.categories && result.data.categories.length>0 );
+								if ( hasCategories ) {
+									category = result.data.categories[0];
+								} 
+								result.global.usedCategories = hasStaticCategories ? "static" : "dynamic";
+								result.global.parentCategorySlug = category;
+								//
+								let pages = null; 
+								// check what pages will be used
+								let hasStaticPages = ( result.staticData && result.staticData.pages && result.staticData.pages.length>0 );
+								if ( hasStaticPages ) {
+									pages = result.staticData.pages;
+								}
+								let hasPages = ( result.data && result.data.pages && result.data.pages.length>0 );
+								if ( hasPages ) {
+									pages = result.data.pages;
+								} 
+								//
+								if (ctx.params.category && (hasStaticCategories || hasCategories)) {
+									return ctx.call("categories.detail", {
+										categoryPath: category,
+										type: "pages"
+									})
+									.then(parentCategoryDetail => {
+										result = this.pageGlobalResultHelper_ParentCat(
+											result, 
+											parentCategoryDetail, 
+											[hasCategories, hasStaticCategories]
+										);
+										// get related pages
+										return ctx.call("pages.find", {
+											"query": {
+												"slug": {"$in": pages}
+											}
+										})
+										.then(relatedPages => {
+											result.global.relatedPage = pages;
+											result.global.relatedPageObjects = relatedPages;
+											return result;
+										});
+									});
+								} else {
+									return this.pageGlobalResultHelper_ParentCat(
+										result, 
+										null, 
+										[hasCategories, hasStaticCategories]
+									);
+								}
+							});
+						}
+
+						// no WYSIWYG in template, just try to use most you can
+						if ( result && result.staticData && result.staticData.pages && result.staticData.pages.length>0 ) {
+							// get related pages
+							return ctx.call("pages.find", {
+								"query": {
+									"slug": {"$in": result.staticData.pages}
+								}
+							})
+							.then(relatedPages => {
+								result.global.relatedPage = result.staticData.pages;
+								result.global.relatedPageObjects = relatedPages;
+								return result;
+							});
+						}
+						return result;
+					});
 				})
 				.catch( error => {
 					console.log("error:", error);
@@ -618,15 +723,29 @@ module.exports = {
         }
         return false;
       }
-    },
+		},
 
 
 	}, // *** actions end
+
 
 	/**
 	 * Methods
 	 */
 	methods: {
+		
+		
+
+		pageGlobalResultHelper_ParentCat(result, parentCategoryDetail, options) {
+			if (options[1]) { // hasStaticCategories
+				result.staticData["parentCategoryDetail"] = parentCategoryDetail;
+			}
+			if (options[0]) { // hasCategories
+				result.data["parentCategoryDetail"] = parentCategoryDetail;
+			}
+			result.global.parentCategoryDetail = parentCategoryDetail;
+			return result;
+		}
 
 	},
 

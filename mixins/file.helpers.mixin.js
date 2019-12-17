@@ -23,38 +23,25 @@ module.exports = {
 			let noLangPath = po.dir +po.sep+ po.name +"."+ po.ext;
 
 			if ( po.lang!=null ) { // if lang is set in name
-				return this.fileExists(path) // check with LANG file exists
-				.then( exists => {
-					if (exists) { // exists WITH LANG
-						return self.readFile(path).then(data => {
-							return data;
-						});
-					}
-				})
-				.catch(err => {
-					console.log("file.helpers.getCorrectFile - LANG version NOT FOUND");
-					return this.fileExists(noLangPath); // return false;
-				})
-				.then( exists => {
-					if (typeof exists === "boolean" && exists) { // exists without lang
+				if ( fs.existsSync(path) ) { // LANG file exists
+					return self.readFile(path).then(data => {
+						return data;
+					});
+				} else {
+					if ( fs.existsSync(noLangPath) ) { // exists without lang
 						return self.readFile(noLangPath).then(data => {
 							return data;
 						});
-					} else if ( typeof exists === "string" ) { // if result string returned
-						return exists;
 					}
 					return null; // does NOT exist
-				});
+				}
 			} else {
-				return this.fileExists(noLangPath) // check if NO lang file exists
-				.then( exists => {
-					if (exists) { // exists without lang
-						return self.readFile(noLangPath).then(data => {
-							return data;
-						});
-					}
-					return null; // does NOT exist
-				});
+				if ( fs.existsSync(noLangPath) ) { // check if NO lang file exists
+					return self.readFile(noLangPath).then(data => {
+						return data;
+					});
+				}
+				return null; // does NOT exist
 			}
 		},
 
@@ -108,9 +95,10 @@ module.exports = {
 			return new Promise(function(resolve, reject) {
 				fs.access(path, fs.constants.F_OK | fs.constants.R_OK, (err) => {
 					if (err) {
-						console.log("file.helpers.fileExists ("+path+") ERROR:", err);
+						console.log("\n\nfile.helpers.fileExists ("+path+") ERROR:", err);
 						reject(false);
 					}
+					console.log("\n--------\nOK\n--------\n");
 					resolve(true);
 				});
 			});

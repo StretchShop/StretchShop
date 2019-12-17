@@ -1,0 +1,16 @@
+{
+  "name": {
+    "sk": "test SK",
+    "en": "test EN"
+  },
+  "descriptionShort": {
+    "sk": "test SK",
+    "en": "test EN"
+  },
+  "descriptionLong": {
+    "sk": "test SK",
+    "en": "test EN"
+  },
+  "categories": ["pages-01"],
+  "pages": ["homepage", "test"]
+}
