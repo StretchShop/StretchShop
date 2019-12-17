@@ -41,7 +41,35 @@
             "translationStrings": [
               {
                 "stringOrig": "In stock",
-                "selector": "html \u003e body \u003e template \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e p:nth-child(3) \u003e span",
+                "selector": "html \u003e body \u003e template \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e p:nth-child(2) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "In stock"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "In stock",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns:nth-child(2) \u003e div.column.is-6.has-text-right \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "In stock"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "In stock",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -179,7 +207,25 @@
             "translationStrings": [
               {
                 "stringOrig": "Add to Cart",
-                "selector": "html \u003e body \u003e template \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e button.button.is-link \u003e span",
+                "selector": "html \u003e body \u003e template \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns \u003e div.column.is-6:nth-child(2) \u003e button.button.add-to-cart.is-link \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Add to Cart"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Add to Cart",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns:nth-child(3) \u003e div.column.is-6:nth-child(2) \u003e button.button.add-to-cart.is-link \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -212,7 +258,25 @@
             "translationStrings": [
               {
                 "stringOrig": "Products",
-                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(1) \u003e div.column \u003e h1.title.is-1.title-products",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns.category-header \u003e div.column \u003e h1.title.is-1.title-products",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Products"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Products",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns.category-header \u003e div.column \u003e h1.title.is-1.title-products",
                 "translations": [
                   {
                     "langCode": "en",
@@ -230,7 +294,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Products",
-                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e router-link.navbar-item:nth-child(3)",
+                "selector": "#navbarBasicExample \u003e div.navbar-start:nth-child(2) \u003e router-link.navbar-item:nth-child(3)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -258,7 +322,25 @@
             "translationStrings": [
               {
                 "stringOrig": "Sub-Categories",
-                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(2) \u003e div.column.is-3 \u003e nav.panel \u003e p.panel-heading",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(3) \u003e div.column.is-3 \u003e nav.panel \u003e aside.menu \u003e p.menu-label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Sub-Categories"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Sub-Categories",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(5) \u003e div.column.is-3 \u003e nav.panel \u003e p.panel-heading",
                 "translations": [
                   {
                     "langCode": "en",
@@ -286,7 +368,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Nothing found",
-                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(2) \u003e div.column.is-9 \u003e div:nth-child(3) \u003e h2",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(3) \u003e div.column.is-9 \u003e div:nth-child(3) \u003e h2",
                 "translations": [
                   {
                     "langCode": "en",
@@ -299,40 +381,7 @@
         ]
       },
       {
-        "phrase": "Category filter",
-        "language": {
-          "code": "en",
-          "lang": "en"
-        },
-        "translates": [
-          {
-            "langCode": "sk",
-            "translation": "Filter kategórií"
-          }
-        ],
-        "occurrences": [
-          {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
-            "selector": "[translate]",
-            "type": "text",
-            "blockName": "texts",
-            "translationStrings": [
-              {
-                "stringOrig": "Category filter",
-                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e p.panel-heading",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Category filter"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "phrase": "Filtered",
+        "phrase": "Edit Language",
         "language": {
           "code": "en",
           "lang": "en"
@@ -340,64 +389,146 @@
         "translates": [],
         "occurrences": [
           {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
             "selector": "[translate]",
             "type": "text",
             "blockName": "texts",
             "translationStrings": [
               {
-                "stringOrig": "Filtered",
-                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(2) \u003e p.control.has-text-centered.is-size-7 \u003e span:nth-child(1) \u003e span:nth-child(1)",
+                "stringOrig": "Edit Language",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.edit-area \u003e div.field.product-edit-language.hidden \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
-                    "translation": "Filtered"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "phrase": "Total",
-        "language": {
-          "code": "en",
-          "lang": "en"
-        },
-        "translates": [],
-        "occurrences": [
-          {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
-            "selector": "[translate]",
-            "type": "text",
-            "blockName": "texts",
-            "translationStrings": [
-              {
-                "stringOrig": "Total",
-                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(2) \u003e p.control.has-text-centered.is-size-7 \u003e span:nth-child(2)",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Total"
+                    "translation": "Edit Language"
                   }
                 ]
               }
             ]
           },
           {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/UserOrders.vue",
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
             "selector": "[translate]",
             "type": "text",
             "blockName": "texts",
             "translationStrings": [
               {
-                "stringOrig": "Total",
-                "selector": "#userOrderList \u003e div.container:nth-child(2) \u003e div.columns.is-variable.is-8 \u003e div.column.is-12 \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8 \u003e div.column.is-12 \u003e div.b-table \u003e div.table-wrapper \u003e table.table.is-hoverable.is-striped.is-fullwidth \u003e thead \u003e tr \u003e th:nth-child(3) \u003e div.th-wrap.is-pulled-right",
+                "stringOrig": "Edit Language",
+                "selector": "#product-new-edit \u003e div.field.product-edit-language.hidden \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
-                    "translation": "Total"
+                    "translation": "Edit Language"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Edit Language",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.field.product-edit-language.hidden \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Edit Language"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Category\u0027s hidden properties",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Category\u0027s hidden properties",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.category-hidden-properties \u003e b-collapse \u003e h3.title.is-3",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Category\u0027s hidden properties"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Type",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Type",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Type"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Type",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Type"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Type",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Type"
                   }
                 ]
               }
@@ -414,6 +545,114 @@
         "translates": [],
         "occurrences": [
           {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(2) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-6 \u003e div.field \u003e div.control \u003e textarea.textarea",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.category-hidden-properties \u003e div \u003e b-collapse \u003e div.editableByAdmin-hidden \u003e div.columns \u003e div.column.is-4.is-offset-4 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(4) \u003e div.column.data-main \u003e div.field:nth-child(1) \u003e div.control \u003e input.input.is-size-1.has-text-weight-semibold.has-text-centered",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(4) \u003e div.column.data-main \u003e div.field:nth-child(2) \u003e div.control \u003e input.input.is-size-5.has-text-weight-normal.has-text-centered",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(4) \u003e div.column.data-main \u003e div.field:nth-child(3) \u003e div.control \u003e input.input.is-size-5.has-text-weight-normal.has-text-centered",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
             "selector": "[translate]",
             "type": "text",
@@ -422,6 +661,174 @@
               {
                 "stringOrig": "",
                 "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(3) \u003e p.control.has-icons-left \u003e input.input.is-small",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(2) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(4) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-6 \u003e div.field \u003e div.control \u003e textarea.textarea",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#product-new-edit \u003e div.product-hidden-properties \u003e div \u003e b-collapse \u003e div.editableByAdmin-hidden \u003e div.columns \u003e div.column.is-4.is-offset-4 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.field:nth-child(1) \u003e div.control \u003e input.input.is-size-1.has-text-weight-semibold.has-text-centered",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.field:nth-child(2) \u003e div.control \u003e input.input.is-size-5.has-text-weight-normal.has-text-centered",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e div.control \u003e input.input.has-text-weight-normal.has-text-left",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns:nth-child(2) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e div.control \u003e input.input.has-text-weight-normal.has-text-left",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e div.control \u003e input.input.is-size-2.has-text-weight-normal.has-text-right",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div \u003e table.table \u003e tbody \u003e tr \u003e th \u003e div.field.property-key \u003e div.control \u003e input.input.has-text-weight-normal.has-text-left",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div \u003e table.table \u003e tbody \u003e tr \u003e td:nth-child(2) \u003e div.field.property-name \u003e div.control \u003e input.input.has-text-weight-normal.has-text-left",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div \u003e table.table \u003e tbody \u003e tr \u003e td:nth-child(3) \u003e div.field.property-value \u003e div.control \u003e input.input.has-text-weight-normal.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",
@@ -822,6 +1229,966 @@
                 ]
               }
             ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(2) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-6 \u003e div.field \u003e div.control \u003e textarea.textarea",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.page-hidden-properties \u003e div \u003e b-collapse \u003e div.editableByAdmin-hidden \u003e div.columns \u003e div.column.is-4.is-offset-4 \u003e div.field \u003e div.control \u003e input.input",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-9 \u003e div.data-main \u003e div.field:nth-child(1) \u003e div.control \u003e input.input.is-size-1.has-text-weight-semibold.has-text-centered",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-9 \u003e div.data-main \u003e div.field:nth-child(2) \u003e div.control \u003e input.input.is-size-5.has-text-weight-normal.has-text-centered",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              },
+              {
+                "stringOrig": "",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-9 \u003e div.data-main \u003e div.field:nth-child(3) \u003e div.control \u003e input.input.is-size-5.has-text-weight-normal.has-text-centered",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": ""
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Subtype",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Subtype",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Subtype"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Subtype",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Subtype"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Subtype",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Subtype"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "External Id",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "External Id",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "External Id"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "External Id",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "External Id"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "External Id",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "External Id"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Slug",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Slug",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Slug"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Slug",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Slug"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Slug",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Slug"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Note",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Note",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-6 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Note"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Note",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-6 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Note"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Note",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-6 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Activity",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Activity",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Activity"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Activity",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Activity"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Activity",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(3) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Activity"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Editable by admin user",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Editable by admin user",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.category-hidden-properties \u003e div \u003e b-collapse \u003e h3.title.is-3",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Editable by admin user"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Editable by admin user",
+                "selector": "#product-new-edit \u003e div.product-hidden-properties \u003e div \u003e b-collapse \u003e h3.title.is-3",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Editable by admin user"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Editable by admin user",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.page-hidden-properties \u003e div \u003e b-collapse \u003e h3.title.is-3",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Editable by admin user"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Publisher",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Publisher",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.category-hidden-properties \u003e div \u003e b-collapse \u003e div.editableByAdmin-hidden \u003e div.columns \u003e div.column.is-4.is-offset-4 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Publisher"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Publisher",
+                "selector": "#product-new-edit \u003e div.product-hidden-properties \u003e div \u003e b-collapse \u003e div.editableByAdmin-hidden \u003e div.columns \u003e div.column.is-4.is-offset-4 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Publisher"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Publisher",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.page-hidden-properties \u003e div \u003e b-collapse \u003e div.editableByAdmin-hidden \u003e div.columns \u003e div.column.is-4.is-offset-4 \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Publisher"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Click to upload",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Click to upload",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns.category-header \u003e div.column \u003e div.category-image-wrapper \u003e b-field.file.action.edit \u003e b-upload \u003e a.button.is-primary.is-info \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Click to upload"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Click to upload",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-7 \u003e div.product-image-wrapper \u003e b-field.file.action.edit \u003e b-upload \u003e a.button.is-primary.is-info \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Click to upload"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Click to remove",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Click to remove",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns.category-header \u003e div.column \u003e div.category-image-wrapper \u003e a.action.remove.button.is-danger.is-outlined \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Click to remove"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Click to remove",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-7 \u003e div.product-image-wrapper \u003e a.action.remove.button.is-danger.is-outlined \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Click to remove"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Name",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Name",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(4) \u003e div.column.data-main \u003e div.field:nth-child(1) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Name"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Name",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.field:nth-child(1) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Name"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/UserOrderDetail.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Name",
+                "selector": "#userOrderDetail \u003e div.container.order-detail-data:nth-child(5) \u003e div.columns.is-variable.is-8 \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8 \u003e div.column.is-12 \u003e div.b-table \u003e div.table-wrapper \u003e table.table.is-hoverable.is-striped.is-fullwidth \u003e thead \u003e tr \u003e th:nth-child(1) \u003e div.th-wrap",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Name"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Name",
+                "selector": "#orderCart \u003e div.container:nth-child(3) \u003e div.columns.is-variable.is-8 \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8:nth-child(1) \u003e div.column.is-12 \u003e div.b-table \u003e div.table-wrapper \u003e table.table.is-hoverable.is-striped.is-fullwidth \u003e thead \u003e tr \u003e th:nth-child(1) \u003e div.th-wrap",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Name"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Name",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-9 \u003e div.data-main \u003e div.field:nth-child(1) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Name"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Description Short",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Description Short",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(4) \u003e div.column.data-main \u003e div.field:nth-child(2) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Description Short"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Description Short",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.field:nth-child(2) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Description Short"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Description Short",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-9 \u003e div.data-main \u003e div.field:nth-child(2) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Description Short"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Description Long",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Description Long",
+                "selector": "html \u003e body \u003e template \u003e div.container.category-list \u003e div.columns:nth-child(4) \u003e div.column.data-main \u003e div.field:nth-child(3) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Description Long"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Description Long",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-9 \u003e div.data-main \u003e div.field:nth-child(3) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Description Long"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Filter",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Filter",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e p.panel-heading",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Filter"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Filtered",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Filtered",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(2) \u003e p.control.has-text-centered.is-size-7 \u003e span:nth-child(1) \u003e span:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Filtered"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Total",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/CategoryFilter.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Total",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(2) \u003e p.control.has-text-centered.is-size-7 \u003e span:nth-child(2)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Total"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/UserOrders.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Total",
+                "selector": "#userOrderList \u003e div.container:nth-child(2) \u003e div.columns.is-variable.is-8 \u003e div.column.is-12 \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8 \u003e div.column.is-12 \u003e div.b-table \u003e div.table-wrapper \u003e table.table.is-hoverable.is-striped.is-fullwidth \u003e thead \u003e tr \u003e th:nth-child(3) \u003e div.th-wrap.is-pulled-right",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Total"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -842,6 +2209,16 @@
               {
                 "stringOrig": "Sort by",
                 "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(5) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Sort by"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Sort by",
+                "selector": "html \u003e body \u003e template \u003e nav.panel.categoryFilter \u003e div.panel-block:nth-child(6) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -897,7 +2274,25 @@
             "translationStrings": [
               {
                 "stringOrig": "Variations",
-                "selector": "html \u003e body \u003e template \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div \u003e section \u003e b-collapse.card \u003e div.card-header \u003e p.card-header-title",
+                "selector": "html \u003e body \u003e template \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div:nth-child(5) \u003e section \u003e b-collapse.card \u003e div.card-header \u003e p.card-header-title",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Variations"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Variations",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div:nth-child(5) \u003e section \u003e b-collapse.card \u003e div.card-header \u003e p.card-header-title",
                 "translations": [
                   {
                     "langCode": "en",
@@ -934,30 +2329,20 @@
                 ]
               }
             ]
-          }
-        ]
-      },
-      {
-        "phrase": "Gallery",
-        "language": {
-          "code": "en",
-          "lang": "en"
-        },
-        "translates": [],
-        "occurrences": [
+          },
           {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductDetail.vue",
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
             "selector": "[translate]",
             "type": "text",
             "blockName": "texts",
             "translationStrings": [
               {
-                "stringOrig": "Gallery",
-                "selector": "html \u003e body \u003e template \u003e div.container.product-detail \u003e div.columns.product-gallery \u003e div.column.is-12 \u003e h3.title.is-3.has-text-left",
+                "stringOrig": "Properties",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e h3.title.is-3.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",
-                    "translation": "Gallery"
+                    "translation": "Properties"
                   }
                 ]
               }
@@ -986,6 +2371,324 @@
                   {
                     "langCode": "en",
                     "translation": "Related"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Related",
+                "selector": "#product-new-edit \u003e div.columns.product-related \u003e div.column.is-12 \u003e h3.title.is-3.has-text-left",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Related"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Product\u0027s hidden properties",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Product\u0027s hidden properties",
+                "selector": "#product-new-edit \u003e div.product-hidden-properties \u003e b-collapse \u003e h3.title.is-3",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Product\u0027s hidden properties"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Variation Group Id",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Variation Group Id",
+                "selector": "#contentHiddenProperties \u003e div.columns:nth-child(1) \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-3:nth-child(4) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Variation Group Id"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Order code",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Order code",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns:nth-child(1) \u003e div.column.is-6.has-text-right \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Order code"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Order code",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Order code"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Price {{ $store.state.currency.symbol }}",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Price {{ $store.state.currency.symbol }}",
+                "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-5.data-main \u003e div \u003e div.content \u003e div.columns:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Price {{ $store.state.currency.symbol }}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Add New Property",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Add New Property",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(1) \u003e div.column.is-6.has-text-right \u003e a.button.is-primary.is-info \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Add New Property"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Property Key",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Property Key",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div \u003e table.table \u003e tbody \u003e tr \u003e th \u003e div.field.property-key \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Property Key"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "This key already exists",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "This key already exists",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div \u003e table.table \u003e tbody \u003e tr \u003e th \u003e div.field.property-key \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This key already exists"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "This key already exists",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div \u003e table.table \u003e tbody \u003e tr \u003e td:nth-child(2) \u003e div.field.property-name \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This key already exists"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Property Name",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Property Name",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div \u003e table.table \u003e tbody \u003e tr \u003e td:nth-child(2) \u003e div.field.property-name \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Property Name"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Property Value",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Property Value",
+                "selector": "#product-new-edit \u003e div.column.is-12.product-properties.bg-grey \u003e div.columns:nth-child(2) \u003e div.column.is-12 \u003e div \u003e table.table \u003e tbody \u003e tr \u003e td:nth-child(3) \u003e div.field.property-value \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Property Value"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Select language",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/products/ProductNewEditProperty.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Select language",
+                "selector": "html \u003e body \u003e template \u003e div.modal.is-active \u003e div.animation-content \u003e form \u003e div.modal-card \u003e section.modal-card-body \u003e b-field:nth-child(1) \u003e div.control.select \u003e select \u003e option:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Select language"
                   }
                 ]
               }
@@ -3247,7 +4950,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Orders",
-                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.has-dropdown.is-hoverable:nth-child(3) \u003e div.navbar-dropdown \u003e router-link.navbar-item \u003e span",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.has-dropdown.is-hoverable:nth-child(3) \u003e div.navbar-dropdown \u003e router-link.navbar-item:nth-child(1) \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -3397,52 +5100,6 @@
                   {
                     "langCode": "en",
                     "translation": "Pay The order"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "phrase": "Name",
-        "language": {
-          "code": "en",
-          "lang": "en"
-        },
-        "translates": [],
-        "occurrences": [
-          {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/UserOrderDetail.vue",
-            "selector": "[translate]",
-            "type": "text",
-            "blockName": "texts",
-            "translationStrings": [
-              {
-                "stringOrig": "Name",
-                "selector": "#userOrderDetail \u003e div.container.order-detail-data:nth-child(5) \u003e div.columns.is-variable.is-8 \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8 \u003e div.column.is-12 \u003e div.b-table \u003e div.table-wrapper \u003e table.table.is-hoverable.is-striped.is-fullwidth \u003e thead \u003e tr \u003e th:nth-child(1) \u003e div.th-wrap",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Name"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/orders/Cart.vue",
-            "selector": "[translate]",
-            "type": "text",
-            "blockName": "texts",
-            "translationStrings": [
-              {
-                "stringOrig": "Name",
-                "selector": "#orderCart \u003e div.container:nth-child(3) \u003e div.columns.is-variable.is-8 \u003e div.column.is-6:nth-child(1) \u003e div:nth-child(1) \u003e div.columns.is-variable.is-8:nth-child(1) \u003e div.column.is-12 \u003e div.b-table \u003e div.table-wrapper \u003e table.table.is-hoverable.is-striped.is-fullwidth \u003e thead \u003e tr \u003e th:nth-child(1) \u003e div.th-wrap",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Name"
                   }
                 ]
               }
@@ -5525,6 +7182,118 @@
         ]
       },
       {
+        "phrase": "Related Pages",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageDetail.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Related Pages",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns \u003e div.column.is-3 \u003e nav.panel \u003e aside.menu \u003e p.menu-label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Related Pages"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Page\u0027s hidden properties",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Page\u0027s hidden properties",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.page-hidden-properties \u003e b-collapse \u003e h3.title.is-3",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Page\u0027s hidden properties"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Gallery",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/SliderCarousel.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Gallery",
+                "selector": "html \u003e body \u003e template \u003e div.columns.product-gallery \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-6:nth-child(1) \u003e h3.title.is-3.has-text-left",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Gallery"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Add Image to Gallery",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/SliderCarousel.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Add Image to Gallery",
+                "selector": "html \u003e body \u003e template \u003e div.columns.product-gallery \u003e div.column.is-12 \u003e div.columns \u003e div.column.is-6.has-text-right \u003e b-field.file.action.edit \u003e b-upload \u003e a.button.is-primary.is-info \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Add Image to Gallery"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "Home",
         "language": {
           "code": "en",
@@ -5545,7 +7314,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Home",
-                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e router-link.navbar-item:nth-child(1)",
+                "selector": "#navbarBasicExample \u003e div.navbar-start:nth-child(2) \u003e router-link.navbar-item:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -5578,7 +7347,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Info",
-                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e a.navbar-item:nth-child(2)",
+                "selector": "#navbarBasicExample \u003e div.navbar-start:nth-child(2) \u003e router-link.navbar-item:nth-child(2)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -5611,54 +7380,11 @@
             "translationStrings": [
               {
                 "stringOrig": "Services",
-                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e router-link.navbar-item:nth-child(4)",
+                "selector": "#navbarBasicExample \u003e div.navbar-start:nth-child(2) \u003e router-link.navbar-item:nth-child(4)",
                 "translations": [
                   {
                     "langCode": "en",
                     "translation": "Services"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "phrase": "Articles",
-        "language": {
-          "code": "en",
-          "lang": "en"
-        },
-        "translates": [
-          {
-            "langCode": "sk",
-            "translation": "Články"
-          }
-        ],
-        "occurrences": [
-          {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
-            "selector": "[translate]",
-            "type": "text",
-            "blockName": "texts",
-            "translationStrings": [
-              {
-                "stringOrig": "Articles",
-                "selector": "#navbarBasicExample \u003e div.navbar-start \u003e a.navbar-item:nth-child(5)",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Articles"
-                  }
-                ]
-              },
-              {
-                "stringOrig": "Articles",
-                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.has-dropdown.is-hoverable:nth-child(3) \u003e div.navbar-dropdown \u003e a.navbar-item \u003e span",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Articles"
                   }
                 ]
               }
@@ -5692,6 +7418,90 @@
                   {
                     "langCode": "en",
                     "translation": "Go to Cart"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "New Page",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "New Page",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.has-dropdown.is-hoverable:nth-child(3) \u003e div.navbar-dropdown \u003e router-link.navbar-item:nth-child(3) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "New Page"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "New Product",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "New Product",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.has-dropdown.is-hoverable:nth-child(3) \u003e div.navbar-dropdown \u003e router-link.navbar-item:nth-child(4) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "New Product"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "New Category",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/global/Header.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "New Category",
+                "selector": "#navbarBasicExample \u003e div.navbar-end \u003e div.navbar-item.has-dropdown.is-hoverable:nth-child(3) \u003e div.navbar-dropdown \u003e router-link.navbar-item:nth-child(5) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "New Category"
                   }
                 ]
               }
@@ -5758,39 +7568,6 @@
                   {
                     "langCode": "en",
                     "translation": "Logout"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "phrase": "Is your business ready to grow?",
-        "language": {
-          "code": "en",
-          "lang": "en"
-        },
-        "translates": [
-          {
-            "langCode": "sk",
-            "translation": "Je Vaše podnikanie pripravené rásť?"
-          }
-        ],
-        "occurrences": [
-          {
-            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/Homepage.vue",
-            "selector": "[translate]",
-            "type": "text",
-            "blockName": "texts",
-            "translationStrings": [
-              {
-                "stringOrig": "Is your business ready to grow?",
-                "selector": "html \u003e body \u003e template \u003e div.hello \u003e h1.title.is-1",
-                "translations": [
-                  {
-                    "langCode": "en",
-                    "translation": "Is your business ready to grow?"
                   }
                 ]
               }
