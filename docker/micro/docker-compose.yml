@@ -5,7 +5,7 @@ services:
   api:
     build:
       context: ../..
-    image: wradgio/stretchshop_private:latest
+    image: wradgio/stretchshop:latest
     env_file: docker-compose.env
     environment:
       SERVICES: api
@@ -21,14 +21,14 @@ services:
       - "traefik.frontend.entryPoints=http"
       - "traefik.frontend.rule=PathPrefix:/"
     volumes:
-      - /var/www/html/stretchshop.cw.sk/static:/app/public/assets/_s
+      - /var/www/html/stretchshop/static:/app/public/assets/data
     #deploy:
     #  replicas: 2
 
   users:
     build:
       context: .
-    image: wradgio/stretchshop_private:latest
+    image: wradgio/stretchshop:latest
     env_file: docker-compose.env
     environment:
       SERVICES: users
@@ -44,7 +44,7 @@ services:
   products:
     build:
       context: .
-    image: wradgio/stretchshop_private:latest
+    image: wradgio/stretchshop:latest
     env_file: docker-compose.env
     environment:
       SERVICES: products
@@ -60,7 +60,7 @@ services:
   categories:
     build:
       context: .
-    image: wradgio/stretchshop_private:latest
+    image: wradgio/stretchshop:latest
     env_file: docker-compose.env
     environment:
       SERVICES: categories
@@ -76,7 +76,7 @@ services:
   cart:
     build:
       context: .
-    image: wradgio/stretchshop_private:latest
+    image: wradgio/stretchshop:latest
     env_file: docker-compose.env
     environment:
       SERVICES: cart
@@ -92,7 +92,7 @@ services:
   orders:
     build:
       context: .
-    image: wradgio/stretchshop_private:latest
+    image: wradgio/stretchshop:latest
     env_file: docker-compose.env
     environment:
       SERVICES: orders
@@ -111,7 +111,7 @@ services:
   pages:
     build:
       context: .
-    image: wradgio/stretchshop_private:latest
+    image: wradgio/stretchshop:latest
     env_file: docker-compose.env
     environment:
       SERVICES: pages
