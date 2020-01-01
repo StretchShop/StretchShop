@@ -101,6 +101,9 @@ module.exports = {
     "POST /pages/upload/:slug": function (req, res) {
         this.processUpload(req, res);
     },
+
+    // Helpers
+    "POST /helpers/recaptcha": "users.recaptcha"
   },
 
   // Disable to call not-mapped actions

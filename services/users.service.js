@@ -8,6 +8,7 @@ const bcrypt 		= require("bcryptjs");
 const jwt 			= require("jsonwebtoken");
 const nodemailer = require('nodemailer');
 const fs = require('fs');
+const fetch 		= require('node-fetch');
 
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
@@ -80,10 +81,13 @@ module.exports = {
 			smtp: {
 				host: process.env.EMAIL_SMTP_HOST || "smtp.ethereal.email",
 				port: process.env.EMAIL_SMTP_PORT || 587,
-				secure: process.env.EMAIL_SMTP_SECURE || false, // true for 465, false for other ports
+				secureConnection: process.env.EMAIL_SMTP_SECURE || false, // true for 465, false for other ports
 				auth: {
 					user: process.env.EMAIL_SMTP_AUTH_USER || "",
 					pass: process.env.EMAIL_SMTP_AUTH_PASS || ""
+				},
+				tls: {
+						ciphers: process.env.EMAIL_SMTP_CIPHERS || 'SSLv3'
 				}
 			}
 		},
@@ -871,6 +875,13 @@ module.exports = {
 		},
 
 
+		/**
+		 * Delete image by user - checking if user has permision to do that
+		 * 
+		 * @param {String} type - type of image (eg. product image)
+		 * @param {String} code - code of image (eg. order code of product)
+		 * @param {String} image - image name if applicable
+		 */
 		deleteUserImage: {
 			auth: "required",
 			params: {
@@ -960,6 +971,34 @@ module.exports = {
 					}
 				}
 				return "Hi there!";
+			}
+		}, 
+
+
+		/**
+		 * recaptcha verification - currently using Google Recaptcha v3
+		 * 
+		 * @actions
+		 * 
+		 * @param {String} token - recaptcha verification token
+		 */
+		recaptcha: {
+			params: {
+				token: { type: "string" }
+			},
+			handler(ctx) {
+				let requestBody = "secret="+process.env.RECAPTCHA_SECRET+"&response="+ctx.params.token;
+				console.log("recaptcha requestBody:", requestBody);
+				return fetch(process.env.RECAPTCHA_URL, {
+						method: 'post',
+						body:    requestBody,
+						headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				})
+				.then(res => res.json()) // expecting a json response, checking it
+				.then(recaptchaResponse => {
+					console.log("recaptchaResponse:", recaptchaResponse);
+					return recaptchaResponse.success;
+				});
 			}
 		}
 
