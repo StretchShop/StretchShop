@@ -16,7 +16,9 @@ const emailTemplate = require("../mixins/email.mixin");
 const validateAddress = require("../mixins/validate.address.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
 
-const NavigationMain = require("../resources/navigation/navigation-main");
+var resourcesDirectory = process.env.PATH_RESOURCES || "../resources";
+
+const NavigationMain = require(resourcesDirectory+"/navigation/navigation-main");
 
 module.exports = {
 	name: "users",

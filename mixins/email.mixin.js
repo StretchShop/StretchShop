@@ -1,8 +1,10 @@
 "use strict";
 
+require("dotenv").config();
 const fs = require('fs');
 const pathResolve = require('path').resolve;
 const handlebars = require('handlebars');
+var resourcesDirectory = process.env.PATH_RESOURCES || "./resources";
 
 module.exports = function(emailTemplateName, inputData, requiredFormats){
   emailTemplateName = (typeof emailTemplateName !== 'undefined') ?  emailTemplateName : 'registration';
@@ -16,7 +18,7 @@ module.exports = function(emailTemplateName, inputData, requiredFormats){
     promises.push(
       new Promise(function(resolve, reject) {
         let filename = emailTemplateName+"."+format;
-        let filepath = "./resources/emails/user/"+filename;
+        let filepath = resourcesDirectory+"/emails/user/"+filename;
         filepath = pathResolve(filepath);
         fs.readFile(filepath, 'utf8', (err, data) => {
             if (err) {

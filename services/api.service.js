@@ -9,10 +9,12 @@ const crypto = require("crypto");
 const { UnAuthorizedError } = ApiGateway.Errors;
 // const fs = require("fs");
 const fs = require("fs-extra");
-var formidable = require("formidable"),
-		util = require("util");
-const apiV1 = require("../resources/routes/apiV1");
-var util = require('util')
+var formidable = require("formidable");
+var util = require('util');
+
+var resourcesDirectory = process.env.PATH_RESOURCES || "../resources";
+
+const apiV1 = require(resourcesDirectory+"/routes/apiV1");
 
 module.exports = {
 	name: "api",
@@ -77,7 +79,7 @@ module.exports = {
 		}],
 
 		assets: {
-			folder: "./public"
+			folder: process.env.PATH_PUBLIC || "./public"
 		},
 
 		localsDefault: {
@@ -100,7 +102,7 @@ module.exports = {
 
 		translation: {
 			type: "jamlin",
-			dictionaryPath: "./public/project_dictionary.json"
+			dictionaryPath: process.env.PATH_DICTIONARY || "./public/project_dictionary.json"
 		},
 
 		siteSettings: {

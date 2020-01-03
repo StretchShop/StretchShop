@@ -103,6 +103,10 @@ module.exports = {
 		},
 
 		// ------------- PAGES VARIABLES AND SETTINGS -------------
+
+		paths: {
+			resources: process.env.PATH_RESOURCES || "./resources"
+		}
 	},
 
 
@@ -201,7 +205,7 @@ module.exports = {
 			},
 			handler(ctx) {
 				// TODO - use group default option;
-				let path = "./resources/pages/_default";
+				let path = this.settings.paths.resources+"/pages/_default";
 				let dirs = readdirSync(path).filter(function (file) {
 					return statSync(path+'/'+file).isDirectory();
 				});
@@ -355,7 +359,7 @@ module.exports = {
 				if ( pageSlugArray.length>1 ) {
 					templateName = pageSlugArray[1];
 				}
-				let parentDir = "./resources/pages/"+templateName+"/"+pageName+"/";
+				let parentDir = this.settings.paths.resources+"/pages/"+templateName+"/"+pageName+"/";
 				let filepath = parentDir+pageName+"-"+lang+".html";
 				filepath = pathResolve(filepath);
 				
