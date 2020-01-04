@@ -1,5 +1,9 @@
+![](public/assets/_site/StretchShop-1800-whitebg.png)
+
 # StretchShop
-Fast &amp; scalable e-business REST API backend based on [Moleculer framework](https://moleculer.services/), which makes it easy to run as monolithic or microservices application.
+StretchShop is something most would call e-shop. It's created with simple goal - bring free but smart tool for someone, who wants to bring business online.
+
+It's fast &amp; scalable e-business REST API backend (with compiled frontend included) based on [Moleculer framework](https://moleculer.services/), which makes it easy to run as monolithic or microservices application.
 
 Try https://stretchshop.app/ for online demo with almost 100k of generated products in categories and cart, with simple price and name filter. Hosted on a commercial cloud, running as docker microservices application without caching results to test the clean performance.
 
