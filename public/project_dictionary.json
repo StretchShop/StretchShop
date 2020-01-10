@@ -4648,7 +4648,7 @@
               },
               {
                 "stringOrig": "This field cannot be empty",
-                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field.email \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field.email \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -4782,6 +4782,34 @@
                   {
                     "langCode": "en",
                     "translation": "Email"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "This email already exists",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Development/vue-js/stretchshop-front-vue/src/components/users/Register.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "This email already exists",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-login \u003e div.columns:nth-child(2) \u003e div.column.is-half.is-offset-one-quarter:nth-child(1) \u003e form \u003e div.simple-wrapper \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-6:nth-child(1) \u003e div.field.email \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(2)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This email already exists"
                   }
                 ]
               }
