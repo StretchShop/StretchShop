@@ -75,7 +75,7 @@ syncPairs.forEach(function(pair){
 });
 
 // 4. create environment variables
-fs.copyFile(__dirname+'/.env.example', __dirname+'.env', (err) => {
+fs.copyFile(__dirname+'/../.env.example', __dirname+'/../.env', (err) => {
   if (err) throw err;
   console.log('Setting environment variables: .env.example was copied to .env');
 });
@@ -84,5 +84,5 @@ fs.copyFile(__dirname+'/.env.example', __dirname+'.env', (err) => {
 console.log('Running: npm run dev');
 childProcess.execSync('npm run dev', {
   stdio: [0, 1, 2],
-  cwd: path.resolve(__dirname)
+  cwd: path.resolve(__dirname+"/../")
 });
