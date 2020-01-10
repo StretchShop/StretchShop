@@ -16,7 +16,7 @@ if (!fs.existsSync(dir)){
     childProcess.execSync('git clone ' +repoUrl+ ' ' +dir, {
       stdio: [0, 1, 2], // we need this so node will print the command output
       cwd: path.resolve(dir, ''), // path to where you want to save the file
-    })
+    });
 }
 
 // 2. run code to fill in database
@@ -72,4 +72,11 @@ syncPairs.forEach(function(pair){
     }
     console.log('Done!');
   });
+});
+
+// 4. run development server
+console.log('Running: npm run dev');
+childProcess.execSync('npm run dev', {
+  stdio: [0, 1, 2],
+  cwd: path.resolve(__dirname)
 });
