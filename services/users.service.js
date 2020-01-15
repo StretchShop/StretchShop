@@ -766,7 +766,7 @@ module.exports = {
 				const TIME_TO_PAST = 60 * 60 * 1000 * 2;
 				let oldDate = new Date();
 				oldDate.setTime( (new Date().getTime()) - TIME_TO_PAST );
-				let hash = "$2b$10$"+ctx.params.hash;
+				let hash = "$2b$10$"+ctx.params.hash.replace(re, '.');
 				return this.adapter.findOne({ email: email, activated: {"$exists": false} }) //, lastVerifyDate: {"$gt": oldDate}
 				.then((found) => {
 					let date1 = new Date(found.lastVerifyDate);
@@ -1194,35 +1194,35 @@ module.exports = {
 
 
 		 sendVerificationEmail(emailData, ctx) {
-			 // get hash
-			 let hash = bcrypt.hashSync(emailData.keepItForLater.toString().substring(7), 10)
-			 hash = encodeURIComponent(hash.substring(7));
-			 // get email string
-			 let re = new RegExp("\\.", 'g');
-			 let email = emailData.entity.user.email.toString().replace(re, '--').replace('@', '---');
-			 // create activation link
-			 let confirmLink = emailData.url+'/user/verify/'+encodeURIComponent(email)+'/'+hash; // using email to identify and hash to verify
-			 // setup object for sending email
-			 let emailSetup = {
-			 	settings: {
-			 		to: emailData.entity.user.email
-			 	},
-				functionSettings: {
-					language: emailData.lang
-				},
-			 	template: emailData.templateName,
-			 	data: {
-			 		webname: "StretchShop", // TODO - get name from config
-			 		username: emailData.entity.user.username,
-			 		email: emailData.entity.user.email,
-			 		confirm_link: confirmLink
-			 	}
-			 };
+			let re = new RegExp("\\.", 'g');
+			// get hash
+			let hash = bcrypt.hashSync(emailData.keepItForLater.toString().substring(7), 10)
+			hash = encodeURIComponent(hash.substring(7)).replace(re, '--');
+			// get email string
+			let email = emailData.entity.user.email.toString().replace(re, '--').replace('@', '---');
+			// create activation link
+			let confirmLink = emailData.url+'/user/verify/'+encodeURIComponent(email)+'/'+hash; // using email to identify and hash to verify
+			// setup object for sending email
+			let emailSetup = {
+			settings: {
+				to: emailData.entity.user.email
+			},
+			functionSettings: {
+				language: emailData.lang
+			},
+			template: emailData.templateName,
+			data: {
+				webname: "StretchShop", // TODO - get name from config
+				username: emailData.entity.user.username,
+				email: emailData.entity.user.email,
+				confirm_link: confirmLink
+			}
+			};
 
-			 // sending email
-			 ctx.call("users.sendEmail", emailSetup).then(json => {
-				 console.log("\nemail sent _____---... "+json+"\n\n");
-			 });
+			// sending email
+			ctx.call("users.sendEmail", emailSetup).then(json => {
+				console.log("\nemail sent _____---... "+json+"\n\n");
+			});
 		},
 
 
