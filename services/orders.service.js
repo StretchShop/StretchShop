@@ -10,12 +10,14 @@ const paypal = require('paypal-rest-sdk');
 const payments = paypal.v1.payments;
 
 const DbService = require("../mixins/db.mixin");
+const HelpersMixin = require("../mixins/helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
 module.exports = {
 	name: "orders",
 	mixins: [
 		DbService("orders"),
+		HelpersMixin
 		// CacheCleanerMixin([
 		// 	"cache.clean.cart"
 		// ])
@@ -612,7 +614,7 @@ module.exports = {
 							items.push({
 								"name": order.items[i].name[order.lang.code],
 								"sku": order.items[i].orderCode,
-								"price": order.items[i].price,
+								"price": this.formatPrice(order.items[i].price),
 								"currency": order.prices.currency.code,
 								"quantity": order.items[i].amount
 							});
@@ -620,7 +622,7 @@ module.exports = {
 						items.push({
 							"name": order.data.paymentData.name[order.lang.code],
 							"sku": order.data.paymentData.name[order.lang.code],
-							"price": order.prices.pricePayment,
+							"price": this.formatPrice(order.prices.pricePayment),
 							"currency": order.prices.currency.code,
 							"quantity": 1
 						});
@@ -634,7 +636,7 @@ module.exports = {
 						items.push({
 							"name": deliveryName,
 							"sku": deliveryName,
-							"price": order.prices.priceDelivery,
+							"price": this.formatPrice(order.prices.priceDelivery),
 							"currency": order.prices.currency.code,
 							"quantity": 1
 						});
@@ -662,7 +664,7 @@ module.exports = {
 								},
 								"amount": {
 									"currency": order.prices.currency.code,
-									"total": parseFloat(this.roundNumber(order.prices.priceTotal).toFixed(2)) // TODO - fix to rounding when saving
+									"total": this.formatPrice(order.prices.priceTotal)
 								},
 								// "note_to_payer": "Order ID "+order._id,
 								"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
@@ -738,7 +740,7 @@ module.exports = {
 						    "transactions": [{
 									"amount": {
 										"currency": order.prices.currency.code,
-										"total": parseFloat(this.roundNumber(order.prices.priceTotal).toFixed(2)) // TODO - fix to rounding when saving
+										"total": this.formatPrice(order.prices.priceTotal)
 									}
 						    }]
 						  };
@@ -1162,9 +1164,9 @@ module.exports = {
 					let taxOnly = value.price / (1 + tax);
 					self.settings.orderTemp.prices.priceTaxTotal += taxOnly;
 				});
-				this.settings.orderTemp.prices.priceItems = this.roundNumber(this.settings.orderTemp.prices.priceItems);
-				this.settings.orderTemp.prices.priceItemsNoTax = this.roundNumber(this.settings.orderTemp.prices.priceItemsNoTax);
-				this.settings.orderTemp.prices.priceTaxTotal = this.roundNumber(this.settings.orderTemp.prices.priceTaxTotal);
+				this.settings.orderTemp.prices.priceItems = this.formatPrice(this.settings.orderTemp.prices.priceItems);
+				this.settings.orderTemp.prices.priceItemsNoTax = this.formatPrice(this.settings.orderTemp.prices.priceItemsNoTax);
+				this.settings.orderTemp.prices.priceTaxTotal = this.formatPrice(this.settings.orderTemp.prices.priceTaxTotal);
 			}
 
 			// count other totals
@@ -1172,12 +1174,12 @@ module.exports = {
 				this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
 					this.settings.orderTemp.prices.priceDelivery +
 					this.settings.orderTemp.prices.pricePayment;
-				this.settings.orderTemp.prices.priceTotal = this.roundNumber(this.settings.orderTemp.prices.priceTotal);
+				this.settings.orderTemp.prices.priceTotal = this.formatPrice(this.settings.orderTemp.prices.priceTotal);
 				let priceDeliveryNoTax = this.settings.orderTemp.prices.priceDelivery / (1 + tax);
 				let pricePaymentNoTax = this.settings.orderTemp.prices.pricePayment / (1 + tax);
 				this.settings.orderTemp.prices.priceTotalNoTax = this.settings.orderTemp.prices.priceItemsNoTax +
 					priceDeliveryNoTax + pricePaymentNoTax;
-				this.settings.orderTemp.prices.priceTotalNoTax = this.roundNumber(this.settings.orderTemp.prices.priceTotalNoTax);
+				this.settings.orderTemp.prices.priceTotalNoTax = this.formatPrice(this.settings.orderTemp.prices.priceTotalNoTax);
 			}
 		},
 
@@ -1303,8 +1305,8 @@ module.exports = {
 						}
 					} else { // something is wrong with order data or server
 						// return original response, but add error
-						orderProcessedResult.errors.push({"value": "Server", "desc": "bad response"});
-						return orderProcessedResult;
+						orderSentResponse.errors.push({"value": "Server", "desc": "bad response"});
+						return orderSentResponse;
 					}
 				});
 			} else { // no url to send
@@ -1445,35 +1447,6 @@ module.exports = {
 			return { "$set": objectToSave };
 		},
 
-		/**
-		 * thanks to
-		 * https://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-only-if-necessary
-		 * and
-		 * https://plnkr.co/edit/uau8BlS1cqbvWPCHJeOy?p=preview
-		 */
-		roundNumber(num, scaleParam) {
-			let scale = (typeof scaleParam=="undefined") ? scaleParam : 2;
-			if (Math.round(num) != num) {
-		    if (Math.pow(0.1, scale) > num) {
-		      return 0;
-		    }
-		    var sign = Math.sign(num);
-		    var arr = ("" + Math.abs(num)).split(".");
-		    if (arr.length > 1) {
-		      if (arr[1].length > scale) {
-		        var integ = +arr[0] * Math.pow(10, scale);
-		        var dec = integ + (+arr[1].slice(0, scale) + Math.pow(10, scale));
-		        var proc = +arr[1].slice(scale, scale + 1)
-		        if (proc >= 5) {
-		          dec = dec + 1;
-		        }
-		        dec = sign * (dec - Math.pow(10, scale)) / Math.pow(10, scale);
-		        return dec;
-		      }
-		    }
-		  }
-		  return num;
-		},
 
 		paymentBraintreeGateway() {
 			this.settings.paymentsConfigs.braintree.gateway = braintree.connect({
@@ -1482,17 +1455,6 @@ module.exports = {
 			  publicKey: this.settings.paymentsConfigs.braintree.publicKey,
 			  privateKey: this.settings.paymentsConfigs.braintree.privateKey
 			});
-		},
-
-		getValueByCode(arrayOfValues, codeToPick) {
-			if (arrayOfValues.length>0 && codeToPick!='') {
-				arrayOfValues.forEach(function(value){
-					if (value && value.code && value.code!='' && value.code==codeToPick) {
-						return value;
-					}
-				});
-			}
-			return codeToPick;
 		},
 
 		getDataToCreateUser(ctx) {
