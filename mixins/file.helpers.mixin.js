@@ -1,11 +1,11 @@
 "use strict";
 
-const fs = require('fs');
-const fspath = require('path');
-const pathResolve = require('path').resolve;
+const fs = require("fs");
+const fspath = require("path");
+const pathResolve = require("path").resolve;
 
 module.exports = {
-  methods: {
+	methods: {
 
 		/**
 		 * 1. check if file with lang suffix exists
@@ -56,19 +56,19 @@ module.exports = {
 				lang: null,
 				ext: null,
 				sep: null
-			}
+			};
 
-			let sep = (typeof fspath != "undefined" && typeof fspath.sep != "undefined") ? fspath.sep : "\/";
-			let separator = (["\/","\\"].indexOf(sep)) ? sep : "\/";
+			let sep = (typeof fspath != "undefined" && typeof fspath.sep != "undefined") ? fspath.sep : "/";
+			let separator = (["/","\\"].indexOf(sep)) ? sep : "/";
 			pathObject.sep = separator;
 
 			let pathArray = path.split(/[\\/]/); // split path into array - with any path separator
 			let fullName = pathArray.pop(); // pop last item from path array, to get file name
 			pathObject.dir = pathArray.join(separator); // get directory path by 
-			let nameArray = fullName.split(/[\.]/); // split name into extension
+			let nameArray = fullName.split(/[.]/); // split name into extension
 			pathObject.ext = nameArray.pop(); // get extension
 			let nameWithLang = (nameArray.constructor === Array && nameArray.length>0) ? nameArray.join(".") : nameArray;
-			let nameWithLangArray = nameWithLang.split(/[\-]/);
+			let nameWithLangArray = nameWithLang.split(/[-]/);
 			if ( nameWithLangArray.constructor === Array && nameWithLangArray.length>1 ) {
 				pathObject.lang = nameWithLangArray.pop();
 				pathObject.name = nameWithLangArray.join("-");
@@ -83,10 +83,10 @@ module.exports = {
 		 * Simple function to get only file extension
 		 * @param {String} path 
 		 */
-		getExtension(path) {
+		getExtension(fname) {
 			return fname.slice((Math.max(0, fname.lastIndexOf(".")) || Infinity) + 1);
 		},
-		 
+		
 		/**
 		 * Check if file exists and is readable
 		 * @param {Boolean} path 
@@ -103,7 +103,7 @@ module.exports = {
 				});
 			});
 		},
-		 
+	
 		/**
 		 * Read contents of the file
 		 * @param {String} path 
@@ -111,18 +111,18 @@ module.exports = {
 		readFile(path) {
 			return new Promise(function(resolve, reject) {
 				let filepath = pathResolve(path);
-				fs.readFile(filepath, 'utf8', (err, data) => {
-						if (err) { 
-							console.log("file.helpers.readFile ("+path+") ERROR:", err);
-							reject(err)
-						}
-						resolve(data);
+				fs.readFile(filepath, "utf8", (err, data) => {
+					if (err) { 
+						console.log("file.helpers.readFile ("+path+") ERROR:", err);
+						reject(err);
+					}
+					resolve(data);
 				});
 			})
-			.then(data => {
-				return data;
-			});
+				.then(data => {
+					return data;
+				});
 		}
 
-  }
+	}
 };

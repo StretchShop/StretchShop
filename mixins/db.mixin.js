@@ -16,7 +16,7 @@ module.exports = function(collection) {
 			collection,
 			methods: {
 				fixStringToId(idString) {
-					if ( typeof this.adapter.stringToObjectID !== 'undefined' ) {
+					if ( typeof this.adapter.stringToObjectID !== "undefined" ) {
 						return this.adapter.stringToObjectID(idString);
 					}
 					return idString;

@@ -25,9 +25,9 @@ module.exports = {
 	name: "products",
 	mixins: [
 		DbService("products"),
-		// CacheCleanerMixin([
-		// 	"cache.clean.cart"
-		// ])
+		CacheCleanerMixin([
+			"cache.clean.products"
+		])
 	],
 
 	/**
@@ -35,7 +35,7 @@ module.exports = {
 	 */
 	settings: {
 		/** Public fields */
-    idField: "_id",
+		idField: "_id",
 
 		fields: [
 			"_id", "externalId", "orderCode", "variationGroupId", "slug",
@@ -55,7 +55,7 @@ module.exports = {
 		entityValidator: {
 			externalId: { type: "string", min: 3 },
 			orderCode: {type: "string", optional: true, min: 3 },
-      variationGroupId: {type: "string", optional: true },
+			variationGroupId: {type: "string", optional: true },
 			slug: {type: "string", optional: true },
 			publisher: {type: "string", min: 3 },
 			sellers: { type: "array", optional: true, items:
@@ -73,8 +73,8 @@ module.exports = {
 			price: { type: "number" },
 			tax: { type: "number", optional: true },
 			priceLevels: { type: "object", optional: true, props: {
-					priceLevelId: { type: "string" },
-					price: { type: "number" }
+				priceLevelId: { type: "string" },
+				price: { type: "number" }
 			} },
 			properties: { type: "object", optional: true, props: {
 			} },
@@ -115,71 +115,70 @@ module.exports = {
 				filter: { type: "object", optional: true }
 			},
 			handler(ctx) {
-				return ctx.call('categories.detail', { categoryPath: ctx.params.category })
+				return ctx.call("categories.detail", { categoryPath: ctx.params.category })
 					.then(category => {
 						// 1. category exists
 						if (category) {
 							let categoriesToListProductsIn = [ctx.params.category];
 							if (category.subsSlugs && category.subsSlugs.length>0) {
 								categoriesToListProductsIn = category.subsSlugs;
-                categoriesToListProductsIn.push(ctx.params.category);
+								categoriesToListProductsIn.push(ctx.params.category);
 							}
-              if ( categoriesToListProductsIn.length<1 ) {
-                categoriesToListProductsIn = [categoriesToListProductsIn];
-              }
+							if ( categoriesToListProductsIn.length<1 ) {
+								categoriesToListProductsIn = [categoriesToListProductsIn];
+							}
 
-
-              // fix filter if needed
-              let filter = { query: {}, limit: 100};
-              if (typeof ctx.params.filter !== 'undefined' && ctx.params.filter) {
-                filter = ctx.params.filter;
-                if (typeof filter.query === 'undefined' || !filter.query) {
-                  filter.query = {};
-                }
-              }
-              // set categories if from detail
-              filter["query"]["categories"] = {
-                "$in": categoriesToListProductsIn
-              };
-              // set max of results
-              if (filter.limit>100) {
-                filter.limit = 100;
-              }
-              if (typeof filter.sort === "undefined" || !filter.sort) {
-                filter.sort = "price";
-              }
+							// fix filter if needed
+							let filter = { query: {}, limit: 100};
+							if (typeof ctx.params.filter !== "undefined" && ctx.params.filter) {
+								filter = ctx.params.filter;
+								if (typeof filter.query === "undefined" || !filter.query) {
+									filter.query = {};
+								}
+							}
+							// set categories if from detail
+							filter["query"]["categories"] = {
+								"$in": categoriesToListProductsIn
+							};
+							// set max of results
+							if (filter.limit>100) {
+								filter.limit = 100;
+							}
+							if (typeof filter.sort === "undefined" || !filter.sort) {
+								filter.sort = "price";
+							}
 
 							return ctx.call("products.find", filter)
 								.then(categoryProducts => {
 									let result = {
-										'categoryDetail': category,
-										'results': categoryProducts
+										"categoryDetail": category,
+										"results": categoryProducts
 									};
 
-                  // TODO - check if this can be removed, if data not already in category var
+									// TODO - check if this can be removed, if data not already in category var
 									return ctx.call("categories.find", {
 										"query": {
 											parentPathSlug: category.pathSlug
 										}
 									})
-									.then(categoriesList => {
-										result['categories'] = categoriesList;
-                    if ( JSON.stringify(filter.query) != '{"categories":{"$in":'+JSON.stringify(categoriesToListProductsIn)+'}}' ) {
-                      return ctx.call('products.count', filter)
-      								.then(filteredProductsCount => {
-                        result['filteredProductsCount'] = filteredProductsCount;
-                        return result;
-                      });
-                    }
-										return result;
-									});
+										.then(categoriesList => {
+											result["categories"] = categoriesList;
+											if ( JSON.stringify(filter.query) != "{\"categories\":{\"$in\":"+JSON.stringify(categoriesToListProductsIn)+"}}" ) {
+												return ctx.call("products.count", filter)
+													.then(filteredProductsCount => {
+														result["filteredProductsCount"] = filteredProductsCount;
+														return result;
+													});
+											}
+											return result;
+										});
 								});
 						}
 					});
 			}
 		},
 
-    /**
+		/**
 		 * Add item to user's cart
 		 *
 		 * @actions
@@ -191,105 +190,105 @@ module.exports = {
 			// auth: "",
 			params: {
 				query: { type: "object", optional: true },
-        limit: { type: "number", optional: true },
-        offset: { type: "number", optional: true },
-        sort: { type: "string", optional: true },
-        minimalData: { type: "boolean", optional: true }
+				limit: { type: "number", optional: true },
+				offset: { type: "number", optional: true },
+				sort: { type: "string", optional: true },
+				minimalData: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
-        // fix filter if needed
-        let filter = { query: {}, limit: 100};
-        if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
-          filter.query = ctx.params.query;
-        }
-        // if categories sent, use them
-        let categories = [];
-        if ( ctx.params.query.categories && typeof ctx.params.query.categories["$in"] !== "undefined") {
-          categories = ctx.params.query.categories["$in"];
-        }
-        // set offset
-        if (ctx.params.offset && ctx.params.offset>0) {
-          filter.offset = ctx.params.offset;
-        }
-        // set max of results
-        if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
-          filter.limit = ctx.params.limit;
-        }
-        if (filter.limit>100) {
-          filter.limit = 100;
-        }
-        // sort
-        filter.sort = "price";
-        if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
-          filter.sort = ctx.params.sort;
-        }
+				// fix filter if needed
+				let filter = { query: {}, limit: 100};
+				if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
+					filter.query = ctx.params.query;
+				}
+				// if categories sent, use them
+				let categories = [];
+				if ( ctx.params.query.categories && typeof ctx.params.query.categories["$in"] !== "undefined") {
+					categories = ctx.params.query.categories["$in"];
+				}
+				// set offset
+				if (ctx.params.offset && ctx.params.offset>0) {
+					filter.offset = ctx.params.offset;
+				}
+				// set max of results
+				if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
+					filter.limit = ctx.params.limit;
+				}
+				if (filter.limit>100) {
+					filter.limit = 100;
+				}
+				// sort
+				filter.sort = "price";
+				if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
+					filter.sort = ctx.params.sort;
+				}
 
 				return ctx.call("products.find", filter)
-				.then(categoryProducts => {
-					let result = {
-						'categories': categories,
-						'results': categoryProducts
-					};
+					.then(categoryProducts => {
+						let result = {
+							"categories": categories,
+							"results": categoryProducts
+						};
 
-          if (typeof ctx.params.minimalData !== "undefined" && ctx.params.minimalData==true) {
-            return result;
-          } else {
-            return ctx.call("products.getMinMaxPrice", {
-              categories: categories
-            }).then(minMaxPrice => {
-              if ( minMaxPrice.length>0 ) {
-                minMaxPrice = minMaxPrice[0];
-                if ( typeof minMaxPrice._id !== "undefined" ) {
-                  delete minMaxPrice._id;
-                }
-              }
-              result['filter'] = {
-                'minMaxPrice': minMaxPrice
-              }
-              // count products inside this category and its subcategories
-              return ctx.call('products.count', {
-                "query": filter.query
-              })
-              .then(productsCount => {
-                result['filteredProductsCount'] = productsCount;
-                return result;
-              });
-            });
-          }
+						if (typeof ctx.params.minimalData !== "undefined" && ctx.params.minimalData==true) {
+							return result;
+						} else {
+							return ctx.call("products.getMinMaxPrice", {
+								categories: categories
+							}).then(minMaxPrice => {
+								if ( minMaxPrice.length>0 ) {
+									minMaxPrice = minMaxPrice[0];
+									if ( typeof minMaxPrice._id !== "undefined" ) {
+										delete minMaxPrice._id;
+									}
+								}
+								result["filter"] = {
+									"minMaxPrice": minMaxPrice
+								};
+								// count products inside this category and its subcategories
+								return ctx.call("products.count", {
+									"query": filter.query
+								})
+									.then(productsCount => {
+										result["filteredProductsCount"] = productsCount;
+										return result;
+									});
+							});
+						}
 
-        });
+					});
 
 			}
 		},
 
 
-    /**
+		/**
      * Mongo specific search with _id included
      *
      * @param {Object} query - original query with _id
      *
      * @returns {Object}
      */
-    findWithId: {
-      params: {
-        query: { type: "object" }
-      },
-      // cache: {
-      // 	keys: ["#cartID"]
-      // },
-      handler(ctx) {
-        let queryObject = ctx.params.query;
-        let self = this;
-        Object.keys(queryObject).forEach(function(key,index) {
-          if (key==='_id' && typeof queryObject[key] === "string") {
-            queryObject[key] = self.fixStringToId(queryObject[key]);
-          }
-        });
-        return this.adapter.find({
-          "query": queryObject
-        });
-      }
-    },
+		findWithId: {
+			params: {
+				query: { type: "object" }
+			},
+			// cache: {
+			// 	keys: ["#cartID"]
+			// },
+			handler(ctx) {
+				let queryObject = ctx.params.query;
+				let self = this;
+				Object.keys(queryObject).forEach(function(key) {
+					if (key==="_id" && typeof queryObject[key] === "string") {
+						queryObject[key] = self.fixStringToId(queryObject[key]);
+					}
+				});
+				return this.adapter.find({
+					"query": queryObject
+				});
+			}
+		},
 
 
 		/**
@@ -311,85 +310,85 @@ module.exports = {
 				return this.adapter.findById(ctx.params.product)
 					.then(found => {
 						if (found) { // product found, return it
-              if (found.categories.length>0) {
-                return ctx.call("categories.detail", {
+							if (found.categories.length>0) {
+								return ctx.call("categories.detail", {
 									categoryPath: found.categories[0],
 									type: "products"
 								})
-                .then(parentCategoryDetail => {
-                  found["parentCategoryDetail"] = parentCategoryDetail;
-                  return found;
-                });
-              } else {
-                found["parentCategoryDetail"] = null;
-              }
+									.then(parentCategoryDetail => {
+										found["parentCategoryDetail"] = parentCategoryDetail;
+										return found;
+									});
+							} else {
+								found["parentCategoryDetail"] = null;
+							}
 						} else { // no product found, create one
 							return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found"}]));
 						}
 					})
-          .then(found => {
-            // optional data
-            if (typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
-              return this.adapter.find({
-                "query": {
-                  "variationGroupId": found.variationGroupId,
-                  "_id": { "$ne": found._id }
-                }
-              })
-              .then(variations => {
-                if (!found.data) {
-                  found.data = {};
-                }
-                found.data.variations = variations;
-                return found;
-              });
-            }
-            return found;
-          })
-          .then(found => {
-            if (typeof found.data!=="undefined" && found.data.related && found.data.related.products && found.data.related.products.length>0) {
-              return this.adapter.find({
-                "query": {
-                  "orderCode": {"$in": found.data.related.products}
-                }
-              })
-              .then(related => {
-                found.data.related.productResults = related;
-                return found;
-              });
-            }
-            return found;
-          });
+					.then(found => {
+						// optional data
+						if (typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
+							return this.adapter.find({
+								"query": {
+									"variationGroupId": found.variationGroupId,
+									"_id": { "$ne": found._id }
+								}
+							})
+								.then(variations => {
+									if (!found.data) {
+										found.data = {};
+									}
+									found.data.variations = variations;
+									return found;
+								});
+						}
+						return found;
+					})
+					.then(found => {
+						if (typeof found.data!=="undefined" && found.data.related && found.data.related.products && found.data.related.products.length>0) {
+							return this.adapter.find({
+								"query": {
+									"orderCode": {"$in": found.data.related.products}
+								}
+							})
+								.then(related => {
+									found.data.related.productResults = related;
+									return found;
+								});
+						}
+						return found;
+					});
 			}
 		},
 
 
 
-    getMinMaxPrice: {
-      // auth: "",
-      params: {
-        categories: { type: "array" }
-      },
-      // cache: {
-      // 	keys: ["#cartID"]
-      // },
-      handler(ctx) {
-        let categories = ctx.params.categories;
-        return this.adapter.collection.aggregate([
-          { "$match": {
-            "categories": {"$in": categories}
-          }},
-          { "$group": {
-            "_id": null,
-            "max": { "$max": "$price" },
-            "min": { "$min": "$price" }
-          }}
-        ]).toArray()
-        .then(minMaxPrice => {
-          return minMaxPrice;
-        });
-      }
-    },
+		getMinMaxPrice: {
+			// auth: "",
+			params: {
+				categories: { type: "array" }
+			},
+			// cache: {
+			// 	keys: ["#cartID"]
+			// },
+			handler(ctx) {
+				let categories = ctx.params.categories;
+				return this.adapter.collection.aggregate([
+					{ "$match": {
+						"categories": {"$in": categories}
+					}},
+					{ "$group": {
+						"_id": null,
+						"max": { "$max": "$price" },
+						"min": { "$min": "$price" }
+					}}
+				]).toArray()
+					.then(minMaxPrice => {
+						return minMaxPrice;
+					});
+			}
+		},
 
 
 
@@ -406,21 +405,21 @@ module.exports = {
 			params: {
 				products: { type: "array", items: "object", optional: true },
 			},
-      cache: false,
+			cache: false,
 			handler(ctx) {
-				console.log('--- import products ---');
+				console.log("--- import products ---");
 				let products = ctx.params.products;
 				let promises = [];
 				let mythis = this;
 
-        if (ctx.meta.user.type=='admin') {
-  				if ( products && products.length>0 ) {
-  					// loop products to import
-  					products.forEach(function(entity) {
-  						promises.push(
-  							// add product results into result variable
-  							mythis.adapter.findById(entity.id)
-  								.then(found => {
+				if (ctx.meta.user.type=="admin") {
+					if ( products && products.length>0 ) {
+						// loop products to import
+						products.forEach(function(entity) {
+							promises.push(
+								// add product results into result variable
+								mythis.adapter.findById(entity.id)
+									.then(found => {
 										if (found) { // product found, update it
 											console.log("\n\n product entity found:", entity);
 
@@ -433,71 +432,71 @@ module.exports = {
 												});
 											}
 
-  										return mythis.validateEntity(entity)
-  											.then(() => {
-  												if (!entity.dates) {
-  													entity.dates = {};
-  												}
-  												entity.dates.dateUpdated = new Date();
-  												entity.dates.dateSynced = new Date();
-                          let entityId = entity.id;
-                          delete entity.id;
-                          delete entity._id;
-          								const update = {
-          									"$set": entity
-          								};
-  												return mythis.adapter.updateById(entityId, update);
-  											});
-  									} else { // no product found, create one
-  										return mythis.validateEntity(entity)
-  										.then(() => {
-  											// set generic variables
-  											if ( !entity.slug || entity.slug.trim() == "") {
-                          let lang = ctx.meta.localsDefault.lang;
-                          if ( ctx.meta.localsDefault.lang.code ) {
-                            lang = ctx.meta.localsDefault.lang.code;
-                          }
-  												entity.slug = slug(entity.name[lang], { lower: true });
-                          // + "-" + (Math.random() * Math.pow(36, 6) | 0).toString(36);
-  											}
-  											return ctx.call("products.find", {
-          								"query": {
-                            slug: entity.slug
-                          }
-                        })
-  											.then(slugFound => {
-  												if (slugFound && slugFound.constructor !== Array) {
-  													return { 'error' : "Slug "+entity.slug+" already used." };
-  												}
+											return mythis.validateEntity(entity)
+												.then(() => {
+													if (!entity.dates) {
+														entity.dates = {};
+													}
+													entity.dates.dateUpdated = new Date();
+													entity.dates.dateSynced = new Date();
+													let entityId = entity.id;
+													delete entity.id;
+													delete entity._id;
+													const update = {
+														"$set": entity
+													};
+													return mythis.adapter.updateById(entityId, update);
+												});
+										} else { // no product found, create one
+											return mythis.validateEntity(entity)
+												.then(() => {
+													// set generic variables
+													if ( !entity.slug || entity.slug.trim() == "") {
+														let lang = ctx.meta.localsDefault.lang;
+														if ( ctx.meta.localsDefault.lang.code ) {
+															lang = ctx.meta.localsDefault.lang.code;
+														}
+														entity.slug = slug(entity.name[lang], { lower: true });
+														// + "-" + (Math.random() * Math.pow(36, 6) | 0).toString(36);
+													}
+													return ctx.call("products.find", {
+														"query": {
+															slug: entity.slug
+														}
+													})
+														.then(slugFound => {
+															if (slugFound && slugFound.constructor !== Array) {
+																return { "error" : "Slug "+entity.slug+" already used." };
+															}
 
-  												// TODO - check if slug paths don't already exist
-  												if (ctx.meta.user && ctx.meta.user.email) {
-  													entity.publisher = ctx.meta.user.email.toString();
-  												}
-  												if (!entity.dates) {
-  													entity.dates = {};
-  												}
-  												entity.dates.dateCreated = new Date();
-  												entity.dates.dateUpdated = new Date();
-  												entity.dates.dateSynced = new Date();
+															// TODO - check if slug paths don't already exist
+															if (ctx.meta.user && ctx.meta.user.email) {
+																entity.publisher = ctx.meta.user.email.toString();
+															}
+															if (!entity.dates) {
+																entity.dates = {};
+															}
+															entity.dates.dateCreated = new Date();
+															entity.dates.dateUpdated = new Date();
+															entity.dates.dateSynced = new Date();
 
-  												return mythis.adapter.insert(entity)
-  													.then(doc => mythis.transformDocuments(ctx, {}, doc))
-  													.then(json => mythis.entityChanged("created", json, ctx).then(() => json));
-  											});
-  										});
-  									}
-  								})); // push with find end
-  					});
-  				}
+															return mythis.adapter.insert(entity)
+																.then(doc => mythis.transformDocuments(ctx, {}, doc))
+																.then(json => mythis.entityChanged("created", json, ctx).then(() => json));
+														});
+												});
+										}
+									})); // push with find end
+						});
+					}
 
-  				// return multiple promises results
-  				return Promise.all(promises).then(prom => {
-  			    return prom;
-  				});
-        } else { // not admin user
-          return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
-        }
+					// return multiple promises results
+					return Promise.all(promises).then(prom => {
+						return prom;
+					});
+				} else { // not admin user
+					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
+				}
 			} // handler end
 		},
 
@@ -518,106 +517,105 @@ module.exports = {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
-				console.log('--- delete products ---');
+				console.log("--- delete products ---");
 				let products = ctx.params.products;
 				let promises = [];
 				let mythis = this;
 
-        if (ctx.meta.user.type=='admin') {
-  				if ( products && products.length>0 ) {
-  					// loop products to import
-  					products.forEach(function(entity) {
-  						promises.push(
-  							// add product results into result variable
-  							mythis.adapter.findById(entity.id)
-  								.then(found => {
-  									if (found) { // product found, delete it
-                      console.log("DELETING product "+found._id);
-  										return ctx.call("products.remove", {id: found._id} )
-                      .then((deletedCount) => {
-                        console.log("deleted product Count: ",deletedCount);
-                        return deletedCount;
-                      }); // returns number of removed items
-  									} else {
-                      console.log(entity.id+" not found");
-                    }
-  								})); // push with find end
-  					});
-  				}
+				if (ctx.meta.user.type=="admin") {
+					if ( products && products.length>0 ) {
+						// loop products to import
+						products.forEach(function(entity) {
+							promises.push(
+								// add product results into result variable
+								mythis.adapter.findById(entity.id)
+									.then(found => {
+										if (found) { // product found, delete it
+											console.log("DELETING product "+found._id);
+											return ctx.call("products.remove", {id: found._id} )
+												.then((deletedCount) => {
+													console.log("deleted product Count: ",deletedCount);
+													return deletedCount;
+												}); // returns number of removed items
+										} else {
+											console.log(entity.id+" not found");
+										}
+									})); // push with find end
+						});
+					}
 
-  				// return multiple promises results
-  				return Promise.all(promises).then(() => {
-  				    return promises;
-  				});
-        } else { // not admin user
-          return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
-        }
+					// return multiple promises results
+					return Promise.all(promises).then(() => {
+						return promises;
+					});
+				} else { // not admin user
+					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
+				}
 			} // handler end
 		},
 
-    updateProductImage: {
+		updateProductImage: {
 			auth: "required",
 			params: {
 				data: { type: "object" },
 				params: { type: "object" }
 			},
 			handler(ctx) {
-        let self = this;
-        console.log("updateProductImage ctx.params:", ctx.params);
-        if (ctx.params.params && ctx.params.params.orderCode) {
-          if (ctx.params.params.type=="gallery") {
-            this.adapter.find({
-              "query": {
-                "orderCode": ctx.params.params.orderCode
-              }
-            })
-            .then(product => {
-              if (product) {
-                if ( product[0] ) {
-                  product = product[0];
-                }
-                // let extension =
-                // self.adapter.updateById(product._id, {
-                //  "$set": {
-                //    data.gallery.images: ["p1.jpg", ...]
-                //  }
-                // });
-              }
-            });
-          }
-        }
-        return;
-      }
-    },
+				console.log("updateProductImage ctx.params:", ctx.params);
+				if (ctx.params.params && ctx.params.params.orderCode) {
+					if (ctx.params.params.type=="gallery") {
+						this.adapter.find({
+							"query": {
+								"orderCode": ctx.params.params.orderCode
+							}
+						})
+							.then(product => {
+								if (product) {
+									if ( product[0] ) {
+										product = product[0];
+									}
+								// let extension =
+								// self.adapter.updateById(product._id, {
+								//  "$set": {
+								//    data.gallery.images: ["p1.jpg", ...]
+								//  }
+								// });
+								}
+							});
+					}
+				}
+				return;
+			}
+		},
 
-    // check product authorship
-    checkAuthor: {
-      auth: "required",
-      params: {
-        data: { type: "object" }
-      },
-      handler(ctx) {
-        if (ctx.params.data && ctx.params.data.orderCode && ctx.params.data.publisher) {
-          return this.adapter.find({
-            "query": {
-              "orderCode": ctx.params.data.orderCode,
-              "publisher": ctx.params.data.publisher
-            }
-          })
-          .then(products => {
-            // console.log("product.checkAuthor", products);
-            if (products && products.length>0 && products[0].orderCode==ctx.params.data.orderCode) {
-              return true;
-            }
-          })
-          .catch(err => {
-            console.log("\n PRODUCT checkAuthor ERROR: ", err);
-            return false;
-          });
-        }
-        return false;
-      }
-    }
+		// check product authorship
+		checkAuthor: {
+			auth: "required",
+			params: {
+				data: { type: "object" }
+			},
+			handler(ctx) {
+				if (ctx.params.data && ctx.params.data.orderCode && ctx.params.data.publisher) {
+					return this.adapter.find({
+						"query": {
+							"orderCode": ctx.params.data.orderCode,
+							"publisher": ctx.params.data.publisher
+						}
+					})
+						.then(products => {
+							// console.log("product.checkAuthor", products);
+							if (products && products.length>0 && products[0].orderCode==ctx.params.data.orderCode) {
+								return true;
+							}
+						})
+						.catch(err => {
+							console.log("\n PRODUCT checkAuthor ERROR: ", err);
+							return false;
+						});
+				}
+				return false;
+			}
+		}
 
 
 	}, // *** actions end
