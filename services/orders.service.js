@@ -234,6 +234,7 @@ module.exports = {
 											.then(() => { //(cart2)
 												return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 													.then(orderUpdated => {
+														this.entityChanged("updated", orderUpdated, ctx);
 														// if order was processed with errors, add them to result for frontend
 														let orderProcessedResult = {};
 														orderProcessedResult.order = orderUpdated;
@@ -245,10 +246,7 @@ module.exports = {
 															orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
 														}
 														return orderProcessedResult;
-													})
-													.then(doc => this.transformDocuments(ctx, {}, doc))
-													.then(order => this.transformEntity(order, true, ctx.meta.token))
-													.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+													});
 											});
 									} else { // cart has order id, but order with 'cart' status not found
 										console.log("\n\n"+"CREATE order - orderId from cart not found"+"\n\n");
@@ -730,6 +728,7 @@ module.exports = {
 			// save new order
 			return adapter.insert(order)
 				.then(orderNew => {
+					this.entityChanged("updated", orderNew, ctx);
 					cart.order = orderNew._id; // order id is not saved to cart
 					console.log("\n\n order after save (OAS) -----: ", orderNew);
 					return ctx.call("cart.updateMyCart", {"cartNew": cart})
@@ -742,10 +741,7 @@ module.exports = {
 							}
 							return orderProcessedResult;
 						});
-				})
-				.then(doc => this.transformDocuments(ctx, {}, doc))
-				.then(user => this.transformEntity(user, true, ctx.meta.token))
-				.then(json => this.entityChanged("created", json, ctx).then(() => json));
+				});
 		},
 
 
