@@ -1,27 +1,46 @@
 "use strict";
 
-require('dotenv').config();
+require("dotenv").config();
 const { MoleculerClientError } = require("moleculer").Errors;
+const Cron = require("moleculer-cron");
 
-const passGenerator = require('generate-password');
-const fetch 		= require('node-fetch');
-const braintree = require("braintree");
-const paypal = require('paypal-rest-sdk');
+const passGenerator = require("generate-password");
+const fetch 		= require("node-fetch");
+const paypal = require("paypal-rest-sdk");
 const payments = paypal.v1.payments;
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
+let resourcesDirectory = process.env.PATH_RESOURCES || "../resources";
+const orderSettings = require(resourcesDirectory+"/settings/orders");
+
 module.exports = {
 	name: "orders",
 	mixins: [
 		DbService("orders"),
-		HelpersMixin
-		// CacheCleanerMixin([
-		// 	"cache.clean.cart"
-		// ])
+		HelpersMixin,
+		CacheCleanerMixin([
+			"cache.clean.orders"
+		]),
+		Cron
 	],
+
+	crons: [{
+		name: "OrdersCleaner",
+		cronTime: "10 1 * * *",
+		onTick: function() {
+
+			console.log("Starting to Clean up the Orders");
+
+			this.getLocalService("orders")
+				.actions.cleanOrders()
+				.then((data) => {
+					console.log("Orders Cleaned up", data);
+				});
+		}
+	}],
 
 	/**
 	 * Default settings
@@ -134,120 +153,7 @@ module.exports = {
 			tax: 0.2
 		},
 
-		order: {
-			sendingOrder: {
-				url: process.env.SENDING_ORDER_URL,
-				port: process.env.SENDING_ORDER_PORT,
-				login: process.env.SENDING_ORDER_LOGIN,
-				password: process.env.SENDING_ORDER_PWD
-			},
-			deliveryMethods: [
-				{
-					codename: "personaly",
-					type: "physical",
-					name: {
-						"en": "Personaly on Branch",
-						"sk": "Osobne na Pobočke"
-					},
-					prices: [
-						{
-							"range": {"from": 0, "to": 1000000},
-							"price": 0
-						}
-					]
-				},
-				{
-					codename: "courier",
-					type: "physical",
-					name: {
-						"en": "Courier",
-						"sk": "Kuriér"
-					},
-					prices: [
-						{
-							"range": {"from": 0, "to": 500},
-							"price": 5
-						},
-						{
-							"range": {"from": 500, "to": 1000000},
-							"price": 0
-						}
-					]
-				},
-				{
-					codename: "download",
-					type: "digital",
-					name: {
-						"en": "Download",
-						"sk": "Stiahnuť"
-					},
-					prices: [
-						{
-							"range": {"from": 0, "to": 500},
-							"price": 5
-						},
-						{
-							"range": {"from": 500, "to": 1000000},
-							"price": 0
-						}
-					]
-				}
-			],
-			paymentMethods: [
-				{
-					codename: "cod",
-					type: "product",
-					name: {
-						"en": "Cash On Delivery",
-						"sk": "Platba Pri Doručení"
-					},
-					prices: [
-						{
-							"range": {"from": 0, "to": 500},
-							"price": 10
-						},
-						{
-							"range": {"from": 500, "to": 1000000},
-							"price": 2
-						}
-					]
-				},
-				{
-					codename: "online_paypal_paypal",
-					name: {
-						"en": "Pay online with Paypal (Card, PayPal)",
-						"sk": "Zaplatiť online cez Paypal (Karta, PayPal)",
-					},
-					prices: [
-						{
-							"range": {"from": 0, "to": 500},
-							"price": 2
-						},
-						{
-							"range": {"from": 500, "to": 1000000},
-							"price": 0
-						}
-					]
-				},
-				{
-					codename: "online_braintree",
-					name: {
-						"en": "Pay online with Braintree (Card, PayPal)",
-						"sk": "Zaplatiť online cez Braintree (Karta, PayPal)",
-					},
-					prices: [
-						{
-							"range": {"from": 0, "to": 500},
-							"price": 2
-						},
-						{
-							"range": {"from": 500, "to": 1000000},
-							"price": 0
-						}
-					]
-				}
-			]
-		},
+		order: orderSettings,
 
 		orderTemp: {},
 		orderErrors: {
@@ -258,13 +164,6 @@ module.exports = {
 		emptyUpdateResult: { "id": -1, "name": "order not processed", "success": false },
 
 		paymentsConfigs: {
-			braintree: {
-				environment: (process.env.BRAINTREE_ENV==="production" || process.env.BRAINTREE_ENV==="live") ? braintree.Environment.Production : braintree.Environment.Sandbox,
-				merchantId: process.env.BRAINTREE_MERCHANT_ID,
-				publicKey: process.env.BRAINTREE_PUBLIC_KEY,
-				privateKey: process.env.BRAINTREE_PRIVATE_KEY,
-				gateway: null
-			},
 			paypal: {
 				environment: (process.env.PAYPAL_ENV==="production" || process.env.PAYPAL_ENV==="live") ? "live" : "sandbox",
 				merchantId: process.env.PAYPAL_CLIENT_ID,
@@ -287,120 +186,124 @@ module.exports = {
 		 */
 		progress: {
 			// auth: "required",
+			cache: false,
 			params: {
 				orderParams: { type: "object", optional: true },
 			},
 			handler(ctx) {
 				let updateResult = this.settings.emptyUpdateResult;
-				console.log("\n\n"+'order.progress - intro (IN):', ctx.meta, "\n\n");
+				console.log("\n\n"+"order.progress - intro (IN):", ctx.meta, "\n\n");
 
-				return ctx.call('cart.me')
-				.then(cart => {
-					console.log("\n\n"+'order.progress - cart result (CR):', cart, "\n\n");
-					if (cart.order && cart.order.toString().trim()!="") { // order exists, get it
-						return this.adapter.findById(cart.order)
-						.then(order => {
-							console.log("\n\n"+'order.progress - order result (OR):', cart, "\n\n");
-							if ( order && order.status=="cart" ) {
-								// update order items
-								if ( cart.items ) {
-									order.items = cart.items;
-								}
-
-								// run processOrder(orderParams) to proces user input and
-								// update order data according to it
-								this.settings.orderTemp = order;
-								updateResult = this.processOrder(ctx);
-								this.getAvailableOrderSettings();
-								console.log("\n\n"+'order.progress - cart order found updated (COFU):', updateResult, "\n\n");
-								// if no params (eg. only refreshed), return original order
-								if ( !ctx.params.orderParams || Object.keys(ctx.params.orderParams).length<1 ) {
-									let orderProcessedResult = {};
-									orderProcessedResult.order = order;
-									orderProcessedResult.result = updateResult;
-									if ( !updateResult.success ) {
-										orderProcessedResult.errors = this.settings.orderErrors;
-									}
-									return orderProcessedResult;
-								}
-								// if order check returns success, order can be saved
-								if ( updateResult.success ) {
-									this.settings.orderTemp.status = "saved";
-								}
-								// order ready to save and send - update order data in related variables
-								order = this.settings.orderTemp;
-								cart.order = order._id;
-								return ctx.call('cart.updateCartItemAmount', {cartId: cart._id, cart: cart})
-								.then(cart2 => {
-									return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-									.then(orderUpdated => {
-										// if order was processed with errors, add them to result for frontend
-										let orderProcessedResult = {};
-										orderProcessedResult.order = orderUpdated;
-										orderProcessedResult.result = updateResult;
-										if ( !updateResult.success ) {
-											orderProcessedResult.errors = this.settings.orderErrors;
-										} else {
-											// order was processed without errors, run afterSaveActions
-											orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
+				return ctx.call("cart.me")
+					.then(cart => {
+						console.log("\n\n"+"order.progress - cart result (CR):", cart, "\n\n");
+						if (cart.order && cart.order.toString().trim()!="") { // order exists, get it
+							return this.adapter.findById(cart.order)
+								.then(order => {
+									console.log("\n\n"+"order.progress - order result (OR):", cart, "\n\n");
+									if ( order && order.status=="cart" ) {
+										// update order items
+										if ( cart.items ) {
+											order.items = cart.items;
 										}
-										return orderProcessedResult;
-									});
-								});
-							} else { // cart has order id, but order with 'cart' status not found
-								console.log("\n\n"+'CREATE order - orderId from cart not found'+"\n\n");
 
-								if (
-									(
-										!this.settings.orderTemp.user ||
-										(typeof this.settings.orderTemp.user.id==='undefined' || this.settings.orderTemp.user.id===null || this.settings.orderTemp.user.id=='')
-									) &&
-									(ctx.params.orderParams.addresses && ctx.params.orderParams.addresses.invoiceAddress && ctx.params.orderParams.addresses.invoiceAddress.email)
-								) {
-									if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!='' ) {
-										this.settings.orderTemp.user = ctx.meta.user._id;
-									} else { // user not set in meta data
-
-										return ctx.call('users.checkIfEmailExists', {
-											email: ctx.params.orderParams.addresses.invoiceAddress.email
-										})
-										.then((exists) => { // promise #1
-											if (exists) {
-												this.settings.orderErrors.orderErrors.push({"value": "Email", "desc": "already exists"});
-												if ( this.settings.orderErrors.userErrors.length>0 ) {
-													return null;
-												}
-											} else {
-												let userData = this.getDataToCreateUser(ctx);
-												return ctx.call('users.create', userData)
-												.then(newUser => {  // promise #2
-													// new user created, add his data to order and create special variable to process it with createOrderAction
-													if ( newUser && newUser.user && newUser.user._id && newUser.user._id!='' ) {
-														ctx.params.orderParams.user.id = newUser.user._id;
-														ctx.params.orderParams.user.email = newUser.user.email;
-														ctx.params.orderParams.user.token = newUser.user.token;
-														ctx.meta.userNew = true;
-													}
-													return this.createOrderAction(cart, ctx, this.adapter);;
-												})
-												.catch(userCreateRej => {
-													console.log('new user rejected: ', userCreateRej);
-													return null;
-												});
+										// run processOrder(orderParams) to proces user input and
+										// update order data according to it
+										this.settings.orderTemp = order;
+										updateResult = this.processOrder(ctx);
+										this.getAvailableOrderSettings();
+										console.log("\n\n"+"order.progress - cart order found updated (COFU):", updateResult, "\n\n");
+										// if no params (eg. only refreshed), return original order
+										if ( !ctx.params.orderParams || Object.keys(ctx.params.orderParams).length<1 ) {
+											let orderProcessedResult = {};
+											orderProcessedResult.order = order;
+											orderProcessedResult.result = updateResult;
+											if ( !updateResult.success ) {
+												orderProcessedResult.errors = this.settings.orderErrors;
 											}
-										});
+											return orderProcessedResult;
+										}
+										// if order check returns success, order can be saved
+										if ( updateResult.success ) {
+											this.settings.orderTemp.status = "saved";
+										}
+										// order ready to save and send - update order data in related variables
+										order = this.settings.orderTemp;
+										cart.order = order._id;
+										return ctx.call("cart.updateCartItemAmount", {cartId: cart._id, cart: cart})
+											.then(() => { //(cart2)
+												return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+													.then(orderUpdated => {
+														// if order was processed with errors, add them to result for frontend
+														let orderProcessedResult = {};
+														orderProcessedResult.order = orderUpdated;
+														orderProcessedResult.result = updateResult;
+														if ( !updateResult.success ) {
+															orderProcessedResult.errors = this.settings.orderErrors;
+														} else {
+															// order was processed without errors, run afterSaveActions
+															orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
+														}
+														return orderProcessedResult;
+													})
+													.then(doc => this.transformDocuments(ctx, {}, doc))
+													.then(order => this.transformEntity(order, true, ctx.meta.token))
+													.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+											});
+									} else { // cart has order id, but order with 'cart' status not found
+										console.log("\n\n"+"CREATE order - orderId from cart not found"+"\n\n");
 
+										if (
+											(
+												!this.settings.orderTemp.user ||
+												(typeof this.settings.orderTemp.user.id==="undefined" || this.settings.orderTemp.user.id===null || this.settings.orderTemp.user.id=="")
+											) &&
+											(ctx.params.orderParams.addresses && ctx.params.orderParams.addresses.invoiceAddress && ctx.params.orderParams.addresses.invoiceAddress.email)
+										) {
+											if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!="" ) {
+												this.settings.orderTemp.user = ctx.meta.user._id;
+											} else { // user not set in meta data
+
+												return ctx.call("users.checkIfEmailExists", {
+													email: ctx.params.orderParams.addresses.invoiceAddress.email
+												})
+													.then((exists) => { // promise #1
+														if (exists) {
+															this.settings.orderErrors.orderErrors.push({"value": "Email", "desc": "already exists"});
+															if ( this.settings.orderErrors.userErrors.length>0 ) {
+																return null;
+															}
+														} else {
+															let userData = this.getDataToCreateUser(ctx);
+															return ctx.call("users.create", userData)
+																.then(newUser => {  // promise #2
+																	// new user created, add his data to order and create special variable to process it with createOrderAction
+																	if ( newUser && newUser.user && newUser.user._id && newUser.user._id!="" ) {
+																		ctx.params.orderParams.user.id = newUser.user._id;
+																		ctx.params.orderParams.user.email = newUser.user.email;
+																		ctx.params.orderParams.user.token = newUser.user.token;
+																		ctx.meta.userNew = true;
+																	}
+																	return this.createOrderAction(cart, ctx, this.adapter);
+																})
+																.catch(userCreateRej => {
+																	console.log("new user rejected: ", userCreateRej);
+																	return null;
+																});
+														}
+													});
+
+											}
+										} else { // default option, creates new order if none found - TODO - add auto clear
+											return this.createOrderAction(cart, ctx, this.adapter);
+										}
 									}
-								} else { // default option, creates new order if none found - TODO - add auto clear
-									return this.createOrderAction(cart, ctx, this.adapter);
-								}
-							}
-						});
-					} else { // order does not exist, create it
-						console.log("\n\n"+'CREATE order - no order (NO):'+"\n\n");
-						return this.createOrderAction(cart, ctx, this.adapter);
-					}
-				}); // cart end
+								});
+						} else { // order does not exist, create it
+							console.log("\n\n"+"CREATE order - no order (NO):"+"\n\n");
+							return this.createOrderAction(cart, ctx, this.adapter);
+						}
+					}); // cart end
 			}
 		},
 
@@ -411,7 +314,6 @@ module.exports = {
 				amount: { type: "number", positive: true, optional: true }
 			},
 			handler(ctx) {
-				let entity = ctx.params.cart;
 				// get cart
 				return ctx.call("cart.me")
 					.then(cart => {
@@ -420,18 +322,18 @@ module.exports = {
 							if ( ctx.params.itemId ) {
 								// find product in cart
 								let productInCart = -1;
-								for (var i=0; i<cart.items.length; i++) {
-										if (cart.items[i]._id == ctx.params.itemId) {
-											productInCart = i;
-											break;
-										}
+								for (let i=0; i<cart.items.length; i++) {
+									if (cart.items[i]._id == ctx.params.itemId) {
+										productInCart = i;
+										break;
+									}
 								}
 								// if found, remove one product from cart
 								if (productInCart>-1) {
 									if ( ctx.params.amount && ctx.params.amount>0 ) {
 										// remove amount from existing value
-										cart.items[i].amount = cart.items[i].amount - ctx.params.amount;
-										if (cart.items[i].amount<=0) {
+										cart.items[productInCart].amount = cart.items[productInCart].amount - ctx.params.amount;
+										if (cart.items[productInCart].amount<=0) {
 											// if new amount less or equal to 0, remove whole product
 											cart.items.splice(productInCart, 1);
 										}
@@ -445,7 +347,7 @@ module.exports = {
 								cart.items = [];
 							}
 							// update cart in variable and datasource
-							ctx.meta.cart = cart
+							ctx.meta.cart = cart;
 							return this.adapter.updateById(ctx.meta.cart._id, cart);
 						}
 					});
@@ -464,43 +366,45 @@ module.exports = {
 			// cache: {
 			// 	keys: ["#cartID"]
 			// },
+			cache: false,
 			auth: "required",
 			params: {
 				query: { type: "object", optional: true },
-        limit: { type: "number", optional: true },
-        offset: { type: "number", optional: true },
-        sort: { type: "string", optional: true },
+				limit: { type: "number", optional: true },
+				offset: { type: "number", optional: true },
+				sort: { type: "string", optional: true },
 				fullData: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
 				// check if we have logged user
 				if ( ctx.meta.user._id ) { // we have user
 					let filter = { query: {}, limit: 20};
-	        if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
-	          filter.query = ctx.params.query;
-	        }
-					// admin can browse all orders
-					if ( ctx.meta.user.type=='admin' && typeof ctx.params.fullData!=="undefined" && ctx.params.fullData==true ) {
+					if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
+						filter.query = ctx.params.query;
+					}
+					// update filter acording to user
+					if ( ctx.meta.user.type=="admin" && typeof ctx.params.fullData!=="undefined" && ctx.params.fullData==true ) {
+						// admin can browse all orders
 					} else {
 						filter.query["user.id"] = ctx.meta.user._id.toString();
 					}
 					filter.query["$or"] = [{"status":"sent"}, {"status":"paid"}];
-	        // set offset
-	        if (ctx.params.offset && ctx.params.offset>0) {
-	          filter.offset = ctx.params.offset;
-	        }
-	        // set max of results
-	        if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
-	          filter.limit = ctx.params.limit;
-	        }
-	        if (filter.limit>20) {
-	          filter.limit = 20;
-	        }
+					// set offset
+					if (ctx.params.offset && ctx.params.offset>0) {
+						filter.offset = ctx.params.offset;
+					}
+					// set max of results
+					if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
+						filter.limit = ctx.params.limit;
+					}
+					if (filter.limit>20) {
+						filter.limit = 20;
+					}
 					// sort
-	        filter.sort = "-dates.dateCreated";
-	        if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
-	          filter.sort = ctx.params.sort;
-	        }
+					filter.sort = "-dates.dateCreated";
+					if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
+						filter.sort = ctx.params.sort;
+					}
 
 					if ( filter.query && filter.query._id && filter.query._id.trim()!="" ) {
 						filter.query._id = this.fixStringToId(filter.query._id);
@@ -511,85 +415,18 @@ module.exports = {
 
 					// send query
 					return ctx.call("orders.find", filter)
-					.then(found => {
-						if (found) { // cart found in datasource, save to meta
-							console.log("listOrders.found", found);
-							return found;
-						} else { // no cart found in datasource, create one
-							return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
-						}
-					});
-				}
-
-			}
-		},
-
-		braintreeClientToken: {
-			handler(ctx) {
-				this.paymentBraintreeGateway();
-				let self = this;
-
-				let tokenResponse = new Promise(function(resolve, reject) {
-					self.settings.paymentsConfigs.braintree.gateway.clientToken.generate({}, function (err, response) {
-						if (response && response.clientToken) {
-					    resolve(response.clientToken);
-						}
-						if (err) {
-							console.log("braintree err: ", err);
-					    reject(err);
-						}
-				  })
-				});
-
-				return tokenResponse.then(token => {
-					return { result: "success", token: token };
-				});
-			}
-		},
-
-		braintreeOrderPaymentCheckout: {
-			params: {
-				orderId: { type: "string", min: 3 },
-				checkoutData: { type: "object", props: {
-						binData: { type: "object", optional: true },
-						description: { type: "string", optional: true },
-						details: { type: "object" },
-						nonce: { type: "string", min: 3 },
-						type: { type: "string" }
-					}
-				}
-			},
-			handler(ctx) {
-				this.paymentBraintreeGateway();
-				let self = this;
-				console.log("ctx.params: ", ctx.params);
-
-				// get order data - total amount
-				return this.adapter.findById(ctx.params.orderId)
-				.then(order => {
-					let transactionResponse = new Promise(function(resolve, reject) {
-						return self.settings.paymentsConfigs.braintree.gateway.transaction.sale({
-						  amount: (Math.round(order.prices.priceTotal*100)/100),
-						  paymentMethodNonce: ctx.params.checkoutData.nonce,
-						  options: {
-						    submitForSettlement: true
-						  }
-						}, function (err, result) {
-							if (err) {
-								console.log('\n transaction.sale error: ', err);
-								reject(err);
+						.then(found => {
+							if (found) { // cart found in datasource, save to meta
+								console.log("listOrders.found", found);
+								return found;
+							} else { // no cart found in datasource, create one
+								return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
 							}
-							console.log('\n transaction.sale result: ', result);
-							resolve(result);
 						});
-					}); // promise end
+				}
 
-					return transactionResponse.then(transaction => {
-						return transaction;
-					});
-				});
 			}
- 		},
+		},
 
 		/**
 		 * send payment info to PayPal and get redirect url  or error message
@@ -601,112 +438,111 @@ module.exports = {
 			},
 			handler(ctx) {
 				let result = { success: false, url: null, message: "error" };
-				let self = this;
 
 				// get order data
 				return this.adapter.findById(ctx.params.orderId)
-				.then(order => {
-					if ( order ) {
-						let paymentType = order.data.paymentData.codename.replace("online_paypal_","");
+					.then(order => {
+						if ( order ) {
+							let paymentType = order.data.paymentData.codename.replace("online_paypal_","");
 
-						let items = [];
-						for (let i=0; i<order.items.length; i++ ) {
-							items.push({
-								"name": order.items[i].name[order.lang.code],
-								"sku": order.items[i].orderCode,
-								"price": this.formatPrice(order.items[i].price),
-								"currency": order.prices.currency.code,
-								"quantity": order.items[i].amount
-							});
-						}
-						items.push({
-							"name": order.data.paymentData.name[order.lang.code],
-							"sku": order.data.paymentData.name[order.lang.code],
-							"price": this.formatPrice(order.prices.pricePayment),
-							"currency": order.prices.currency.code,
-							"quantity": 1
-						});
-						let deliveryName = "Delivery - ";
-						if (order.data.deliveryData.codename && order.data.deliveryData.codename.physical) {
-							deliveryName += order.data.deliveryData.codename.physical.value;
-						}
-						if (order.data.deliveryData.codename && order.data.deliveryData.codename.digital) {
-							deliveryName += order.data.deliveryData.codename.digital.value;
-						}
-						items.push({
-							"name": deliveryName,
-							"sku": deliveryName,
-							"price": this.formatPrice(order.prices.priceDelivery),
-							"currency": order.prices.currency.code,
-							"quantity": 1
-						});
-						// TODO - add price of delivery and payment
-
-						let client = this.createPayPalHttpClient();
-
-						let url = ctx.meta.siteSettings.url;
-						if ( process.env.NODE_ENV=="development" ) {
-							url = "http://localhost:3000";
-						}
-
-						let payment = {
-							"intent": "sale",
-							"payer": {
-								"payment_method": paymentType
-							},
-							"redirect_urls": {
-								"cancel_url": url +"/backdirect/order/paypal/cancel",
-								"return_url": url +"/backdirect/order/paypal/return"
-							},
-							"transactions": [{
-								"item_list": {
-									"items": items
-								},
-								"amount": {
+							let items = [];
+							for (let i=0; i<order.items.length; i++ ) {
+								items.push({
+									"name": order.items[i].name[order.lang.code],
+									"sku": order.items[i].orderCode,
+									"price": this.formatPrice(order.items[i].price),
 									"currency": order.prices.currency.code,
-									"total": this.formatPrice(order.prices.priceTotal)
-								},
-								// "note_to_payer": "Order ID "+order._id,
-								"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
-							}]
-						};
-						console.log("\n\n PAYMENT:\n", payment, "\n", payment.transactions[0].item_list.items, "\n", payment.transactions[0].amount, "\n\n");
-
-						let request = new payments.PaymentCreateRequest();
-						request.requestBody(payment);
-
-						return client.execute(request).then((response) => {
-							order.data.paymentData.paymentRequestId = response.result.id;
-							return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-							.then(orderUpdated => {
-								console.log(orderUpdated);
-								return { order: orderUpdated, payment: response };
+									"quantity": order.items[i].amount
+								});
+							}
+							items.push({
+								"name": order.data.paymentData.name[order.lang.code],
+								"sku": order.data.paymentData.name[order.lang.code],
+								"price": this.formatPrice(order.prices.pricePayment),
+								"currency": order.prices.currency.code,
+								"quantity": 1
 							});
-						})
-						.then(responses => {
-							console.log("response.statusCode", responses.payment.statusCode, "\n\n");
-							console.log("response.result", responses.payment.result, "\n\n");
+							let deliveryName = "Delivery - ";
+							if (order.data.deliveryData.codename && order.data.deliveryData.codename.physical) {
+								deliveryName += order.data.deliveryData.codename.physical.value;
+							}
+							if (order.data.deliveryData.codename && order.data.deliveryData.codename.digital) {
+								deliveryName += order.data.deliveryData.codename.digital.value;
+							}
+							items.push({
+								"name": deliveryName,
+								"sku": deliveryName,
+								"price": this.formatPrice(order.prices.priceDelivery),
+								"currency": order.prices.currency.code,
+								"quantity": 1
+							});
+							// TODO - add price of delivery and payment
 
-							if (responses.payment.result) {
-								for (let i=0; i<responses.payment.result.links.length; i++) {
-									if (responses.payment.result.links[i].rel=="approval_url") {
-										result.url = responses.payment.result.links[i].href;
-										break;
+							let client = this.createPayPalHttpClient();
+
+							let url = ctx.meta.siteSettings.url;
+							if ( process.env.NODE_ENV=="development" ) {
+								url = "http://localhost:3000";
+							}
+
+							let payment = {
+								"intent": "sale",
+								"payer": {
+									"payment_method": paymentType
+								},
+								"redirect_urls": {
+									"cancel_url": url +"/backdirect/order/paypal/cancel",
+									"return_url": url +"/backdirect/order/paypal/return"
+								},
+								"transactions": [{
+									"item_list": {
+										"items": items
+									},
+									"amount": {
+										"currency": order.prices.currency.code,
+										"total": this.formatPrice(order.prices.priceTotal)
+									},
+									// "note_to_payer": "Order ID "+order._id,
+									"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
+								}]
+							};
+							console.log("\n\n PAYMENT:\n", payment, "\n", payment.transactions[0].item_list.items, "\n", payment.transactions[0].amount, "\n\n");
+
+							let request = new payments.PaymentCreateRequest();
+							request.requestBody(payment);
+
+							return client.execute(request).then((response) => {
+								order.data.paymentData.paymentRequestId = response.result.id;
+								return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+									.then(orderUpdated => {
+										console.log(orderUpdated);
+										return { order: orderUpdated, payment: response };
+									});
+							})
+								.then(responses => {
+									console.log("response.statusCode", responses.payment.statusCode, "\n\n");
+									console.log("response.result", responses.payment.result, "\n\n");
+
+									if (responses.payment.result) {
+										for (let i=0; i<responses.payment.result.links.length; i++) {
+											if (responses.payment.result.links[i].rel=="approval_url") {
+												result.url = responses.payment.result.links[i].href;
+												break;
+											}
+										}
 									}
-								}
-							}
-							if ( result.url!=null && typeof result.url=="string" && result.url.trim()!="" ) {
-								result.success = true;
-							}
-							return result;
-						}).catch((error) => {
-							console.error(error.statusCode);
-							console.error(error.message);
-							result.message = error.message;
-							return result;
-						});
-					} // if order
-				});
+									if ( result.url!=null && typeof result.url=="string" && result.url.trim()!="" ) {
+										result.success = true;
+									}
+									return result;
+								}).catch((error) => {
+									console.error(error.statusCode);
+									console.error(error.message);
+									result.message = error.message;
+									return result;
+								});
+						} // if order
+					});
 			}
 		},
 
@@ -720,8 +556,6 @@ module.exports = {
 				paymentId: { type: "string" }
 			},
 			handler(ctx) {
-				let self = this;
-
 				console.log("paypalResult:", ctx.params);
 				if ( ctx.params.result == "return" ) {
 					// get order data
@@ -730,55 +564,85 @@ module.exports = {
 							"data.paymentData.paymentRequestId": ctx.params.paymentId
 						}
 					})
-					.then(orders => {
-						console.log("paypalResult.orders:", orders);
-						if ( orders && orders.length>0 && orders[0] ) {
-							let order = orders[0];
+						.then(orders => {
+							console.log("paypalResult.orders:", orders);
+							if ( orders && orders.length>0 && orders[0] ) {
+								let order = orders[0];
 
-						  const execute_payment_json = {
-						    "payer_id": ctx.params.PayerID,
-						    "transactions": [{
-									"amount": {
-										"currency": order.prices.currency.code,
-										"total": this.formatPrice(order.prices.priceTotal)
-									}
-						    }]
-						  };
+								const execute_payment_json = {
+									"payer_id": ctx.params.PayerID,
+									"transactions": [{
+										"amount": {
+											"currency": order.prices.currency.code,
+											"total": this.formatPrice(order.prices.priceTotal)
+										}
+									}]
+								};
 
-							let client = this.createPayPalHttpClient();
-							let request = new payments.PaymentExecuteRequest(ctx.params.paymentId);
-							request.requestBody(execute_payment_json);
+								let client = this.createPayPalHttpClient();
+								let request = new payments.PaymentExecuteRequest(ctx.params.paymentId);
+								request.requestBody(execute_payment_json);
 
-							return client.execute(request).then((response) => {
-								console.log("\n\n---------- PAYPAL RESPONSE ----------\npaypalResult response:", response);
-								console.log("\n\npaypalResult response.result.payer.payer_info:", response.result.payer.payer_info);
-								console.log("\n\npaypalResult response.result.transactions:", response.result.transactions);
-								console.log("\n\npaypalResult response.result.links:", response.result.links);
+								return client.execute(request).then((response) => {
+									console.log("\n\n---------- PAYPAL RESPONSE ----------\npaypalResult response:", response);
+									console.log("\n\npaypalResult response.result.payer.payer_info:", response.result.payer.payer_info);
+									console.log("\n\npaypalResult response.result.transactions:", response.result.transactions);
+									console.log("\n\npaypalResult response.result.links:", response.result.links);
 
-								order.dates.datePaid = new Date();
-								order.status = "paid";
-								order.data.paymentData.lastStatus = response.result.state;
-								order.data.paymentData.lastDate = new Date();
-								order.data.paymentData.lastResponseResult = response.result;
-								return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-								.then(orderUpdated => {
-									console.log(orderUpdated);
-									let urlPathPrefix = "/";
-									if ( process.env.NODE_ENV=="development" ) {
-										urlPathPrefix = "http://localhost:8080/";
-									}
-									console.log( { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
-									return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
+									order.dates.datePaid = new Date();
+									order.status = "paid";
+									order.data.paymentData.lastStatus = response.result.state;
+									order.data.paymentData.lastDate = new Date();
+									order.data.paymentData.lastResponseResult = response.result;
+									return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+										.then(orderUpdated => {
+											console.log(orderUpdated);
+											let urlPathPrefix = "/";
+											if ( process.env.NODE_ENV=="development" ) {
+												urlPathPrefix = "http://localhost:8080/";
+											}
+											console.log( { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
+											return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
+										});
+								}).catch((error) => {
+									console.error(error.statusCode);
+									console.error(error.message);
 								});
-							}).catch((error) => {
-								console.error(error.statusCode);
-								console.error(error.message);
-							});
-						}
-					});
+							}
+						});
 				} else {
 					// payment not finished
 				}
+			}
+		}, 
+
+
+		cleanOrders: {
+			cache: false,
+			handler(ctx) {
+				let promises = [];
+				const d = new Date();
+				d.setMonth(d.getMonth() - 1);
+				return this.adapter.find({
+					query: {
+						"dates.dateChanged": { "$lt": d },
+						status: "cart"
+					}
+				})
+					.then(found => {
+						found.forEach(order => {
+							promises.push( 
+								ctx.call("orders.remove", {id: order._id} )
+									.then(removed => {
+										return "Removed orders: " +JSON.stringify(removed);
+									})
+							);
+						});
+						// return all delete results
+						return Promise.all(promises).then((result) => {
+							return result;
+						});
+					});
 			}
 		}
 
@@ -852,11 +716,11 @@ module.exports = {
 			this.settings.orderTemp = order;
 			this.getAvailableOrderSettings();
 			if ( ctx.params.orderParams ) {
-				console.log('createOrderAction -> before updateResult');
+				console.log("createOrderAction -> before updateResult");
 				updateResult = this.processOrder(ctx);
-				console.log('createOrderAction -> updateResult: ', updateResult);
+				console.log("createOrderAction -> updateResult: ", updateResult);
 				if ( !updateResult.success ) {
-					console.log( 'Order NO SUCCESS: ', this.settings.orderErrors )
+					console.log( "Order NO SUCCESS: ", this.settings.orderErrors );
 				}
 			}
 			// update order data in related variables
@@ -865,20 +729,23 @@ module.exports = {
 			cart.order = order._id;
 			// save new order
 			return adapter.insert(order)
-			.then(orderNew => {
-				cart.order = orderNew._id; // order id is not saved to cart
-				console.log("\n\n order after save (OAS) -----: ", orderNew);
-				return ctx.call('cart.updateMyCart', {"cartNew": cart})
-				.then(cart2 => {
-					let orderProcessedResult = {};
-					orderProcessedResult.order = orderNew;
-					orderProcessedResult.result = updateResult;
-					if ( !updateResult.success ) {
-						orderProcessedResult.errors = this.settings.orderErrors;
-					}
-					return orderProcessedResult;
-				});
-			});
+				.then(orderNew => {
+					cart.order = orderNew._id; // order id is not saved to cart
+					console.log("\n\n order after save (OAS) -----: ", orderNew);
+					return ctx.call("cart.updateMyCart", {"cartNew": cart})
+						.then(() => { //(cart2)
+							let orderProcessedResult = {};
+							orderProcessedResult.order = orderNew;
+							orderProcessedResult.result = updateResult;
+							if ( !updateResult.success ) {
+								orderProcessedResult.errors = this.settings.orderErrors;
+							}
+							return orderProcessedResult;
+						});
+				})
+				.then(doc => this.transformDocuments(ctx, {}, doc))
+				.then(user => this.transformEntity(user, true, ctx.meta.token))
+				.then(json => this.entityChanged("created", json, ctx).then(() => json));
 		},
 
 
@@ -892,22 +759,20 @@ module.exports = {
 		 * 4: order confirmed, ready to save with "saved" status
 		 */
 		processOrder(ctx) {
-			let self = this;
-
 			if (this.settings.orderTemp) {
 			// update order params
 				if ( typeof ctx.params.orderParams !== "undefined" && ctx.params.orderParams ) {
 					this.settings.orderTemp = this.updateBySentParams(this.settings.orderTemp, ctx.params.orderParams);
-					console.log("\n ctx.meta \n", ctx.meta);
+					// console.log("\n processOrder ctx.meta \n", ctx.meta);
 					if ( ctx.meta.userNew && ctx.meta.userNew===true ) {
 						console.log( "\n\n setting new user data \n\n" );
 						this.settings.orderTemp.user.id = ctx.params.orderParams.user.id;
 						this.settings.orderTemp.user.email = ctx.params.orderParams.user.email;
 						this.settings.orderTemp.user.token = ctx.params.orderParams.user.token;
-						console.log( this.settings.orderTemp );
 					}
 				}
 				this.settings.orderTemp.dates.dateChanged = new Date();
+				console.log( "processOrder orderTemp: ", this.settings.orderTemp );
 
 				if (this.checkCartItems()) {
 					if (this.checkUserData(ctx)) { // check if (invoice address) is set and valid
@@ -938,18 +803,18 @@ module.exports = {
 		 * From level 2 it enables to create objects by request.
 		 */
 		updateBySentParams(orderParams, updateParams, level) {
-			level = (typeof level !== 'undefined') ?  level : 0;
+			level = (typeof level !== "undefined") ?  level : 0;
 			let self = this;
-			let level1protectedProps = ['user', 'id'];
+			let level1protectedProps = ["user", "id"];
 			// loop updateParams and check, if they exist in orderParams
 			Object.keys(updateParams).forEach(function(key) {
 				if ( !(level==0 && level1protectedProps.includes(key)) ) {
-					if ( ((orderParams && orderParams.hasOwnProperty(key)) || level>=2) ) { // order has this property
+					if ( ((orderParams && Object.prototype.hasOwnProperty.call(orderParams,key)) || level>=2) ) { // order has this property
 						// update it
 						if ( orderParams===null ) {
 							orderParams = {};
 						}
-						if ( typeof updateParams[key] === 'object' ) {
+						if ( typeof updateParams[key] === "object" ) {
 							if ( !orderParams[key] || orderParams[key]===null ) {
 								orderParams[key] = {};
 							}
@@ -990,11 +855,11 @@ module.exports = {
 		 * Check if all items to register user and make order on his name are set
 		 */
 		checkUserData(ctx) {
-			let requiredFields = ['email', 'phone', 'nameFirst', 'nameLast', 'street', 'zip', 'city', 'country'];
-			if ( ctx.meta.userID && ctx.meta.userID.toString().trim()!=='' ) {
-				requiredFields = ['phone', 'nameFirst', 'nameLast', 'street', 'zip', 'city', 'country'];
+			let requiredFields = ["email", "phone", "nameFirst", "nameLast", "street", "zip", "city", "country"];
+			if ( ctx.meta.userID && ctx.meta.userID.toString().trim()!=="" ) {
+				requiredFields = ["phone", "nameFirst", "nameLast", "street", "zip", "city", "country"];
 			}
-			let optionalFileds = ['state', 'street2'];
+			// let optionalFileds = ["state", "street2"];
 			this.settings.orderErrors.userErrors = [];
 			let self = this;
 
@@ -1006,7 +871,7 @@ module.exports = {
 
 			// split name
 			if ( this.settings.orderTemp.addresses && this.settings.orderTemp.addresses.invoiceAddress ) {
-				if ( this.settings.orderTemp.addresses.invoiceAddress.name && this.settings.orderTemp.addresses.invoiceAddress.name.indexOf(' ') ) {
+				if ( this.settings.orderTemp.addresses.invoiceAddress.name && this.settings.orderTemp.addresses.invoiceAddress.name.indexOf(" ") ) {
 					let nameSplit = this.settings.orderTemp.addresses.invoiceAddress.name.split(" ");
 					this.settings.orderTemp.addresses.invoiceAddress.nameFirst = nameSplit[0];
 					if ( nameSplit.length>1 ) {
@@ -1027,8 +892,8 @@ module.exports = {
 					return false;
 				}
 			} else {
-					this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
-					return false;
+				this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
+				return false;
 			}
 
 			return true;
@@ -1036,10 +901,9 @@ module.exports = {
 
 
 		checkIfUserEmailExists(ctx) {
-			console.log('CTX:', ctx.params);
+			console.log("CTX:", ctx.params);
 			if ( ctx.params.orderParams && ctx.params.orderParams.addresses && ctx.params.orderParams.addresses.invoiceAddress ) {
-				let self = this;
-				console.log(' --- -- - 3.1 - ');
+				console.log(" --- -- - 3.1 - ");
 			}
 		},
 
@@ -1072,7 +936,7 @@ module.exports = {
 								console.log("deliveryValue: ", value);
 								// count item prices to get count for delivery
 								self.settings.orderTemp.prices.priceItems = 0;
-								self.countOrderPrices('items');
+								self.countOrderPrices("items");
 								if ( self.settings.orderTemp.prices.priceItems>0 ) {
 									// TODO - check if all items in cart are physical / digital and change delivery according to it
 									value.prices.some(function(deliveryPrice){
@@ -1082,7 +946,7 @@ module.exports = {
 											self.settings.orderTemp.data.deliveryData.codename[typeKey].price = deliveryPrice.price;
 											return true;
 										}
-									})
+									});
 								}
 								deliveryMethodExists = true;
 								return true;
@@ -1134,7 +998,7 @@ module.exports = {
 			if ( this.settings.orderErrors.orderErrors.length>0 ) {
 				return false;
 			} else {
-				this.countOrderPrices('totals');
+				this.countOrderPrices("totals");
 			}
 			return true;
 		},
@@ -1144,14 +1008,14 @@ module.exports = {
 		 * Count cart items total price and order total prices
 		 */
 		countOrderPrices(calculate) {
-			let calcTypes = ['all', 'items', 'totals'];
-			calculate = (typeof calculate !== 'undefined' && calcTypes.includes(calculate)) ?  calculate : 'all';
+			let calcTypes = ["all", "items", "totals"];
+			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
 			let self = this;
 			// use default VAT if not custom eg. for product
 			let tax = self.settings.defaultConstants.tax;
 
 			// prices of items
-			if ( calculate=='all' || calculate=='items' ) {
+			if ( calculate=="all" || calculate=="items" ) {
 				this.settings.orderTemp.prices.priceItems = 0;
 				this.settings.orderTemp.prices.priceItemsNoTax = 0;
 				this.settings.orderTemp.items.forEach(function(value){
@@ -1170,7 +1034,7 @@ module.exports = {
 			}
 
 			// count other totals
-			if ( calculate=='all' || calculate=='totals' ) {
+			if ( calculate=="all" || calculate=="totals" ) {
 				this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
 					this.settings.orderTemp.prices.priceDelivery +
 					this.settings.orderTemp.prices.pricePayment;
@@ -1204,8 +1068,8 @@ module.exports = {
 		 * Get Delivery and Payment settings
 		 */
 		getAvailableOrderSettings() {
-			if ( typeof this.settings.orderTemp.settings == 'undefined' ) {
-					this.settings.orderTemp.settings = {};
+			if ( typeof this.settings.orderTemp.settings == "undefined" ) {
+				this.settings.orderTemp.settings = {};
 			}
 			this.getAvailableDeliveries();
 			this.getAvailablePayments();
@@ -1227,11 +1091,11 @@ module.exports = {
 				}); // loop items end
 			}
 
-			console.log('orders.getAvailableDeliveries.usedProductTypes:', usedProductTypes);
+			console.log("orders.getAvailableDeliveries.usedProductTypes:", usedProductTypes);
 
 			if ( usedProductTypes.length>0 ) {
-				if ( typeof this.settings.orderTemp.settings == 'undefined' ) {
-						this.settings.orderTemp.settings = {};
+				if ( typeof this.settings.orderTemp.settings == "undefined" ) {
+					this.settings.orderTemp.settings = {};
 				}
 				this.settings.orderTemp.settings.deliveryMethods = [];
 				Object.keys(this.settings.order.deliveryMethods).forEach((deliveryKey) => { // loop deliveries
@@ -1247,8 +1111,8 @@ module.exports = {
 		 * Loop available payment types
 		 */
 		getAvailablePayments() {
-			if ( typeof this.settings.orderTemp.settings === 'undefined' ) {
-					this.settings.orderTemp.settings = {};
+			if ( typeof this.settings.orderTemp.settings === "undefined" ) {
+				this.settings.orderTemp.settings = {};
 			}
 			this.settings.orderTemp.settings.paymentMethods = this.settings.order.paymentMethods;
 		},
@@ -1260,65 +1124,68 @@ module.exports = {
 		 * @returns {Object} order complete result with result, errors
 		 */
 		orderAfterSaveActions(ctx, orderProcessedResult) {
-				let self = this;
+			let self = this;
 
 			// 1. if set url, send order. If no url or send was success, set status to Sent.
-			console.log('this.settings.order.sendingOrder: ', this.settings.order.sendingOrder);
-			if ( this.settings.order.sendingOrder && this.settings.order.sendingOrder.url && this.settings.order.sendingOrder.url.toString().trim()!='' ) {
-				let auth = "Basic " + Buffer.from(this.settings.order.sendingOrder.login + ':' + this.settings.order.sendingOrder.password).toString('base64');
+			console.log("this.settings.order.sendingOrder: ", this.settings.order.sendingOrder);
+			if ( this.settings.order.sendingOrder && this.settings.order.sendingOrder.url && this.settings.order.sendingOrder.url.toString().trim()!="" ) {
+				let auth = "Basic " + Buffer.from(this.settings.order.sendingOrder.login + ":" + this.settings.order.sendingOrder.password).toString("base64");
 				return fetch(this.settings.order.sendingOrder.url+"?action=order", {
-						method: 'post',
-						body:    JSON.stringify({"shopId": "StretchShop","order":orderProcessedResult.order}),
-						headers: { "Content-Type": "application/json", "Authorization": auth },
+					method: "post",
+					body:    JSON.stringify({"shopId": "StretchShop","order":orderProcessedResult.order}),
+					headers: { "Content-Type": "application/json", "Authorization": auth },
 				})
-				.then(res => res.json()) // expecting a json response, checking it
-				.then(orderSentResponse => {
-					console.log("orderSentResponse: ", orderSentResponse);
-					// check if response has the most important information about how order was processed
-					console.log( orderSentResponse.type , orderSentResponse.type=='success' ,
-					orderSentResponse.result.status );
-					if ( orderSentResponse.type && orderSentResponse.type=='success' &&
-					orderSentResponse.result && orderSentResponse.result.status &&
-					orderSentResponse.result.order ) {
-						// order SENT, response type is success
-						// if response is SUCCESS, nothing has to be changed by user, return original order
-						if ( orderSentResponse.result.status=="accepted" ) {
-							// process response
-							let updatedOrder = this.processResponseOfOrderSent(orderProcessedResult.order, orderSentResponse.result.order);
-							// 2. clear cart + 3. send email
-							return self.orderAfterAcceptedActions(ctx, orderProcessedResult)
-							.then(success => {
-								if ( success ) {
-									orderProcessedResult.order = updatedOrder;
-									orderProcessedResult.order.status = "sent";
-									orderProcessedResult.order.dates.emailSent = new Date();
-									// save with sent status and email sent date after it
-									return this.adapter.updateById(orderProcessedResult.order._id, self.prepareForUpdate(orderProcessedResult.order))
-									.then(orderUpdated => {
-										return orderProcessedResult;
+					.then(res => res.json()) // expecting a json response, checking it
+					.then(orderSentResponse => {
+						console.log("orderSentResponse: ", orderSentResponse);
+						// check if response has the most important information about how order was processed
+						console.log( orderSentResponse.type , orderSentResponse.type=="success" ,
+							orderSentResponse.result.status );
+						if ( orderSentResponse.type && orderSentResponse.type=="success" &&
+						orderSentResponse.result && orderSentResponse.result.status &&
+						orderSentResponse.result.order ) {
+							// order SENT, response type is success
+							// if response is SUCCESS, nothing has to be changed by user, return original order
+							if ( orderSentResponse.result.status=="accepted" ) {
+								// process response
+								let updatedOrder = this.processResponseOfOrderSent(orderProcessedResult.order, orderSentResponse.result.order);
+								// 2. clear cart + 3. send email
+								return self.orderAfterAcceptedActions(ctx, orderProcessedResult)
+									.then(success => {
+										if ( success ) {
+											orderProcessedResult.order = updatedOrder;
+											orderProcessedResult.order.status = "sent";
+											orderProcessedResult.order.dates.emailSent = new Date();
+											// save with sent status and email sent date after it
+											return this.adapter.updateById(orderProcessedResult.order._id, self.prepareForUpdate(orderProcessedResult.order))
+												.then(() => { //(orderUpdated)
+													return orderProcessedResult;
+												});
+										}
 									});
-								}
-							});
-						} else {
-							// response is CHANGED or REJECTED - send response without changes to front-side so user makes decision
-							return orderProcessedResult;
+							} else {
+								// response is CHANGED or REJECTED - send response without changes to front-side so user makes decision
+								return orderProcessedResult;
+							}
+						} else { // something is wrong with order data or server
+							// return original response, but add error
+							if ( !orderSentResponse.errors ) {
+								orderSentResponse.errors = [];
+							}
+							orderSentResponse.errors.push({"value": "Server", "desc": "bad response"});
+							return orderSentResponse;
 						}
-					} else { // something is wrong with order data or server
-						// return original response, but add error
-						orderSentResponse.errors.push({"value": "Server", "desc": "bad response"});
-						return orderSentResponse;
-					}
-				});
+					});
 			} else { // no url to send
 				// 2. clear cart + 3. send email
 				return self.orderAfterAcceptedActions(ctx, orderProcessedResult)
-				.then(success => {
-					if ( success ) {
-						orderProcessedResult.order.dates.emailSent = new Date();
-						// save after it
-						return orderProcessedResult;
-					}
-				});
+					.then(success => {
+						if ( success ) {
+							orderProcessedResult.order.dates.emailSent = new Date();
+							// save after it
+							return orderProcessedResult;
+						}
+					});
 			}
 		},
 
@@ -1334,10 +1201,10 @@ module.exports = {
 		processResponseOfOrderSent(orderOriginal, orderResponse) {
 			if ( orderOriginal && orderResponse ) {
 				// update externalIds
-				if ( orderResponse.externalId && orderResponse.externalId.toString().trim()!='' ) {
+				if ( orderResponse.externalId && orderResponse.externalId.toString().trim()!="" ) {
 					orderOriginal.externalId = orderResponse.externalId;
 				}
-				if ( orderResponse.externalCode && orderResponse.externalCode.toString().trim()!='' ) {
+				if ( orderResponse.externalCode && orderResponse.externalCode.toString().trim()!="" ) {
 					orderOriginal.externalCode = orderResponse.externalCode;
 				}
 				// update items
@@ -1353,7 +1220,7 @@ module.exports = {
 						if ( orderResponse.items[key] &&
 						orderOriginal.items[key]._id && orderResponse.items[key]._id &&
 						orderResponse.items[key]._id==orderResponse.items[key]._id &&
-					  orderOriginal.items[key].amount && orderResponse.items[key].amount ) {
+						orderOriginal.items[key].amount && orderResponse.items[key].amount ) {
 							// if it has responseAction set
 							if ( orderOriginal.items[key].responseAction ) {
 								if ( orderOriginal.items[key].responseAction=="updated" ) {
@@ -1379,65 +1246,36 @@ module.exports = {
 		 */
 		orderAfterAcceptedActions(ctx, orderResult) {
 			let self = this;
+			console.log("orderAfterAcceptedActions (OrderResult):", orderResult);
 			// 1. clear the cart
 			return ctx.call("cart.delete")
-			.then(cart => {
-				// 2. send email about order
-				let userEmail = '';
-				if ( typeof ctx.meta.user.email !== 'undefined' && ctx.meta.user.email ) {
-					userEmail = ctx.meta.user.email;
-				}
-				if ( typeof self.settings.orderTemp.addresses.invoiceAddress.email !== 'undefined' && self.settings.orderTemp.addresses.invoiceAddress.email ) {
-					userEmail = self.settings.orderTemp.addresses.invoiceAddress.email;
-				}
-				console.log("\n\norders.service.orderAfterAcceptedActions:", userEmail, ctx.meta.user, self.settings.orderTemp.addresses.invoiceAddress);
-				return ctx.call("users.sendEmail",{
-					template: "ordered",
-					data: {
-						order: self.settings.orderTemp
-					},
-					settings: {
-						subject: "StretchShop - Your Order #"+self.settings.orderTemp._id,
-						to: userEmail
+				.then(() => { //(cart)
+					// 2. send email about order
+					let userEmail = "";
+					if ( typeof ctx.meta.user.email !== "undefined" && ctx.meta.user.email ) {
+						userEmail = ctx.meta.user.email;
 					}
-				})
-				.then(booleanResult => {
-					console.log('Email order SENT:', booleanResult);
-					return true;
+					if ( typeof self.settings.orderTemp.addresses.invoiceAddress.email !== "undefined" && self.settings.orderTemp.addresses.invoiceAddress.email ) {
+						userEmail = self.settings.orderTemp.addresses.invoiceAddress.email;
+					}
+					console.log("\n\norders.service.orderAfterAcceptedActions:", userEmail, ctx.meta.user, self.settings.orderTemp.addresses.invoiceAddress);
+					return ctx.call("users.sendEmail",{
+						template: "ordered",
+						data: {
+							order: self.settings.orderTemp
+						},
+						settings: {
+							subject: "StretchShop - Your Order #"+self.settings.orderTemp._id,
+							to: userEmail
+						}
+					})
+						.then(booleanResult => {
+							console.log("Email order SENT:", booleanResult);
+							return true;
+						});
 				});
-			});
 		},
 
-
-		// sort object's params in alphabetical order
-		sortObject(o) {
-	  	var sorted = {},
-	  	key, a = [];
-
-	  	// get object's keys into array
-	  	for (key in o) {
-	  		if (o.hasOwnProperty(key)) {
-	  			a.push(key);
-	  		}
-	  	}
-
-	  	// sort array of acquired keys
-	  	a.sort();
-
-	  	// fill array keys with related values
-	  	for (key = 0; key < a.length; key++) {
-	  		if (typeof o[a[key]] === "object") {
-	  			// if object, sort its keys recursively
-	  		  sorted[a[key]] = sortObject( o[a[key]] );
-	  		} else {
-	  			// assign value to key
-	  		  sorted[a[key]] = o[a[key]];
-	  		}
-	  	}
-
-	  	// return sorted result
-	  	return sorted;
-	  },
 
 		prepareForUpdate(object) {
 			let objectToSave = JSON.parse(JSON.stringify(object));
@@ -1448,20 +1286,11 @@ module.exports = {
 		},
 
 
-		paymentBraintreeGateway() {
-			this.settings.paymentsConfigs.braintree.gateway = braintree.connect({
-			  environment: braintree.Environment.Sandbox,
-			  merchantId: this.settings.paymentsConfigs.braintree.merchantId,
-			  publicKey: this.settings.paymentsConfigs.braintree.publicKey,
-			  privateKey: this.settings.paymentsConfigs.braintree.privateKey
-			});
-		},
-
 		getDataToCreateUser(ctx) {
 			let userName = ctx.params.orderParams.addresses.invoiceAddress.nameFirst;// +""+ this.settings.orderTemp.addresses.invoiceAddress.nameLast;
 			let userPassword = passGenerator.generate({
-					length: 10,
-					numbers: true
+				length: 10,
+				numbers: true
 			});// 'A2JFHnnGqL38D';
 			if ( ctx.params.orderParams.password ) {
 				userPassword = ctx.params.orderParams.password;
@@ -1471,7 +1300,7 @@ module.exports = {
 					username: userName,
 					email: ctx.params.orderParams.addresses.invoiceAddress.email,
 					password: userPassword,
-					type: 'user',
+					type: "user",
 					addresses: [ctx.params.orderParams.addresses.invoiceAddress],
 					activated: new Date()
 				}
@@ -1481,7 +1310,7 @@ module.exports = {
 
 		createPayPalHttpClient() {
 			let env;
-			if (this.settings.paymentsConfigs.paypal.environment === 'live') {
+			if (this.settings.paymentsConfigs.paypal.environment === "live") {
 				// Live Account details
 				env = new paypal.core.LiveEnvironment(this.settings.paymentsConfigs.paypal.merchantId, this.settings.paymentsConfigs.paypal.privateKey);
 			} else {
