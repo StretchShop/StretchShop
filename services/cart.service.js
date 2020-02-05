@@ -1,6 +1,7 @@
 "use strict";
 
 const { MoleculerClientError } = require("moleculer").Errors;
+const Cron = require("moleculer-cron");
 
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
@@ -11,8 +12,24 @@ module.exports = {
 		DbService("cart"),
 		CacheCleanerMixin([
 			"cache.clean.cart"
-		])
+		]),
+		Cron
 	],
+
+	crons: [{
+		name: "CartsCleaner",
+		cronTime: "0 1 * * *",
+		onTick: function() {
+
+			console.log("Starting to Clean up the Carts");
+
+			this.getLocalService("cart")
+				.actions.cleanCarts()
+				.then((data) => {
+					console.log("Carts Cleaned up", data);
+				});
+		}
+	}],
 
 	/**
 	 * Default settings
@@ -96,41 +113,41 @@ module.exports = {
 							hash: cartCookie
 						}
 					})
-					.then(found => {
-						if (found && found.constructor===Array && found[0] && found[0].constructor!==Array ) {
-							// cart found in datasource, save to meta
-							if ( found && found.length>0 ) {
-								found = found[0];
-							}
-							ctx.meta.cart = found;
-							return ctx.meta.cart;
-						} else { // no cart found in datasource, create one
-							let userId = null,
+						.then(found => {
+							if (found && found.constructor===Array && found[0] && found[0].constructor!==Array ) {
+								// cart found in datasource, save to meta
+								if ( found && found.length>0 ) {
+									found = found[0];
+								}
+								ctx.meta.cart = found;
+								return ctx.meta.cart;
+							} else { // no cart found in datasource, create one
+								let userId = null,
 									orderId = null;
-							if ( ctx.meta.user && ctx.meta.user._id ) {
-								userId = ctx.meta.user._id;
+								if ( ctx.meta.user && ctx.meta.user._id ) {
+									userId = ctx.meta.user._id;
+								}
+								if ( ctx.meta.order && ctx.meta.order._id ) {
+									orderId = ctx.meta.order._id;
+								}
+								let entity = {
+									user: userId,
+									ip: ctx.meta.remoteAddress || null,
+									hash: cartCookie || null,
+									order: orderId,
+									dateCreated: new Date(),
+									dateUpdated: new Date(),
+									items: null
+								};
+								console.log("\n Cart.new entity: ", entity);
+								return this.adapter.insert(entity)
+									.then(doc => this.transformDocuments(ctx, {}, doc))
+									.then ( json => this.entityChanged("created", json, ctx).then(() => json));
 							}
-							if ( ctx.meta.order && ctx.meta.order._id ) {
-								orderId = ctx.meta.order._id;
-							}
-							let entity = {
-								user: userId,
-								ip: ctx.meta.remoteAddress || null,
-								hash: cartCookie || null,
-								order: orderId,
-								dateCreated: new Date(),
-								dateUpdated: new Date(),
-								items: null
-							};
-							console.log("\n\n _______2 ---- cart.new entity: ", entity);
-							return this.adapter.insert(entity)
-								.then(doc => this.transformDocuments(ctx, {}, doc))
-								.then ( json => this.entityChanged("created", json, ctx).then(() => json));
-						}
-					})
-					.catch(err => {
-						console.log('cart err: ', err);
-					});
+						})
+						.catch(err => {
+							console.log("cart err: ", err);
+						});
 				}
 
 			}
@@ -149,15 +166,14 @@ module.exports = {
 				amount: { type: "number", positive: true }
 			},
 			handler(ctx) {
-				let entity = ctx.params.cart;
 				// 1. check if product with that properties exists and
 				// 2. if enough pieces on stock
 				return ctx.call("products.findWithId", {
-						"query": {
-							"_id": ctx.params.itemId,
-							"stockAmount": { "$gte": ctx.params.amount }
-						}
-					})
+					"query": {
+						"_id": ctx.params.itemId,
+						"stockAmount": { "$gte": ctx.params.amount }
+					}
+				})
 					.then(productAvailable => {
 						if (productAvailable && productAvailable.length>0) {
 							productAvailable = productAvailable[0];
@@ -170,7 +186,7 @@ module.exports = {
 					})
 					.then(productAvailable => {
 						return ctx.call("cart.me")
-						.then(cart => {
+							.then(cart => {
 								if (cart && cart.length>0) {
 									cart = cart[0];
 								}
@@ -178,7 +194,7 @@ module.exports = {
 								// 2. check if it's already in cart
 								let isInCart = -1;
 								if ( cart.items ) {
-									for (var i=0; i<cart.items.length; i++) {
+									for (let i=0; i<cart.items.length; i++) {
 										if (cart.items[i]._id == productAvailable._id) {
 											isInCart = i;
 											break;
@@ -197,7 +213,7 @@ module.exports = {
 									}
 									cart.items[isInCart].amount = newAmount;
 								} else { // not in cart
-									if ( typeof productAvailable === "object" && typeof productAvailable !== "Array" ) {
+									if ( typeof productAvailable === "object" && productAvailable.constructor !== Array ) {
 										productAvailable.amount = ctx.params.amount;
 										cart.items.push(productAvailable);
 									} else {
@@ -208,12 +224,12 @@ module.exports = {
 								cart.dateUpdated = new Date();
 
 								// 3. add to cart and write to datasource
-								ctx.meta.cart = cart
+								ctx.meta.cart = cart;
 								return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
-								.then(doc => this.transformDocuments(ctx, {}, doc))
-								.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+									.then(doc => this.transformDocuments(ctx, {}, doc))
+									.then(json => this.entityChanged("updated", json, ctx).then(() => json));
 								//return ctx.meta.cart;
-						});
+							});
 					});
 			}
 		},
@@ -230,7 +246,6 @@ module.exports = {
 				amount: { type: "number", positive: true, optional: true }
 			},
 			handler(ctx) {
-				let entity = ctx.params.cart;
 				// get cart
 				return ctx.call("cart.me")
 					.then(cart => {
@@ -242,18 +257,18 @@ module.exports = {
 							if ( ctx.params.itemId ) {
 								// find product in cart
 								let productInCart = -1;
-								for (var i=0; i<cart.items.length; i++) {
-										if (cart.items[i]._id == ctx.params.itemId) {
-											productInCart = i;
-											break;
-										}
+								for (let i=0; i<cart.items.length; i++) {
+									if (cart.items[i]._id == ctx.params.itemId) {
+										productInCart = i;
+										break;
+									}
 								}
 								// if found, remove one product from cart
 								if (productInCart>-1) {
 									if ( ctx.params.amount && ctx.params.amount>0 ) {
 										// remove amount from existing value
-										cart.items[i].amount = cart.items[i].amount - ctx.params.amount;
-										if (cart.items[i].amount<=0) {
+										cart.items[productInCart].amount = cart.items[productInCart].amount - ctx.params.amount;
+										if (cart.items[productInCart].amount<=0) {
 											// if new amount less or equal to 0, remove whole product
 											cart.items.splice(productInCart, 1);
 										}
@@ -269,10 +284,10 @@ module.exports = {
 							cart.dateUpdated = new Date();
 
 							// update cart in variable and datasource
-							ctx.meta.cart = cart
+							ctx.meta.cart = cart;
 							return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
-							.then(doc => this.transformDocuments(ctx, {}, doc))
-							.then(json => this.entityChanged("removed", json, ctx).then(() => json));
+								.then(doc => this.transformDocuments(ctx, {}, doc))
+								.then(json => this.entityChanged("removed", json, ctx).then(() => json));
 						}
 					});
 			}
@@ -286,33 +301,32 @@ module.exports = {
 				amount: { type: "number", positive: true, optional: true }
 			},
 			handler(ctx) {
-				ctx.params.itemId = (typeof ctx.params.itemId !== 'undefined') ?  ctx.params.itemId : null;
-				ctx.params.amount = (typeof ctx.params.amount !== 'undefined') ?  ctx.params.amount : 1;
-				let entity = ctx.params.cart;
+				ctx.params.itemId = (typeof ctx.params.itemId !== "undefined") ?  ctx.params.itemId : null;
+				ctx.params.amount = (typeof ctx.params.amount !== "undefined") ?  ctx.params.amount : 1;
 				// get cart
 				return ctx.call("cart.me")
 					.then(cart => {
 						if (cart && cart.length>0) {
 							cart = cart[0];
 						}
-						console.log('updateCartItemAmount.cart: ', cart);
+						console.log("updateCartItemAmount.cart: ", cart);
 						// check if there are any items inside
 						if ( cart.items && cart.items.length>0 ) {
 							if ( ctx.params.itemId ) {
 								// find product in cart
 								let productInCart = -1;
-								for (var i=0; i<cart.items.length; i++) {
-										if (cart.items[i]._id == ctx.params.itemId) {
-											productInCart = i;
-											break;
-										}
+								for (let i=0; i<cart.items.length; i++) {
+									if (cart.items[i]._id == ctx.params.itemId) {
+										productInCart = i;
+										break;
+									}
 								}
 								// if found, remove one product from cart
 								if (productInCart>-1) {
 									if ( ctx.params.amount && ctx.params.amount>0 ) {
 										// remove amount from existing value
-										cart.items[i].amount = ctx.params.amount;
-										if (cart.items[i].amount<=0) {
+										cart.items[productInCart].amount = ctx.params.amount;
+										if (cart.items[productInCart].amount<=0) {
 											// if new amount less or equal to 0, remove whole product
 											cart.items.splice(productInCart, 1);
 										}
@@ -321,10 +335,10 @@ module.exports = {
 							}
 							cart.dateUpdated = new Date();
 							// update cart in variable and datasource
-							ctx.meta.cart = cart
+							ctx.meta.cart = cart;
 							return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
-							.then(doc => this.transformDocuments(ctx, {}, doc))
-							.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+								.then(doc => this.transformDocuments(ctx, {}, doc))
+								.then(json => this.entityChanged("updated", json, ctx).then(() => json));
 						}
 					});
 			}
@@ -346,8 +360,8 @@ module.exports = {
 
 						// update old cart according to new one, if property set, otherwise keep old
 						if ( ctx.params.cartNew ) {
-							for (var property in ctx.params.cartNew) {
-								if (cart.hasOwnProperty(property) && ctx.params.cartNew.hasOwnProperty(property)) {
+							for ( let property in ctx.params.cartNew ) {
+								if ( Object.prototype.hasOwnProperty.call(cart,property) && Object.prototype.hasOwnProperty.call(ctx.params.cartNew,property) ) {
 									cart[property] = ctx.params.cartNew[property];
 								}
 							}
@@ -355,11 +369,40 @@ module.exports = {
 
 						cart.dateUpdated = new Date();
 						// update cart in variable and datasource
-						ctx.meta.cart = cart
-						console.log('cart.updateCart newCart: ', cart);
+						ctx.meta.cart = cart;
+						console.log("cart.updateCart newCart: ", cart);
 						return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
-						.then(doc => this.transformDocuments(ctx, {}, doc))
-						.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+							.then(doc => this.transformDocuments(ctx, {}, doc))
+							.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+					});
+			}
+		}, 
+
+
+		cleanCarts: {
+			cache: false,
+			handler(ctx) {
+				let promises = [];
+				const d = new Date();
+				d.setMonth(d.getMonth() - 1);
+				return this.adapter.find({
+					query: {
+						dateUpdated: { "$lt": d }
+					}
+				})
+					.then(found => {
+						found.forEach(cart => {
+							promises.push( 
+								ctx.call("cart.remove", {id: cart._id} )
+									.then(removed => {
+										return "Removed carts: " +JSON.stringify(removed);
+									})
+							);
+						});
+						// return all delete results
+						return Promise.all(promises).then((result) => {
+							return result;
+						});
 					});
 			}
 		}
@@ -372,37 +415,6 @@ module.exports = {
 	 * Methods
 	 */
 	methods: {
-		// sort object's params in alphabetical order
-		sortObject(o) {
-	  	var sorted = {},
-	  	key, a = [];
-
-	  	// get object's keys into array
-	  	for (key in o) {
-	  		if (o.hasOwnProperty(key)) {
-	  			a.push(key);
-	  		}
-	  	}
-
-	  	// sort array of acquired keys
-	  	a.sort();
-
-	  	// fill array keys with related values
-	  	for (key = 0; key < a.length; key++) {
-	  		if (typeof o[a[key]] === "object") {
-	  			// if object, sort its keys recursively
-	  		  sorted[a[key]] = sortObject( o[a[key]] );
-	  		} else {
-	  			// assign value to key
-	  		  sorted[a[key]] = o[a[key]];
-	  		}
-	  	}
-
-	  	// return sorted result
-	  	return sorted;
-	  },
-
-
 		prepareForUpdate(object) {
 			let objectToSave = JSON.parse(JSON.stringify(object));
 			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
