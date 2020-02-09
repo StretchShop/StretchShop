@@ -357,6 +357,7 @@ module.exports = {
 					templateName = pageSlugArray[1];
 				}
 				let parentDir = this.settings.paths.resources+"/pages/"+templateName+"/"+pageName+"/";
+				parentDir = this.removeParentTraversing(parentDir);
 				let filepath = parentDir+pageName+"-"+lang+".html";
 				filepath = pathResolve(filepath);
 				

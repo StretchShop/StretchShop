@@ -122,6 +122,17 @@ module.exports = {
 				.then(data => {
 					return data;
 				});
+		},
+
+		/**
+		 * Removing any parent traversing from resources path.
+		 * Note: When runing from library, path to load resources requires parent traversing,
+		 * but application itself don't want it
+		 * @param {String} path 
+		*/
+		removeParentTraversing(path) {
+			path = path.replace(/^(\.\.(\/|\\|$))+/g,"");
+			return path;
 		}
 
 	}
