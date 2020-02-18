@@ -104,6 +104,32 @@ module.exports = {
 			}
 		},
 
+		findWithContent: {
+			params: {
+				query: { type: "object" },
+				lang: { type: "string", min: 2, optional: true } 
+			},
+			handler(ctx) {
+				return ctx.call("categories.find", { query: ctx.params.query })
+					.then(categories => {
+						return ctx.call("pages.detail", { 
+							page: ctx.params.query.type,
+							lang: ctx.params.lang
+						})
+							.then(page => {
+								return {
+									categories, 
+									page
+								};
+							})
+							.then(result => {
+
+								return result;
+							});
+					});
+			}
+		},
+
 		/**
 		 * Get detail of Category.
 		 *

@@ -3,7 +3,7 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 const slug = require("slug");
 
-const { readdirSync, statSync } = require("fs");
+const { readdirSync, statSync, existsSync } = require("fs");
 const pathResolve = require("path").resolve;
 
 const DbService = require("../mixins/db.mixin");
@@ -360,6 +360,14 @@ module.exports = {
 				parentDir = this.removeParentTraversing(parentDir);
 				let filepath = parentDir+pageName+"-"+lang+".html";
 				filepath = pathResolve(filepath);
+
+				// use default template if more relevant not found
+				if ( !existsSync(filepath) ) {
+					pageName = "default";
+					parentDir = this.settings.paths.resources+"/pages/"+templateName+"/default/";
+					parentDir = this.removeParentTraversing(parentDir);
+					filepath = parentDir+"default-"+lang+".html";
+				}
 				
 				// get template for that page
 				return self.getCorrectFile(filepath)
@@ -467,6 +475,18 @@ module.exports = {
 													null, 
 													[hasCategories, hasStaticCategories]
 												);
+											}
+										})
+										.then( result => {
+											let resultWithFunctions = self.checkAndRunPageFunctions(ctx, result.data, ctx.params.lang);
+											if (resultWithFunctions && typeof resultWithFunctions.then == "function") {
+												return resultWithFunctions.then(functions => {
+													result.data.functions = functions;
+													return result;
+												});
+											} else {
+												result.data.functions = [];
+												return result;
 											}
 										});
 								}
@@ -737,8 +757,6 @@ module.exports = {
 	 */
 	methods: {
 		
-		
-
 		pageGlobalResultHelper_ParentCat(result, parentCategoryDetail, options) {
 			if (options[1]) { // hasStaticCategories
 				result.staticData["parentCategoryDetail"] = parentCategoryDetail;
@@ -748,6 +766,112 @@ module.exports = {
 			}
 			result.global.parentCategoryDetail = parentCategoryDetail;
 			return result;
+		}, 
+
+		/**
+		 * Check if page code containes any functions placeholders
+		 * if does, run them and return results
+		 * 
+		 * @param {*} page 
+		 */
+		checkAndRunPageFunctions(ctx, page, lang) {
+			if ( page && page.data && page.data.blocks[0] && page.data.blocks[0][lang] ) {
+				let pageFunctions = this.getPageFunctions(page.data.blocks[0][lang]);
+				console.log("pageFunctions: ", pageFunctions);
+
+				if (pageFunctions && pageFunctions.length>0) {
+					let promises = [];
+					for (let pfi in pageFunctions) {
+						let pf = pageFunctions[pfi];
+						if ( Object.prototype.hasOwnProperty.call(this.schema.methods, pf.method) ) {
+							promises.push( this.schema.methods[pf.method](ctx, pf.params) );
+						}
+					}
+					return Promise.all(promises).then((values) => {
+						console.log("values: ", values);
+						return values;
+					});
+				}
+				return null;
+			}
+		},
+
+
+		/**
+		 * Get page functions form its content - eg. {{{getBestsellers(latest)}}}
+		 * 
+		 * @param {*} content 
+		 */
+		getPageFunctions(content) {
+			let re = /\{\{\{(.*)\((.*)\)\}\}\}/g;
+			let m;
+			let results = [];
+			
+			do {
+				m = re.exec(content);
+				if (m) {
+					let result = { 
+						method: m[1], 
+						params: m[2] 
+					};
+					if ( result.params.indexOf(";") > -1 ) {
+						result.params = result.params.split(";");
+					}
+					results.push(result);
+				}
+			} while (m);
+
+			return results;
+		},
+
+
+		getProductsById(ctx, orderCodes) {
+			return ctx.call("products.find", {
+				"query": {
+					"orderCode": {"$in": orderCodes}
+				}
+			})
+				.then(products => {
+					if ( products && products.length>0 ) {
+						let categoriesSlugs = [];
+						products.forEach(function(product) {
+							if ( product.categories && product.categories.length>0 ) {
+								categoriesSlugs.push(...product.categories);
+							}
+						});
+						return ctx.call("categories.find", {
+							"query": {
+								"pathSlug": {"$in": categoriesSlugs}
+							}
+						})
+							.then(categories => {
+								let catSlugsMap = {};
+								for ( let i=0; i<categories.length; i++ ) {
+									catSlugsMap[categories[i].pathSlug] = categories[i];
+								}
+								for ( let i=0; i<products.length; i++ ) {
+									products[i]["categoriesData"] = {};
+									for ( let j=0; j<products[i].categories.length; j++ ) {
+										let catKey = products[i]["categories"];
+										let catVal = catSlugsMap[catKey];
+										products[i]["categoriesData"][catKey] = catVal;
+									}
+								}
+								console.log("products: ", products);
+								return {
+									name: "getProductsById",
+									data: products,
+									template: "ProductBox"
+								};
+							});
+					} else {
+						return {
+							name: "getProductsById",
+							data: products,
+							template: "ProductBox"
+						};
+					}
+				});
 		}
 
 	},

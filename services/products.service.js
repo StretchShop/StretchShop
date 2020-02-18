@@ -100,7 +100,7 @@ module.exports = {
 	 */
 	actions: {
 		/**
-		 * Add item to user's cart
+		 * List products in category
 		 *
 		 * @actions
 		 * @param {Object} user - User entity
