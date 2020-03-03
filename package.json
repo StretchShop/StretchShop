@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "scripts": {
@@ -36,10 +36,12 @@
     "fs-extra": "^8.1.0",
     "generate-password": "^1.5.1",
     "handlebars": "^4.7.3",
-    "ioredis": "^4.14.1",
+    "html-to-pdfmake": "^1.2.1",
+    "ioredis": "^4.16.0",
+    "jsdom": "^16.2.0",
     "jsonwebtoken": "8.5.1",
     "lodash": "^4.17.15",
-    "moleculer": "0.14.0",
+    "moleculer": "0.14.2",
     "moleculer-console-tracer": "^0.2.2",
     "moleculer-cron": "0.0.2",
     "moleculer-db": "^0.8.5",

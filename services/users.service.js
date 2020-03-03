@@ -54,7 +54,7 @@ module.exports = {
 		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
 
 		/** Public fields */
-		fields: ["_id", "username", "email", "type", "subtype", "bio", "image", "addresses", "settings", "dates"],
+		fields: ["_id", "username", "email", "type", "subtype", "bio", "image", "company", "addresses", "settings", "dates"],
 
 		/** Validator schema for entity */
 		entityValidator: {
@@ -65,12 +65,18 @@ module.exports = {
 			subtype: { type: "string", optional: true },
 			bio: { type: "string", optional: true },
 			image: { type: "string", optional: true },
-			dates: { type: "object", props: {
+			dates: { type: "object", optional: true, props: {
 				dateCreated: { type: "date", optional: true }, 
 				dateUpdated: { type: "date", optional: true }, 
 				dateLastVerify: { type: "date", optional: true },
 				dateActivated: { type: "date", optional: true },
 				dateToBeErased: { type: "date", optional: true }
+			} },
+			company: { type: "object", optional: true, props: {
+				name: { type: "string", optional: true },
+				orgId: { type: "string", optional: true },
+				taxId: { type: "string", optional: true },
+				taxVatId: { type: "string", optional: true }
 			} },
 			addresses: { type: "array", optional: true, items:
 				{ type: "object", props: {
@@ -291,7 +297,7 @@ module.exports = {
 								// send email separately asynchronously not waiting for response
 								let emailData = {
 									"entity": entity,
-									"keepItForLater": this.buildHashSourceFromEntity(hashedPwd, entity.dates.dateCreated),
+									"keepItForLater": this.buildHashSourceFromEntity(hashedPwd, entity.user.dates.dateCreated),
 									"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
 									"language": entity.user.settings.language,
 									"templateName": "registration"
@@ -712,7 +718,7 @@ module.exports = {
 				ctx.params.settings = (typeof ctx.params.settings !== "undefined") ?  ctx.params.settings : null;
 				ctx.params.functionSettings = (typeof ctx.params.functionSettings !== "undefined") ?  ctx.params.functionSettings : null;
 				// set language of template
-				let langCode = ctx.meta.localsDefault.lang;
+				let langCode = ctx.meta.localsDefault.lang || "en";
 				if ( ctx.params.functionSettings && typeof ctx.params.functionSettings.language !== "undefined" && ctx.params.functionSettings.language ) {
 					langCode = ctx.params.functionSettings.language;
 				}

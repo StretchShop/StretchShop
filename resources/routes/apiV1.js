@@ -66,6 +66,8 @@ module.exports = {
 		"POST /order/progress": "orders.progress",
 		"POST /order/list": "orders.listOrders",
 		"REST /webhook/:service": "orders.paymentWebhook",
+		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
+		"GET /order/invoice/generate/:orderId": "orders.invoiceGenerate",
 		// Payment PayPal
 		"POST /order/paypalcheckout": "orders.paypalOrderCheckout",
 		"GET /order/paypalipn": "orders.paypalIpn",

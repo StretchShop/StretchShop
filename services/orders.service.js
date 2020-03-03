@@ -11,16 +11,30 @@ const payments = paypal.v1.payments;
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
+const pathResolve = require("path").resolve;
+const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
 let resourcesDirectory = process.env.PATH_RESOURCES || "../resources";
 const orderSettings = require(resourcesDirectory+"/settings/orders");
+
+const { writeFileSync, ensureDir, createReadStream } = require("fs-extra");
+let pdfMake = require("pdfmake/build/pdfmake");
+let pdfFonts = require("pdfmake/build/vfs_fonts");
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
+let htmlToPdfmake = require("html-to-pdfmake");
+let jsdom = require("jsdom");
+let { JSDOM } = jsdom;
+let { window } = new JSDOM("");
+const handlebars = require("handlebars");
+const businessSettings = require("../resources/settings/business");
 
 module.exports = {
 	name: "orders",
 	mixins: [
 		DbService("orders"),
 		HelpersMixin,
+		FileHelpers,
 		CacheCleanerMixin([
 			"cache.clean.orders"
 		]),
@@ -55,7 +69,8 @@ module.exports = {
 			"prices", "items",
 			"data",
 			"notes",
-			"settings"
+			"settings",
+			"invoice"
 		],
 
 		/** Validator schema for entity */
@@ -144,8 +159,8 @@ module.exports = {
 					sellerNote: { type: "string" },
 				}
 			},
-			settings: { type: "object" }
-
+			settings: { type: "object" },
+			invoice: { type: "object", optional: true }
 		},
 
 		// ------------- ORDER VARIABLES AND SETTINGS -------------
@@ -171,6 +186,10 @@ module.exports = {
 				privateKey: process.env.PAYPAL_SECRET,
 				gateway: null
 			}
+		}, 
+
+		paths: {
+			resources: process.env.PATH_RESOURCES || "./resources"
 		}
 	},
 
@@ -409,13 +428,10 @@ module.exports = {
 						filter.limit = 1;
 					}
 
-					console.log("order filter: ", filter, JSON.stringify(filter));
-
 					// send query
 					return ctx.call("orders.find", filter)
 						.then(found => {
 							if (found) { // cart found in datasource, save to meta
-								console.log("listOrders.found", found);
 								return found;
 							} else { // no cart found in datasource, create one
 								return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
@@ -427,7 +443,11 @@ module.exports = {
 		},
 
 		/**
-		 * send payment info to PayPal and get redirect url  or error message
+		 * Send payment info to PayPal and get redirect url  or error message
+		 *
+		 * @actions
+		 * 
+		 * @returns {Object} Result from PayPal order checkout
 		 */
 		paypalOrderCheckout: {
 			params: {
@@ -474,7 +494,6 @@ module.exports = {
 								"currency": order.prices.currency.code,
 								"quantity": 1
 							});
-							// TODO - add price of delivery and payment
 
 							let client = this.createPayPalHttpClient();
 
@@ -513,6 +532,7 @@ module.exports = {
 								order.data.paymentData.paymentRequestId = response.result.id;
 								return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 									.then(orderUpdated => {
+										this.entityChanged("updated", orderUpdated, ctx);
 										console.log(orderUpdated);
 										return { order: orderUpdated, payment: response };
 									});
@@ -563,7 +583,6 @@ module.exports = {
 						}
 					})
 						.then(orders => {
-							console.log("paypalResult.orders:", orders);
 							if ( orders && orders.length>0 && orders[0] ) {
 								let order = orders[0];
 
@@ -591,16 +610,42 @@ module.exports = {
 									order.status = "paid";
 									order.data.paymentData.lastStatus = response.result.state;
 									order.data.paymentData.lastDate = new Date();
-									order.data.paymentData.lastResponseResult = response.result;
-									return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-										.then(orderUpdated => {
-											console.log(orderUpdated);
-											let urlPathPrefix = "/";
-											if ( process.env.NODE_ENV=="development" ) {
-												urlPathPrefix = "http://localhost:8080/";
+									order.data.paymentData.paidAmountTotal = 0;
+									if ( !order.data.paymentData.lastResponseResult ) {
+										order.data.paymentData.lastResponseResult = [];
+									}
+									order.data.paymentData.lastResponseResult.push(response.result);
+									// calculate total amount paid
+									for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
+										if (order.data.paymentData.lastResponseResult[i].state && 
+											order.data.paymentData.lastResponseResult[i].state == "approved" && 
+											order.data.paymentData.lastResponseResult[i].transactions) {
+											for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
+												if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
+													order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+													order.data.paymentData.paidAmountTotal += parseFloat(
+														order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+													);
+												}
 											}
-											console.log( { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
-											return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
+										}
+									}
+									// calculate how much to pay
+									order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+									return this.generateInvoice(order, ctx)
+										.then(invoice => {
+											order.invoice["html"] = invoice.html;
+											order.invoice["path"] = invoice.path;
+											return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+												.then(orderUpdated => {
+													this.entityChanged("updated", orderUpdated, ctx);
+													let urlPathPrefix = "/";
+													if ( process.env.NODE_ENV=="development" ) {
+														urlPathPrefix = "http://localhost:8080/";
+													}
+													console.log( { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
+													return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
+												});
 										});
 								}).catch((error) => {
 									console.error(error.statusCode);
@@ -615,6 +660,10 @@ module.exports = {
 		}, 
 
 
+		/**
+		 * Remove orders that have not changed from cart status 
+		 * for more than a month
+		 */
 		cleanOrders: {
 			cache: false,
 			handler(ctx) {
@@ -641,6 +690,59 @@ module.exports = {
 							return result;
 						});
 					});
+			}
+		}, 
+
+		invoiceDownload: {
+			cache: false,
+			auth: "required",
+			params: {
+				invoice: { type: "string", min: 3 }
+			},
+			handler(ctx) {
+				console.log("ctx.params.invoice:", ctx.params.invoice);
+				console.log("ctx.meta.user:", ctx.meta.user);
+				let invoiceData = ctx.params.invoice.split(".");
+				if ( invoiceData[1] && ctx.meta.user._id && ctx.meta.user._id==invoiceData[0] ) {
+					let assets = process.env.PATH_PUBLIC || "./public";
+					let dir = assets +"/"+ process.env.ASSETS_PATH +"invoices/"+ invoiceData[0];
+					let path = dir + "/" + invoiceData[1] + ".pdf";
+					console.log("path:", path);
+					console.log("pathResolve:", pathResolve(path));
+					let readStream = createReadStream( pathResolve(path) );
+					// console.log("ctx", ctx.options.parentCtx.params.res);
+					// We replaced all the event handlers with a simple call to readStream.pipe()
+					// readStream.pipe(ctx.options.parentCtx.params.res);
+					return readStream;
+				}
+			}
+		}, 
+
+		invoiceGenerate: {
+			cache: false,
+			auth: "required",
+			params: {
+				orderId: { type: "string", min: 3 }
+			},
+			handler(ctx) {
+				// only admin can generate invoices
+				if ( ctx.meta.user.type=="admin" ) {
+					if ( ctx.params.orderId.trim() != "" ) {
+						return this.adapter.findById(ctx.params.orderId)
+							.then(order => {
+								return this.generateInvoice(order, ctx)
+									.then(invoice => {
+										order.invoice["html"] = invoice.html;
+										order.invoice["path"] = invoice.path;
+										return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+											.then(orderUpdated => {
+												this.entityChanged("updated", orderUpdated, ctx);
+												return orderUpdated.invoice;
+											});
+									});
+							});
+					}
+				}
 			}
 		}
 
@@ -1155,6 +1257,7 @@ module.exports = {
 											// save with sent status and email sent date after it
 											return this.adapter.updateById(orderProcessedResult.order._id, self.prepareForUpdate(orderProcessedResult.order))
 												.then(() => { //(orderUpdated)
+													this.entityChanged("updated", orderProcessedResult, ctx);
 													return orderProcessedResult;
 												});
 										}
@@ -1255,7 +1358,7 @@ module.exports = {
 						userEmail = self.settings.orderTemp.addresses.invoiceAddress.email;
 					}
 					console.log("\n\norders.service.orderAfterAcceptedActions:", userEmail, ctx.meta.user, self.settings.orderTemp.addresses.invoiceAddress);
-					return ctx.call("users.sendEmail",{
+					ctx.call("users.sendEmail",{ // return 
 						template: "ordered",
 						data: {
 							order: self.settings.orderTemp
@@ -1267,12 +1370,224 @@ module.exports = {
 					})
 						.then(booleanResult => {
 							console.log("Email order SENT:", booleanResult);
-							return true;
+							//return true;
 						});
+					return true;
 				});
 		},
 
 
+		/**
+		 * Generate invoice PDF from order
+		 * 
+		 * @param {*} order 
+		 * @param {*} ctx 
+		 */
+		generateInvoice(order, ctx) {
+			if (order) {
+				let parentDir = this.settings.paths.resources+"/pdftemplates/";
+				parentDir = this.removeParentTraversing(parentDir);
+				let filepath = parentDir +"invoice-"+order.lang.code+".html";
+				filepath = pathResolve(filepath);
+
+				return this.getCorrectFile(filepath)
+					.then( (template) => {
+						let lastInvoiceNumber = 0;
+						return this.adapter.find({
+							sort: "-invoice.num",
+							limit: 1
+						})
+							.then(lastDbInvoiceNum => {
+								if (lastDbInvoiceNum && lastDbInvoiceNum.length>0 && 
+									lastDbInvoiceNum[0].invoice && 
+									lastDbInvoiceNum[0].invoice.id) {
+									lastInvoiceNumber = lastDbInvoiceNum[0].invoice.num;
+								}
+								return lastInvoiceNumber + 1;
+							})
+							.then(newInvoiceNum => {
+								// get invoice number
+								let needToUpdate = true;
+								if ( order.invoice && order.invoice.num && order.invoice.num>0 ) {
+									newInvoiceNum = order.invoice.num;
+									needToUpdate = false;
+								}
+								let newInvoiceIdCode = this.generateInvoiceNumber(newInvoiceNum, new Date());
+								// set invoice data to order to update
+								order["invoice"] = { 
+									num: newInvoiceNum,
+									id: newInvoiceIdCode
+								};
+								order.dates["dateInvoiceIssued"] = new Date();
+								if (!needToUpdate) {
+									// update order
+									return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+										.then(orderUpdated => {
+											this.entityChanged("updated", orderUpdated, ctx);
+											return template;
+										});
+								}
+								// no need to update
+								return template;
+							});
+					})
+					.then( (html) => {
+						// compile html from template and data
+						let template = handlebars.compile(html);
+						try {
+							template();
+						}	catch (error) {
+							console.log("handlebars ERROR:", error);
+						}
+						let data = {
+							order: order, 
+							business: businessSettings
+						};
+						data = this.buildDataForTemplate(data);
+						html = template(data);
+						return html;
+					})
+					.then( (html) => {
+						let logo1 = "./public/assets/_site/logo-words-horizontal.svg";
+						return this.readFile(logo1)
+							.then( (logoCode) => {
+								logoCode = logoCode.replace(/(width\s*=\s*["'](.*?)["'])/, 'width="240"').replace(/(height\s*=\s*["'](.*?)["'])/, 'height="53"');
+								return html.toString().replace("<!-- company_logo //-->",logoCode);
+							})
+							.catch(logoCodeErr => {
+								console.log("logoCodeErr1:", logoCodeErr);
+								return html;
+							});
+					})
+					.then( (html) => {
+						let template = htmlToPdfmake(html, {window:window});
+						let docDefinition = {
+							content: [
+								template
+							],
+							styles:{
+							}
+						};
+
+						let pdfDocGenerator = pdfMake.createPdf(docDefinition);
+						let publicDir = process.env.PATH_PUBLIC || "./public";
+						let dir = publicDir +"/"+ process.env.ASSETS_PATH +"/invoices/"+ order.user.id;
+						let path = dir + "/" + order.invoice.id + ".pdf";
+						let sendPath = "invoices/"+ order.user.id + "/" + order.invoice.id + ".pdf";
+						pdfDocGenerator.getBuffer(function(buffer) {
+							return ensureDir(dir, 0o2775)
+								.then(() => {
+									console.log("path:", path);
+									writeFileSync(path, buffer);
+									console.log("--> " + path);
+								})
+								.catch(orderEnsureDirErr => {
+									console.log("orderEnsureDirErr:", orderEnsureDirErr);
+								})
+								.then(() => {
+									ctx.call("users.sendEmail",{ // return 
+										template: "orderpaid",
+										data: {
+											order: order, 
+											html: html
+										},
+										settings: {
+											subject: "StretchShop - We received Payment for Your Order #"+order._id,
+											to: order.user.email,
+											attachments: [{
+												path: path
+											}]
+										}
+									})
+										.then(booleanResult => {
+											console.log("Email order PAID SENT:", booleanResult);
+											//return true;
+										});
+								});
+						});
+						return { html: html, path: sendPath };
+					});
+			}
+		},
+
+
+		/**
+		 * Generate invoice number = max 10x numeral characters
+		 * 1. number (1x) - eshop code (eg. "5")
+		 * 2.-7. number (6x) - date with year and month
+		 * 8.-10. number (3x) - number increasing +1
+		 * Date and increasing number summed into base of invoice number, 
+		 * prefixed with eshop code.
+		 * 
+		 * @param {*} newInvoiceNum 
+		 * @param {*} date 
+		 */
+		generateInvoiceNumber(newInvoiceNum, date) {
+			let eshopNumberCode = businessSettings.invoiceData.eshop.numberCodePrefix;
+			let newInvoiceNumBase = date.getFullYear()*100 + (date.getMonth()+1); // 4 + 2 chars
+			let zerosAppend = 9 - newInvoiceNumBase.toString().length;
+			let zeros = "";
+			for (let i=0; i<zerosAppend; i++) {
+				zeros += "0";
+			}
+			newInvoiceNumBase = newInvoiceNumBase + zeros;
+			let newInvoiceId = parseInt(newInvoiceNumBase) + newInvoiceNum;
+			return eshopNumberCode + newInvoiceId.toString();
+		},
+
+		
+		/**
+		 * Create "Ready" values for items, 
+		 * that need to be extracted or generated - eg. localized strings, numbers, ...
+		 * 
+		 * @param {*} data 
+		 */
+		buildDataForTemplate(data) {
+			let lang = data.order.lang.code;
+			data.order.data.paymentData.nameReady = data.order.data.paymentData.name[lang];
+			for(let i=0; i<data.order.items.length; i++) {
+				data.order.items[i].nameReady = data.order.items[i].name[lang];
+				data.order.items[i].itemTotal = data.order.items[i].price * data.order.items[i].amount;
+			}
+			// reformat dates
+			Object.keys(data.order.dates).forEach(function(key) {
+				if ( data.order.dates[key] instanceof Date ) {
+					data.order.dates[key] = data.order.dates[key].toISOString();
+				}
+			});
+			// set delivery types
+			let deliveryDataCodenames = {};
+			let deliveryDataReady = [];
+			if ( data.order.data.deliveryData.codename.physical ) {
+				deliveryDataCodenames[data.order.data.deliveryData.codename.physical.value] = data.order.data.deliveryData.codename.physical.price;
+			}
+			if ( data.order.data.deliveryData.codename.digital ) {
+				deliveryDataCodenames[data.order.data.deliveryData.codename.digital.value] = data.order.data.deliveryData.codename.digital.price;
+			}
+			Object.keys(data.order.settings.deliveryMethods).forEach(function(key) {
+				// check if delivery codename exists in order
+				if ( data.order.settings.deliveryMethods[key].codename && 
+					deliveryDataCodenames[data.order.settings.deliveryMethods[key].codename] ) {
+					let deliveryDataRow = {
+						name: data.order.settings.deliveryMethods[key].name[lang],
+						price: deliveryDataCodenames[data.order.settings.deliveryMethods[key].codename]
+					};
+					deliveryDataReady.push(deliveryDataRow);
+				}
+			});
+			data.order.data["deliveryDataReady"] = deliveryDataReady;
+			// set payment name
+			data.order.data.paymentData.nameReady = data.order.data.paymentData.name[lang];
+			// return updated order data
+			return data;
+		},
+
+
+		/**
+		 * Removing _id and wrapping into "$set"
+		 * 
+		 * @param {*} object 
+		 */
 		prepareForUpdate(object) {
 			let objectToSave = JSON.parse(JSON.stringify(object));
 			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
@@ -1282,12 +1597,17 @@ module.exports = {
 		},
 
 
+		/**
+		 * Collecting data for creating user on order of unregistered user
+		 * 
+		 * @param {*} ctx 
+		 */
 		getDataToCreateUser(ctx) {
 			let userName = ctx.params.orderParams.addresses.invoiceAddress.nameFirst;// +""+ this.settings.orderTemp.addresses.invoiceAddress.nameLast;
 			let userPassword = passGenerator.generate({
 				length: 10,
 				numbers: true
-			});// 'A2JFHnnGqL38D';
+			});
 			if ( ctx.params.orderParams.password ) {
 				userPassword = ctx.params.orderParams.password;
 			}
@@ -1304,6 +1624,10 @@ module.exports = {
 			return userData;
 		},
 
+
+		/**
+		 * Setting up PayPal HttpClient for specific transaction
+		 */
 		createPayPalHttpClient() {
 			let env;
 			if (this.settings.paymentsConfigs.paypal.environment === "live") {
@@ -1318,9 +1642,9 @@ module.exports = {
 	},
 
 	events: {
-		// "cache.clean.cart"() {
-		// 	if (this.broker.cacher)
-		// 		this.broker.cacher.clean(`${this.name}.*`);
-		// }
+		"cache.clean.order"() {
+			if (this.broker.cacher)
+				this.broker.cacher.clean(`${this.name}.*`);
+		}
 	}
 };
