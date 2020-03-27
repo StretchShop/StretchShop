@@ -1,5 +1,7 @@
 "use strict";
 
+let cookie = require("cookie");
+
 module.exports = {
 	path: "/api/v1",
 
@@ -90,6 +92,44 @@ module.exports = {
 
 		// Helpers
 		"POST /helpers/recaptcha": "users.recaptcha"
+	},
+
+	onAfterCall(ctx, route, req, res, data) {
+		if (ctx.meta.makeTokenCookie) {
+			if ( ctx.meta.makeTokenCookie.options && ctx.meta.makeTokenCookie.options.expires ) {
+				ctx.meta.makeTokenCookie.options.expires = new Date(ctx.meta.makeTokenCookie.options.expires);
+			}
+
+			console.log("ctx.meta.makeTokenCookie.options:", ctx.meta.makeTokenCookie.options);
+			if ( process.env.COOKIES_SECURE ) {
+				if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
+					res.cookies.set(
+						"token", 
+						ctx.meta.makeTokenCookie.value, 
+						ctx.meta.makeTokenCookie.options
+					);
+				} else {
+					res.setHeader("Set-Cookie", 
+						cookie.serialize(
+							"token", 
+							String(ctx.meta.makeTokenCookie.value), 
+							ctx.meta.makeTokenCookie.options
+						)
+					);
+				}
+			} else { // not secure cookie
+				ctx.meta.makeTokenCookie.options["secure"] = false;
+				res.cookies.set(
+					"token", 
+					ctx.meta.makeTokenCookie.value, 
+					ctx.meta.makeTokenCookie.options
+				);
+			}
+		} else if (ctx.meta.token === null) {
+			// delete token cookie if not set in ctx.meta - erased on logout
+			res.cookies.set("token", null, null);
+		}
+		return data;
 	},
 
 	// Disable to call not-mapped actions

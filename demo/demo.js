@@ -60,6 +60,10 @@ let syncPairs = [
 	{
 		source: dir+ "/resources",
 		destination: "./resources"
+	}, 
+	{
+		source: dir+ "/services",
+		destination: "./services"
 	}
 ];
 ncp.limit = 16;

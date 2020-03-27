@@ -9,6 +9,7 @@ const crypto = require("crypto");
 const { UnAuthorizedError } = ApiGateway.Errors;
 // const fs = require("fs");
 const fs = require("fs-extra");
+const path = require("path");
 const formidable = require("formidable");
 const util = require("util");
 
@@ -22,10 +23,16 @@ module.exports = {
 	mixins: [ApiGateway, HelpersMixin],
 
 	settings: {
+		// HTTPS server with certificate
+		https: (process.env.HTTPS_KEY && process.env.HTTPS_CERT) ? {
+			key: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_KEY)),
+			cert: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_CERT))
+		} : null,
+
 		// Global CORS settings for all routes
 		cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev") ? {
 			// Configures the Access-Control-Allow-Origin CORS header.
-			origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:8080",
+			origin: (process.env.NODE_ENV=="dockerdev") ? "https://localhost:3000" : "http://localhost:8080",
 			// origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:4200",
 			// Configures the Access-Control-Allow-Methods CORS header.
 			methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
@@ -142,7 +149,11 @@ module.exports = {
 		 * Manage user independent application cookies - eg. cart
 		 */
 		cookiesManagement(ctx, route, req, res) {
-			let cookiesTool = new Cookies(req, res, { keys: ["Lvj1MalbaTe6k"] });
+			if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
+				// req.connection.encrypted = true;
+			}
+
+			res.cookies = new Cookies(req, res, { keys: ["Lvj1MalbaTe6k"] });
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;
@@ -152,7 +163,11 @@ module.exports = {
 				const userCookieString = ctx.meta.remoteAddress + "--" + new Date().toISOString();
 				hash.update(userCookieString);
 				const value = hash.digest("hex");
-				cookiesTool.set(name, value, { signed: true });
+				res.cookies.set(name, value, { 
+					signed: true,
+					secure: ((process.env.HTTPS_KEY && process.env.HTTPS_CERT) ? true : false),
+					httpOnly: true
+				});
 				ctx.meta.cookies[name] = value;
 			}
 		},
@@ -179,11 +194,17 @@ module.exports = {
 			this.cookiesManagement(ctx, route, req, res);
 
 			let token = "";
-			if (req.headers.authorization) {
-				let type = req.headers.authorization.split(" ")[0];
-				if (type === "Token" || type === "Bearer")
-					token = req.headers.authorization.split(" ")[1];
+			ctx.meta.token = null;
+			if (ctx.meta.cookies && ctx.meta.cookies.token) {
+				ctx.meta.token = ctx.meta.cookies.token;
+				token = ctx.meta.token;
 			}
+
+			// if (req.headers.authorization) {
+			// 	let type = req.headers.authorization.split(" ")[0];
+			// 	if (type === "Token" || type === "Bearer")
+			// 		token = req.headers.authorization.split(" ")[1];
+			// }
 
 			return this.Promise.resolve(token)
 				.then(token => {

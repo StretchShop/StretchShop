@@ -289,7 +289,7 @@ module.exports = {
 
 						return this.adapter.insert(entity)
 							.then(doc => this.transformDocuments(ctx, {}, doc))
-							.then(user => this.transformEntity(user, true, ctx.meta.token))
+							.then(user => this.transformEntity(user, false, ctx))
 							.then(entity => {
 								this.entityChanged("created", entity, ctx).then(() => entity);
 								console.log("\n\n User Created: ", entity, "\n\n\n");
@@ -325,7 +325,8 @@ module.exports = {
 				user: { type: "object", props: {
 					email: { type: "email" },
 					password: { type: "string", min: 1 }
-				}}
+				}},
+				remember: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
 				const { email, password } = ctx.params.user;
@@ -352,7 +353,7 @@ module.exports = {
 						if ( ctx.meta.cart ) {
 							ctx.meta.cart.user = user._id;
 						}
-						return this.transformEntity(user, true, ctx.meta.token);
+						return this.transformEntity(user, true, ctx);
 					});
 			}
 		},
@@ -363,6 +364,9 @@ module.exports = {
 				ctx.meta.user = null;
 				ctx.meta.token = null;
 				ctx.meta.userID = null;
+				if (ctx.meta.cookies["token"]) {
+					delete ctx.meta.cookies["token"];
+				}
 				return true;
 			}
 		},
@@ -429,13 +433,10 @@ module.exports = {
 							if (!user) {
 								return this.Promise.reject(new MoleculerClientError("User not found!", 400));
 							}
-
-							console.log(" ------- user from db ----- ", user);
 							return this.transformDocuments(ctx, {}, user);
 						})
 						.then(user => {
-							console.log("____idf-_:", user);
-							return this.transformEntity(user, true, (ctx.meta.token ? ctx.meta.token : null));
+							return this.transformEntity(user, true, ctx);
 						})
 						.catch((error) => {
 							console.log("\nusers.me error", error);
@@ -540,7 +541,7 @@ module.exports = {
 						return Promise.reject(new MoleculerClientError("User not valid", 422, "", [{ field: "user", message: "invalid"}]));
 					})
 					.then(doc => this.transformDocuments(ctx, {}, doc))
-					.then(user => this.transformEntity(user, true, ctx.meta.token))
+					.then(user => this.transformEntity(user, false, ctx))
 					.then(json => this.entityChanged("updated", json, ctx).then(() => json));
 
 			}
@@ -718,7 +719,7 @@ module.exports = {
 				ctx.params.settings = (typeof ctx.params.settings !== "undefined") ?  ctx.params.settings : null;
 				ctx.params.functionSettings = (typeof ctx.params.functionSettings !== "undefined") ?  ctx.params.functionSettings : null;
 				// set language of template
-				let langCode = ctx.meta.localsDefault.lang || "en";
+				let langCode = ctx.meta.localsDefault.lang || "null";
 				if ( ctx.params.functionSettings && typeof ctx.params.functionSettings.language !== "undefined" && ctx.params.functionSettings.language ) {
 					langCode = ctx.params.functionSettings.language;
 				}
@@ -807,7 +808,7 @@ module.exports = {
 								found.dates.dateActivated = new Date();
 								return this.adapter.updateById(found._id, this.prepareForUpdate(found))
 									.then(doc => this.transformDocuments(ctx, {}, doc))
-									.then(user => this.transformEntity(user, true, ctx.meta.token))
+									.then(user => this.transformEntity(user, true, ctx))
 									.then(json => this.entityChanged("updated", json, ctx).then(() => json));
 							});
 						}
@@ -1183,21 +1184,40 @@ module.exports = {
 	 * Methods
 	 */
 	methods: {
+
 		/**
 		 * Generate a JWT token from user entity
 		 *
 		 * @param {Object} user
 		 */
-		generateJWT(user) {
+		generateJWT(user, ctx) { //
 			const today = new Date();
 			const exp = new Date(today);
 			exp.setDate(today.getDate() + 60);
 
-			return jwt.sign({
+			const generatedJwt = jwt.sign({
 				id: user._id,
 				username: user.username,
 				exp: Math.floor(exp.getTime() / 1000)
 			}, this.settings.JWT_SECRET);
+
+			if ( ctx.meta.cookies ) {
+				ctx.meta.makeTokenCookie = {
+					value: generatedJwt,
+					options: {
+						path: "/",
+						signed: true,
+						expires: exp,
+						secure: ((process.env.COOKIES_SECURE) ? true : false),
+						httpOnly: true
+					}
+				};
+				if ( process.env.COOKIES_SAME_SITE ) {
+					ctx.meta.makeTokenCookie.options["sameSite"] = process.env.COOKIES_SAME_SITE;
+				}
+			}
+
+			return generatedJwt;
 		},
 
 		/**
@@ -1206,11 +1226,12 @@ module.exports = {
 		 * @param {Object} user
 		 * @param {Boolean} withToken
 		 */
-		transformEntity(user, withToken, token) {
+		transformEntity(user, withToken, ctx) {
 			if (user) {
 				user.image = user.image || "";
-				if (withToken)
-					user.token = token || this.generateJWT(user);
+				if (withToken) {
+					ctx.meta.token = this.generateJWT(user, ctx);
+				}
 			}
 
 			return { user };
