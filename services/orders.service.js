@@ -15,7 +15,8 @@ const pathResolve = require("path").resolve;
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
-let resourcesDirectory = process.env.PATH_RESOURCES || "../resources";
+const sppf = require("../mixins/subprojpathfix");
+let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
 const orderSettings = require(resourcesDirectory+"/settings/orders");
 
 const { writeFileSync, ensureDir, createReadStream } = require("fs-extra");
@@ -27,7 +28,7 @@ let jsdom = require("jsdom");
 let { JSDOM } = jsdom;
 let { window } = new JSDOM("");
 const handlebars = require("handlebars");
-const businessSettings = require("../resources/settings/business");
+const businessSettings = require( resourcesDirectory+"/settings/business");
 
 module.exports = {
 	name: "orders",
@@ -189,7 +190,7 @@ module.exports = {
 		}, 
 
 		paths: {
-			resources: process.env.PATH_RESOURCES || "./resources"
+			resources: process.env.PATH_RESOURCES || resourcesDirectory
 		}
 	},
 

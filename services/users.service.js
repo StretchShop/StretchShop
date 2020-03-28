@@ -16,8 +16,8 @@ const emailTemplate = require("../mixins/email.mixin");
 const validateAddress = require("../mixins/validate.address.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
 
-let resourcesDirectory = process.env.PATH_RESOURCES || "../resources";
-
+const sppf = require("../mixins/subprojpathfix");
+let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
 const NavigationMain = require(resourcesDirectory+"/navigation/navigation-main");
 
 module.exports = {
@@ -1208,7 +1208,7 @@ module.exports = {
 						path: "/",
 						signed: true,
 						expires: exp,
-						secure: ((process.env.COOKIES_SECURE) ? true : false),
+						secure: ((process.env.COOKIES_SECURE && process.env.COOKIES_SECURE==true) ? true : false),
 						httpOnly: true
 					}
 				};

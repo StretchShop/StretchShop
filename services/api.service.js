@@ -13,10 +13,11 @@ const path = require("path");
 const formidable = require("formidable");
 const util = require("util");
 
-const resourcesDirectory = process.env.PATH_RESOURCES || "../resources";
+const sppf = require("../mixins/subprojpathfix");
+const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
 const localsDefault = require(resourcesDirectory+"/settings/locals-default");
 
-const apiV1 = require(resourcesDirectory+"/routes/apiV1");
+const apiV1 = require(__dirname+"/../resources/routes/apiV1");
 
 module.exports = {
 	name: "api",
@@ -89,14 +90,14 @@ module.exports = {
 		],
 
 		assets: {
-			folder: process.env.PATH_PUBLIC || "./public"
+			folder: process.env.PATH_PUBLIC || sppf.subprojpathfix(__dirname, "/../public")
 		},
 
 		localsDefault: localsDefault,
 
 		translation: {
 			type: "jamlin",
-			dictionaryPath: process.env.PATH_DICTIONARY || "./public/project_dictionary.json"
+			dictionaryPath: process.env.PATH_DICTIONARY || sppf.subprojpathfix(__dirname, "/../public/project_dictionary.json")
 		},
 
 		siteSettings: {

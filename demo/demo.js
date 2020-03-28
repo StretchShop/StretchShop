@@ -1,7 +1,14 @@
 const path = require("path");
 const childProcess = require("child_process");
 const fs = require("fs");
+const { COPYFILE_EXCL } = fs.constants;
 const ncp = require("ncp").ncp;
+
+let args = process.argv;
+let changePath = "";
+if (args && args[2]=="base") {
+	changePath = "../../";
+}
 
 // 1. clone repository with demo data
 // 1.1 get target directory
@@ -44,35 +51,60 @@ function runScript(scriptPath, callback) {
 		callback(err);
 	});
 }
-// 2.2. Now we can run a script and invoke a callback when complete
-runScript(demoDataScriptFile, function (err) {
-	if (err) throw err;
-	console.log("Finished running "+demoDataScriptFile);
-});
+if (changePath==="") {
+	// 2.2. Now we can run a script and invoke a callback when complete
+	runScript(demoDataScriptFile, function (err) {
+		if (err) throw err;
+		console.log("Finished running "+demoDataScriptFile);
+	});
+}
 
 // 3. copy files from public and resources if they don't exists
 let options = { clobber: false };
 let syncPairs = [
 	{
 		source: dir+ "/public",
-		destination: "./public"
+		destination: "./" +changePath+ "public"
 	}, 
 	{
 		source: dir+ "/resources",
-		destination: "./resources"
+		destination: "./" +changePath+ "resources"
 	}, 
 	{
 		source: dir+ "/services",
-		destination: "./services"
+		destination: "./" +changePath+ "services"
 	}
 ];
+if (changePath!="") {
+	let baseSyncFiles = [
+		{
+			source: dir+ "/../../moleculer.config.js",
+			destination: "./" +changePath+ "moleculer.config.js"
+		}, 
+		{
+			source: dir+ "/../../package.json",
+			destination: "./" +changePath+ "package.json"
+		}, 
+		{
+			source: dir+ "/../../.env.example",
+			destination: "./" +changePath+ ".env"
+		}, 
+	];
+	baseSyncFiles.forEach(function(pair){
+		console.log("DIR: Trying to place " +pair.source+ " into " +pair.destination+ " - if not exists.");
+		fs.copyFile(pair.source, pair.destination, COPYFILE_EXCL, (err) => {
+			if (err) throw err;
+			console.log("FILE: Placed " +pair.source+ " into " +pair.destination+ ".");
+		});
+	});
+}
 ncp.limit = 16;
 syncPairs.forEach(function(pair){
-	console.log("Trying to place " +pair.source+ " into " +pair.destination+ " - if not exists.");
+	console.log("DIR: Trying to place " +pair.source+ " into " +pair.destination+ " - if not exists.");
 	ncp(pair.source, pair.destination, options, function (err) {
 		if (err) {
 			return console.error(err);
 		}
-		console.log("Done!");
+		console.log("DIR: Placed " +pair.source+ " into " +pair.destination+ ".");
 	});
 });

@@ -9,6 +9,7 @@ const pathResolve = require("path").resolve;
 const DbService = require("../mixins/db.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
+const sppf = require("../mixins/subprojpathfix");
 
 /**
  * Page is represented by two parts:
@@ -102,7 +103,7 @@ module.exports = {
 		// ------------- PAGES VARIABLES AND SETTINGS -------------
 
 		paths: {
-			resources: process.env.PATH_RESOURCES || "./resources"
+			resources: process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "../resources")
 		}
 	},
 

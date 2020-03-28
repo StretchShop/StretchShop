@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.3.14",
+  "version": "0.3.27",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "scripts": {
@@ -11,7 +11,8 @@
     "test": "jest --coverage",
     "lint": "eslint services",
     "docker:build": "docker build -t stretchshop .",
-    "demo": "node demo/demo.js"
+    "demo": "node demo/demo.js",
+    "postinstall": "node demo/demo.js base"
   },
   "keywords": [
     "stretchshop",
