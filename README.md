@@ -8,19 +8,22 @@ It's fast & scalable e-business REST API backend (with compiled frontend include
 See https://stretchshop.app/ for working online demo with almost 100k of generated demo products in categories and cart, with simple price and name filter. Hosted on a commercial cloud, running as docker microservices application without caching results to test the clean performance.
 
 ## Quick start
-For quick demo you need to have:
+There are 3 instalation options:
 
-1. **Node.js** with **npm** installed, 
-2. **Git** installed,
-3. **MongoDB** running on localhost (doesn't matter if running from Docker or your OS), listening on default port 27017.
+  1. [npm](#quick-guide-to-run-with-npm) - quick and easy.
+  2. [Docker](#quick-guide-to-run-with-docker) - for bigger load and more serious usage.
+  3. [Git](#quick-guide-for-developers) - for contributors and developers.
 
-StretchShop is a node.js application based on Moleculer. To quickly try out StretchShop on your machine, follow these 3 steps:
+### Quick guide to run with **npm**
 
-1. Create directory for your project and clone there GitHub code `$ git clone https://github.com/Wradgio/StretchShop.git .` (notice dot ) in your project directory.
-2. run `$ npm install` to install required libraries.
-3. run `$ npm run demo` - it should download data, insert into your
+Before trying to run app using npm, make sure you have:
+1. **Node.js** with **npm** installed
+2. **MongoDB** running and listening on default port 27017 (if you have docker, you can get it running using this `docker container run -d --name mongo mongo`)
 
-For other options visit https://github.com/Wradgio/StretchShop/wiki/Installation
+### Once you have all that's required
+- in terminal simply run `npm i stretchshop`
+
+For other options visit Stretchshop Wiki https://github.com/Wradgio/StretchShop/wiki/Installation
 
 
 ## API documentation
