@@ -17,7 +17,7 @@ const sppf = require("../mixins/subprojpathfix");
 const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
 const localsDefault = require(resourcesDirectory+"/settings/locals-default");
 
-const apiV1 = require(__dirname+"/../resources/routes/apiV1");
+const apiV1 = require( sppf.subprojpathfix(__dirname, "/../resources/routes/apiV1") );
 
 module.exports = {
 	name: "api",

@@ -103,7 +103,7 @@ module.exports = {
 		// ------------- PAGES VARIABLES AND SETTINGS -------------
 
 		paths: {
-			resources: process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "../resources")
+			resources: process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources")
 		}
 	},
 
