@@ -157,5 +157,38 @@ module.exports = {
 			return sorted;
 		},
 
+
+		/**
+		 * Get address of user by type (invoice, delivery)
+		 */
+		getUserAddress(user, type) {
+			let addType = (typeof type=="undefined") ? null : type;
+			let allowedTypes = ["invoice", "delivery"];
+			let result = null;
+			console.log("addType:", addType, user.addresses);
+			if (user && user.addresses && user.addresses.length>0) {
+				user.addresses.some(function(value){
+					console.log("address value:", value);
+					if ( addType && allowedTypes.indexOf(addType)>-1 ) {
+						console.log("address value addtype check:", value.type+" == "+addType);
+						// if type set check for match
+						if ( value.type == addType ) {
+							// type matching - return address
+							console.log("address value addtype match:", value);
+							result = value;
+							return true;
+						}
+					} else {
+						console.log("get first address:");
+						// no type set or not matching - return first address
+						result = value;
+						return true;
+					}
+				});
+			}
+
+			return result;
+		}
+
 	}
 };

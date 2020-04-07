@@ -58,7 +58,7 @@ module.exports = {
 
 		/** Validator schema for entity */
 		entityValidator: {
-			username: { type: "string", min: 2, pattern: /^[a-zA-Z0-9]+$/ },
+			username: { type: "string", min: 2 },//, pattern: /^[a-zA-Z0-9]+$/ },
 			password: { type: "string", min: 6 },
 			email: { type: "email" },
 			type: { type: "string", optional: true },
@@ -100,9 +100,9 @@ module.exports = {
 
 		mailSettings: {
 			defaultOptions: {
-				from: process.env.EMAIL_DEFAULTS_FROM || "\"StretchShop support\" <support@example.tld>",
+				from: process.env.EMAIL_DEFAULTS_FROM || process.env.SITE_NAME +"\" support\" <support@example.tld>",
 				to: "",
-				subject: process.env.EMAIL_DEFAULTS_SUBJECT || "StretchShop - ",
+				subject: process.env.EMAIL_DEFAULTS_SUBJECT || process.env.SITE_NAME +" - ",
 				text: "Hello world!", // plain text body
 				html: "<b>Hello world!</b>" // html body
 			},
@@ -270,7 +270,9 @@ module.exports = {
 
 					})
 					.then(() => {
+						console.log("password before hashed", entity.password);
 						entity.password = bcrypt.hashSync(entity.password, 10);
+						console.log("password hashed", entity.password);
 						let hashedPwd = entity.password;
 						entity.type = "user";
 						entity.bio = entity.bio || "";
@@ -295,13 +297,16 @@ module.exports = {
 								console.log("\n\n User Created: ", entity, "\n\n\n");
 
 								// send email separately asynchronously not waiting for response
+								console.log("\n\n buildHashSourceFromEntity(1)", hashedPwd, entity.user.dates.dateCreated.toISOString());
 								let emailData = {
 									"entity": entity,
-									"keepItForLater": this.buildHashSourceFromEntity(hashedPwd, entity.user.dates.dateCreated),
+									"keepItForLater": this.buildHashSourceFromEntity(hashedPwd, entity.user.dates.dateCreated.toISOString()),
 									"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
 									"language": entity.user.settings.language,
 									"templateName": "registration"
 								};
+								console.log("hash compare(1.0)", this.buildHashSourceFromEntity(hashedPwd, entity.user.dates.dateCreated.toISOString(), false));
+								console.log("hash compare(1)", emailData.keepItForLater);
 								this.sendVerificationEmail(emailData, ctx);
 
 								// return user data
@@ -341,6 +346,7 @@ module.exports = {
 							return this.Promise.reject(new MoleculerClientError("User not activated", 422, "", [{ field: "email", message: "not activated"}]));
 						}
 
+						console.log("compare pwds:", password, user.password);
 						return bcrypt.compare(password, user.password).then(res => {
 							if (!res)
 								return Promise.reject(new MoleculerClientError("Wrong password!", 422, "", [{ field: "email", message: "wrong credentials"}]));
@@ -793,25 +799,59 @@ module.exports = {
 				action: { type: "string", optional: true }
 			},
 			handler(ctx) {
-				// TODO
+				// transform email string to email address
 				let re = new RegExp("--", "g");
 				let email = ctx.params.email.toString().replace("---", "@").replace(re, ".");
-				const TIME_TO_PAST = 60 * 60 * 1000 * 2;
+				const TIME_TO_PAST = 60 * 60 * 1000 * 2; // 2 hours
 				let oldDate = new Date();
 				oldDate.setTime( (new Date().getTime()) - TIME_TO_PAST );
-				let hash = "$2b$10$"+ctx.params.hash.replace(re, ".");
-				return this.adapter.findOne({ email: email, "dates.dateActivated": {"$exists": false} }) //, dates.dateLastVerify: {"$gt": oldDate}
+				let hash = "$2b$10$"+decodeURIComponent(ctx.params.hash).toString().replace(re, ".");
+				console.log("xxxxxx", email, { 
+					email: email, 
+					"dates.dateActivated": {"$exists": false},
+					"dates.dateLastVerify": {"$gt": oldDate} 
+				});
+				return this.adapter.find({
+					query: { 
+						email: email, 
+						"dates.dateActivated": {"$exists": false},
+						"dates.dateLastVerify": {"$gt": oldDate} 
+					}
+				})
 					.then((found) => {
-						if ( found && found.password && found.password.toString().trim()!="" ) {
-							let wannabeHash = this.buildHashSourceFromEntity(found.password, found.dates.dateCreated);
-							return bcrypt.compare(hash, wannabeHash).then(() => { //(res)
-								found.dates.dateActivated = new Date();
-								return this.adapter.updateById(found._id, this.prepareForUpdate(found))
-									.then(doc => this.transformDocuments(ctx, {}, doc))
-									.then(user => this.transformEntity(user, true, ctx))
-									.then(json => this.entityChanged("updated", json, ctx).then(() => json));
-							});
+						if ( found && found.constructor === Array && found.length>0 ) {
+							found = found[0];
 						}
+						if ( found && found.password && found.password.toString().trim()!="" ) {
+							console.log("\n\n buildHashSourceFromEntity(2):", found.password, found.dates.dateCreated.toISOString());
+							let wannabeHash = this.buildHashSourceFromEntity(found.password, found.dates.dateCreated.toISOString(), false);
+							console.log("\nhash compare(2) - string 2B hashed: ", wannabeHash);
+							console.log("\nhash compare(2.1) - hash from url to compare, with prefix: ", hash);
+							return bcrypt.compare(wannabeHash, hash)
+								.then((result) => { 
+									console.log("\nresult:", result);
+
+									if (result) {
+										found.dates.dateActivated = new Date();
+										return this.adapter.updateById(found._id, this.prepareForUpdate(found))
+											.then(doc => {
+												return this.transformDocuments(ctx, {}, doc);
+											})
+											.then(user => {
+												console.log("\n\nACTIVATION:", user);
+												return this.transformEntity(user, true, ctx);
+											})
+											.then(json => {
+												return this.entityChanged("updated", json, ctx)
+													.then(() => json);
+											});
+									} else {
+										return Promise.reject(new MoleculerClientError("Activation failed!", 422, "", [{ field: "activation", message: "failed"}]));
+									}
+
+								});
+						}
+						console.log("found:", found);
 						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed"}]));
 					});
 				/**
@@ -843,31 +883,35 @@ module.exports = {
 							console.log("\n\n Reset password: ", found, "\n\n\n");
 							delete found.dates.dateActivated;
 							found.dates.dateUpdated = new Date();
-
-							let forUpdateWithRemove = this.prepareForUpdate(found);
-							forUpdateWithRemove["$unset"] = { dates: {dateActivated: ""} };
-
-							return this.adapter.updateById(found._id, forUpdateWithRemove).then(updated => {
-								if ( !updated.settings ) {
-									updated.settings = {
-										language: ctx.meta.localsDefault.lang,
-										currency: ctx.meta.localsDefault.currency
-									};
-								}
-								let entity = { user : updated };
-
-								// send email separately asynchronously not waiting for response
-								let emailData = {
-									"entity": entity,
-									"keepItForLater": this.buildHashSourceFromEntity(entity.user.password, entity.dates.dateCreated),
-									"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
-									"language": entity.user.settings.language,
-									"templateName": "pwdreset" // TODO - create email templates
+							if ( !found.settings ) {
+								found.settings = {
+									language: ctx.meta.localsDefault.lang,
+									currency: ctx.meta.localsDefault.currency
 								};
-								this.sendVerificationEmail(emailData, ctx);
+							}
 
-								return entity.user;
-							});
+							let forUpdateUser = this.prepareForUpdate(found);
+							// set date of last update (and settings if not set)
+							return this.adapter.updateById(found._id, forUpdateUser)
+								.then(updated => {
+									// remove activation date
+									return this.adapter.updateById(found._id, {
+										"$unset": { "dates.dateActivated":1 }})
+										.then(removedActivation => {
+											let entity = { user : updated };
+											// send email separately asynchronously not waiting for response
+											let emailData = {
+												"entity": entity,
+												"keepItForLater": this.buildHashSourceFromEntity(entity.user.password, entity.dates.dateCreated),
+												"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
+												"language": entity.user.settings.language,
+												"templateName": "pwdreset" // TODO - create email templates
+											};
+											this.sendVerificationEmail(emailData, ctx);
+		
+											return entity.user;
+										});
+								});
 						}
 						return Promise.reject(new MoleculerClientError("Account reset failed - try again", 422, "", [{ field: "email", message: "not found"}]));
 					});
@@ -1201,8 +1245,12 @@ module.exports = {
 				exp: Math.floor(exp.getTime() / 1000)
 			}, this.settings.JWT_SECRET);
 
+			console.log("\n\nu sers.Generating JWT - cookies:", ctx.meta.cookies);
 			if ( ctx.meta.cookies ) {
-				ctx.meta.makeTokenCookie = {
+				if (!ctx.meta.makeCookies) {
+					ctx.meta.makeCookies = {};
+				}
+				ctx.meta.makeCookies["token"] = {
 					value: generatedJwt,
 					options: {
 						path: "/",
@@ -1213,12 +1261,14 @@ module.exports = {
 					}
 				};
 				if ( process.env.COOKIES_SAME_SITE ) {
-					ctx.meta.makeTokenCookie.options["sameSite"] = process.env.COOKIES_SAME_SITE;
+					ctx.meta.makeCookies["token"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
 				}
+				console.log("\n\nu sers.Generating JWT - ctx.meta.makeCookies:", ctx.meta.makeCookies);
 			}
 
 			return generatedJwt;
 		},
+
 
 		/**
 		 * Transform returned user entity. Generate JWT token if neccessary.
@@ -1385,9 +1435,9 @@ module.exports = {
 
 		sendVerificationEmail(emailData, ctx) {
 			let re = new RegExp("\\.", "g");
-			// get hash
-			let hash = bcrypt.hashSync(emailData.keepItForLater.toString().substring(7), 10);
-			hash = encodeURIComponent(hash.substring(7)).replace(re, "--");
+			// get url from hashed string without first 7 chars ("$2b$10$")
+			let hash = emailData.keepItForLater.toString().substring(7);
+			hash = encodeURIComponent(hash).replace(re, "--");
 			// get email string
 			let email = emailData.entity.user.email.toString().replace(re, "--").replace("@", "---");
 			// create activation link
@@ -1395,14 +1445,15 @@ module.exports = {
 			// setup object for sending email
 			let emailSetup = {
 				settings: {
-					to: emailData.entity.user.email
+					to: emailData.entity.user.email,
+					subject: process.env.SITE_NAME +" - Welcome - please activate"
 				},
 				functionSettings: {
 					language: emailData.lang
 				},
 				template: emailData.templateName,
 				data: {
-					webname: "StretchShop", // TODO - get name from config
+					webname: process.env.SITE_NAME, 
 					username: emailData.entity.user.username,
 					email: emailData.entity.user.email,
 					confirm_link: confirmLink
@@ -1425,8 +1476,13 @@ module.exports = {
 		},
 
 
-		buildHashSourceFromEntity(string1, string2) {
+		buildHashSourceFromEntity(string1, string2, hashedParam) {
+			// don't hash only if hashedParam is false
+			let hashed = (typeof hashedParam!=="undefined" && hashedParam===false) ? false : true;
 			let comboString = string1.substr(12,10)+string2+string1.substr(30);
+			if (!hashed) {
+				return comboString;
+			}
 			let hashSource = bcrypt.hashSync(comboString, 10);
 			return hashSource;
 		},

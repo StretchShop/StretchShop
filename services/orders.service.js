@@ -8,6 +8,7 @@ const passGenerator = require("generate-password");
 const fetch 		= require("node-fetch");
 const paypal = require("paypal-rest-sdk");
 const payments = paypal.v1.payments;
+const jwt	= require("jsonwebtoken");
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
@@ -61,6 +62,9 @@ module.exports = {
 	 * Default settings
 	 */
 	settings: {
+		/** Secret for JWT */
+		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
+
 		/** Public fields */
 		fields: [
 			"_id", "externalId", "externalCode",
@@ -226,49 +230,62 @@ module.exports = {
 										if ( cart.items ) {
 											order.items = cart.items;
 										}
-
-										// run processOrder(orderParams) to proces user input and
-										// update order data according to it
-										this.settings.orderTemp = order;
-										updateResult = this.processOrder(ctx);
-										this.getAvailableOrderSettings();
-										console.log("\n\n"+"order.progress - cart order found updated (COFU):", updateResult, "\n\n");
-										// if no params (eg. only refreshed), return original order
-										if ( !ctx.params.orderParams || Object.keys(ctx.params.orderParams).length<1 ) {
-											let orderProcessedResult = {};
-											orderProcessedResult.order = order;
-											orderProcessedResult.result = updateResult;
-											if ( !updateResult.success ) {
-												orderProcessedResult.errors = this.settings.orderErrors;
-											}
-											return orderProcessedResult;
-										}
-										// if order check returns success, order can be saved
-										if ( updateResult.success ) {
-											this.settings.orderTemp.status = "saved";
-										}
-										// order ready to save and send - update order data in related variables
-										order = this.settings.orderTemp;
-										cart.order = order._id;
-										return ctx.call("cart.updateCartItemAmount", {cartId: cart._id, cart: cart})
-											.then(() => { //(cart2)
-												return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-													.then(orderUpdated => {
-														this.entityChanged("updated", orderUpdated, ctx);
-														// if order was processed with errors, add them to result for frontend
-														let orderProcessedResult = {};
-														orderProcessedResult.order = orderUpdated;
-														orderProcessedResult.result = updateResult;
-														if ( !updateResult.success ) {
-															orderProcessedResult.errors = this.settings.orderErrors;
-														} else {
-															// order was processed without errors, run afterSaveActions
-															orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
-														}
-														return orderProcessedResult;
+										// manage user if not exists
+										this.settings.orderErrors.userErrors = [];
+										console.log("\n\nCTX ORDER PARAMS --- ctx.params.orderParams: ", ctx.params.orderParams);
+										return this.manageUser(ctx)
+											.then(ctx => {  // promise for user
+												// run processOrder(orderParams) to proces user input and
+												// update order data according to it
+												this.settings.orderTemp = order;
+												updateResult = this.processOrder(ctx);
+												this.getAvailableOrderSettings();
+												console.log("\n\n"+"order.progress - cart order found updated (COFU):", updateResult, "\n\n");
+												// if no params (eg. only refreshed), return original order
+												if ( !ctx.params.orderParams || Object.keys(ctx.params.orderParams).length<1 ) {
+													let orderProcessedResult = {};
+													orderProcessedResult.order = order;
+													orderProcessedResult.result = updateResult;
+													if ( !updateResult.success ) {
+														orderProcessedResult.errors = this.settings.orderErrors;
+													}
+													return orderProcessedResult;
+												}
+												// if order check returns success, order can be saved
+												// otherwise remains in cart status
+												if ( updateResult.success ) {
+													this.settings.orderTemp.status = "saved";
+												}
+												// order ready to save and send - update order data in related variables
+												order = this.settings.orderTemp;
+												cart.order = order._id;
+												return ctx.call("cart.updateCartItemAmount", {cartId: cart._id, cart: cart})
+													.then(() => { //(cart2)
+														return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+															.then(orderUpdated => {
+																this.entityChanged("updated", orderUpdated, ctx);
+																// if order was processed with errors, add them to result for frontend
+																let orderProcessedResult = {};
+																orderProcessedResult.order = orderUpdated;
+																orderProcessedResult.result = updateResult;
+																if ( !updateResult.success ) {
+																	orderProcessedResult.errors = this.settings.orderErrors;
+																} else {
+																	// order was processed without errors, run afterSaveActions
+																	orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
+																}
+																return orderProcessedResult;
+															});
 													});
+												// order updated
+											})
+											.catch(ctxWithUserError => {
+												console.log("user error: ", ctxWithUserError);
+												return null;
 											});
-									} else { // cart has order id, but order with 'cart' status not found
+
+									} else { 
+										// cart has order id, but order with 'cart' status not found
 										console.log("\n\n"+"CREATE order - orderId from cart not found"+"\n\n");
 
 										if (
@@ -278,45 +295,21 @@ module.exports = {
 											) &&
 											(ctx.params.orderParams.addresses && ctx.params.orderParams.addresses.invoiceAddress && ctx.params.orderParams.addresses.invoiceAddress.email)
 										) {
-											if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!="" ) {
-												this.settings.orderTemp.user = ctx.meta.user._id;
-											} else { // user not set in meta data
-
-												return ctx.call("users.checkIfEmailExists", {
-													email: ctx.params.orderParams.addresses.invoiceAddress.email
+											// create user if not found and return him in ctx
+											return this.manageUser(ctx)
+												.then(ctxWithUser => {  // promise #2
+													return this.createOrderAction(cart, ctxWithUser, this.adapter);
 												})
-													.then((exists) => { // promise #1
-														if (exists) {
-															this.settings.orderErrors.orderErrors.push({"value": "Email", "desc": "already exists"});
-															if ( this.settings.orderErrors.userErrors.length>0 ) {
-																return null;
-															}
-														} else {
-															let userData = this.getDataToCreateUser(ctx);
-															return ctx.call("users.create", userData)
-																.then(newUser => {  // promise #2
-																	// new user created, add his data to order and create special variable to process it with createOrderAction
-																	if ( newUser && newUser.user && newUser.user._id && newUser.user._id!="" ) {
-																		ctx.params.orderParams.user.id = newUser.user._id;
-																		ctx.params.orderParams.user.email = newUser.user.email;
-																		ctx.params.orderParams.user.token = newUser.user.token;
-																		ctx.meta.userNew = true;
-																	}
-																	return this.createOrderAction(cart, ctx, this.adapter);
-																})
-																.catch(userCreateRej => {
-																	console.log("new user rejected: ", userCreateRej);
-																	return null;
-																});
-														}
-													});
-
-											}
+												.catch(ctxWithUserError => {
+													console.log("user error: ", ctxWithUserError);
+													return null;
+												});
 										} else { // default option, creates new order if none found - TODO - add auto clear
 											return this.createOrderAction(cart, ctx, this.adapter);
 										}
 									}
-								});
+								}); // order found in db END
+
 						} else { // order does not exist, create it
 							console.log("\n\n"+"CREATE order - no order (NO):"+"\n\n");
 							return this.createOrderAction(cart, ctx, this.adapter);
@@ -859,19 +852,18 @@ module.exports = {
 		 */
 		processOrder(ctx) {
 			if (this.settings.orderTemp) {
-			// update order params
+				// update order params
 				if ( typeof ctx.params.orderParams !== "undefined" && ctx.params.orderParams ) {
 					this.settings.orderTemp = this.updateBySentParams(this.settings.orderTemp, ctx.params.orderParams);
-					// console.log("\n processOrder ctx.meta \n", ctx.meta);
 					if ( ctx.meta.userNew && ctx.meta.userNew===true ) {
-						console.log( "\n\n setting new user data \n\n" );
+						this.logger.info("processOrder() - setting new user data");
 						this.settings.orderTemp.user.id = ctx.params.orderParams.user.id;
 						this.settings.orderTemp.user.email = ctx.params.orderParams.user.email;
 						this.settings.orderTemp.user.token = ctx.params.orderParams.user.token;
 					}
 				}
 				this.settings.orderTemp.dates.dateChanged = new Date();
-				console.log( "processOrder orderTemp: ", this.settings.orderTemp );
+				this.logger.info( "processOrder() - orderTemp updated by params: ", this.settings.orderTemp );
 
 				if (this.checkCartItems()) {
 					if (this.checkUserData(ctx)) { // check if (invoice address) is set and valid
@@ -937,10 +929,13 @@ module.exports = {
 		 * Check if there are cart items set
 		 */
 		checkCartItems() {
+			this.settings.orderErrors.itemErrors = [];
 			if ( this.settings.orderTemp && this.settings.orderTemp.items ) {
 				if ( this.settings.orderTemp.items.length>0 ) {
+					console.log("\n\n -----------X1----------- ");
 					return true;
 				} else {
+					console.log("\n\n -----------X2----------- ");
 					this.settings.orderErrors.itemErrors.push({"value": "Cart items", "desc": "no items"});
 				}
 			} else {
@@ -954,18 +949,120 @@ module.exports = {
 		 * Check if all items to register user and make order on his name are set
 		 */
 		checkUserData(ctx) {
+			let user = null;
+			console.log("\n\n ******************** \n", this.settings.orderTemp.user, "\n", ctx.meta.user);
+
+			if ( this.settings.orderTemp.user && ctx.meta.user && ctx.meta.user._id && 
+				ctx.meta.user._id!=null && this.settings.orderTemp.user.id != ctx.meta.user._id ) {
+				// we have user but it's not set in order 
+				// (eg. logged in after started order)
+				console.log("\n\nprocessOrder CUD #1");
+				user = {
+					id: (ctx.meta.user._id) ? ctx.meta.user._id : null,
+					externalId: (ctx.meta.user.externalId) ? ctx.meta.user.externalId : null,
+					username: (ctx.meta.user.username) ? ctx.meta.user.username : null,
+					email: (ctx.meta.user.email) ? ctx.meta.user.email : null
+				};
+
+			} else if ( this.settings.orderTemp.user && ctx.meta.userNew===true ) {
+				// it's new user, created in order, use already set order data
+				// that means, there is no registered & activated & logged user 
+				// creating "order_no_verif" cookie
+				console.log("\n\nprocessOrder CUD #2");
+				user = this.settings.orderTemp.user ? this.settings.orderTemp.user : ctx.params.orderParams.user;
+				if ( user && user.id && user.email ) {
+					this.generateJWT(user, ctx);
+				}
+				console.log("ctx.meta.makeCookies #2", ctx.meta.makeCookies);
+
+			} else if ( ctx.meta.cookies && ctx.meta.cookies["order_no_verif"] ) {
+				// user is set from "order_no_verif" cookie
+				// that means, there is no registered & activated & logged user 
+				// user is being created in process of order
+				console.log("\n\nprocessOrder CUD #3");
+				let orderNoVerif = jwt.decode(ctx.meta.cookies["order_no_verif"]);
+				console.log("\n\norderNoVerif:", orderNoVerif);
+				if ( orderNoVerif && orderNoVerif.id && orderNoVerif.email ) {
+					user = {
+						id: orderNoVerif.id,
+						externalId: null,
+						username: null,
+						email: orderNoVerif.email
+					};
+					this.generateJWT(user, ctx);
+				}
+				console.log("CUD #3 user", user);
+
+			} else if ( this.settings.orderTemp.user && 
+				(
+					(!ctx.meta.user || !ctx.meta.user._id ) && 
+					(this.settings.orderTemp.user && this.settings.orderTemp.user.id != null)
+				)
+			) {
+				// we don't have user, but it's set in order (eg. user logged out)
+				console.log("\n\nprocessOrder CUD #4");
+				user = {
+					id: null,
+					externalId: null,
+					username: null,
+					email: null
+				};
+				this.settings.orderTemp.addresses.invoiceAddress = null;
+			} else if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!="" ) {
+				// regular user (registered & activated), logged in
+				user = ctx.meta.user;
+				user.id = user._id;
+				delete user._id;
+				console.log("\n\nprocessOrder CUD #5", user);
+			}
+
+			// set user
+			console.log("\n\nprocessOrder CUD check #0");
+			if ( user ) {
+				console.log("\n\nprocessOrder CUD check #1");
+				this.settings.orderTemp.user = user;
+				// user has to have id and email
+				if ( !user.id || !user.email ) {
+					console.log("\n\nprocessOrder CUD check #2");
+					return false;
+				}
+			} else {
+				return false;
+			}
+
+			console.log("\n\nprocessOrder CUD check #3");
+			// fields
 			let requiredFields = ["email", "phone", "nameFirst", "nameLast", "street", "zip", "city", "country"];
 			if ( ctx.meta.userID && ctx.meta.userID.toString().trim()!=="" ) {
 				requiredFields = ["phone", "nameFirst", "nameLast", "street", "zip", "city", "country"];
 			}
 			// let optionalFileds = ["state", "street2"];
-			this.settings.orderErrors.userErrors = [];
 			let self = this;
 
+			console.log("\n\nprocessOrder CUD check #4");
+			console.log("\nthis.settings.orderTemp.addresses:", this.settings.orderTemp.addresses);
+			// check if invoice address set
 			if ( !this.settings.orderTemp || !this.settings.orderTemp.addresses ||
 			!this.settings.orderTemp.addresses.invoiceAddress ) {
-				this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
-				return false;
+				console.log("\nctx.meta.user:", ctx.meta.user);
+				// no invoice address set, check if user is available
+				if ( ctx.meta.user && ctx.meta.user.id && ctx.meta.user.addresses && ctx.meta.user.addresses.length>0 ) {
+					// having user, try to get his invoice address
+					let loggedUserInvoiceAddress = this.getUserAddress(ctx.meta.user, "invoice");
+					console.log("\nloggedUserInvoiceAddress:", loggedUserInvoiceAddress);
+					if ( loggedUserInvoiceAddress ) {
+						// set invoice address for order
+						this.settings.orderTemp.addresses.invoiceAddress = loggedUserInvoiceAddress;
+					} else {
+						// no invoice address, can't get user invoice address
+						this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
+						return false;
+					}
+				} else {
+					// no user set, can't get user invoice address
+					this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
+					return false;
+				}
 			}
 
 			// split name
@@ -988,21 +1085,122 @@ module.exports = {
 					}
 				});
 				if (hasErrors) {
+					console.log("\n\nprocessOrder CUD check #5");
 					return false;
 				}
 			} else {
 				this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
+				console.log("\n\nprocessOrder CUD check #6");
 				return false;
 			}
 
+			if (this.settings.orderErrors.userErrors.length>0) {
+				console.log("\n\nprocessOrder CUD check #7");
+				return false;
+			}
+
+			console.log("\n\nprocessOrder CUD check #X");
 			return true;
 		},
 
 
-		checkIfUserEmailExists(ctx) {
-			console.log("CTX:", ctx.params);
-			if ( ctx.params.orderParams && ctx.params.orderParams.addresses && ctx.params.orderParams.addresses.invoiceAddress ) {
-				console.log(" --- -- - 3.1 - ");
+		/**
+		 * Get user in context if possible.
+		 * if user not found in context and his email is not used
+		 * create new user, add him to ctx and return ctx
+		 */
+		manageUser(ctx) {
+			let self = this;
+			self.logger.info("manageUser() #0 - ctx.meta.user:", ctx.meta.user);
+
+			if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!="" ) {
+				// user logged in
+				self.logger.info("manageUser() #1");
+				return new Promise(function(resolve) {
+					self.settings.orderTemp.user = ctx.meta.user;
+					ctx.params.orderParams.user = ctx.meta.user;
+					resolve(ctx);
+				})
+					.then( (oldCtx) => {
+						return oldCtx;
+					});
+
+			} else if ( ctx.meta.cookies && ctx.meta.cookies["order_no_verif"] ) {
+				self.logger.info("manageUser() #2");
+				// if order temp user is set in cookie, use him
+				return new Promise(function(resolve) {
+					let orderNoVerif = jwt.decode(ctx.meta.cookies["order_no_verif"]);
+					self.logger.info("manageUser() #2 - orderNoVerif:", orderNoVerif);
+					if ( orderNoVerif && orderNoVerif.id && orderNoVerif.email ) {
+						let user = {
+							id: orderNoVerif.id,
+							externalId: null,
+							username: null,
+							email: orderNoVerif.email
+						};
+						ctx.params.orderParams["user"] = user;
+						self.settings.orderTemp["user"] = user;
+						self.logger.info("manageUser() #2 - 'order_no_verif' user:", user);
+					}
+					resolve(ctx);
+				})
+					.then( (oldCtx) => {
+						return oldCtx;
+					});
+
+			} else { // user not set in meta data
+				self.logger.info("manageUser() #3");
+				if ( ctx.params.orderParams && ctx.params.orderParams.addresses && 
+					ctx.params.orderParams.addresses.invoiceAddress.email ) {
+					self.logger.info("manageUser() #3 - checking user email");
+					return ctx.call("users.checkIfEmailExists", {
+						email: ctx.params.orderParams.addresses.invoiceAddress.email
+					})
+						.then((exists) => { // promise #1
+							if (exists && exists.result && exists.result.emailExists) {
+								self.logger.info("manageUser() #3 - user email already exists");
+								this.settings.orderErrors.orderErrors.push({"value": "email", "desc": "exists"});
+								return ctx;
+							} else {
+								let userData = this.getDataToCreateUser(ctx);
+								self.logger.info("manageUser() #3 - users.create userData", userData);
+								return ctx.call("users.create", userData)
+									.then(newUser => {  // promise #2
+										// new user created, add his data to order and 
+										// create special variable to process it with createOrderAction
+										if ( newUser && newUser.user && newUser.user._id && newUser.user._id!="" ) {
+											ctx.params.orderParams.user = {
+												id: newUser.user._id,
+												email: newUser.user.email,
+												username: newUser.user.username,
+												token: newUser.user.token
+											};
+											self.settings.orderTemp.user = ctx.params.orderParams.user;
+											ctx.meta.userNew = true;
+											self.logger.info("manageUser() #3 - self.settings.orderTemp.user", self.settings.orderTemp.user);
+										}
+										return ctx;
+									})
+									.catch(userCreateRej => {
+										self.logger.info("manageUser() #3 - users.create error: ", userCreateRej);
+										return ctx;
+									});
+							}
+						})
+						.catch(userFoundErr => {
+							this.settings.orderErrors.userErrors.push({"value": "email", "desc": "exists"});
+							self.logger.info("manageUser() #3 - user email already exists", userFoundErr, this.settings.orderErrors.userErrors);
+							return ctx;
+						});
+				} else {
+					return new Promise(function(resolve) {
+						resolve(ctx);
+					})
+						.then( (oldCtx) => {
+							self.logger.info("manageUser() #4 - user email not found - returning oldCtx");
+							return oldCtx;
+						});
+				}
 			}
 		},
 
@@ -1231,7 +1429,7 @@ module.exports = {
 				let auth = "Basic " + Buffer.from(this.settings.order.sendingOrder.login + ":" + this.settings.order.sendingOrder.password).toString("base64");
 				return fetch(this.settings.order.sendingOrder.url+"?action=order", {
 					method: "post",
-					body:    JSON.stringify({"shopId": "StretchShop","order":orderProcessedResult.order}),
+					body:    JSON.stringify({"shopId": process.env.SITE_NAME,"order":orderProcessedResult.order}),
 					headers: { "Content-Type": "application/json", "Authorization": auth },
 				})
 					.then(res => res.json()) // expecting a json response, checking it
@@ -1275,6 +1473,9 @@ module.exports = {
 							orderSentResponse.errors.push({"value": "Server", "desc": "bad response"});
 							return orderSentResponse;
 						}
+					})
+					.catch(orderSentError => {
+						console.log("orders.orderAfterSaveActions.fetch ERROR:", orderSentError);
 					});
 			} else { // no url to send
 				// 2. clear cart + 3. send email
@@ -1352,7 +1553,7 @@ module.exports = {
 				.then(() => { //(cart)
 					// 2. send email about order
 					let userEmail = "";
-					if ( typeof ctx.meta.user.email !== "undefined" && ctx.meta.user.email ) {
+					if ( ctx.meta.user && typeof ctx.meta.user.email !== "undefined" && ctx.meta.user.email ) {
 						userEmail = ctx.meta.user.email;
 					}
 					if ( typeof self.settings.orderTemp.addresses.invoiceAddress.email !== "undefined" && self.settings.orderTemp.addresses.invoiceAddress.email ) {
@@ -1365,7 +1566,7 @@ module.exports = {
 							order: self.settings.orderTemp
 						},
 						settings: {
-							subject: "StretchShop - Your Order #"+self.settings.orderTemp._id,
+							subject: process.env.SITE_NAME +" - Your Order #"+ self.settings.orderTemp._id,
 							to: userEmail
 						}
 					})
@@ -1493,7 +1694,7 @@ module.exports = {
 											html: html
 										},
 										settings: {
-											subject: "StretchShop - We received Payment for Your Order #"+order._id,
+											subject: process.env.SITE_NAME +" - We received Payment for Your Order #"+order._id,
 											to: order.user.email,
 											attachments: [{
 												path: path
@@ -1604,14 +1805,16 @@ module.exports = {
 		 * @param {*} ctx 
 		 */
 		getDataToCreateUser(ctx) {
-			let userName = ctx.params.orderParams.addresses.invoiceAddress.nameFirst;// +""+ this.settings.orderTemp.addresses.invoiceAddress.nameLast;
-			let userPassword = passGenerator.generate({
-				length: 10,
-				numbers: true
-			});
-			if ( ctx.params.orderParams.password ) {
-				userPassword = ctx.params.orderParams.password;
+			console.log("ctx.params.orderParams: ", ctx.params.orderParams);
+			let userName = ctx.params.orderParams.addresses.invoiceAddress.email;// +""+ ctx.params.orderParams.addresses.invoiceAddress.nameFirst;
+			if ( !ctx.params.orderParams.user.password ) {
+				userPassword = passGenerator.generate({
+					length: 10,
+					numbers: true
+				});
 			}
+			let userPassword = ctx.params.orderParams.user.password;
+			console.log("userPassword:", userPassword);
 			let userData = {
 				user: {
 					username: userName,
@@ -1619,7 +1822,13 @@ module.exports = {
 					password: userPassword,
 					type: "user",
 					addresses: [ctx.params.orderParams.addresses.invoiceAddress],
-					activated: new Date()
+					dates: {
+						dateCreated: new Date()
+					},
+					settings: {
+						language: ctx.params.orderParams.lang.code,
+						currency: ctx.params.orderParams.country.code
+					}
 				}
 			};
 			return userData;
@@ -1639,6 +1848,50 @@ module.exports = {
 			}
 
 			return new paypal.core.PayPalHttpClient(env);
+		}, 
+
+
+		/**
+		 * Generate a JWT token from user entity
+		 *
+		 * @param {Object} user
+		 */
+		generateJWT(user, ctx) { //
+			const today = new Date();
+			const exp = new Date(today);
+			exp.setDate(today.getDate() + 60);
+
+			const generatedJwt = jwt.sign({
+				id: user.id,
+				email: user.email,
+				exp: Math.floor(exp.getTime() / 1000)
+			}, this.settings.JWT_SECRET);
+
+			// console.log("ctx.meta.makeCookies #0.0", ctx.meta.cookies);
+			if ( ctx.meta.cookies ) {
+				if (!ctx.meta.makeCookies) {
+					ctx.meta.makeCookies = {};
+				}
+				// console.log("ctx.meta.makeCookies #0.1", ctx.meta);
+				ctx.meta.makeCookies["order_no_verif"] = {
+					value: generatedJwt,
+					options: {
+						path: "/",
+						signed: true,
+						expires: exp,
+						secure: ((process.env.COOKIES_SECURE && process.env.COOKIES_SECURE==true) ? true : false),
+						httpOnly: true
+					}
+				};
+				// console.log("ctx.meta.makeCookies #0.2", ctx.meta);
+				if ( process.env.COOKIES_SAME_SITE ) {
+					ctx.meta.makeCookies["order_no_verif"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
+				}
+				// console.log("ctx.meta.makeCookies #0.3", ctx.meta);
+			}
+			// console.log("ctx.meta.makeCookies #1", ctx.meta.makeCookies);
+
+			return;
 		}
 	},
 

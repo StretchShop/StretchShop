@@ -95,39 +95,44 @@ module.exports = {
 	},
 
 	onAfterCall(ctx, route, req, res, data) {
-		if (ctx.meta.makeTokenCookie) {
-			if ( ctx.meta.makeTokenCookie.options && ctx.meta.makeTokenCookie.options.expires ) {
-				ctx.meta.makeTokenCookie.options.expires = new Date(ctx.meta.makeTokenCookie.options.expires);
-			}
+		console.log("ctx.meta.makeCookies:", ctx.meta.makeCookies);
+		if (ctx.meta.makeCookies) {
+			Object.keys(ctx.meta.makeCookies).forEach(function(key) {
+				if ( ctx.meta.makeCookies[key].options && ctx.meta.makeCookies[key].options.expires ) {
+					ctx.meta.makeCookies[key].options.expires = new Date(ctx.meta.makeCookies[key].options.expires);
+				}
 
-			console.log("ctx.meta.makeTokenCookie.options:", ctx.meta.makeTokenCookie.options);
-			if ( process.env.COOKIES_SECURE ) {
-				if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
+				if ( process.env.COOKIES_SECURE ) {
+					if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
+						res.cookies.set(
+							key, 
+							ctx.meta.makeCookies[key].value, 
+							ctx.meta.makeCookies[key].options
+						);
+					} else {
+						res.setHeader("Set-Cookie", 
+							cookie.serialize(
+								key, 
+								String(ctx.meta.makeCookies[key].value), 
+								ctx.meta.makeCookies[key].options
+							)
+						);
+					}
+				} else { // not secure cookie
+					ctx.meta.makeCookies[key].options["secure"] = false;
 					res.cookies.set(
-						"token", 
-						ctx.meta.makeTokenCookie.value, 
-						ctx.meta.makeTokenCookie.options
-					);
-				} else {
-					res.setHeader("Set-Cookie", 
-						cookie.serialize(
-							"token", 
-							String(ctx.meta.makeTokenCookie.value), 
-							ctx.meta.makeTokenCookie.options
-						)
+						key, 
+						ctx.meta.makeCookies[key].value, 
+						ctx.meta.makeCookies[key].options
 					);
 				}
-			} else { // not secure cookie
-				ctx.meta.makeTokenCookie.options["secure"] = false;
-				res.cookies.set(
-					"token", 
-					ctx.meta.makeTokenCookie.value, 
-					ctx.meta.makeTokenCookie.options
-				);
+			});
+		} else {
+			if (ctx.meta.token === null) {
+				// delete token cookie if not set in ctx.meta - erased on logout
+				res.cookies.set("token", null, null);
 			}
-		} else if (ctx.meta.token === null) {
-			// delete token cookie if not set in ctx.meta - erased on logout
-			res.cookies.set("token", null, null);
+			res.cookies.set("order_no_verif", null, null);
 		}
 		return data;
 	},

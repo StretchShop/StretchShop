@@ -207,6 +207,7 @@ module.exports = {
 			// 		token = req.headers.authorization.split(" ")[1];
 			// }
 
+			// authorization core
 			return this.Promise.resolve(token)
 				.then(token => {
 					if (token && token.toString().trim()!=="") {
@@ -220,7 +221,7 @@ module.exports = {
 								if (user) {
 									this.logger.info("\nAuthenticated via JWT: ", user.username);
 									// Reduce user fields (it will be transferred to other nodes)
-									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "settings"]);
+									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "addresses", "settings"]);
 									ctx.meta.token = token;
 									ctx.meta.userID = user._id;
 								}
