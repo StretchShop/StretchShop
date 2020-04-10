@@ -328,8 +328,8 @@ module.exports = {
 		login: {
 			params: {
 				user: { type: "object", props: {
-					email: { type: "email" },
-					password: { type: "string", min: 1 }
+					email: { type: "email", min: 2 },
+					password: { type: "string", min: 2 }
 				}},
 				remember: { type: "boolean", optional: true }
 			},

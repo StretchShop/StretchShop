@@ -72,10 +72,13 @@ module.exports = {
 			descriptionLong: { type: "object", optional: true },
 			price: { type: "number" },
 			tax: { type: "number", optional: true },
-			priceLevels: { type: "object", optional: true, props: {
-				priceLevelId: { type: "string" },
-				price: { type: "number" }
-			} },
+			priceLevels: { type: "array", optional: true, items:
+				{ type: "object", props: {
+					priceLevelId: { type: "string" },
+					priceLevelType: { type: "string", optional: true }, // can be price or percentage
+					price: { type: "number" }
+				} }
+			},
 			properties: { type: "object", optional: true, props: {
 			} },
 			data: { type: "object", optional: true, props: {
