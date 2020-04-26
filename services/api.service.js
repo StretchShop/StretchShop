@@ -3,186 +3,108 @@
 require("dotenv").config();
 const _ = require("lodash");
 const ApiGateway = require("moleculer-web");
+const HelpersMixin = require("../mixins/helpers.mixin");
 const Cookies = require("cookies");
 const crypto = require("crypto");
 const { UnAuthorizedError } = ApiGateway.Errors;
 // const fs = require("fs");
 const fs = require("fs-extra");
-var formidable = require("formidable"),
-		util = require("util");
+const path = require("path");
+const formidable = require("formidable");
+const util = require("util");
+
+const sppf = require("../mixins/subprojpathfix");
+const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
+const localsDefault = require(resourcesDirectory+"/settings/locals-default");
+
+const apiV1 = require( sppf.subprojpathfix(__dirname, "/../resources/routes/apiV1") );
 
 module.exports = {
 	name: "api",
-	mixins: [ApiGateway],
+	mixins: [ApiGateway, HelpersMixin],
 
 	settings: {
+		// HTTPS server with certificate
+		https: (process.env.HTTPS_KEY && process.env.HTTPS_CERT) ? {
+			key: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_KEY)),
+			cert: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_CERT))
+		} : null,
+
 		// Global CORS settings for all routes
-    cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev") ? {
-        // Configures the Access-Control-Allow-Origin CORS header.
-        origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:8080",
-				// origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:4200",
-        // Configures the Access-Control-Allow-Methods CORS header.
-        methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
-        // Configures the Access-Control-Allow-Headers CORS header.
-        allowedHeaders: ["Content-Type", "Origin", "X-Requested-With", "Accept", "Authorization", "Timeout", "Cookie", "Set-Cookie", "cookie"],
-        // Configures the Access-Control-Expose-Headers CORS header.
-        exposedHeaders: [],
-        // Configures the Access-Control-Allow-Credentials CORS header.
-        credentials: true,
-        // Configures the Access-Control-Max-Age CORS header.
-        maxAge: 3600
-    } : null,
+		cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev") ? {
+			// Configures the Access-Control-Allow-Origin CORS header.
+			origin: (process.env.NODE_ENV=="dockerdev") ? "https://localhost:3000" : "http://localhost:8080",
+			// origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:4200",
+			// Configures the Access-Control-Allow-Methods CORS header.
+			methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
+			// Configures the Access-Control-Allow-Headers CORS header.
+			allowedHeaders: ["Content-Type", "Origin", "X-Requested-With", "Accept", "Authorization", "Timeout", "Cookie", "Set-Cookie", "cookie", "x-xsrf-token"],
+			// Configures the Access-Control-Expose-Headers CORS header.
+			exposedHeaders: [],
+			// Configures the Access-Control-Allow-Credentials CORS header.
+			credentials: true,
+			// Configures the Access-Control-Max-Age CORS header.
+			maxAge: 3600
+		} : null,
 
 		port: process.env.PORT || 3000,
 
-		routes: [{
-			path: "/api",
+		routes: [
+			apiV1, // routes from external file
+			{
+				path: "/backdirect",
 
-			authorization: true,
-
-			aliases: {
-				// core data
-				"GET /coredata": "users.getCoreData",
-				"GET /coredata/translation": "users.readTranslation",
-
-				// Users
-				"POST /users/login": "users.login", // Login
-				"GET /users/logout": "users.logout", // Logout
-				//"REST /users": "users", // list Users
-				"POST /users/checkemail": "users.checkIfEmailExists",
-				"POST /users/checkusername": "users.checkIfUserExists",
-				"POST /users/register": "users.create",
-
-				// Current user
-				"GET /user": "users.me",
-				"POST /user/verify": "users.verifyHash",
-				"POST /user/reset": "users.resetPassword",
-				"PUT /user": "users.updateUser",
-				"POST /user/image": function (req, res) {
-            this.parseUploadedFile(req, res);
-        },
-
-				// Articles
-				"GET /articles/feed": "articles.feed",
-				"REST /articles": "articles",
-				"GET /tags": "articles.tags",
-
-				// Comments
-				"GET /articles/:slug/comments": "articles.comments",
-				"POST /articles/:slug/comments": "articles.addComment",
-				"PUT /articles/:slug/comments/:commentID": "articles.updateComment",
-				"DELETE /articles/:slug/comments/:commentID": "articles.removeComment",
-
-				// Favorites
-				"POST /articles/:slug/favorite": "articles.favorite",
-				"DELETE /articles/:slug/favorite": "articles.unfavorite",
-
-				// Profile
-				"GET /profiles/:username": "users.profile",
-				"POST /profiles/:username/follow": "users.follow",
-				"DELETE /profiles/:username/follow": "users.unfollow",
-
-				// Cart
-				"GET /cart": "cart.me",
-				"POST /cart": "cart.updateCartItemAmount",
-				"POST /cart/find": "cart.find",
-				"PUT /cart": "cart.add",
-				"DELETE /cart": "cart.delete",
-				"DELETE /cart/:itemId": "cart.delete",
-				"DELETE /cart/:itemId/:amount": "cart.delete",
-
-				// Products
-				"GET /products/:category": "products.productsList",
-				"POST /products/find": "products.findWithCount",
-				"POST /products/:category": "products.productsList", // needed for category with filter url
-				"GET /products/:category/detail/:product": "products.detail",
-				"PUT /products": "products.import",
-				"POST /products/count": "products.count",
-				"DELETE /products": "products.delete",
-
-				// Categories
-				"PUT /categories": "categories.import",
-				"POST /categories/find": "categories.find",
-				"DELETE /categories": "categories.delete",
-
-				// Order
-				"GET /order/progress": "orders.progress",
-				"POST /order/progress": "orders.progress",
-				"POST /order/list": "orders.listOrders",
-				"GET /order/detail/:id": "orders.detail",
-				"REST /webhook/:service": "orders.paymentWebhook",
-				// Payment Braintree
-				"GET /users/btut": "orders.braintreeClientToken",
-				"POST /order/btcheckout": "orders.braintreeOrderPaymentCheckout",
-
-				// Pages
-				"POST /pages/:slug": "pages.show",
-			},
-
-			// Disable to call not-mapped actions
-			mappingPolicy: "restrict",
-
-			// Set CORS headers
-			//cors: true,
-
-			// Parse body content
-			bodyParsers: {
-				json: {
-					strict: false,
-					limit: 1024*1024*10
+				// Action aliases
+				aliases: {
+					"GET /order/paypal/:result": "orders.paypalResult"
 				},
-				urlencoded: {
-					extended: false
-				}
+
+				onAfterCall(ctx, route, req, res, data) {
+					// Async function which return with Promise
+					if (data && data.redirect && data.redirect.trim()!="") {
+						res.statusCode = 302;
+						res.setHeader("Location", data.redirect);
+						return null;
+					}
+					return data;
+				},
+
+				mappingPolicy: "restrict",
+
+			},
+			{
+				path: "/",
+
+				use: [
+					// handle fallback for HTML5 history API
+					require("connect-history-api-fallback")(),
+				],
+
+				// Action aliases
+				aliases: {
+				},
+
+				mappingPolicy: "restrict",
+
 			}
-		},{
-			path: "/",
-
-			use: [
-        // handle fallback for HTML5 history API
-        require("connect-history-api-fallback")(),
-	    ],
-
-		  // Action aliases
-		  aliases: {
-		  },
-
-		  mappingPolicy: "restrict",
-
-		}],
+		],
 
 		assets: {
-			folder: "./public"
+			folder: process.env.PATH_PUBLIC || sppf.subprojpathfix(__dirname, "/../public")
 		},
 
-		localsDefault: {
-			lang: "en",
-			langs: [
-				{ code: "sk", longCode: "sk-SK", name: "Slovenčina" },
-				{ code: "en", longCode: "en-US", name: "English" }
-			],
-			country: "sk",
-			countries: [
-				{ code: "sk", name: "Slovakia" },
-				{ code: "us", name: "USA" }
-			],
-			currency: "EUR",
-			currencies: [
-				{ code: "EUR", symbol: "€", ratio: 1 },
-				{ code: "USD", symbol: "$", ratio: 1.1 }
-			]
-		},
+		localsDefault: localsDefault,
 
 		translation: {
 			type: "jamlin",
-			dictionaryPath: "./public/project_dictionary.json"
+			dictionaryPath: process.env.PATH_DICTIONARY || sppf.subprojpathfix(__dirname, "/../public/project_dictionary.json")
 		},
 
 		siteSettings: {
 			url: process.env.SITE_URL || "https://stretchshop.app",
 			name: process.env.SITE_NAME || "StretchShop",
 			supportEmail: process.env.SITE_SUPPORT_EMAIL || "support@stretchshop.app",
-			imgLogo: process.env.SITE_IMG_LOGO || "/assets/_site/site-logo.png",
+			imgLogo: process.env.SITE_IMG_LOGO || "/assets/_site/logo.svg",
 			imgSiteEmailHeader: process.env.SITE_IMG_EMAIL_HEADER || "/assets/_site/site-email-header-image.png"
 		},
 
@@ -214,21 +136,25 @@ module.exports = {
 
 	methods: {
 		parseCookies(cookiesString) {
-			var list = {};
+			let list = {};
 
-	    cookiesString && cookiesString.split(";").forEach(function( cookie ) {
-	        var parts = cookie.split("=");
-	        list[parts.shift().trim()] = decodeURI(parts.join("="));
-	    });
+			cookiesString && cookiesString.split(";").forEach(function( cookie ) {
+				let parts = cookie.split("=");
+				list[parts.shift().trim()] = decodeURI(parts.join("="));
+			});
 
-	    return list;
+			return list;
 		},
 
 		/**
 		 * Manage user independent application cookies - eg. cart
 		 */
 		cookiesManagement(ctx, route, req, res) {
-			var cookiesTool = new Cookies(req, res, { keys: ["Lvj1MalbaTe6k"] })
+			if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
+				// req.connection.encrypted = true;
+			}
+
+			res.cookies = new Cookies(req, res, { keys: ["Lvj1MalbaTe6k"] });
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;
@@ -238,7 +164,11 @@ module.exports = {
 				const userCookieString = ctx.meta.remoteAddress + "--" + new Date().toISOString();
 				hash.update(userCookieString);
 				const value = hash.digest("hex");
-				cookiesTool.set(name, value, { signed: true })
+				res.cookies.set(name, value, { 
+					signed: true,
+					secure: ((process.env.HTTPS_KEY && process.env.HTTPS_CERT) ? true : false),
+					httpOnly: true
+				});
 				ctx.meta.cookies[name] = value;
 			}
 		},
@@ -261,15 +191,23 @@ module.exports = {
 			ctx.meta.mailSettings = this.settings.mailSettings;
 			ctx.meta.siteSettings = this.settings.siteSettings;
 			ctx.meta.siteSettings.translation = this.settings.translation;
+			ctx.meta.siteSettings.assets = this.settings.assets;
 			this.cookiesManagement(ctx, route, req, res);
 
 			let token = "";
-			if (req.headers.authorization) {
-				let type = req.headers.authorization.split(" ")[0];
-				if (type === "Token" || type === "Bearer")
-					token = req.headers.authorization.split(" ")[1];
+			ctx.meta.token = null;
+			if (ctx.meta.cookies && ctx.meta.cookies.token) {
+				ctx.meta.token = ctx.meta.cookies.token;
+				token = ctx.meta.token;
 			}
 
+			// if (req.headers.authorization) {
+			// 	let type = req.headers.authorization.split(" ")[0];
+			// 	if (type === "Token" || type === "Bearer")
+			// 		token = req.headers.authorization.split(" ")[1];
+			// }
+
+			// authorization core
 			return this.Promise.resolve(token)
 				.then(token => {
 					if (token && token.toString().trim()!=="") {
@@ -283,13 +221,13 @@ module.exports = {
 								if (user) {
 									this.logger.info("\nAuthenticated via JWT: ", user.username);
 									// Reduce user fields (it will be transferred to other nodes)
-									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type"]);
+									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "addresses", "settings"]);
 									ctx.meta.token = token;
 									ctx.meta.userID = user._id;
 								}
 								return user;
 							})
-							.catch(err => {
+							.catch(() => {
 								// Ignored because we continue processing if user is not exist
 								return null;
 							});
@@ -307,76 +245,57 @@ module.exports = {
 		 * original patch from https://stackoverflow.com/questions/8579055/how-do-i-move-files-in-node-js/29105404#29105404
 		 */
 		renameFile(path, newPath) {
-		  return new Promise((res, rej) => {
-		    fs.rename(path, newPath, (err, data) =>
-		      err
-		        ? rej(err)
-		        : res(data));
-		  });
+			return new Promise((res, rej) => {
+				fs.rename(path, newPath, (err, data) =>
+					err
+						? rej(err)
+						: res(data));
+			});
 		},
 		// --
 		copyFile(path, newPath, flags) {
-		  return new Promise((res, rej) => {
-		    const readStream = fs.createReadStream(path),
-		      writeStream = fs.createWriteStream(newPath, {flags});
+			return new Promise((res, rej) => {
+				const readStream = fs.createReadStream(path),
+					writeStream = fs.createWriteStream(newPath, {flags});
 
-		    readStream.on("error", rej);
-		    writeStream.on("error", rej);
-		    writeStream.on("finish", res);
-		    readStream.pipe(writeStream);
-		  });
+				readStream.on("error", rej);
+				writeStream.on("error", rej);
+				writeStream.on("finish", res);
+				readStream.pipe(writeStream);
+			});
 		},
 		// --
 		unlinkFile(path) {
-		  return new Promise((res, rej) => {
-		    fs.unlink(path, (err, data) =>
-		      err
-		        ? rej(err)
-		        : res(data));
-		  });
+			return new Promise((res, rej) => {
+				fs.unlink(path, (err, data) =>
+					err
+						? rej(err)
+						: res(data));
+			});
 		},
 		// -- the main function to call
 		moveFile(path, newPath, flags) {
-		  return this.renameFile(path, newPath)
-		    .catch(e => {
-		      if (e.code !== "EXDEV") {
+			return this.renameFile(path, newPath)
+				.catch(e => {
+					if (e.code !== "EXDEV") {
 						console.log(e);
-		        throw new e;
+						throw new e;
 					} else {
-		        return this.copyFile(path, newPath, flags)
-		          .then(() => {
-								return this.unlinkFile(path)
+						return this.copyFile(path, newPath, flags)
+							.then(() => {
+								return this.unlinkFile(path);
 							});
 					}
-		    });
+				});
 		},
 
-		/**
-		 * simple function to split string into
-		 */
-		stringChunk(str, chunkSize) {
- 			chunkSize = (typeof chunkSize === "undefined") ? 2 : chunkSize;
- 			let resultString = "";
-
- 			if ( str.length>0 ) {
- 				let resultArray = [];
- 				let chunk = "";
- 		 		for ( let i = 0; i<str.length; i=(i+chunkSize) ) {
- 		 			chunk = str.substring(i,i+chunkSize);
- 		 			if ( chunk.trim()!="" ) {
- 		 				resultArray.push(chunk);
- 		 			}
- 		 		}
- 		 		if (resultArray.length) {
- 		 			resultString = resultArray.join("/");
- 		 		}
- 		  } else {
- 		  	resultString = str;
- 		  }
-
- 			return resultString;
- 		},
-
+		getProductFileNameByType(params) {
+			if ( params.type && params.type=="gallery" ) {
+				return ["p:number"];
+			} else {
+				return [":orderCode", "default"];
+			}
+		},
 
 		getActiveUploadPath(req) {
 			let paths = [
@@ -385,34 +304,58 @@ module.exports = {
 					destination: "users/profile",
 					fileName: ["profile"],
 					validUserTypes: ["user", "admin"],
-					stringToChunk: req.$ctx.meta.user._id.toString(),
+					stringToChunk: (req.$ctx.meta.user && req.$ctx.meta.user._id) ? req.$ctx.meta.user._id.toString() : "",
 					chunkSize: 6,
 					postAction: "users.updateMyProfileImage"
 				},
 				{
-					url: "/products/:id/image",
-					destination: "products/:id",
-					fileName: [":orderCode", "default"],
-					validUserTypes: ["admin"],
-					stringToChunk: req.productOrderCode ? req.productOrderCode : '',
+					url: "/products/upload/:orderCode/:type",
+					destination: "products",
+					fileName: this.getProductFileNameByType(req.$params),
+					validUserTypes: ["author", "admin"],
+					checkAuthorAction: "products.checkAuthor",
+					checkAuthorActionParams: {
+						"orderCode": req.$params.orderCode,
+						"publisher": req.$ctx.meta.user.email
+					},
+					stringToChunk: req.$params.orderCode ? req.$params.orderCode : "",
 					chunkSize: 3,
 					postAction: "products.updateProductImage",
 				},
 				{
-					url: "/categories/:id/image",
-					destination: "categories/:id",
-					fileName: [":id", "default"],
-					validUserTypes: ["admin"],
-					stringToChunk: req.productOrderCode ? req.productOrderCode : '',
-					chunkSize: 3,
+					url: "/pages/upload/:slug",
+					destination: "pages/editor",
+					fileName: ["----ORIGINAL----"], // keep original name - only for WYSIWYG editor
+					validUserTypes: ["author", "admin"],
+					checkAuthorAction: "pages.checkAuthor",
+					checkAuthorActionParams: {
+						"slug": req.$params.slug,
+						"publisher": req.$ctx.meta.user.email
+					},
+					stringToChunk: req.$params.slug ? req.$params.slug : "",
+					chunkSize: 0, // do not chunk, use the whole string
+					postAction: "pages.updatePageImage",
+				},
+				{
+					url: "/categories/upload/:slug",
+					destination: "categories",
+					fileName: [":slug"],
+					validUserTypes: ["user","admin"],
+					checkAuthorAction: "categories.checkAuthor",
+					checkAuthorActionParams: {
+						"slug": req.$params.slug,
+						"publisher": req.$ctx.meta.user.email
+					},
+					stringToChunk: req.$params.slug ? req.$params.slug : "",
+					chunkSize: 0,
 					postAction: "categories.updateCategoryImage",
 				}
 			];
 
 			for ( let i=0; i<paths.length; i++ ) {
-				if ( paths[i].url===req.url ) {
+				let requestPathPattern = "/"+req.$alias.path;
+				if ( paths[i].url == requestPathPattern ) {
 					return paths[i];
-					break;
 				}
 			}
 
@@ -422,45 +365,49 @@ module.exports = {
 
 		/**
 		 * parse form with uploaded files, copy files according to paths
+		 * supports ONLY JPG files for now
 		 */
-		parseUploadedFile(req, res) {
-			// parse a file upload
+		parseUploadedFile(req, res, activePath) {
 			let self = this;
-	    let form = new formidable.IncomingForm();
-			let activePath = this.getActiveUploadPath(req);
+			console.log("\n\nparseUploadedFile #1");
+			let form = new formidable.IncomingForm();
+			console.log("parseUploadedFile #2");
+			return form.parse(req, function(err, fields, files) {
+				let promises = [];
+				console.log("parseUploadedFile #3", files, fields);
+				if ( err ) {
+					console.log("\n\n !!! parseUploadedFile ERROR:", err);
+				}
 
-			/*
-			 * can process form, move file and launch related action, because:
-			 * 1. path is valid
-			 * 2. user is authentificated
-			 * 3. user can upload to that path
-			 */
-			if ( activePath && activePath.validUserTypes && req.$ctx.meta.user.type &&
-				activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
-				form.parse(req, function(err, fields, files) {
-					let promises = [];
-
-					// TODO - add multiple promises as in import - after all done, create message and send
-					for (var property in files) {
-				    if (files.hasOwnProperty(property)) {
-			        console.log("\n"+property+" ---- :", files[property]);
-							let fileFrom = files[property].path;
-							let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH+activePath.destination;
-							let urlBaseDir = process.env.ASSETS_PATH+activePath.destination;
-							let targetDir = self.stringChunk(activePath.stringToChunk, activePath.chunkSize);
-							// set new filename
-							let re = /(?:\.([^.]+))?$/;
-							let fileExt = re.exec(files[property].name);
-							let resultFileName = activePath.fileName.join('-')+"."+fileExt[1];
-							let resultFullPath = targetDir+"/"+resultFileName;
-							// set result paths
-							let fileToSave = copyBaseDir+"/"+resultFullPath;
-							let fileToUrl = urlBaseDir+"/"+resultFullPath;
-							console.log(fileFrom, fileToSave, fileToUrl, targetDir);
-							promises.push(
-								fs.ensureDir(copyBaseDir+"/"+targetDir)
+				// multiple promises as in import - after all done, create message and send
+				for (let property in files) {
+					if (Object.prototype.hasOwnProperty.call(files,property)) {
+						console.log("\n"+property+" ---- :", files[property]);
+						let fileFrom = files[property].path;
+						let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH + self.stringReplaceParams(activePath.destination, req.$params);
+						let urlBaseDir = process.env.ASSETS_PATH + self.stringReplaceParams(activePath.destination, req.$params);
+						let targetDir = activePath.stringToChunk;
+						if (activePath.chunkSize>0) {
+							targetDir = self.stringChunk(activePath.stringToChunk, activePath.chunkSize);
+						}
+						// set new filename
+						let re = /(?:\.([^.]+))?$/;
+						let fileExt = re.exec(files[property].name);
+						let fileNameReplaced = self.arrayReplaceParams( activePath.fileName, req.$params );
+						fileNameReplaced = self.arrayReplaceParams( fileNameReplaced, fields );
+						let resultFileName = files[property].name;
+						if ( fileNameReplaced.join("-") !== "----ORIGINAL----" ) { // if not set to keep original name - only for WYSIWYG editor
+							resultFileName = fileNameReplaced.join("-")+"."+fileExt[1];
+						}
+						let resultFullPath = targetDir+"/"+resultFileName;
+						// set result paths
+						let fileToSave = copyBaseDir+"/"+resultFullPath;
+						let fileToUrl = urlBaseDir+"/"+resultFullPath;
+						console.log(fileFrom, fileToSave, fileToUrl, targetDir);
+						promises.push(
+							fs.ensureDir(copyBaseDir+"/"+targetDir)
 								.then(() => {
-									return self.moveFile(fileFrom, fileToSave).then(result => {
+									return self.moveFile(fileFrom, fileToSave).then(() => { // (result)
 										return {
 											id: property,
 											from: files[property].name,
@@ -474,38 +421,96 @@ module.exports = {
 								})
 								.catch(err => {
 									console.log("\nensureDir err: ", err);
-								  console.error(err);
+									console.error(err);
 									return { "id": property, "from": files[property].name, "success": false, "error": err };
 								})); // push with ensureDir end
-				    }
 					}
+				}
 
-					// after form processed and wait for all promises to finish
-					// return multiple promises results
-					return Promise.all(promises).then((values) => {
-							let fileErrors = false;
-							values.forEach((v) => {
-								if ( v.success !== true ) {
-									fileErrors = true;
-								}
-								// if available, run post action
-								if ( v.action ) {
-									req.$ctx.call(v.action, { data: {image: v.path} });
-								}
-							});
+				// after form processed and wait for all promises to finish
+				// return multiple promises results
+				return Promise.all(promises)
+					.then((values) => {
+						let fileErrors = false;
+						values.forEach((v) => {
+							if ( v.success !== true ) {
+								fileErrors = true;
+							}
+							// if available, run post action
+							if ( v.action ) {
+								req.$ctx.call(v.action, {
+									data: {
+										image: v.path,
+										success: v.success,
+										from: v.from
+									},
+									params: req.$params
+								});
+							}
+						});
+						let headers = res.getHeaders();
+						console.log("\n\n RES:", headers);
+						if ( typeof headers["content-type"] !== "undefined" ) {
 							res.writeHead(200, {"content-type": "application/json"});
-							res.end(util.inspect(JSON.stringify({
-								success: true,
-								errors: fileErrors,
-								files: values
-							})));
-					    return values;
+						}
+						res.end(util.inspect(JSON.stringify({
+							success: true,
+							errors: fileErrors,
+							files: values
+						})));
+						return values;
+					})
+					.catch(err => {
+						console.log("\n parseUploadedFile Promise.all ERROR: ", err);
+						return null;
 					});
-				});
-			}
-			console.log("\napi.parseUploadedFile.problem", req.url);
+			});
+		},
 
-	    return;
+
+		/**
+		 *
+		 */
+		processUpload(req, res) {
+			// get active path with variables
+			let self = this;
+			let activePath = this.getActiveUploadPath(req);
+
+			console.log ( "\n\n ----------- xxxxxxxxxxx", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author")>-1, activePath.checkAuthorAction, activePath.checkAuthorActionParams, "\n\n ----------- " );
+			// check if upload path is valid and has set validUserTypes
+			if ( activePath && activePath.validUserTypes ) {
+				// check if author is in array of activePath.validUserTypes and file was uploaded by author
+				if ( activePath.validUserTypes.indexOf("author")>-1
+				&& activePath.checkAuthorAction && activePath.checkAuthorActionParams ) {
+					// check if uploaded by author
+					req.$ctx.call(activePath.checkAuthorAction, {
+						data: activePath.checkAuthorActionParams
+					})
+						.then(result => {
+							console.log("processUpload author:", result);
+							if (result==true) {
+								// user is author
+								self.parseUploadedFile(req, res, activePath);
+							} else {
+								/**
+								 * for other users
+								 * can process form, move file and launch related action, because:
+								 * 1. path is valid
+								 * 2. user is authentificated
+								 * 3. user can upload to that path
+								 */
+								if ( req.$ctx.meta.user.type &&
+								activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
+									self.parseUploadedFile(req, res, activePath);
+								}
+							}
+						});
+				} else if ( activePath && activePath.validUserTypes && // check if user or admin
+					activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
+					self.parseUploadedFile(req, res, activePath);
+				}
+			}
+
 		},
 
 		/**

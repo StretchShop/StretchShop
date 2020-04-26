@@ -1,0 +1,12 @@
+Hi {{username}},
+
+we receive your registration with these information:
+Username: {{username}},
+E-mail: {{email}}
+
+Please confirm it was you, who did this registration by visiting the link below:
+{{confirm_link}}
+
+After confirmation you can fill your profile and start to buy or write articles.
+
+Your team of  {{webname}}

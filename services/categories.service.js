@@ -16,9 +16,9 @@ module.exports = {
 	name: "categories",
 	mixins: [
 		DbService("categories"),
-		// CacheCleanerMixin([
-		// 	"cache.clean.cart"
-		// ])
+		CacheCleanerMixin([
+			"cache.clean.cart"
+		])
 	],
 
 	/**
@@ -52,8 +52,8 @@ module.exports = {
 			descriptionLong: { type: "object", optional: true },
 			tax: { type: "number", optional: true },
 			priceLevels: { type: "object", optional: true, props: {
-					priceLevelId: { type: "string" },
-					price: { type: "number" }
+				priceLevelId: { type: "string" },
+				price: { type: "number" }
 			} },
 			properties: { type: "object", optional: true, props: {
 			} },
@@ -89,17 +89,43 @@ module.exports = {
 				filter: { type: "object" }
 			},
 			handler(ctx) {
-				return ctx.call('categories.detail', { categoryPath: ctx.params.category })
+				return ctx.call("categories.detail", { categoryPath: ctx.params.category })
 					.then(category => {
 						// 1. category exists
 						if (category) {
 							return ctx.call("products.find", {
 								"query": {"parentPathSlug": ctx.params.category}
 							})
-							.then(categoryProducts => {
-								return categoryProducts;
-							});
+								.then(categoryProducts => {
+									return categoryProducts;
+								});
 						}
+					});
+			}
+		},
+
+		findWithContent: {
+			params: {
+				query: { type: "object" },
+				lang: { type: "string", min: 2, optional: true } 
+			},
+			handler(ctx) {
+				return ctx.call("categories.find", { query: ctx.params.query })
+					.then(categories => {
+						return ctx.call("pages.detail", { 
+							page: ctx.params.query.type,
+							lang: ctx.params.lang
+						})
+							.then(page => {
+								return {
+									categories, 
+									page
+								};
+							})
+							.then(result => {
+
+								return result;
+							});
 					});
 			}
 		},
@@ -121,62 +147,80 @@ module.exports = {
 			// },
 			handler(ctx) {
 				return ctx.call("categories.find", {
-						"query": {
-							pathSlug: ctx.params.categoryPath
-						}
-					})
+					"query": {
+						pathSlug: ctx.params.categoryPath
+					}
+				})
 					.then(found => {
 						if (found && found.length>0) { // category found, return it
 							found = found[0];
 							return ctx.call("categories.find", {
 								"query": {
-									"parentPath": {"$in": [found.slug]}
+									"$or": [
+										{"parentPath": {"$in": [found.slug]}},
+										{"slug": {"$in": found.parentPath}},
+									]
 								}
 							})
-							.then(subs => {
-								let childParentPath = [];
-								if (found.parentPath && found.parentPath.length>0) {
-									childParentPath = found.parentPath.slice();
-								}
-								childParentPath.push(found.slug);
-								subs = this.extractChildCategoriesByArrayOrder(subs, childParentPath);
-								// TODO - make function that picks only those categories,
-								// that have categories ordered like this category
-								found['subs'] = subs;
-								found['subsSlugs'] = this.getAllPathSlugs(subs);
-
-								let categoriesToListProductsIn = [ctx.params.categoryPath];
-								if (found.subsSlugs && found.subsSlugs.length>0) {
-									categoriesToListProductsIn = found.subsSlugs;
-									categoriesToListProductsIn.push(ctx.params.categoryPath);
-								}
-								if ( categoriesToListProductsIn.length<1 ) {
-								  categoriesToListProductsIn = [categoriesToListProductsIn];
-								}
-
-								// count products inside this category and its subcategories
-								return ctx.call('products.count', {
-									"query": {
-										"categories": {"$in": categoriesToListProductsIn}
+								.then(matchingCategories => {
+									let childParentPath = [];
+									if (found.parentPath && found.parentPath.length>0) {
+										childParentPath = found.parentPath.slice();
 									}
-								})
-								.then(productsCount => {
-									found['count'] = productsCount;
-									// return found;
-									return ctx.call("products.getMinMaxPrice", {
-										categories: categoriesToListProductsIn
-									}).then(minMaxPrice => {
-										if ( minMaxPrice.length>0 ) {
-											minMaxPrice = minMaxPrice[0];
-											if ( typeof minMaxPrice._id !== "undefined" ) {
-												delete minMaxPrice._id;
-											}
+									childParentPath.push(found.slug);
+									found["parentCategories"] = this.extractParentCategoriesByArrayOrder(matchingCategories, found.parentPath);
+									let subs = this.extractChildCategoriesByArrayOrder(matchingCategories, childParentPath);
+									// TODO - make function that picks only those categories,
+									// that have categories ordered like this category
+									found["subs"] = subs;
+									found["subsSlugs"] = this.getAllPathSlugs(subs);
+
+									let categoriesToListProductsIn = [ctx.params.categoryPath];
+									if (found.subsSlugs && found.subsSlugs.length>0) {
+										categoriesToListProductsIn = found.subsSlugs;
+										categoriesToListProductsIn.push(ctx.params.categoryPath);
+									}
+									if ( categoriesToListProductsIn.length<1 ) {
+										categoriesToListProductsIn = [categoriesToListProductsIn];
+									}
+
+									// count products inside this category and its subcategories
+									/* 
+									set conservativeType where products & services are merged
+									as they are listed with same engine (products), and pages 
+									are separated because of custom listing engine (services)
+									*/
+									let conservativeType = found.type;
+									if (conservativeType=="services") {
+										conservativeType = "products";
+									}
+									return ctx.call(conservativeType+".count", {
+										"query": {
+											"categories": {"$in": categoriesToListProductsIn}
 										}
-										found['minMaxPrice'] = minMaxPrice;
-										return found;
-									});
+									})
+										.then(productsCount => {
+											found["count"] = productsCount;
+											// return found;
+											if (found.type=="pages") {
+												found["minMaxPrice"] = { min: null, max: null };
+												return found;
+											} else {
+												return ctx.call("products.getMinMaxPrice", {
+													categories: categoriesToListProductsIn
+												}).then(minMaxPrice => {
+													if ( minMaxPrice.length>0 ) {
+														minMaxPrice = minMaxPrice[0];
+														if ( typeof minMaxPrice._id !== "undefined" ) {
+															delete minMaxPrice._id;
+														}
+													}
+													found["minMaxPrice"] = minMaxPrice;
+													return found;
+												});
+											}
+										});
 								});
-							});
 						} else { // no category found, create one
 							return Promise.reject(new MoleculerClientError("Category not found!", 400, "", [{ field: "product", message: "not found"}]));
 						}
@@ -201,12 +245,12 @@ module.exports = {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
-				console.log('--- import categories ---');
+				console.log("--- import categories ---");
 				let categories = ctx.params.categories;
 				let promises = [];
 				let mythis = this;
 
-				if (ctx.meta.user.type=='admin') {
+				if (ctx.meta.user.type=="admin") {
 					if ( categories && categories.length>0 ) {
 						// loop products to import
 						categories.forEach(function(entity) {
@@ -215,20 +259,31 @@ module.exports = {
 								mythis.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
+
+											if ( entity && entity.dates ) {
+												Object.keys(entity.dates).forEach(function(key) {
+													let date = entity.dates[key];
+													if ( date && date!=null && date.trim()!="" ) {
+														entity.dates[key] = new Date(entity.dates[key]);
+													}
+												});
+											}
+
 											return mythis.validateEntity(entity)
 												.then(() => {
-  												console.log("found: ", entity);
-  												if (!entity.dates) {
-  													entity.dates = {};
-  												}
-  												entity.dates.dateUpdated = new Date();
-  												entity.dates.dateSynced = new Date();
-                          let entityId = entity.id;
-                          delete entity.id;
-          								const update = {
-          									"$set": entity
-          								};
-  												return mythis.adapter.updateById(entityId, update);
+													console.log("found: ", entity);
+													if (!entity.dates) {
+														entity.dates = {};
+													}
+													entity.dates.dateUpdated = new Date();
+													entity.dates.dateSynced = new Date();
+													let entityId = entity.id;
+													delete entity.id;
+													delete entity._id;
+													const update = {
+														"$set": entity
+													};
+													return mythis.adapter.updateById(entityId, update);
 												});
 										} else { // no product found, create one
 											return mythis.validateEntity(entity)
@@ -237,45 +292,45 @@ module.exports = {
 
 													// set generic variables
 													if ( !entity.slug || entity.slug.trim() == "") {
-		                        let lang = ctx.meta.localsDefault.lang;
-		                        if ( ctx.meta.localsDefault.lang.code ) {
-		                          lang = ctx.meta.localsDefault.lang.code;
-		                        }
+														let lang = ctx.meta.localsDefault.lang;
+														if ( ctx.meta.localsDefault.lang.code ) {
+															lang = ctx.meta.localsDefault.lang.code;
+														}
 														entity.slug = slug(entity.name[lang], { lower: true }); // + "-" + (Math.random() * Math.pow(36, 6) | 0).toString(36);
 													}
 													return ctx.call("categories.find", {
-		        								"query": {
+														"query": {
 															slug: entity.slug
 														}
 													})
-													.then(slugFound => {
-														console.log("\n\n*********************** category.import.slugFound:",slugFound);
-														if (slugFound && slugFound.constructor !== Array) {
-															return { 'error' : "Slug "+entity.slug+" already used." };
-														}
+														.then(slugFound => {
+															console.log("\n\n*********************** category.import.slugFound:",slugFound);
+															if (slugFound && slugFound.constructor !== Array) {
+																return { "error" : "Slug "+entity.slug+" already used." };
+															}
 
-														if ( !entity.parentPathSlug || entity.parentPathSlug.trim() == "") {
-															entity.parentPathSlug = slug(entity.parentPath.join('-'), { lower: true });
-														}
-														entity.pathSlug = entity.slug;
-														if ( entity.slug && entity.parentPathSlug ) {
-															entity.pathSlug = entity.parentPathSlug +'-'+ entity.slug;
-														}
-														if (ctx.meta.user && ctx.meta.user.email) {
-															entity.publisher = ctx.meta.user.email.toString();
-														}
-														if (!entity.dates) {
-															entity.dates = {};
-														}
-														entity.dates.dateCreated = new Date();
-														entity.dates.dateUpdated = new Date();
-														entity.dates.dateSynced = new Date();
+															if ( !entity.parentPathSlug || entity.parentPathSlug.trim() == "") {
+																entity.parentPathSlug = slug(entity.parentPath.join("-"), { lower: true });
+															}
+															entity.pathSlug = entity.slug;
+															if ( entity.slug && entity.parentPathSlug ) {
+																entity.pathSlug = entity.parentPathSlug +"-"+ entity.slug;
+															}
+															if (ctx.meta.user && ctx.meta.user.email) {
+																entity.publisher = ctx.meta.user.email.toString();
+															}
+															if (!entity.dates) {
+																entity.dates = {};
+															}
+															entity.dates.dateCreated = new Date();
+															entity.dates.dateUpdated = new Date();
+															entity.dates.dateSynced = new Date();
 
-														return mythis.adapter.insert(entity)
-														.then(doc => mythis.transformDocuments(ctx, {}, doc))
-														.then(json => mythis.entityChanged("created", json, ctx).then(() => json));
+															return mythis.adapter.insert(entity)
+																.then(doc => mythis.transformDocuments(ctx, {}, doc))
+																.then(json => mythis.entityChanged("created", json, ctx).then(() => json));
+														});
 												});
-											});
 										} // else end
 									})); // push with find end
 						});
@@ -284,11 +339,11 @@ module.exports = {
 					// return multiple promises results
 					return Promise.all(promises).then(prom => {
 						console.log("\n\n------------import prom---:", prom);
-					  return prom;
+						return prom;
 					});
 				} else { // not admin user
-          return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
-        }
+					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
+				}	
 			}
 		},
 
@@ -308,12 +363,12 @@ module.exports = {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
-				console.log('--- delete categories ---');
+				console.log("--- delete categories ---");
 				let categories = ctx.params.categories;
 				let promises = [];
 				let mythis = this;
 
-				if (ctx.meta.user.type=='admin') {
+				if (ctx.meta.user.type=="admin") {
 					if ( categories && categories.length>0 ) {
 						// loop products to import
 						categories.forEach(function(entity) {
@@ -322,24 +377,25 @@ module.exports = {
 								mythis.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
-	                    console.log("DELETING category "+found._id);
+											console.log("DELETING category "+found._id);
 											return ctx.call("categories.remove", {id: found._id} )
-	                    .then((deletedCount) => {
-	                      console.log("deleted category Count: ",deletedCount);
-	                      return deletedCount;
-	                    }); // returns number of removed items
+												.then((deletedCount) => {
+													console.log("deleted category Count: ",deletedCount);
+													return deletedCount;
+												}); // returns number of removed items
 										}
-									})); // push with find end
+									})
+							); // push with find end
 						});
 					}
 
 					// return multiple promises results
 					return Promise.all(promises).then(() => {
-					    return promises;
+						return promises;
 					});
 				} else { // not admin user
-          return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
-        }
+					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
+				}
 			}
 		},
 
@@ -358,11 +414,9 @@ module.exports = {
 		extractChildCategoriesByArrayOrder(childCategories, masterArray) {
 			let result = [];
 
-			for (var i=0; i<childCategories.length; i++) {
+			for (let i=0; i<childCategories.length; i++) {
 				let addChild = true;
-				for (var j=0; j<masterArray.length; j++) {
-					console.log( " ----- ----- ----- ----- ----- " );
-					console.log( childCategories[i].parentPath[j] +" != "+ masterArray[j] );
+				for (let j=0; j<masterArray.length; j++) {
 					if ( childCategories[i].parentPath[j] != masterArray[j] ) {
 						addChild = false;
 					}
@@ -375,17 +429,30 @@ module.exports = {
 			return result;
 		},
 
+		// get only categories that match child category order
+		extractParentCategoriesByArrayOrder(childCategories, masterArray) {
+			let result = [];
+
+			for (let i=0; i<childCategories.length; i++) {
+				if ( masterArray.indexOf(childCategories[i].slug)>-1 ) {
+					result.push(childCategories[i]);
+				}
+			}
+
+			return result;
+		},
+
 		// return slugs of all items in array
 		getAllPathSlugs(slugsToList) {
 			let result = [];
 
-			for (var i=0; i<slugsToList.length; i++) {
+			for (let i=0; i<slugsToList.length; i++) {
 				if (slugsToList[i].pathSlug) {
 					result.push(slugsToList[i].pathSlug);
 				}
 			}
 
-			return result
+			return result;
 		},
 
 		// create all parent paths
@@ -394,9 +461,9 @@ module.exports = {
 
 			if (categoryParentPathsArray && categoryParentPathsArray.length>0) {
 				let latestPath = [];
-				for (var i=0; i<categoryParentPathsArray.length; i++) {
+				for (let i=0; i<categoryParentPathsArray.length; i++) {
 					latestPath.push( categoryParentPathsArray[i] );
-					results.push( slug(latestPath.join('-')) );
+					results.push( slug(latestPath.join("-")) );
 				}
 			}
 

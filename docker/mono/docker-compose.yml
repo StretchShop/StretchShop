@@ -1,0 +1,65 @@
+version: "3.0"
+
+services:
+
+  stretchshop:
+    build:
+      context: ../..
+    image: wradgio/stretchshop:latest
+    env_file: docker-compose.env
+    environment:
+      PORT: 3000
+    # links:
+    #   - redis
+    # depends_on:
+    #   - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=api"
+      - "traefik.port=3000"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.frontend.rule=PathPrefix:/"
+    volumes:
+      # need to create /var/www/html/stretchshop/static on host filesystem
+      - /var/www/html/stretchshop/static:/app/public/assets/data
+    links:
+      # - redis
+      - mongo
+    depends_on:
+      # - redis
+      - mongo
+    #deploy:
+    #  replicas: 2
+
+  mongo:
+    # mongo for local usage only, authentification is not set up, port 27017 should not be allowed by firewall
+    image: mongo
+    restart: on-failure
+    volumes:
+      - ./db:/data/db
+      - ./dbconf:/etc/mongo
+    ports:
+      - "27017:27017"
+
+  nats-server:
+    image: nats
+    entrypoint: "/gnatsd -D --user defaultUsername --pass defaultPassword" # -D debug , -V trace
+    ports:
+      - "4222:4222"
+
+  traefik:
+    image: traefik:1.7
+    command:
+      - "--api"
+      - "--docker"
+      - "--docker.watch"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=traefik"
+      - "traefik.port=8080"
+    ports:
+      - "3000:80"
+      - "3001:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev/null:/traefik.toml

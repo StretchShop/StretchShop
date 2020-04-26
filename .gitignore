@@ -1,4 +1,5 @@
 .DS_Store
+*.js.map
 node_modules/
 coverage/
 npm-debug.log
@@ -8,6 +9,10 @@ yarn-error.log
 data/
 db
 .env
-public/static/ups
-publicx
-docker-compose.env
+public/
+
+resources/emails/
+resources/navigation/
+resources/pages/
+
+.vscode/
