@@ -19,6 +19,8 @@ const HelpersMixin = require("../mixins/helpers.mixin");
 const sppf = require("../mixins/subprojpathfix");
 let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
 const NavigationMain = require(resourcesDirectory+"/navigation/navigation-main");
+const NavigationFooter = require(resourcesDirectory+"/navigation/navigation-footer");
+const businessSettings = require( resourcesDirectory+"/settings/business");
 
 module.exports = {
 	name: "users",
@@ -92,6 +94,10 @@ module.exports = {
 					phone: { type: "string", min: 2 }
 				} }
 			},
+			ip: { type: "object", optional: true, props: {
+				registration: { type: "string", optional: true },
+				lastUsed: { type: "string", optional: true }
+			} },
 			settings: { type: "object", optional: true, props: {
 				language: { type: "string", optional: true },
 				currency: { type: "string", optional: true }
@@ -170,7 +176,10 @@ module.exports = {
 					}
 				}
 
-				coreData.navigation = NavigationMain;
+				coreData.navigation = { 
+					main: NavigationMain,
+					footer: NavigationFooter
+				};
 
 				// get other details - user and translation
 				coreData.user = null;
@@ -178,8 +187,11 @@ module.exports = {
 				coreData.settings = {
 					assets: {
 						url: process.env.ASSETS_URL
-					}
+					},
+					business: businessSettings.invoiceData.company,
+					taxData: businessSettings.taxData.global
 				};
+				delete coreData.settings.business.account;
 				if ( ctx.meta.user && ctx.meta.user._id ) {
 					return ctx.call("users.me")
 						.then(user => {
@@ -571,11 +583,9 @@ module.exports = {
 				data: { type: "object" }
 			},
 			handler(ctx) {
-				const newData = ctx.params.data;
 				let user = ctx.meta.user;
-				user.image = newData.image;
-
-				newData.dates.dateUpdated = new Date();
+				user.image = ctx.params.data.image;
+				user.dates.dateUpdated = new Date();
 				return this.adapter.updateById(ctx.meta.user._id, this.prepareForUpdate(user));
 			}
 		},

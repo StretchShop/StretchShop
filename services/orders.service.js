@@ -775,6 +775,7 @@ module.exports = {
 				},
 				"prices": {
 					"currency": this.getValueByCode(ctx.meta.localsDefault.currencies,ctx.meta.localsDefault.currency),
+					"taxData": businessSettings.taxData.global,
 					"priceTotal": null,
 					"priceTotalNoTax": null,
 					"priceItems": null,

@@ -30,5 +30,11 @@ module.exports = {
 				web: "https://stretchshop.app/"
 			}
 		}
+	}, 
+	taxData: {
+		global: {
+			taxDecimal: 0.2, // 
+			taxType: "VAT" // VAT - tax included in price, IT - tax not included
+		}
 	}
 };

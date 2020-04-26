@@ -3,10 +3,15 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 const slug = require("slug");
 
-//const crypto 		= require("crypto");
+const HelpersMixin = require("../mixins/helpers.mixin");
 
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
+
+const sppf = require("../mixins/subprojpathfix");
+let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
+const businessSettings = require( resourcesDirectory+"/settings/business");
+
 
 /**
  * Product represents one product as definition with properties.
@@ -25,6 +30,7 @@ module.exports = {
 	name: "products",
 	mixins: [
 		DbService("products"),
+		HelpersMixin,
 		CacheCleanerMixin([
 			"cache.clean.products"
 		])
@@ -130,6 +136,7 @@ module.exports = {
 							if ( categoriesToListProductsIn.length<1 ) {
 								categoriesToListProductsIn = [categoriesToListProductsIn];
 							}
+							category["taxData"] = businessSettings.taxData.global;
 
 							// fix filter if needed
 							let filter = { query: {}, limit: 100};
@@ -289,7 +296,15 @@ module.exports = {
 				});
 				return this.adapter.find({
 					"query": queryObject
-				});
+				})
+					.then( results => {
+						if (results && results.length>0) {
+							results.forEach(result => {
+								result = self.getProductTaxData(result, businessSettings.taxData);
+							});
+						}
+						return results;
+					});
 			}
 		},
 
@@ -313,6 +328,7 @@ module.exports = {
 				return this.adapter.findById(ctx.params.product)
 					.then(found => {
 						if (found) { // product found, return it
+							found["taxData"] = businessSettings.taxData.global;
 							if (found.categories.length>0) {
 								return ctx.call("categories.detail", {
 									categoryPath: found.categories[0],

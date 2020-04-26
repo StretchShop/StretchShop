@@ -188,6 +188,42 @@ module.exports = {
 			}
 
 			return result;
+		}, 
+
+
+		/**
+		 * Count price without tax from global or product tax
+		 * @returns object with zero values if nothing to count
+		 * @param {*} product 
+		 * @param {*} settings 
+		 */
+		getProductTaxData(product, taxSettings) {
+			let result = {
+				taxDecimal: 0, // eg. 0.2 (= 20%)
+				tax: 0, // eg. 30 (0.2 * 150)
+				priceWithoutTax: null, // eg. 120 (150 - (0.2 * 150))
+				priceWithTax: null // eg. 120 (150 - (0.2 * 150))
+			};
+			// use global tax as default
+			if (taxSettings && taxSettings.global && taxSettings.global.taxDecimal) {
+				result.taxDecimal = taxSettings.global.taxDecimal;
+			}
+			// use product tax, if set
+			if (product && product.tax && product.tax!==null) {
+				result.taxDecimal = product.tax;
+			}
+			// count tax prices using taxDecimal
+			if (result.taxDecimal>0 && product && product.price) {
+				result.tax = result.taxDecimal * product.price;
+				if (taxSettings.taxType == "IT") {
+					result.priceWithTax = product.price + (result.taxDecimal * product.price);
+				} else { // VAT as default
+					result.priceWithoutTax = product.price - (result.taxDecimal * product.price);
+				}
+			}
+			product.taxData = result;
+			product.tax = result.taxDecimal;
+			return product;
 		}
 
 	}
