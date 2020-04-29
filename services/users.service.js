@@ -38,7 +38,7 @@ module.exports = {
 		cronTime: "20 1 * * *",
 		onTick: function() {
 
-			console.log("Starting to Remove Users that want to Delete their Profile");
+			this.logger.info("Starting to Remove Users that want to Delete their Profile");
 
 			this.getLocalService("users")
 				.actions.cleanUsers()
@@ -69,6 +69,7 @@ module.exports = {
 			image: { type: "string", optional: true },
 			dates: { type: "object", optional: true, props: {
 				dateCreated: { type: "date", optional: true }, 
+				dateLastLogin: { type: "date", optional: true },
 				dateUpdated: { type: "date", optional: true }, 
 				dateLastVerify: { type: "date", optional: true },
 				dateActivated: { type: "date", optional: true },
@@ -95,8 +96,8 @@ module.exports = {
 				} }
 			},
 			ip: { type: "object", optional: true, props: {
-				registration: { type: "string", optional: true },
-				lastUsed: { type: "string", optional: true }
+				ipRegistration: { type: "string", optional: true },
+				ipLastLogin: { type: "string", optional: true }
 			} },
 			settings: { type: "object", optional: true, props: {
 				language: { type: "string", optional: true },
@@ -294,6 +295,10 @@ module.exports = {
 							dateUpdated: new Date(),
 							dateLastVerify: new Date()
 						};
+						entity.ip = {
+							ipRegistration: ctx.meta.remoteAddress+":"+ctx.meta.remotePort,
+							ipLastLogin: null
+						};
 						if ( !entity.settings ) {
 							entity.settings = {
 								language: ctx.meta.localsDefault.lang,
@@ -357,16 +362,24 @@ module.exports = {
 						if ( !user.dates.dateActivated || user.dates.dateActivated.toString().trim()=="" || user.dates.dateActivated>new Date() ) {
 							return this.Promise.reject(new MoleculerClientError("User not activated", 422, "", [{ field: "email", message: "not activated"}]));
 						}
-
-						console.log("compare pwds:", password, user.password);
 						return bcrypt.compare(password, user.password).then(res => {
-							if (!res)
+							if (!res) {
 								return Promise.reject(new MoleculerClientError("Wrong password!", 422, "", [{ field: "email", message: "wrong credentials"}]));
-
-							// Transform user entity (remove password and all protected fields)
-							return this.transformDocuments(ctx, {}, user);
+							}
+							// save last date and ip of login
+							user.dates["dateLastLogin"] = new Date();
+							if (!user.ip) {
+								user.ip = {
+									ipRegistration: null,
+									ipLastLogin: null
+								};
+							}
+							user.ip["ipLastLogin"] = ctx.meta.remoteAddress+":"+ctx.meta.remotePort;
+							return this.adapter.updateById(user._id, this.prepareForUpdate(user));
 						});
 					})
+					// Transform user entity (remove password and all protected fields)
+					.then(doc => this.transformDocuments(ctx, {}, doc))
 					.then(user => {
 						if ( ctx.meta.cart ) {
 							ctx.meta.cart.user = user._id;
