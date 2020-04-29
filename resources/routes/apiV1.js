@@ -95,7 +95,7 @@ module.exports = {
 	},
 
 	onAfterCall(ctx, route, req, res, data) {
-		console.log("ctx.meta.makeCookies:", ctx.meta.makeCookies);
+		this.logger.info("apiV1 onAfterCall - ctx.meta.makeCookies: ", ctx.meta.makeCookies);
 		if (ctx.meta.makeCookies) {
 			Object.keys(ctx.meta.makeCookies).forEach(function(key) {
 				if ( ctx.meta.makeCookies[key].options && ctx.meta.makeCookies[key].options.expires ) {

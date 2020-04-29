@@ -183,7 +183,7 @@ module.exports = {
 		 * @returns {Promise}
 		 */
 		authorize(ctx, route, req, res) {
-			console.log("\nuip: " + req.connection.remoteAddress);
+			this.logger.info("api.authorize() visitor IP: ", req.connection.remoteAddress);
 			ctx.meta.remoteAddress = req.connection.remoteAddress;
 			ctx.meta.remotePort = req.connection.remotePort;
 			// update localsDefault according to cookie value if possible
@@ -214,12 +214,12 @@ module.exports = {
 						// Verify JWT token
 						return ctx.call("users.resolveToken", { token: token })
 							.then(user => {
-								console.log("\napi.tokenresolved.user: ", user);
+								this.logger.info("api.authorize() user: ", user);
 								if ( typeof user !== "undefined" && user && user.length>0 ) {
 									user = user[0];
 								}
 								if (user) {
-									this.logger.info("\nAuthenticated via JWT: ", user.username);
+									this.logger.info("api.authorize() username: ", user.username);
 									// Reduce user fields (it will be transferred to other nodes)
 									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "addresses", "settings", "dates"]);
 									ctx.meta.token = token;
@@ -278,7 +278,7 @@ module.exports = {
 			return this.renameFile(path, newPath)
 				.catch(e => {
 					if (e.code !== "EXDEV") {
-						console.log(e);
+						this.logger.error("api.moveFile() error: ", e);
 						throw new e;
 					} else {
 						return this.copyFile(path, newPath, flags)
@@ -369,20 +369,21 @@ module.exports = {
 		 */
 		parseUploadedFile(req, res, activePath) {
 			let self = this;
-			console.log("\n\nparseUploadedFile #1");
+			this.logger.info("api.parseUploadedFile() #1");
 			let form = new formidable.IncomingForm();
-			console.log("parseUploadedFile #2");
+			this.logger.info("api.parseUploadedFile() #2");
 			return form.parse(req, function(err, fields, files) {
 				let promises = [];
-				console.log("parseUploadedFile #3", files, fields);
+				this.logger.info("api.parseUploadedFile() #3", files, fields);
 				if ( err ) {
-					console.log("\n\n !!! parseUploadedFile ERROR:", err);
+					this.logger.info("api.parseUploadedFile() ERROR:", err);
 				}
 
-				// multiple promises as in import - after all done, create message and send
+				// multiple files to upload - multiple promises as in import
+				// after all done, create message and send
 				for (let property in files) {
 					if (Object.prototype.hasOwnProperty.call(files,property)) {
-						console.log("\n"+property+" ---- :", files[property]);
+						this.logger.info("api.parseUploadedFile() files-"+property+": ", files[property]);
 						let fileFrom = files[property].path;
 						let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH + self.stringReplaceParams(activePath.destination, req.$params);
 						let urlBaseDir = process.env.ASSETS_PATH + self.stringReplaceParams(activePath.destination, req.$params);
@@ -403,7 +404,7 @@ module.exports = {
 						// set result paths
 						let fileToSave = copyBaseDir+"/"+resultFullPath;
 						let fileToUrl = urlBaseDir+"/"+resultFullPath;
-						console.log(fileFrom, fileToSave, fileToUrl, targetDir);
+						this.logger.info("api.parseuploadeFile() files-vars: ", fileFrom, fileToSave, fileToUrl, targetDir);
 						promises.push(
 							fs.ensureDir(copyBaseDir+"/"+targetDir)
 								.then(() => {
@@ -420,8 +421,7 @@ module.exports = {
 									});
 								})
 								.catch(err => {
-									console.log("\nensureDir err: ", err);
-									console.error(err);
+									this.logger.error("api.parseuploadeFile() files ensudeDir ERROR", err);
 									return { "id": property, "from": files[property].name, "success": false, "error": err };
 								})); // push with ensureDir end
 					}
@@ -449,7 +449,7 @@ module.exports = {
 							}
 						});
 						let headers = res.getHeaders();
-						console.log("\n\n RES:", headers);
+						this.logger.info("api.parseUploadedFile Promise.all RES:", headers);
 						if ( typeof headers["content-type"] !== "undefined" ) {
 							res.writeHead(200, {"content-type": "application/json"});
 						}
@@ -461,7 +461,7 @@ module.exports = {
 						return values;
 					})
 					.catch(err => {
-						console.log("\n parseUploadedFile Promise.all ERROR: ", err);
+						this.logger.error("api.parseUploadedFile Promise.all ERROR: ", err);
 						return null;
 					});
 			});
@@ -476,7 +476,7 @@ module.exports = {
 			let self = this;
 			let activePath = this.getActiveUploadPath(req);
 
-			console.log ( "\n\n ----------- xxxxxxxxxxx", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author")>-1, activePath.checkAuthorAction, activePath.checkAuthorActionParams, "\n\n ----------- " );
+			this.logger.info("api.processUpload() activePath-vars", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author")>-1, activePath.checkAuthorAction, activePath.checkAuthorActionParams);
 			// check if upload path is valid and has set validUserTypes
 			if ( activePath && activePath.validUserTypes ) {
 				// check if author is in array of activePath.validUserTypes and file was uploaded by author
@@ -487,7 +487,7 @@ module.exports = {
 						data: activePath.checkAuthorActionParams
 					})
 						.then(result => {
-							console.log("processUpload author:", result);
+							this.logger.info("api.processUpload author:", result);
 							if (result==true) {
 								// user is author
 								self.parseUploadedFile(req, res, activePath);
@@ -513,29 +513,6 @@ module.exports = {
 
 		},
 
-		/**
-		 * Convert ValidationError to RealWorld.io result
-		 * @param {*} req
-		 * @param {*} res
-		 * @param {*} err
-		 */
-		/*sendError(req, res, err) {
-			if (err.code == 422) {
-				res.setHeader("Content-type", "application/json; charset=utf-8");
-				res.writeHead(422);
-				let o = {};
-				err.data.forEach(e => {
-					let field = e.field.split(".").pop();
-					o[field] = e.message;
-				});
-				return res.end(JSON.stringify({
-					errors: o
-				}, null, 2));
-
-			}
-
-			return this._sendError(req, res, err);
-		}*/
 	},
 
 	created() {
