@@ -38,12 +38,12 @@ module.exports = {
 		cronTime: "20 1 * * *",
 		onTick: function() {
 
-			this.logger.info("Starting to Remove Users that want to Delete their Profile");
+			this.logger.info("users.crons - Starting to Remove Users that want to Delete their Profile");
 
 			this.getLocalService("users")
 				.actions.cleanUsers()
 				.then((data) => {
-					console.log("Users Cleaned up", data);
+					this.logger.info("users.crons - Users Cleaned up", data);
 				});
 		}
 	}],
@@ -216,7 +216,7 @@ module.exports = {
 							return coreData;
 						})
 						.catch(error => {
-							console.log("\nusers.getCoreData users.me error:", error);
+							this.logger.error("users.getCoreData users.me error:", error);
 						});
 				} else { // no user
 					// get translation if language not default
@@ -283,9 +283,7 @@ module.exports = {
 
 					})
 					.then(() => {
-						console.log("password before hashed", entity.password);
 						entity.password = bcrypt.hashSync(entity.password, 10);
-						console.log("password hashed", entity.password);
 						let hashedPwd = entity.password;
 						entity.type = "user";
 						entity.bio = entity.bio || "";
@@ -311,10 +309,9 @@ module.exports = {
 							.then(user => this.transformEntity(user, false, ctx))
 							.then(entity => {
 								this.entityChanged("created", entity, ctx).then(() => entity);
-								console.log("\n\n User Created: ", entity, "\n\n\n");
+								this.logger.info("users.create - User Created: ", entity);
 
 								// send email separately asynchronously not waiting for response
-								console.log("\n\n buildHashSourceFromEntity(1)", hashedPwd, entity.user.dates.dateCreated.toISOString());
 								let emailData = {
 									"entity": entity,
 									"keepItForLater": this.buildHashSourceFromEntity(hashedPwd, entity.user.dates.dateCreated.toISOString()),
@@ -322,8 +319,6 @@ module.exports = {
 									"language": entity.user.settings.language,
 									"templateName": "registration"
 								};
-								console.log("hash compare(1.0)", this.buildHashSourceFromEntity(hashedPwd, entity.user.dates.dateCreated.toISOString(), false));
-								console.log("hash compare(1)", emailData.keepItForLater);
 								this.sendVerificationEmail(emailData, ctx);
 
 								// return user data
@@ -470,7 +465,7 @@ module.exports = {
 							return this.transformEntity(user, true, ctx);
 						})
 						.catch((error) => {
-							console.log("\nusers.me error", error);
+							this.logger.error("users.me error", error);
 							return null;
 						});
 				}
@@ -776,20 +771,19 @@ module.exports = {
 						if (templates.txt) {
 							mailOptions.text = templates.txt;
 						}
-						console.log("\nTrying to send email with these options:", mailOptions);
+						this.logger.info("users.sendEmail - Trying to send email with these options:", mailOptions);
 
 						let emailSentResponse = new Promise(function(resolve, reject) {
 							transporter.sendMail(mailOptions, (error, info) => {
-								console.log("\n -------------------- EMAIL SEND RESPONSE -------------------");
-								console.log(error, info);
 								if (error) {
+									this.logger.error("users.sendEmail sendMail error: ", this.logger.info)
 									reject(false);
 								}
 								if ( info && info.messageId ) {
-									console.log("\nMessage sent: %s", info.messageId);
+									this.logger.info("users.sendEmail sendMail MessageId: ", info.messageId);
 								}
 								// Preview only available when sending through an Ethereal account
-								console.log("\nPreview URL: %s", nodemailer.getTestMessageUrl(info));
+								this.logger.info("user.sendEmail sendMail messageUrl: ", nodemailer.getTestMessageUrl(info));
 								// Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
 								// Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
 								resolve(true);
@@ -829,7 +823,8 @@ module.exports = {
 				let oldDate = new Date();
 				oldDate.setTime( (new Date().getTime()) - TIME_TO_PAST );
 				let hash = "$2b$10$"+decodeURIComponent(ctx.params.hash).toString().replace(re, ".");
-				console.log("xxxxxx", email, { 
+				
+				this.logger.info("users.verifyHash: ", { 
 					email: email, 
 					"dates.dateActivated": {"$exists": false},
 					"dates.dateLastVerify": {"$gt": oldDate} 
@@ -846,13 +841,10 @@ module.exports = {
 							found = found[0];
 						}
 						if ( found && found.password && found.password.toString().trim()!="" ) {
-							console.log("\n\n buildHashSourceFromEntity(2):", found.password, found.dates.dateCreated.toISOString());
 							let wannabeHash = this.buildHashSourceFromEntity(found.password, found.dates.dateCreated.toISOString(), false);
-							console.log("\nhash compare(2) - string 2B hashed: ", wannabeHash);
-							console.log("\nhash compare(2.1) - hash from url to compare, with prefix: ", hash);
 							return bcrypt.compare(wannabeHash, hash)
 								.then((result) => { 
-									console.log("\nresult:", result);
+									this.logger.info("users.verifyHash compared:", result);
 
 									if (result) {
 										found.dates.dateActivated = new Date();
@@ -861,7 +853,6 @@ module.exports = {
 												return this.transformDocuments(ctx, {}, doc);
 											})
 											.then(user => {
-												console.log("\n\nACTIVATION:", user);
 												return this.transformEntity(user, true, ctx);
 											})
 											.then(json => {
@@ -874,7 +865,6 @@ module.exports = {
 
 								});
 						}
-						console.log("found:", found);
 						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed"}]));
 					});
 				/**
@@ -900,10 +890,10 @@ module.exports = {
 				email: { type: "string" }
 			},
 			handler(ctx) {
+				this.logger.info("users.resetPassword params.email: ", ctx.params.email);
 				return this.adapter.findOne({ email: ctx.params.email })
 					.then((found) => {
 						if ( found ) {
-							console.log("\n\n Reset password: ", found, "\n\n\n");
 							delete found.dates.dateActivated;
 							found.dates.dateUpdated = new Date();
 							if ( !found.settings ) {
@@ -928,9 +918,10 @@ module.exports = {
 												"keepItForLater": this.buildHashSourceFromEntity(entity.user.password, entity.dates.dateCreated),
 												"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
 												"language": entity.user.settings.language,
-												"templateName": "pwdreset" // TODO - create email templates
+												"templateName": "pwdreset"
 											};
 											this.sendVerificationEmail(emailData, ctx);
+											this.logger.info("users.resetPassword - Email sent");
 		
 											return entity.user;
 										});
@@ -990,10 +981,11 @@ module.exports = {
 			},
 			handler(ctx) {
 				let self = this;
-				console.log("\n\nctx.meta.siteSettings:", ctx.meta.siteSettings);
-				console.log("\n\nctx.params:", ctx.params);
-				console.log("\n\nctx.meta.user:", ctx.meta.user);
-				// for type = "products"
+				this.logger.info("users.deleteUserImage ctx.params:", {
+					params: ctx.params, 
+					id: ctx.meta.user._id
+				});
+				// if user is logged in and has email
 				if ( ctx.meta.user && ctx.meta.user.email ) {
 					if ( ctx.params.type=="products" ) {
 						return ctx.call("products.find", {
@@ -1003,10 +995,10 @@ module.exports = {
 								let deleteProductImage = false;
 								if ( products && products[0] ) {
 									if ( ctx.meta.user.type=="admin" ) {
-										console.log("\n\n You can delete "+ctx.params.type+" image, because you are admin ("+ctx.meta.user.type+"=='admin')", ctx.meta.user.type=="admin");
+										this.logger.info("users.deleteUserImage products - You can delete "+ctx.params.type+" image, because you are admin ("+ctx.meta.user.type+"=='admin')", ctx.meta.user.type=="admin");
 										deleteProductImage = true;
 									} else if ( products && products[0] && products[0].publisher==ctx.meta.user.email ) {
-										console.log("\n\n You can "+ctx.params.type+" image, because you are publisher ("+products[0].publisher+"=="+ctx.meta.user.email+")", products[0].publisher==ctx.meta.user.email);
+										this.logger.info("users.deleteUserImage products - You can "+ctx.params.type+" image, because you are publisher ("+products[0].publisher+"=="+ctx.meta.user.email+")", products[0].publisher==ctx.meta.user.email);
 										deleteProductImage = true;
 									}
 									if (deleteProductImage===true) {
@@ -1015,10 +1007,10 @@ module.exports = {
 										return new Promise((resolve, reject) => {
 											fs.unlink(path, (err) => {
 												if (err) {
-													console.error("\n\n deleteUserImage error:", err);
+													this.logger.error("users.deleteUserImage error:", err);
 													reject( {success: false, message: "delete failed"} );
 												}
-												console.log("\n\n DELETED file: ", path);
+												this.logger.info("users.deleteUserImage - DELETED file: ", path);
 												resolve( {success: true, message: "file deleted"} );
 											});
 										})
@@ -1040,10 +1032,10 @@ module.exports = {
 								let deleteCategoryImage = false;
 								if ( categories && categories[0] ) {
 									if ( ctx.meta.user.type=="admin" ) {
-										console.log("\n\n You can delete "+ctx.params.type+" image, because you are admin ("+ctx.meta.user.type+"=='admin')", ctx.meta.user.type=="admin");
+										this.logger.info("users.deleteUserImage categories - You can delete "+ctx.params.type+" image, because you are admin ("+ctx.meta.user.type+"=='admin')", ctx.meta.user.type=="admin");
 										deleteCategoryImage = true;
 									} else if ( categories && categories[0] && categories[0].publisher==ctx.meta.user.email ) {
-										console.log("\n\n You can "+ctx.params.type+" image, because you are publisher ("+categories[0].publisher+"=="+ctx.meta.user.email+")", categories[0].publisher==ctx.meta.user.email);
+										this.logger.info("users.deleteUserImage categories -You can "+ctx.params.type+" image, because you are publisher ("+categories[0].publisher+"=="+ctx.meta.user.email+")", categories[0].publisher==ctx.meta.user.email);
 										deleteCategoryImage = true;
 									}
 									if (deleteCategoryImage===true) {
@@ -1052,10 +1044,10 @@ module.exports = {
 										return new Promise((resolve, reject) => {
 											fs.unlink(path, (err) => {
 												if (err) {
-													console.error("\n\n deleteUserImage error:", err);
+													this.logger.error("users.deleteUserImage error:", err);
 													reject( {success: false, message: "delete failed"} );
 												}
-												console.log("\n\n DELETED file: ", path);
+												this.logger.info("users.deleteUserImage - DELETED file: ", path);
 												resolve( {success: true, message: "file deleted"} );
 											});
 										})
@@ -1081,6 +1073,10 @@ module.exports = {
 		deleteProfile: {
 			auth: "required",
 			handler(ctx) {
+				this.logger.info("users.deleteProfile ctx.params:", {
+					params: ctx.params, 
+					meta: ctx.meta
+				});
 				if ( ctx.meta.user && ctx.meta.user._id ) {
 					let self = this;
 					return this.getById(ctx.meta.user._id)
@@ -1092,13 +1088,14 @@ module.exports = {
 							return this.transformDocuments(ctx, {}, user);
 						})
 						.catch((error) => {
-							console.log("Delete profile error", error);
+							this.logger.error("users.deleteProfile error", error);
 							return this.Promise.reject(new MoleculerClientError("User not found!", 400));
 						})
 						.then(user => {
 							user.dates.dateToBeErased = new Date();
 							user.dates.dateToBeErased.setDate( user.dates.dateToBeErased.getDate() + 14);
 							user.dates.dateUpdated = new Date();
+							this.logger.info("users.deleteProfile user", user);
 
 							// configuring email message
 							let emailSetup = {
@@ -1117,9 +1114,9 @@ module.exports = {
 									support_email: ctx.meta.siteSettings.supportEmail
 								}
 							};
-							// sending email
+							// sending email independently
 							ctx.call("users.sendEmail", emailSetup).then(json => {
-								console.log("\nemail sent _____---... "+json+"\n\n");
+								this.logger.info("users.deleteProfile email sent: ", json);
 							});
 
 							return this.adapter.updateById(ctx.meta.user._id, this.prepareForUpdate(user))
@@ -1148,7 +1145,7 @@ module.exports = {
 							return this.transformDocuments(ctx, {}, user);
 						})
 						.catch((error) => {
-							console.log("Delete profile error", error);
+							this.logger.error("users.cancelDelete error", error);
 							return this.Promise.reject(new MoleculerClientError("User not found!", 400));
 						})
 						.then(user => {
@@ -1173,7 +1170,7 @@ module.exports = {
 							};
 							// sending email
 							ctx.call("users.sendEmail", emailSetup).then(json => {
-								console.log("\nemail sent _____---... "+json+"\n\n");
+								this.logger.info("users.cancelDelete - email sent:", json);
 							});
 
 							return this.adapter.updateById(ctx.meta.user._id, this.prepareForUpdate(user))
@@ -1229,7 +1226,6 @@ module.exports = {
 			},
 			handler(ctx) {
 				let requestBody = "secret="+process.env.RECAPTCHA_SECRET+"&response="+ctx.params.token;
-				console.log("recaptcha requestBody:", requestBody);
 				return fetch(process.env.RECAPTCHA_URL, {
 					method: "post",
 					body:    requestBody,
@@ -1237,7 +1233,6 @@ module.exports = {
 				})
 					.then(res => res.json()) // expecting a json response, checking it
 					.then(recaptchaResponse => {
-						console.log("recaptchaResponse:", recaptchaResponse);
 						return recaptchaResponse.success;
 					});
 			}
@@ -1268,7 +1263,7 @@ module.exports = {
 				exp: Math.floor(exp.getTime() / 1000)
 			}, this.settings.JWT_SECRET);
 
-			console.log("\n\nu sers.Generating JWT - cookies:", ctx.meta.cookies);
+			// this.logger.info("users.generateJWT - cookies:", ctx.meta.cookies);
 			if ( ctx.meta.cookies ) {
 				if (!ctx.meta.makeCookies) {
 					ctx.meta.makeCookies = {};
@@ -1286,7 +1281,7 @@ module.exports = {
 				if ( process.env.COOKIES_SAME_SITE ) {
 					ctx.meta.makeCookies["token"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
 				}
-				console.log("\n\nu sers.Generating JWT - ctx.meta.makeCookies:", ctx.meta.makeCookies);
+				// this.logger.info("users.generateJWT - ctx.meta.makeCookies:", ctx.meta.makeCookies);
 			}
 
 			return generatedJwt;
@@ -1343,8 +1338,10 @@ module.exports = {
 		 * @return {Boolean}
 		 */
 		userCanUpdate(loggedUser, userUpdate) {
-			console.log("\n\n users.userCanUpdate.loggedUser: ", loggedUser);
-			console.log("\n\n users.userCanUpdate.userUpdate: ", userUpdate);
+			this.logger.info("users.userCanUpdate params: ", { 
+				loggedUser: loggedUser, 
+				userUpdate: userUpdate
+			});
 			// check if loggedUser data has _id
 			if ( loggedUser && loggedUser._id && loggedUser._id.toString().trim()!="" ) {
 				// if loggedUser is admin and userUpdate data contain _id of user to update - can update any user
@@ -1485,7 +1482,7 @@ module.exports = {
 
 			// sending email
 			ctx.call("users.sendEmail", emailSetup).then(json => {
-				console.log("\nemail sent _____---... "+json+"\n\n");
+				this.logger.info("users.sendVerificationEmail email sent", json);
 			});
 		},
 
