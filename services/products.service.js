@@ -426,7 +426,7 @@ module.exports = {
 			},
 			cache: false,
 			handler(ctx) {
-				console.log("--- import products ---");
+				this.logger.info("products.import ctx.meta", ctx.meta);
 				let products = ctx.params.products;
 				let promises = [];
 				let mythis = this;
@@ -440,8 +440,6 @@ module.exports = {
 								mythis.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
-											console.log("\n\n product entity found:", entity);
-
 											if ( entity && entity.dates ) {
 												Object.keys(entity.dates).forEach(function(key) {
 													let date = entity.dates[key];
@@ -458,6 +456,7 @@ module.exports = {
 													}
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
+													this.logger.info("products.import found - update entity:", entity);
 													let entityId = entity.id;
 													delete entity.id;
 													delete entity._id;
@@ -485,10 +484,10 @@ module.exports = {
 													})
 														.then(slugFound => {
 															if (slugFound && slugFound.constructor !== Array) {
+																this.logger.error("products.import notFound - insert - slugFound entity:", entity);
 																return { "error" : "Slug "+entity.slug+" already used." };
 															}
 
-															// TODO - check if slug paths don't already exist
 															if (ctx.meta.user && ctx.meta.user.email) {
 																entity.publisher = ctx.meta.user.email.toString();
 															}
@@ -498,6 +497,7 @@ module.exports = {
 															entity.dates.dateCreated = new Date();
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
+															this.logger.info("products.import notFound - insert entity:", entity);
 
 															return mythis.adapter.insert(entity)
 																.then(doc => mythis.transformDocuments(ctx, {}, doc))
@@ -536,7 +536,7 @@ module.exports = {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
-				console.log("--- delete products ---");
+				this.logger.info("products.delete ctx.meta", ctx.meta);
 				let products = ctx.params.products;
 				let promises = [];
 				let mythis = this;
@@ -550,14 +550,14 @@ module.exports = {
 								mythis.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, delete it
-											console.log("DELETING product "+found._id);
+											this.logger.info("products.delete - DELETING product: ", found);
 											return ctx.call("products.remove", {id: found._id} )
 												.then((deletedCount) => {
-													console.log("deleted product Count: ",deletedCount);
+													this.logger.info("products.delete - deleted product Count: ", deletedCount);
 													return deletedCount;
 												}); // returns number of removed items
 										} else {
-											console.log(entity.id+" not found");
+											this.logger.info("products.delete - entity.id "+entity.id+" not found");
 										}
 									})); // push with find end
 						});
@@ -580,7 +580,10 @@ module.exports = {
 				params: { type: "object" }
 			},
 			handler(ctx) {
-				console.log("updateProductImage ctx.params:", ctx.params);
+				this.logger.info("products.updateProductImage ctx.params+meta:", {
+					params: ctx.params,
+					meta: ctx.meta
+				});
 				if (ctx.params.params && ctx.params.params.orderCode) {
 					if (ctx.params.params.type=="gallery") {
 						this.adapter.find({
@@ -622,13 +625,12 @@ module.exports = {
 						}
 					})
 						.then(products => {
-							// console.log("product.checkAuthor", products);
 							if (products && products.length>0 && products[0].orderCode==ctx.params.data.orderCode) {
 								return true;
 							}
 						})
 						.catch(err => {
-							console.log("\n PRODUCT checkAuthor ERROR: ", err);
+							this.logger.error("products.checkAuthor error: ", err);
 							return false;
 						});
 				}
