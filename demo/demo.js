@@ -54,7 +54,10 @@ function runScript(scriptPath, callback) {
 if (changePath==="") {
 	// 2.2. Now we can run a script and invoke a callback when complete
 	runScript(demoDataScriptFile, function (err) {
-		if (err) throw err;
+		if (err) {
+			console.error("Cannot run script "+demoDataScriptFile+" - error: ", err);
+			return;
+		}
 		console.log("Finished running "+demoDataScriptFile);
 	});
 }
@@ -93,7 +96,10 @@ if (changePath!="") {
 	baseSyncFiles.forEach(function(pair){
 		console.log("DIR: Trying to place " +pair.source+ " into " +pair.destination+ " - if not exists.");
 		fs.copyFile(pair.source, pair.destination, COPYFILE_EXCL, (err) => {
-			if (err) throw err;
+			if (err) {
+				console.error("Cannot copy " +pair.source+ " into " +pair.destination+ " - error: ", err);
+				return;
+			}
 			console.log("FILE: Placed " +pair.source+ " into " +pair.destination+ ".");
 		});
 	});
