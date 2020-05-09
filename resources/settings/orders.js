@@ -19,7 +19,8 @@ module.exports = {
 			prices: [
 				{
 					"range": {"from": 0, "to": 1000000},
-					"price": 0
+					"price": 0,
+					"tax": 0.2
 				}
 			]
 		},
@@ -33,7 +34,8 @@ module.exports = {
 			prices: [
 				{
 					"range": {"from": 0, "to": 500},
-					"price": 5
+					"price": 5,
+					"tax": 0.2
 				},
 				{
 					"range": {"from": 500, "to": 1000000},
@@ -51,7 +53,8 @@ module.exports = {
 			prices: [
 				{
 					"range": {"from": 0, "to": 500},
-					"price": 5
+					"price": 5,
+					"tax": 0.2
 				},
 				{
 					"range": {"from": 500, "to": 1000000},
@@ -71,11 +74,13 @@ module.exports = {
 			prices: [
 				{
 					"range": {"from": 0, "to": 500},
-					"price": 10
+					"price": 10,
+					"tax": 0.2
 				},
 				{
 					"range": {"from": 500, "to": 1000000},
-					"price": 2
+					"price": 2,
+					"tax": 0.2
 				}
 			]
 		},
@@ -88,7 +93,8 @@ module.exports = {
 			prices: [
 				{
 					"range": {"from": 0, "to": 500},
-					"price": 2
+					"price": 2,
+					"tax": 0.2
 				},
 				{
 					"range": {"from": 500, "to": 1000000},

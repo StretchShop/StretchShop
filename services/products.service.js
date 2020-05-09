@@ -426,7 +426,7 @@ module.exports = {
 			},
 			cache: false,
 			handler(ctx) {
-				this.logger.info("products.import ctx.meta", ctx.meta);
+				this.logger.info("products.import - ctx.meta", ctx.meta);
 				let products = ctx.params.products;
 				let promises = [];
 				let mythis = this;
@@ -497,7 +497,7 @@ module.exports = {
 															entity.dates.dateCreated = new Date();
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
-															this.logger.info("products.import notFound - insert entity:", entity);
+															this.logger.info("products.import - insert entity:", entity);
 
 															return mythis.adapter.insert(entity)
 																.then(doc => mythis.transformDocuments(ctx, {}, doc))
@@ -557,7 +557,7 @@ module.exports = {
 													return deletedCount;
 												}); // returns number of removed items
 										} else {
-											this.logger.info("products.delete - entity.id "+entity.id+" not found");
+											this.logger.error("products.delete - entity.id "+entity.id+" not found");
 										}
 									})); // push with find end
 						});

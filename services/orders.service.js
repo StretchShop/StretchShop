@@ -48,12 +48,12 @@ module.exports = {
 		cronTime: "10 1 * * *",
 		onTick: function() {
 
-			console.log("Starting to Clean up the Orders");
+			this.logger.info("Starting to Clean up the Orders");
 
 			this.getLocalService("orders")
 				.actions.cleanOrders()
 				.then((data) => {
-					console.log("Orders Cleaned up", data);
+					this.logger.info("Orders Cleaned up", data);
 				});
 		}
 	}],
@@ -216,15 +216,15 @@ module.exports = {
 			},
 			handler(ctx) {
 				let updateResult = this.settings.emptyUpdateResult;
-				console.log("\n\n"+"order.progress - intro (IN):", ctx.meta, "\n\n");
+				this.logger.info("orders.progress - ctx.meta: ", ctx.meta);
 
 				return ctx.call("cart.me")
 					.then(cart => {
-						console.log("\n\n"+"order.progress - cart result (CR):", cart, "\n\n");
+						this.logger.info("order.progress - Cart Result:", cart);
 						if (cart.order && cart.order.toString().trim()!="") { // order exists, get it
 							return this.adapter.findById(cart.order)
 								.then(order => {
-									console.log("\n\n"+"order.progress - order result (OR):", cart, "\n\n");
+									this.logger.info("order.progress - Order Result:", order);
 									if ( order && order.status=="cart" ) {
 										// update order items
 										if ( cart.items ) {
@@ -232,7 +232,7 @@ module.exports = {
 										}
 										// manage user if not exists
 										this.settings.orderErrors.userErrors = [];
-										console.log("\n\nCTX ORDER PARAMS --- ctx.params.orderParams: ", ctx.params.orderParams);
+										this.logger.info("order.progress - ctx.params.orderParams: ", ctx.params.orderParams);
 										return this.manageUser(ctx)
 											.then(ctx => {  // promise for user
 												// run processOrder(orderParams) to proces user input and
@@ -240,7 +240,7 @@ module.exports = {
 												this.settings.orderTemp = order;
 												updateResult = this.processOrder(ctx);
 												this.getAvailableOrderSettings();
-												console.log("\n\n"+"order.progress - cart order found updated (COFU):", updateResult, "\n\n");
+												this.logger.info("order.progress - cart order found updated (COFU):", updateResult, "\n\n");
 												// if no params (eg. only refreshed), return original order
 												if ( !ctx.params.orderParams || Object.keys(ctx.params.orderParams).length<1 ) {
 													let orderProcessedResult = {};
@@ -280,13 +280,13 @@ module.exports = {
 												// order updated
 											})
 											.catch(ctxWithUserError => {
-												console.log("user error: ", ctxWithUserError);
+												this.logger.error("user error: ", ctxWithUserError);
 												return null;
 											});
 
 									} else { 
 										// cart has order id, but order with 'cart' status not found
-										console.log("\n\n"+"CREATE order - orderId from cart not found"+"\n\n");
+										this.logger.info("order.progress - orderId from cart not found");
 
 										if (
 											(
@@ -301,7 +301,7 @@ module.exports = {
 													return this.createOrderAction(cart, ctxWithUser, this.adapter);
 												})
 												.catch(ctxWithUserError => {
-													console.log("user error: ", ctxWithUserError);
+													this.logger.error("user error: ", ctxWithUserError);
 													return null;
 												});
 										} else { // default option, creates new order if none found - TODO - add auto clear
@@ -311,7 +311,7 @@ module.exports = {
 								}); // order found in db END
 
 						} else { // order does not exist, create it
-							console.log("\n\n"+"CREATE order - no order (NO):"+"\n\n");
+							this.logger.info("order.progress - no order found, CREATE order");
 							return this.createOrderAction(cart, ctx, this.adapter);
 						}
 					}); // cart end
@@ -517,7 +517,7 @@ module.exports = {
 									"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
 								}]
 							};
-							console.log("\n\n PAYMENT:\n", payment, "\n", payment.transactions[0].item_list.items, "\n", payment.transactions[0].amount, "\n\n");
+							this.logger.info("PAYMENT:\n", payment, "\n", payment.transactions[0].item_list.items, "\n", payment.transactions[0].amount, "\n\n");
 
 							let request = new payments.PaymentCreateRequest();
 							request.requestBody(payment);
@@ -527,13 +527,12 @@ module.exports = {
 								return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 									.then(orderUpdated => {
 										this.entityChanged("updated", orderUpdated, ctx);
-										console.log(orderUpdated);
+										this.logger.info("orders.paypalOrderCheckout - orderUpdated after payment", orderUpdated);
 										return { order: orderUpdated, payment: response };
 									});
 							})
 								.then(responses => {
-									console.log("response.statusCode", responses.payment.statusCode, "\n\n");
-									console.log("response.result", responses.payment.result, "\n\n");
+									this.logger.info("orders.paypalOrderCheckout - response.payment", responses.payment);
 
 									if (responses.payment.result) {
 										for (let i=0; i<responses.payment.result.links.length; i++) {
@@ -548,8 +547,7 @@ module.exports = {
 									}
 									return result;
 								}).catch((error) => {
-									console.error(error.statusCode);
-									console.error(error.message);
+									this.logger.error("orders.paypalOrderCheckout - payment error: ", error);
 									result.message = error.message;
 									return result;
 								});
@@ -568,7 +566,7 @@ module.exports = {
 				paymentId: { type: "string" }
 			},
 			handler(ctx) {
-				console.log("paypalResult:", ctx.params);
+				this.logger.info("orders.paypalResult - ctx.params:", ctx.params);
 				if ( ctx.params.result == "return" ) {
 					// get order data
 					return ctx.call("orders.find", {
@@ -595,10 +593,7 @@ module.exports = {
 								request.requestBody(execute_payment_json);
 
 								return client.execute(request).then((response) => {
-									console.log("\n\n---------- PAYPAL RESPONSE ----------\npaypalResult response:", response);
-									console.log("\n\npaypalResult response.result.payer.payer_info:", response.result.payer.payer_info);
-									console.log("\n\npaypalResult response.result.transactions:", response.result.transactions);
-									console.log("\n\npaypalResult response.result.links:", response.result.links);
+									this.logger.info("response:", response);
 
 									order.dates.datePaid = new Date();
 									order.status = "paid";
@@ -637,13 +632,15 @@ module.exports = {
 													if ( process.env.NODE_ENV=="development" ) {
 														urlPathPrefix = "http://localhost:8080/";
 													}
-													console.log( { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
+													this.logger.info("orders.paypalResult - invoice generated", { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
+													if ( order.prices.priceTotalToPay==0 && typeof this.afterPaidActions !== "undefined" ) {
+														this.afterPaidActions();
+													}
 													return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
 												});
 										});
 								}).catch((error) => {
-									console.error(error.statusCode);
-									console.error(error.message);
+									this.logger.error("orders.paypalResult - paypal execute error: ", error);
 								});
 							}
 						});
@@ -694,17 +691,14 @@ module.exports = {
 				invoice: { type: "string", min: 3 }
 			},
 			handler(ctx) {
-				console.log("ctx.params.invoice:", ctx.params.invoice);
-				console.log("ctx.meta.user:", ctx.meta.user);
+				this.logger.info("orders.invoiceDownload - id #"+ctx.params.invoice+" request by user: ", ctx.meta.user);
 				let invoiceData = ctx.params.invoice.split(".");
 				if ( invoiceData[1] && ctx.meta.user._id && ctx.meta.user._id==invoiceData[0] ) {
 					let assets = process.env.PATH_PUBLIC || "./public";
 					let dir = assets +"/"+ process.env.ASSETS_PATH +"invoices/"+ invoiceData[0];
 					let path = dir + "/" + invoiceData[1] + ".pdf";
-					console.log("path:", path);
-					console.log("pathResolve:", pathResolve(path));
+					this.logger.info("orders.invoiceDownload - path:", {path: path, resolvedPath: pathResolve(path)});
 					let readStream = createReadStream( pathResolve(path) );
-					// console.log("ctx", ctx.options.parentCtx.params.res);
 					// We replaced all the event handlers with a simple call to readStream.pipe()
 					// readStream.pipe(ctx.options.parentCtx.params.res);
 					return readStream;
@@ -811,23 +805,22 @@ module.exports = {
 			this.settings.orderTemp = order;
 			this.getAvailableOrderSettings();
 			if ( ctx.params.orderParams ) {
-				console.log("createOrderAction -> before updateResult");
 				updateResult = this.processOrder(ctx);
-				console.log("createOrderAction -> updateResult: ", updateResult);
+				this.logger.info("orders.createOrderAction() - updateResult: ", updateResult);
 				if ( !updateResult.success ) {
-					console.log( "Order NO SUCCESS: ", this.settings.orderErrors );
+					this.logger.error("orders.createOrderAction() - Order !updateResult.success: ", this.settings.orderErrors );
 				}
 			}
 			// update order data in related variables
 			order = this.settings.orderTemp;
-			console.log("\n\n----------order before save--------", order);
+			this.logger.info("orders.createOrderAction() - order before save: ", order);
 			cart.order = order._id;
 			// save new order
 			return adapter.insert(order)
 				.then(orderNew => {
 					this.entityChanged("updated", orderNew, ctx);
 					cart.order = orderNew._id; // order id is not saved to cart
-					console.log("\n\n order after save (OAS) -----: ", orderNew);
+					this.logger.info("orders.createOrderAction() - order after save: ", orderNew);
 					return ctx.call("cart.updateMyCart", {"cartNew": cart})
 						.then(() => { //(cart2)
 							let orderProcessedResult = {};
@@ -857,14 +850,14 @@ module.exports = {
 				if ( typeof ctx.params.orderParams !== "undefined" && ctx.params.orderParams ) {
 					this.settings.orderTemp = this.updateBySentParams(this.settings.orderTemp, ctx.params.orderParams);
 					if ( ctx.meta.userNew && ctx.meta.userNew===true ) {
-						this.logger.info("processOrder() - setting new user data");
+						this.logger.info("orders.processOrder() - setting new user data");
 						this.settings.orderTemp.user.id = ctx.params.orderParams.user.id;
 						this.settings.orderTemp.user.email = ctx.params.orderParams.user.email;
 						this.settings.orderTemp.user.token = ctx.params.orderParams.user.token;
 					}
 				}
 				this.settings.orderTemp.dates.dateChanged = new Date();
-				this.logger.info( "processOrder() - orderTemp updated by params: ", this.settings.orderTemp );
+				this.logger.info( "orders.processOrder() - orderTemp updated by params: ", this.settings.orderTemp );
 
 				if (this.checkCartItems()) {
 					if (this.checkUserData(ctx)) { // check if (invoice address) is set and valid
@@ -933,10 +926,8 @@ module.exports = {
 			this.settings.orderErrors.itemErrors = [];
 			if ( this.settings.orderTemp && this.settings.orderTemp.items ) {
 				if ( this.settings.orderTemp.items.length>0 ) {
-					console.log("\n\n -----------X1----------- ");
 					return true;
 				} else {
-					console.log("\n\n -----------X2----------- ");
 					this.settings.orderErrors.itemErrors.push({"value": "Cart items", "desc": "no items"});
 				}
 			} else {
@@ -951,13 +942,13 @@ module.exports = {
 		 */
 		checkUserData(ctx) {
 			let user = null;
-			console.log("\n\n ******************** \n", this.settings.orderTemp.user, "\n", ctx.meta.user);
+			this.logger.info("orders.checkUserData() - user inputs: ", { orderUser: this.settings.orderTemp.user, loggetUser: ctx.meta.user });
 
 			if ( this.settings.orderTemp.user && ctx.meta.user && ctx.meta.user._id && 
 				ctx.meta.user._id!=null && this.settings.orderTemp.user.id != ctx.meta.user._id ) {
 				// we have user but it's not set in order 
 				// (eg. logged in after started order)
-				console.log("\n\nprocessOrder CUD #1");
+				this.logger.info("orders.checkUserData() CUD - #1 user logged, but not set in order");
 				user = {
 					id: (ctx.meta.user._id) ? ctx.meta.user._id : null,
 					externalId: (ctx.meta.user.externalId) ? ctx.meta.user.externalId : null,
@@ -969,20 +960,17 @@ module.exports = {
 				// it's new user, created in order, use already set order data
 				// that means, there is no registered & activated & logged user 
 				// creating "order_no_verif" cookie
-				console.log("\n\nprocessOrder CUD #2");
+				this.logger.info("orders.checkUserData() CUD - #2 new user from order, use order data & order_no_verif cookie");
 				user = this.settings.orderTemp.user ? this.settings.orderTemp.user : ctx.params.orderParams.user;
 				if ( user && user.id && user.email ) {
 					this.generateJWT(user, ctx);
 				}
-				console.log("ctx.meta.makeCookies #2", ctx.meta.makeCookies);
 
 			} else if ( ctx.meta.cookies && ctx.meta.cookies["order_no_verif"] ) {
 				// user is set from "order_no_verif" cookie
 				// that means, there is no registered & activated & logged user 
 				// user is being created in process of order
-				console.log("\n\nprocessOrder CUD #3");
 				let orderNoVerif = jwt.decode(ctx.meta.cookies["order_no_verif"]);
-				console.log("\n\norderNoVerif:", orderNoVerif);
 				if ( orderNoVerif && orderNoVerif.id && orderNoVerif.email ) {
 					user = {
 						id: orderNoVerif.id,
@@ -992,7 +980,7 @@ module.exports = {
 					};
 					this.generateJWT(user, ctx);
 				}
-				console.log("CUD #3 user", user);
+				this.logger.info("orders.checkUserData() CUD - #3 user from order_no_verif cookie");
 
 			} else if ( this.settings.orderTemp.user && 
 				(
@@ -1001,7 +989,7 @@ module.exports = {
 				)
 			) {
 				// we don't have user, but it's set in order (eg. user logged out)
-				console.log("\n\nprocessOrder CUD #4");
+				this.logger.info("orders.checkUserData() CUD - #4 no user, but set in order");
 				user = {
 					id: null,
 					externalId: null,
@@ -1009,29 +997,28 @@ module.exports = {
 					email: null
 				};
 				this.settings.orderTemp.addresses.invoiceAddress = null;
+
 			} else if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!="" ) {
 				// regular user (registered & activated), logged in
 				user = ctx.meta.user;
 				user.id = user._id;
 				delete user._id;
-				console.log("\n\nprocessOrder CUD #5", user);
+				this.logger.info("orders.checkUserData() CUD - #5 regular registered & activated user");
 			}
 
 			// set user
-			console.log("\n\nprocessOrder CUD check #0");
+			this.logger.info("orders.checkUserData() CUD - result user", user);
 			if ( user ) {
-				console.log("\n\nprocessOrder CUD check #1");
 				this.settings.orderTemp.user = user;
 				// user has to have id and email
 				if ( !user.id || !user.email ) {
-					console.log("\n\nprocessOrder CUD check #2");
+					this.logger.error("orders.checkUserData() user error - missing id or email");
 					return false;
 				}
 			} else {
 				return false;
 			}
 
-			console.log("\n\nprocessOrder CUD check #3");
 			// fields
 			let requiredFields = ["email", "phone", "nameFirst", "nameLast", "street", "zip", "city", "country"];
 			if ( ctx.meta.userID && ctx.meta.userID.toString().trim()!=="" ) {
@@ -1040,17 +1027,15 @@ module.exports = {
 			// let optionalFileds = ["state", "street2"];
 			let self = this;
 
-			console.log("\n\nprocessOrder CUD check #4");
-			console.log("\nthis.settings.orderTemp.addresses:", this.settings.orderTemp.addresses);
+			this.logger.info("orders.checkUserData() - this.settings.orderTemp.addresses:", this.settings.orderTemp.addresses);
 			// check if invoice address set
 			if ( !this.settings.orderTemp || !this.settings.orderTemp.addresses ||
 			!this.settings.orderTemp.addresses.invoiceAddress ) {
-				console.log("\nctx.meta.user:", ctx.meta.user);
 				// no invoice address set, check if user is available
 				if ( ctx.meta.user && ctx.meta.user.id && ctx.meta.user.addresses && ctx.meta.user.addresses.length>0 ) {
 					// having user, try to get his invoice address
 					let loggedUserInvoiceAddress = this.getUserAddress(ctx.meta.user, "invoice");
-					console.log("\nloggedUserInvoiceAddress:", loggedUserInvoiceAddress);
+					this.logger.info("orders.checkUserData() - loggedUserInvoiceAddress:", loggedUserInvoiceAddress);
 					if ( loggedUserInvoiceAddress ) {
 						// set invoice address for order
 						this.settings.orderTemp.addresses.invoiceAddress = loggedUserInvoiceAddress;
@@ -1086,21 +1071,21 @@ module.exports = {
 					}
 				});
 				if (hasErrors) {
-					console.log("\n\nprocessOrder CUD check #5");
+					this.logger.error("orders.checkUserData() - invoice address not found");
 					return false;
 				}
 			} else {
 				this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
-				console.log("\n\nprocessOrder CUD check #6");
+				this.logger.error("orders.checkUserData() - invoice address not set");
 				return false;
 			}
 
 			if (this.settings.orderErrors.userErrors.length>0) {
-				console.log("\n\nprocessOrder CUD check #7");
+				this.logger.error("orders.checkUserData() - errors.length=="+this.settings.orderErrors.userErrors.length, this.settings.orderErrors);
 				return false;
 			}
 
-			console.log("\n\nprocessOrder CUD check #X");
+			this.logger.info("orders.checkUserData() - user checked and is OK");
 			return true;
 		},
 
@@ -1112,11 +1097,11 @@ module.exports = {
 		 */
 		manageUser(ctx) {
 			let self = this;
-			self.logger.info("manageUser() #0 - ctx.meta.user:", ctx.meta.user);
+			self.logger.info("order.manageUser() #0 - ctx.meta.user:", ctx.meta.user);
 
 			if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!="" ) {
 				// user logged in
-				self.logger.info("manageUser() #1");
+				self.logger.info("orders.manageUser() #1");
 				return new Promise(function(resolve) {
 					self.settings.orderTemp.user = ctx.meta.user;
 					ctx.params.orderParams.user = ctx.meta.user;
@@ -1127,11 +1112,11 @@ module.exports = {
 					});
 
 			} else if ( ctx.meta.cookies && ctx.meta.cookies["order_no_verif"] ) {
-				self.logger.info("manageUser() #2");
+				self.logger.info("orders.manageUser() #2");
 				// if order temp user is set in cookie, use him
 				return new Promise(function(resolve) {
 					let orderNoVerif = jwt.decode(ctx.meta.cookies["order_no_verif"]);
-					self.logger.info("manageUser() #2 - orderNoVerif:", orderNoVerif);
+					self.logger.info("orders.manageUser() #2 - orderNoVerif:", orderNoVerif);
 					if ( orderNoVerif && orderNoVerif.id && orderNoVerif.email ) {
 						let user = {
 							id: orderNoVerif.id,
@@ -1141,7 +1126,7 @@ module.exports = {
 						};
 						ctx.params.orderParams["user"] = user;
 						self.settings.orderTemp["user"] = user;
-						self.logger.info("manageUser() #2 - 'order_no_verif' user:", user);
+						self.logger.info("orders.manageUser() #2 - 'order_no_verif' user:", user);
 					}
 					resolve(ctx);
 				})
@@ -1150,21 +1135,21 @@ module.exports = {
 					});
 
 			} else { // user not set in meta data
-				self.logger.info("manageUser() #3");
+				self.logger.info("orders.manageUser() #3");
 				if ( ctx.params.orderParams && ctx.params.orderParams.addresses && 
 					ctx.params.orderParams.addresses.invoiceAddress.email ) {
-					self.logger.info("manageUser() #3 - checking user email");
+					self.logger.info("orders.manageUser() #3 - checking user email");
 					return ctx.call("users.checkIfEmailExists", {
 						email: ctx.params.orderParams.addresses.invoiceAddress.email
 					})
 						.then((exists) => { // promise #1
 							if (exists && exists.result && exists.result.emailExists) {
-								self.logger.info("manageUser() #3 - user email already exists");
+								self.logger.info("orders.manageUser() #3 - user email already exists");
 								this.settings.orderErrors.orderErrors.push({"value": "email", "desc": "exists"});
 								return ctx;
 							} else {
 								let userData = this.getDataToCreateUser(ctx);
-								self.logger.info("manageUser() #3 - users.create userData", userData);
+								self.logger.info("orders.manageUser() #3 - users.create userData", userData);
 								return ctx.call("users.create", userData)
 									.then(newUser => {  // promise #2
 										// new user created, add his data to order and 
@@ -1178,19 +1163,19 @@ module.exports = {
 											};
 											self.settings.orderTemp.user = ctx.params.orderParams.user;
 											ctx.meta.userNew = true;
-											self.logger.info("manageUser() #3 - self.settings.orderTemp.user", self.settings.orderTemp.user);
+											self.logger.info("orders.manageUser() #3 - self.settings.orderTemp.user", self.settings.orderTemp.user);
 										}
 										return ctx;
 									})
 									.catch(userCreateRej => {
-										self.logger.info("manageUser() #3 - users.create error: ", userCreateRej);
+										self.logger.info("orders.manageUser() #3 - users.create error: ", userCreateRej);
 										return ctx;
 									});
 							}
 						})
 						.catch(userFoundErr => {
 							this.settings.orderErrors.userErrors.push({"value": "email", "desc": "exists"});
-							self.logger.info("manageUser() #3 - user email already exists", userFoundErr, this.settings.orderErrors.userErrors);
+							self.logger.info("orders.manageUser() #3 - user email already exists", userFoundErr, this.settings.orderErrors.userErrors);
 							return ctx;
 						});
 				} else {
@@ -1198,7 +1183,7 @@ module.exports = {
 						resolve(ctx);
 					})
 						.then( (oldCtx) => {
-							self.logger.info("manageUser() #4 - user email not found - returning oldCtx");
+							self.logger.info("orders.manageUser() #4 - user email not found - returning oldCtx");
 							return oldCtx;
 						});
 				}
@@ -1207,7 +1192,7 @@ module.exports = {
 
 
 		/**
-		 * Check that define basic options of order - delivery and payment types
+		 * Check basic options of order - delivery and payment types
 		 * Get prices of delivery and payment from settings
 		 */
 		checkOrderData() {
@@ -1220,28 +1205,38 @@ module.exports = {
 				this.settings.orderTemp.data.deliveryData = { "codename": deliveryType };
 				let deliveryMethodExists = false;
 
+				// go through delivery types of order
 				Object.keys(deliveryType).forEach(function(typeKey){
+					// check if delivery type has values
 					if (deliveryType[typeKey]!=null) {
-						self.settings.order.deliveryMethods.some(function(value){
+						// loop delivery types of this e-shop
+						self.settings.order.deliveryMethods.some(function(shopDeliveryType){
 							if ( !deliveryType[typeKey].value ) {
 								let valueTemp = deliveryType[typeKey];
 								deliveryType[typeKey] = { value: valueTemp };
 							}
-							if ( value && value.codename==deliveryType[typeKey].value ) {
+							if ( shopDeliveryType && shopDeliveryType.codename==deliveryType[typeKey].value ) {
 								self.settings.orderTemp.data.deliveryData.codename[typeKey] = {};
 								// need to filter language later
-								self.settings.orderTemp.data.deliveryData.codename[typeKey].value = value.codename;
-								console.log("deliveryValue: ", value);
-								// count item prices to get count for delivery
+								self.settings.orderTemp.data.deliveryData.codename[typeKey].value = shopDeliveryType.codename;
+								this.logger.info("orders.checkOrderData() - shopDeliveryType: ", shopDeliveryType);
+								// count item prices to get total for getting delivery price
 								self.settings.orderTemp.prices.priceItems = 0;
 								self.countOrderPrices("items");
 								if ( self.settings.orderTemp.prices.priceItems>0 ) {
 									// TODO - check if all items in cart are physical / digital and change delivery according to it
-									value.prices.some(function(deliveryPrice){
+									shopDeliveryType.prices.some(function(deliveryPrice){
 										if ( self.settings.orderTemp.prices.priceItems>=deliveryPrice.range.from && self.settings.orderTemp.prices.priceItems<deliveryPrice.range.to ) {
-											// have match set the delivery price
+											// have match - set the delivery price
 											self.settings.orderTemp.prices.priceDelivery = deliveryPrice.price;
+											let deliveryProduct = {
+												price: deliveryPrice.price,
+												tax: deliveryPrice.tax
+											};
+											deliveryProduct = self.getProductTaxData(deliveryProduct, businessSettings.taxData.global);
+											self.settings.orderTemp.prices.priceDeliveryTaxData = deliveryProduct.taxData;
 											self.settings.orderTemp.data.deliveryData.codename[typeKey].price = deliveryPrice.price;
+											self.settings.orderTemp.data.deliveryData.codename[typeKey].taxData = deliveryProduct.taxData;
 											return true;
 										}
 									});
@@ -1265,20 +1260,27 @@ module.exports = {
 				this.settings.orderTemp.data.paymentData = { "codename": paymentType };
 				let paymentMethodExists = false;
 
-				this.settings.order.paymentMethods.some(function(value){
-					if ( value && value.codename==paymentType ) {
+				this.settings.order.paymentMethods.some(function(shopPaymentType){
+					if ( shopPaymentType && shopPaymentType.codename==paymentType ) {
 						// need to filter language later
-						self.settings.orderTemp.data.paymentData.name = value.name;
-						console.log("paymentValue: ", value);
+						self.settings.orderTemp.data.paymentData.name = shopPaymentType.name;
+						this.logger.info("orders.checkOrderData() - shopPaymentType: ", shopPaymentType);
 						//--
 						if ( self.settings.orderTemp.prices.priceItems <= 0 ) {
-							self.countOrderPrices(false);
+							self.countOrderPrices("items");
 						}
-						value.prices.some(function(paymentPrice){
+						shopPaymentType.prices.some(function(paymentPrice){
 							if ( self.settings.orderTemp.prices.priceItems>=paymentPrice.range.from && self.settings.orderTemp.prices.priceItems<paymentPrice.range.to ) {
-								// have match set the delivery price
+								// have match set the payment price
 								self.settings.orderTemp.prices.pricePayment = paymentPrice.price;
+								let paymentProduct = {
+									price: paymentPrice.price,
+									tax: paymentPrice.tax
+								};
+								paymentProduct = self.getProductTaxData(paymentProduct, businessSettings.taxData.global);
+								self.settings.orderTemp.prices.pricePaymentTaxData = paymentProduct.taxData;
 								self.settings.orderTemp.data.paymentData.price = paymentPrice.price;
+								self.settings.orderTemp.data.paymentData.taxData = paymentProduct.taxData;
 								return true;
 							}
 						});
@@ -1310,38 +1312,77 @@ module.exports = {
 			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
 			let self = this;
 			// use default VAT if not custom eg. for product
-			let tax = self.settings.defaultConstants.tax;
+			let tax = businessSettings.taxData.global.taxDecimal || self.settings.defaultConstants.tax;
 
 			// prices of items
 			if ( calculate=="all" || calculate=="items" ) {
 				this.settings.orderTemp.prices.priceItems = 0;
 				this.settings.orderTemp.prices.priceItemsNoTax = 0;
+				this.settings.orderTemp.prices.priceTaxTotal = 0;
 				this.settings.orderTemp.items.forEach(function(value){
-					self.settings.orderTemp.prices.priceItems += (value.price * value.amount);
-					if ( value.tax && value.tax!=null ) {
-						tax = value.tax;
+					if ( value.taxData ) {
+						self.settings.orderTemp.prices.priceItems += value.taxData.priceWithTax * value.amount;
+						if ( value.tax && value.tax!=null ) {
+							tax = value.tax;
+						}
+						self.settings.orderTemp.prices.priceItemsNoTax += value.taxData.priceWithoutTax * value.amount;
+						self.settings.orderTemp.prices.priceTaxTotal += value.taxData.tax * value.amount;
+					} else {
+						self.settings.orderTemp.prices.priceItems += (value.price * value.amount);
+						if ( value.tax && value.tax!=null ) {
+							tax = value.tax;
+						}
+						let priceNoTax = value.price / (1 + tax);
+						self.settings.orderTemp.prices.priceItemsNoTax += priceNoTax;
+						let taxOnly = value.price / (1 + tax);
+						self.settings.orderTemp.prices.priceTaxTotal += taxOnly;
 					}
-					let priceNoTax = value.price / (1 + tax);
-					self.settings.orderTemp.prices.priceItemsNoTax += priceNoTax;
-					let taxOnly = value.price / (1 + tax);
-					self.settings.orderTemp.prices.priceTaxTotal += taxOnly;
 				});
 				this.settings.orderTemp.prices.priceItems = this.formatPrice(this.settings.orderTemp.prices.priceItems);
 				this.settings.orderTemp.prices.priceItemsNoTax = this.formatPrice(this.settings.orderTemp.prices.priceItemsNoTax);
-				this.settings.orderTemp.prices.priceTaxTotal = this.formatPrice(this.settings.orderTemp.prices.priceTaxTotal);
+				this.settings.orderTemp.prices.priceItemsTax = this.formatPrice(this.settings.orderTemp.prices.priceTaxTotal);
+				if ( calculate=="items" ) { // format only if calculate items
+					this.settings.orderTemp.prices.priceTaxTotal = this.formatPrice(this.settings.orderTemp.prices.priceTaxTotal);
+				}
 			}
 
 			// count other totals
 			if ( calculate=="all" || calculate=="totals" ) {
-				this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
-					this.settings.orderTemp.prices.priceDelivery +
-					this.settings.orderTemp.prices.pricePayment;
-				this.settings.orderTemp.prices.priceTotal = this.formatPrice(this.settings.orderTemp.prices.priceTotal);
+				tax = businessSettings.taxData.global.taxDecimal || self.settings.defaultConstants.tax;
+				// price and tax of delivery
 				let priceDeliveryNoTax = this.settings.orderTemp.prices.priceDelivery / (1 + tax);
+				let priceDeliveryTax = this.settings.orderTemp.prices.priceDelivery * tax;
+				if ( this.settings.orderTemp.prices.priceDeliveryTaxData ) {
+					priceDeliveryNoTax = this.settings.orderTemp.prices.priceDeliveryTaxData.priceWithoutTax;
+					priceDeliveryTax = this.settings.orderTemp.prices.priceDeliveryTaxData.tax;
+				}
+				// price and tax of delivery
 				let pricePaymentNoTax = this.settings.orderTemp.prices.pricePayment / (1 + tax);
+				let pricePaymentTax = this.settings.orderTemp.prices.pricePayment * tax;
+				if ( this.settings.orderTemp.prices.pricePaymentTaxData ) {
+					pricePaymentNoTax = this.settings.orderTemp.prices.pricePaymentTaxData.priceWithoutTax;
+					pricePaymentTax = this.settings.orderTemp.prices.pricePaymentTaxData.tax;
+				}
+				// tax total with tax for delivery and payment
+				this.settings.orderTemp.prices.priceTaxTotal += priceDeliveryTax + pricePaymentTax;
+				// price total without tax
 				this.settings.orderTemp.prices.priceTotalNoTax = this.settings.orderTemp.prices.priceItemsNoTax +
 					priceDeliveryNoTax + pricePaymentNoTax;
 				this.settings.orderTemp.prices.priceTotalNoTax = this.formatPrice(this.settings.orderTemp.prices.priceTotalNoTax);
+				// total with tax, delivery and payment
+				// total for IT tax
+				if ( businessSettings.taxData.global.taxType==="IT" ) {
+					this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
+						this.settings.orderTemp.prices.priceDelivery +
+						this.settings.orderTemp.prices.pricePayment + 
+						this.settings.orderTemp.prices.priceTaxTotal;
+				} else {
+					// total for VAT tax
+					this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
+						this.settings.orderTemp.prices.priceDelivery +
+						this.settings.orderTemp.prices.pricePayment;
+				}
+				this.settings.orderTemp.prices.priceTotal = this.formatPrice(this.settings.orderTemp.prices.priceTotal);
 			}
 		},
 
@@ -1351,7 +1392,7 @@ module.exports = {
 		 * Get prices of delivery and payment from settings
 		 */
 		checkConfirmation() {
-			console.log( this.settings.orderTemp.dates.userConfirmation, this.settings.orderTemp.dates.userConfirmation, Date.now() );
+			this.logger.info("orders.checkConfirmation:", { userConfirmation: this.settings.orderTemp.dates.userConfirmation, now: Date.now() } );
 			if ( this.settings.orderTemp.dates.userConfirmation && this.settings.orderTemp.dates.userConfirmation < Date.now() ) {
 				return true;
 			} else {
@@ -1389,7 +1430,7 @@ module.exports = {
 				}); // loop items end
 			}
 
-			console.log("orders.getAvailableDeliveries.usedProductTypes:", usedProductTypes);
+			this.logger.info("orders.getAvailableDeliveries() - orders.getAvailableDeliveries.usedProductTypes:", usedProductTypes);
 
 			if ( usedProductTypes.length>0 ) {
 				if ( typeof this.settings.orderTemp.settings == "undefined" ) {
@@ -1425,7 +1466,7 @@ module.exports = {
 			let self = this;
 
 			// 1. if set url, send order. If no url or send was success, set status to Sent.
-			console.log("this.settings.order.sendingOrder: ", this.settings.order.sendingOrder);
+			this.logger.info("orders.orderAfterSaveActions() - this.settings.order.sendingOrder: ", this.settings.order.sendingOrder);
 			if ( this.settings.order.sendingOrder && this.settings.order.sendingOrder.url && this.settings.order.sendingOrder.url.toString().trim()!="" ) {
 				let auth = "Basic " + Buffer.from(this.settings.order.sendingOrder.login + ":" + this.settings.order.sendingOrder.password).toString("base64");
 				return fetch(this.settings.order.sendingOrder.url+"?action=order", {
@@ -1435,10 +1476,8 @@ module.exports = {
 				})
 					.then(res => res.json()) // expecting a json response, checking it
 					.then(orderSentResponse => {
-						console.log("orderSentResponse: ", orderSentResponse);
+						this.logger.info("orders.orderAfterSaveActions() - orderSentResponse: ", orderSentResponse);
 						// check if response has the most important information about how order was processed
-						console.log( orderSentResponse.type , orderSentResponse.type=="success" ,
-							orderSentResponse.result.status );
 						if ( orderSentResponse.type && orderSentResponse.type=="success" &&
 						orderSentResponse.result && orderSentResponse.result.status &&
 						orderSentResponse.result.order ) {
@@ -1476,7 +1515,7 @@ module.exports = {
 						}
 					})
 					.catch(orderSentError => {
-						console.log("orders.orderAfterSaveActions.fetch ERROR:", orderSentError);
+						this.logger.error("orders.orderAfterSaveActions.fetch ERROR:", orderSentError);
 					});
 			} else { // no url to send
 				// 2. clear cart + 3. send email
@@ -1548,7 +1587,7 @@ module.exports = {
 		 */
 		orderAfterAcceptedActions(ctx, orderResult) {
 			let self = this;
-			console.log("orderAfterAcceptedActions (OrderResult):", orderResult);
+			this.logger.info("orders.orderAfterAcceptedActions() - OrderResult:", orderResult);
 			// 1. clear the cart
 			return ctx.call("cart.delete")
 				.then(() => { //(cart)
@@ -1560,7 +1599,11 @@ module.exports = {
 					if ( typeof self.settings.orderTemp.addresses.invoiceAddress.email !== "undefined" && self.settings.orderTemp.addresses.invoiceAddress.email ) {
 						userEmail = self.settings.orderTemp.addresses.invoiceAddress.email;
 					}
-					console.log("\n\norders.service.orderAfterAcceptedActions:", userEmail, ctx.meta.user, self.settings.orderTemp.addresses.invoiceAddress);
+					this.logger.info("orders.orderAfterAcceptedActions():", {
+						email: userEmail, 
+						metaUser: ctx.meta.user, 
+						invoiceAddress: self.settings.orderTemp.addresses.invoiceAddress
+					});
 					ctx.call("users.sendEmail",{ // return 
 						template: "ordered",
 						data: {
@@ -1572,7 +1615,7 @@ module.exports = {
 						}
 					})
 						.then(booleanResult => {
-							console.log("Email order SENT:", booleanResult);
+							this.logger.info("orders.orderAfterAcceptedActions() - Email order SENT:", booleanResult);
 							//return true;
 						});
 					return true;
@@ -1640,7 +1683,7 @@ module.exports = {
 						try {
 							template();
 						}	catch (error) {
-							console.log("handlebars ERROR:", error);
+							this.logger.error("orders.generateInvoice() - handlebars ERROR:", error);
 						}
 						let data = {
 							order: order, 
@@ -1658,7 +1701,7 @@ module.exports = {
 								return html.toString().replace("<!-- company_logo //-->",logoCode);
 							})
 							.catch(logoCodeErr => {
-								console.log("logoCodeErr1:", logoCodeErr);
+								this.logger.error("orders.generateInvoice() - logo error:", logoCodeErr);
 								return html;
 							});
 					})
@@ -1680,12 +1723,11 @@ module.exports = {
 						pdfDocGenerator.getBuffer(function(buffer) {
 							return ensureDir(dir, 0o2775)
 								.then(() => {
-									console.log("path:", path);
 									writeFileSync(path, buffer);
-									console.log("--> " + path);
+									this.logger.info("orders.generateInvoice() - path:", path);
 								})
 								.catch(orderEnsureDirErr => {
-									console.log("orderEnsureDirErr:", orderEnsureDirErr);
+									this.logger.error("orders.generateInvoice() - orderEnsureDirErr:", orderEnsureDirErr);
 								})
 								.then(() => {
 									ctx.call("users.sendEmail",{ // return 
@@ -1703,7 +1745,7 @@ module.exports = {
 										}
 									})
 										.then(booleanResult => {
-											console.log("Email order PAID SENT:", booleanResult);
+											this.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
 											//return true;
 										});
 								});
@@ -1748,9 +1790,15 @@ module.exports = {
 		buildDataForTemplate(data) {
 			let lang = data.order.lang.code;
 			data.order.data.paymentData.nameReady = data.order.data.paymentData.name[lang];
+			// let taxItemsTotal = 
 			for(let i=0; i<data.order.items.length; i++) {
+				data.order.items[i] = this.getProductTaxData(
+					data.order.items[i], 
+					businessSettings.taxData.global
+				);
+				this.logger.info("item:", data.order.items[i]);
 				data.order.items[i].nameReady = data.order.items[i].name[lang];
-				data.order.items[i].itemTotal = data.order.items[i].price * data.order.items[i].amount;
+				data.order.items[i].itemTotal = data.order.items[i].taxData.priceWithTax * data.order.items[i].amount;
 			}
 			// reformat dates
 			Object.keys(data.order.dates).forEach(function(key) {
@@ -1806,7 +1854,7 @@ module.exports = {
 		 * @param {*} ctx 
 		 */
 		getDataToCreateUser(ctx) {
-			console.log("ctx.params.orderParams: ", ctx.params.orderParams);
+			this.logger.info("orders.getDataToCreateUser() - ctx.params.orderParams: ", ctx.params.orderParams);
 			let userName = ctx.params.orderParams.addresses.invoiceAddress.email;// +""+ ctx.params.orderParams.addresses.invoiceAddress.nameFirst;
 			if ( !ctx.params.orderParams.user.password ) {
 				userPassword = passGenerator.generate({
@@ -1815,7 +1863,6 @@ module.exports = {
 				});
 			}
 			let userPassword = ctx.params.orderParams.user.password;
-			console.log("userPassword:", userPassword);
 			let userData = {
 				user: {
 					username: userName,
@@ -1868,12 +1915,10 @@ module.exports = {
 				exp: Math.floor(exp.getTime() / 1000)
 			}, this.settings.JWT_SECRET);
 
-			// console.log("ctx.meta.makeCookies #0.0", ctx.meta.cookies);
 			if ( ctx.meta.cookies ) {
 				if (!ctx.meta.makeCookies) {
 					ctx.meta.makeCookies = {};
 				}
-				// console.log("ctx.meta.makeCookies #0.1", ctx.meta);
 				ctx.meta.makeCookies["order_no_verif"] = {
 					value: generatedJwt,
 					options: {
@@ -1884,13 +1929,10 @@ module.exports = {
 						httpOnly: true
 					}
 				};
-				// console.log("ctx.meta.makeCookies #0.2", ctx.meta);
 				if ( process.env.COOKIES_SAME_SITE ) {
 					ctx.meta.makeCookies["order_no_verif"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
 				}
-				// console.log("ctx.meta.makeCookies #0.3", ctx.meta);
 			}
-			// console.log("ctx.meta.makeCookies #1", ctx.meta.makeCookies);
 
 			return;
 		}

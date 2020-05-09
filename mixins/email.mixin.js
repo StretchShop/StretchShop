@@ -38,7 +38,6 @@ module.exports = function(emailTemplateName, inputData, requiredFormats){
 						//   let re = new RegExp("<!-- "+key+" //-->", 'g');
 						//   result.data = result.data.toString().replace(re, inputData[key]);
 						// });
-						console.log("\n\n mixins.email.inputData:", inputData);
 						let template = handlebars.compile(result.data.toString());
 						result.data = template(inputData);
 					}

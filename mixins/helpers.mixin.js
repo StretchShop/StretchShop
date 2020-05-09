@@ -165,21 +165,16 @@ module.exports = {
 			let addType = (typeof type=="undefined") ? null : type;
 			let allowedTypes = ["invoice", "delivery"];
 			let result = null;
-			console.log("addType:", addType, user.addresses);
 			if (user && user.addresses && user.addresses.length>0) {
 				user.addresses.some(function(value){
-					console.log("address value:", value);
 					if ( addType && allowedTypes.indexOf(addType)>-1 ) {
-						console.log("address value addtype check:", value.type+" == "+addType);
 						// if type set check for match
 						if ( value.type == addType ) {
 							// type matching - return address
-							console.log("address value addtype match:", value);
 							result = value;
 							return true;
 						}
 					} else {
-						console.log("get first address:");
 						// no type set or not matching - return first address
 						result = value;
 						return true;
@@ -192,7 +187,7 @@ module.exports = {
 
 
 		/**
-		 * Count price without tax from global or product tax
+		 * Count prices with & without tax from global or product tax
 		 * @returns object with zero values if nothing to count
 		 * @param {*} product 
 		 * @param {*} settings 
@@ -200,7 +195,8 @@ module.exports = {
 		getProductTaxData(product, taxSettings) {
 			let result = {
 				taxDecimal: 0, // eg. 0.2 (= 20%)
-				tax: 0, // eg. 30 (0.2 * 150)
+				tax: 0, // eg. 30 (0.2 * 150),
+				taxType: "VAT",
 				priceWithoutTax: null, // eg. 120 (150 - (0.2 * 150))
 				priceWithTax: null // eg. 120 (150 - (0.2 * 150))
 			};
@@ -215,9 +211,12 @@ module.exports = {
 			// count tax prices using taxDecimal
 			if (result.taxDecimal>0 && product && product.price) {
 				result.tax = result.taxDecimal * product.price;
+				result.taxType = taxSettings.taxType;
 				if (taxSettings.taxType == "IT") {
+					result.priceWithoutTax = product.price;
 					result.priceWithTax = product.price + (result.taxDecimal * product.price);
 				} else { // VAT as default
+					result.priceWithTax = product.price;
 					result.priceWithoutTax = product.price - (result.taxDecimal * product.price);
 				}
 			}

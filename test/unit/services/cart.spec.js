@@ -12,8 +12,6 @@ describe("Test 'cart' service", () => {
 	const serviceCart = broker.createService(CartService, {});
 	const serviceProducts = broker.createService(ProductsService, {});
 
-	// console.log("serviceCart:", serviceCart);
-
 	beforeAll(async () => {
 		await broker.start();
 		let adapter = new Datastore({ filename: `../../../data/cart.db`, autoload: true });

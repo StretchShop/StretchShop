@@ -18,7 +18,7 @@ module.exports = {
 		getCorrectFile(path) {
 			let self = this;
 			let po = this.splitPath(path); // get path object
-			console.log("\n\nPO:", po);
+			this.logger.info("mixins file.helpers - splited path: ", po);
 
 			let noLangPath = po.dir +po.sep+ po.name +"."+ po.ext;
 
@@ -95,10 +95,9 @@ module.exports = {
 			return new Promise(function(resolve, reject) {
 				fs.access(path, fs.constants.F_OK | fs.constants.R_OK, (err) => {
 					if (err) {
-						console.log("\n\nfile.helpers.fileExists ("+path+") ERROR:", err);
+						this.logger.error("mixins file.helpers - fileExists ("+path+") error:", err);
 						reject(false);
 					}
-					console.log("\n--------\nOK\n--------\n");
 					resolve(true);
 				});
 			});
@@ -113,7 +112,7 @@ module.exports = {
 				let filepath = pathResolve(path);
 				fs.readFile(filepath, "utf8", (err, data) => {
 					if (err) { 
-						console.log("file.helpers.readFile ("+path+") ERROR:", err);
+						this.logger.error("mixins file.helpers - readFile ("+path+") error:", err);
 						reject(err);
 					}
 					resolve(data);

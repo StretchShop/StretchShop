@@ -21,12 +21,12 @@ module.exports = {
 		cronTime: "0 1 * * *",
 		onTick: function() {
 
-			console.log("Starting to Clean up the Carts");
+			this.logger.info("Starting to Clean up the Carts");
 
 			this.getLocalService("cart")
 				.actions.cleanCarts()
 				.then((data) => {
-					console.log("Carts Cleaned up", data);
+					this.logger.info("Carts Cleaned up", data);
 				});
 		}
 	}],
@@ -139,14 +139,14 @@ module.exports = {
 									dateUpdated: new Date(),
 									items: null
 								};
-								console.log("\n Cart.new entity: ", entity);
+								this.logger.info("cart.me - entity: ", entity);
 								return this.adapter.insert(entity)
 									.then(doc => this.transformDocuments(ctx, {}, doc))
 									.then ( json => this.entityChanged("created", json, ctx).then(() => json));
 							}
 						})
 						.catch(err => {
-							console.log("cart err: ", err);
+							this.logger.error("cart.me - error: ", err);
 						});
 				}
 
@@ -309,7 +309,6 @@ module.exports = {
 						if (cart && cart.length>0) {
 							cart = cart[0];
 						}
-						console.log("updateCartItemAmount.cart: ", cart);
 						// check if there are any items inside
 						if ( cart.items && cart.items.length>0 ) {
 							if ( ctx.params.itemId ) {
@@ -370,7 +369,7 @@ module.exports = {
 						cart.dateUpdated = new Date();
 						// update cart in variable and datasource
 						ctx.meta.cart = cart;
-						console.log("cart.updateCart newCart: ", cart);
+						this.logger.info("cart.updateMyCart - newCart: ", cart);
 						return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
 							.then(doc => this.transformDocuments(ctx, {}, doc))
 							.then(json => this.entityChanged("updated", json, ctx).then(() => json));

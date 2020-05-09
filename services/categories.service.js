@@ -245,7 +245,7 @@ module.exports = {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
-				console.log("--- import categories ---");
+				this.logger.info("categories.import - ctx.meta");
 				let categories = ctx.params.categories;
 				let promises = [];
 				let mythis = this;
@@ -271,25 +271,25 @@ module.exports = {
 
 											return mythis.validateEntity(entity)
 												.then(() => {
-													console.log("found: ", entity);
 													if (!entity.dates) {
 														entity.dates = {};
 													}
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
+													this.logger.info("categories.import found - update entity:", entity);
 													let entityId = entity.id;
 													delete entity.id;
 													delete entity._id;
 													const update = {
 														"$set": entity
 													};
-													return mythis.adapter.updateById(entityId, update);
+													return mythis.adapter.updateById(entityId, update)
+														.then(doc => mythis.transformDocuments(ctx, {}, doc))
+														.then(json => mythis.entityChanged("updated", json, ctx).then(() => json));
 												});
 										} else { // no product found, create one
 											return mythis.validateEntity(entity)
 												.then(() => {
-													console.log("new: ", entity);
-
 													// set generic variables
 													if ( !entity.slug || entity.slug.trim() == "") {
 														let lang = ctx.meta.localsDefault.lang;
@@ -304,8 +304,8 @@ module.exports = {
 														}
 													})
 														.then(slugFound => {
-															console.log("\n\n*********************** category.import.slugFound:",slugFound);
 															if (slugFound && slugFound.constructor !== Array) {
+																this.logger.error("categories.import notFound - insert - slugFound entity:", entity);
 																return { "error" : "Slug "+entity.slug+" already used." };
 															}
 
@@ -325,6 +325,7 @@ module.exports = {
 															entity.dates.dateCreated = new Date();
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
+															this.logger.info("categories.import - insert entity:", entity);
 
 															return mythis.adapter.insert(entity)
 																.then(doc => mythis.transformDocuments(ctx, {}, doc))
@@ -338,7 +339,6 @@ module.exports = {
 
 					// return multiple promises results
 					return Promise.all(promises).then(prom => {
-						console.log("\n\n------------import prom---:", prom);
 						return prom;
 					});
 				} else { // not admin user
@@ -363,7 +363,7 @@ module.exports = {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
-				console.log("--- delete categories ---");
+				this.logger.info("categories.delete ctx.meta", ctx.meta);
 				let categories = ctx.params.categories;
 				let promises = [];
 				let mythis = this;
@@ -377,12 +377,14 @@ module.exports = {
 								mythis.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
-											console.log("DELETING category "+found._id);
+											this.logger.info("categories.delete - DELETING category: ", found);
 											return ctx.call("categories.remove", {id: found._id} )
 												.then((deletedCount) => {
-													console.log("deleted category Count: ",deletedCount);
+													this.logger.info("categories.delete - deleted category Count: ", deletedCount);
 													return deletedCount;
 												}); // returns number of removed items
+										} else {
+											this.logger.error("categories.delete - entity.id "+entity.id+" not found");
 										}
 									})
 							); // push with find end

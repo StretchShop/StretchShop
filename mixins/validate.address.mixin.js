@@ -7,7 +7,6 @@ module.exports = function(address){
 	let validAddress = true;
 
 	Object.keys(address).forEach(function(key) {
-		console.log("address["+key+"]", address[key], requiredFields.indexOf(key));
 		if ( address[key].trim()=="" && requiredFields.indexOf(key)>-1 ) {
 			errors.push({ name: key, action: "is empty" });
 			validAddress = false;

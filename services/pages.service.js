@@ -207,13 +207,12 @@ module.exports = {
 				let dirs = readdirSync(path).filter(function (file) {
 					return statSync(path+"/"+file).isDirectory();
 				});
-				console.log("listTemplates 1:", dirs);
+				this.logger.info("pages.listTemplates() - dirs", dirs);
 				let pageIndex = dirs.indexOf(ctx.params.page);
 				if (pageIndex>-1) {
 					dirs.splice(pageIndex, 1);
 				}
-				console.log("listTemplates 2:", dirs);
-				console.log("listTemplates 3:", ctx.params.query.slug);
+				this.logger.info("pages.listTemplates() - ctx.params.query.slug:", ctx.params.query.slug);
 				return dirs.filter(function(dir) {
 					return dir.indexOf(ctx.params.query.slug.toLowerCase())>-1;
 				});
@@ -270,7 +269,7 @@ module.exports = {
 					filter.sort = ctx.params.sort;
 				}
 
-				console.log("pages.filter", filter);
+				this.logger.info("pages.findWithCount - filter", filter);
 				return ctx.call("pages.find", filter)
 					.then(categoryPages => {
 						let result = {
@@ -389,7 +388,7 @@ module.exports = {
 								return result;
 							})
 							.catch( err => {
-								console.log("readFile error:", err);
+								this.logger.error("pages.detail - readFile error: ", err);
 							})
 							.then( result => {
 								// check if WYSIWYG editor placeholder exists in string
@@ -510,7 +509,7 @@ module.exports = {
 							});
 					})
 					.catch( error => {
-						console.log("error:", error);
+						this.logger.error("pages.detail - error:", error);
 					});
 			}
 		},
@@ -554,7 +553,7 @@ module.exports = {
 			},
 			cache: false,
 			handler(ctx) {
-				console.log("--- import pages ---");
+				this.logger.info("pages.import - ctx.meta");
 				let pages = ctx.params.pages;
 				let promises = [];
 				let mythis = this;
@@ -568,7 +567,6 @@ module.exports = {
 								mythis.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // page found, update it
-											console.log("\n\n page entity found:", entity);
 
 											if ( entity && entity.dates ) {
 												Object.keys(entity.dates).forEach(function(key) {
@@ -586,6 +584,7 @@ module.exports = {
 													}
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
+													this.logger.info("pages.import found - update entity:", entity);
 													let entityId = entity.id;
 													delete entity.id;
 													const update = {
@@ -614,6 +613,7 @@ module.exports = {
 													})
 														.then(slugFound => {
 															if (slugFound && slugFound.constructor !== Array) {
+																this.logger.error("pages.import notFound - insert - slugFound entity:", entity);
 																return { "error" : "Slug "+entity.slug+" already used." };
 															}
 
@@ -627,6 +627,7 @@ module.exports = {
 															entity.dates.dateCreated = new Date();
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
+															this.logger.info("pages.import - insert entity:", entity);
 
 															return mythis.adapter.insert(entity)
 																.then(doc => mythis.transformDocuments(ctx, {}, doc))
@@ -665,7 +666,7 @@ module.exports = {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
-				console.log("--- delete pages ---");
+				this.logger.info("pages.delete ctx.meta", ctx.meta);
 				let pages = ctx.params.pages;
 				let promises = [];
 				let mythis = this;
@@ -679,14 +680,14 @@ module.exports = {
 								mythis.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // page found, delete it
-											console.log("DELETING page "+found._id);
+											this.logger.info("pages.delete - DELETING page: ", found);
 											return ctx.call("pages.remove", {id: found._id} )
 												.then((deletedCount) => {
-													console.log("deleted page Count: ",deletedCount);
+													this.logger.info("pages.delete - deleted page Count: ", deletedCount);
 													return deletedCount;
 												}); // returns number of removed items
 										} else {
-											console.log(entity.id+" not found");
+											this.logger.error("pages.delete - entity.id "+entity.id+" not found");
 										}
 									})); // push with find end
 						});
@@ -710,9 +711,8 @@ module.exports = {
 				params: { type: "object" }
 			},
 			handler(ctx) {
-				console.log("updatePageImage ctx.params:", ctx.params);
 				if (ctx.params.params && ctx.params.params.slug) {
-					console.log("page.updatePageImage");
+					this.logger.info("page.updatePageImage - has slug: ", ctx.params.params.slug);
 					return;
 				}
 				return;
@@ -735,13 +735,12 @@ module.exports = {
 						}
 					})
 						.then(pages => {
-							// console.log("product.checkAuthor", products);
 							if (pages && pages.length>0 && pages[0].slug==ctx.params.data.slug) {
 								return true;
 							}
 						})
 						.catch(err => {
-							console.log("\n PAGE checkAuthor ERROR: ", err);
+							this.logger.error("pages.checkAuthor() - error: ", err);
 							return false;
 						});
 				}
@@ -778,7 +777,7 @@ module.exports = {
 		checkAndRunPageFunctions(ctx, page, lang) {
 			if ( page && page.data && page.data.blocks[0] && page.data.blocks[0][lang] ) {
 				let pageFunctions = this.getPageFunctions(page.data.blocks[0][lang]);
-				console.log("pageFunctions: ", pageFunctions);
+				this.logger.info("pages.checkAndRunPageFunctions() - pageFunctions: ", pageFunctions);
 
 				if (pageFunctions && pageFunctions.length>0) {
 					let promises = [];
@@ -789,7 +788,6 @@ module.exports = {
 						}
 					}
 					return Promise.all(promises).then((values) => {
-						console.log("values: ", values);
 						return values;
 					});
 				}
@@ -858,7 +856,7 @@ module.exports = {
 										products[i]["categoriesData"][catKey] = catVal;
 									}
 								}
-								console.log("products: ", products);
+								this.logger.info("pages.getProductsById() - products: ", products);
 								return {
 									name: "getProductsById",
 									data: products,

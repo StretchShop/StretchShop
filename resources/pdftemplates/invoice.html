@@ -71,14 +71,14 @@
       <th style="font-size:10px;">Počet</th>
       <th style="font-size:10px;">%<br />DPH</th>
       <th style="font-size:10px;">Cena/ks<br />bez DPH</th>
-      <th style="font-size:10px;">Suma<br />bez DPH</th>
+      <th style="font-size:10px;">Suma<br />s DPH</th>
     </tr>
     {{#each order.items}}
     <tr>
       <td style="font-size:10px;">{{nameReady}}</td>
       <td style="font-size:10px;">{{amount}}</td>
       <td style="font-size:10px;">{{tax}}</td>
-      <td style="font-size:10px;">{{price}} {{../order.prices.currency.symbol}}</td>
+      <td style="font-size:10px;">{{taxData.priceWithoutTax}} {{../order.prices.currency.symbol}}</td>
       <td style="font-size:10px;">{{itemTotal}} {{../order.prices.currency.symbol}}</td>
     </tr>
     {{/each}}
@@ -108,11 +108,15 @@
         <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;,&quot;*&quot;]}">
           <tr>
             <td style="font-size:10px;">Spolu bez DPH</td>
-            <td style="font-size:10px;">{{order.prices.priceTotal}} {{order.prices.currency.symbol}}</td>
+            <td style="font-size:10px;">{{order.prices.priceTotalNoTax}} {{order.prices.currency.symbol}}</td>
           </tr>
           <tr>
             <td style="font-size:10px;">Spolu DPH</td>
-            <td style="font-size:10px;">0.00 {{order.prices.currency.symbol}}</td>
+            <td style="font-size:10px;">{{order.prices.priceTaxTotal}} {{order.prices.currency.symbol}}</td>
+          </tr>
+          <tr>
+            <td style="font-size:10px;">Spolu s DPH</td>
+            <td style="font-size:10px;">{{order.prices.priceTotal}} {{order.prices.currency.symbol}}</td>
           </tr>
           <tr>
             <td style="font-size:10px;">Uhradené</td>
