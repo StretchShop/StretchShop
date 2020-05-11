@@ -776,7 +776,7 @@ module.exports = {
 						let emailSentResponse = new Promise(function(resolve, reject) {
 							transporter.sendMail(mailOptions, (error, info) => {
 								if (error) {
-									this.logger.error("users.sendEmail sendMail error: ", this.logger.info)
+									this.logger.error("users.sendEmail sendMail error: ", this.logger.info);
 									reject(false);
 								}
 								if ( info && info.messageId ) {

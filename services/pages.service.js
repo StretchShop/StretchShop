@@ -556,7 +556,7 @@ module.exports = {
 				this.logger.info("pages.import - ctx.meta");
 				let pages = ctx.params.pages;
 				let promises = [];
-				let mythis = this;
+				let self = this;
 
 				if (ctx.meta.user.type=="admin") {
 					if ( pages && pages.length>0 ) {
@@ -564,7 +564,7 @@ module.exports = {
 						pages.forEach(function(entity) {
 							promises.push(
 								// add page results into result variable
-								mythis.adapter.findById(entity.id)
+								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // page found, update it
 
@@ -577,25 +577,25 @@ module.exports = {
 												});
 											}
 
-											return mythis.validateEntity(entity)
+											return self.validateEntity(entity)
 												.then(() => {
 													if (!entity.dates) {
 														entity.dates = {};
 													}
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
-													this.logger.info("pages.import found - update entity:", entity);
+													self.logger.info("pages.import found - update entity:", entity);
 													let entityId = entity.id;
 													delete entity.id;
 													const update = {
 														"$set": entity
 													};
-													return mythis.adapter.updateById(entityId, update)
-														.then(doc => mythis.transformDocuments(ctx, {}, doc))
-														.then(json => mythis.entityChanged("updated", json, ctx).then(() => json));
+													return self.adapter.updateById(entityId, update)
+														.then(doc => self.transformDocuments(ctx, {}, doc))
+														.then(json => self.entityChanged("updated", json, ctx).then(() => json));
 												});
 										} else { // no page found, create one
-											return mythis.validateEntity(entity)
+											return self.validateEntity(entity)
 												.then(() => {
 													// set generic variables
 													if ( !entity.slug || entity.slug.trim() == "") {
@@ -613,7 +613,7 @@ module.exports = {
 													})
 														.then(slugFound => {
 															if (slugFound && slugFound.constructor !== Array) {
-																this.logger.error("pages.import notFound - insert - slugFound entity:", entity);
+																self.logger.error("pages.import notFound - insert - slugFound entity:", entity);
 																return { "error" : "Slug "+entity.slug+" already used." };
 															}
 
@@ -627,11 +627,11 @@ module.exports = {
 															entity.dates.dateCreated = new Date();
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
-															this.logger.info("pages.import - insert entity:", entity);
+															self.logger.info("pages.import - insert entity:", entity);
 
-															return mythis.adapter.insert(entity)
-																.then(doc => mythis.transformDocuments(ctx, {}, doc))
-																.then(json => mythis.entityChanged("created", json, ctx).then(() => json));
+															return self.adapter.insert(entity)
+																.then(doc => self.transformDocuments(ctx, {}, doc))
+																.then(json => self.entityChanged("created", json, ctx).then(() => json));
 														});
 												});
 										}
@@ -669,7 +669,7 @@ module.exports = {
 				this.logger.info("pages.delete ctx.meta", ctx.meta);
 				let pages = ctx.params.pages;
 				let promises = [];
-				let mythis = this;
+				let self = this;
 
 				if (ctx.meta.user.type=="admin") {
 					if ( pages && pages.length>0 ) {
@@ -677,17 +677,17 @@ module.exports = {
 						pages.forEach(function(entity) {
 							promises.push(
 								// add page results into result variable
-								mythis.adapter.findById(entity.id)
+								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // page found, delete it
-											this.logger.info("pages.delete - DELETING page: ", found);
+											self.logger.info("pages.delete - DELETING page: ", found);
 											return ctx.call("pages.remove", {id: found._id} )
 												.then((deletedCount) => {
-													this.logger.info("pages.delete - deleted page Count: ", deletedCount);
+													self.logger.info("pages.delete - deleted page Count: ", deletedCount);
 													return deletedCount;
 												}); // returns number of removed items
 										} else {
-											this.logger.error("pages.delete - entity.id "+entity.id+" not found");
+											self.logger.error("pages.delete - entity.id "+entity.id+" not found");
 										}
 									})); // push with find end
 						});

@@ -248,7 +248,7 @@ module.exports = {
 				this.logger.info("categories.import - ctx.meta");
 				let categories = ctx.params.categories;
 				let promises = [];
-				let mythis = this;
+				let self = this;
 
 				if (ctx.meta.user.type=="admin") {
 					if ( categories && categories.length>0 ) {
@@ -256,7 +256,7 @@ module.exports = {
 						categories.forEach(function(entity) {
 							promises.push(
 								// add product results into result variable
-								mythis.adapter.findById(entity.id)
+								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
 
@@ -269,26 +269,26 @@ module.exports = {
 												});
 											}
 
-											return mythis.validateEntity(entity)
+											return self.validateEntity(entity)
 												.then(() => {
 													if (!entity.dates) {
 														entity.dates = {};
 													}
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
-													this.logger.info("categories.import found - update entity:", entity);
+													self.logger.info("categories.import found - update entity:", entity);
 													let entityId = entity.id;
 													delete entity.id;
 													delete entity._id;
 													const update = {
 														"$set": entity
 													};
-													return mythis.adapter.updateById(entityId, update)
-														.then(doc => mythis.transformDocuments(ctx, {}, doc))
-														.then(json => mythis.entityChanged("updated", json, ctx).then(() => json));
+													return self.adapter.updateById(entityId, update)
+														.then(doc => self.transformDocuments(ctx, {}, doc))
+														.then(json => self.entityChanged("updated", json, ctx).then(() => json));
 												});
 										} else { // no product found, create one
-											return mythis.validateEntity(entity)
+											return self.validateEntity(entity)
 												.then(() => {
 													// set generic variables
 													if ( !entity.slug || entity.slug.trim() == "") {
@@ -305,7 +305,7 @@ module.exports = {
 													})
 														.then(slugFound => {
 															if (slugFound && slugFound.constructor !== Array) {
-																this.logger.error("categories.import notFound - insert - slugFound entity:", entity);
+																self.logger.error("categories.import notFound - insert - slugFound entity:", entity);
 																return { "error" : "Slug "+entity.slug+" already used." };
 															}
 
@@ -325,11 +325,11 @@ module.exports = {
 															entity.dates.dateCreated = new Date();
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
-															this.logger.info("categories.import - insert entity:", entity);
+															self.logger.info("categories.import - insert entity:", entity);
 
-															return mythis.adapter.insert(entity)
-																.then(doc => mythis.transformDocuments(ctx, {}, doc))
-																.then(json => mythis.entityChanged("created", json, ctx).then(() => json));
+															return self.adapter.insert(entity)
+																.then(doc => self.transformDocuments(ctx, {}, doc))
+																.then(json => self.entityChanged("created", json, ctx).then(() => json));
 														});
 												});
 										} // else end
@@ -366,7 +366,7 @@ module.exports = {
 				this.logger.info("categories.delete ctx.meta", ctx.meta);
 				let categories = ctx.params.categories;
 				let promises = [];
-				let mythis = this;
+				let self = this;
 
 				if (ctx.meta.user.type=="admin") {
 					if ( categories && categories.length>0 ) {
@@ -374,17 +374,17 @@ module.exports = {
 						categories.forEach(function(entity) {
 							promises.push(
 								// add product results into result variable
-								mythis.adapter.findById(entity.id)
+								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
-											this.logger.info("categories.delete - DELETING category: ", found);
+											self.logger.info("categories.delete - DELETING category: ", found);
 											return ctx.call("categories.remove", {id: found._id} )
 												.then((deletedCount) => {
-													this.logger.info("categories.delete - deleted category Count: ", deletedCount);
+													self.logger.info("categories.delete - deleted category Count: ", deletedCount);
 													return deletedCount;
 												}); // returns number of removed items
 										} else {
-											this.logger.error("categories.delete - entity.id "+entity.id+" not found");
+											self.logger.error("categories.delete - entity.id "+entity.id+" not found");
 										}
 									})
 							); // push with find end
