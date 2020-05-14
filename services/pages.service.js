@@ -196,12 +196,18 @@ module.exports = {
 		 * list templates
 		 */
 		listTemplates: {
+			auth: "required",
 			params: {
 				page: { type: "string", min: 2 },
 				query: { type: "object" },
-				group: { type: "string", min: 2, optional: true }
+				group: { type: "string", min: 2, optional: true },
+				withPages: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
+				let withPages = true;
+				if (typeof ctx.params.withPages !== "undefined" && !ctx.params.withPages) {
+					withPages = false;
+				}
 				// TODO - use group default option;
 				let path = this.settings.paths.resources+"/pages/_default";
 				let dirs = readdirSync(path).filter(function (file) {
@@ -213,9 +219,30 @@ module.exports = {
 					dirs.splice(pageIndex, 1);
 				}
 				this.logger.info("pages.listTemplates() - ctx.params.query.slug:", ctx.params.query.slug);
-				return dirs.filter(function(dir) {
+				dirs = dirs.filter(function(dir) {
 					return dir.indexOf(ctx.params.query.slug.toLowerCase())>-1;
 				});
+
+				if (withPages) {
+					return ctx.call("pages.findWithId", {
+						"query": {
+							"slug": { "$regex": ctx.params.query.slug.toLowerCase() }
+						}
+					})
+						.then(pages => {
+							let results = dirs;
+							if (pages && pages.length>0) {
+								pages.some(function(page){
+									if (page && page.slug) {
+										results.push(page.slug);
+									}
+								});
+							}
+							return results;
+						});
+				} else {
+					return dirs;
+				}
 			}
 		},
 
@@ -435,7 +462,7 @@ module.exports = {
 											result.global.usedCategories = hasStaticCategories ? "static" : "dynamic";
 											result.global.parentCategorySlug = category;
 											//
-											let pages = null; 
+											let pages = []; 
 											// check what pages will be used
 											let hasStaticPages = ( result.staticData && result.staticData.pages && result.staticData.pages.length>0 );
 											if ( hasStaticPages ) {

@@ -78,6 +78,7 @@ module.exports = {
 		// Pages
 		"GET /pages/:category": "pages.pagesList",
 		"POST /pages/find": "pages.findWithCount",
+		"POST /pages/filter": "pages.findWithCount",
 		"POST /pages/listTemplates/:page": "pages.listTemplates",
 		"POST /pages/:category": "pages.pagesList", // needed for category with filter url
 		"GET /pages/:category/detail/:page": "pages.detail",

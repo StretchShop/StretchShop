@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.3.34",
+  "version": "0.3.37",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "scripts": {
@@ -25,7 +25,6 @@
     "eslint": "^6.8.0",
     "jest": "^25.2.3",
     "jest-cli": "^25.2.3",
-    "moleculer-repl": "^0.6.3",
     "npm-check": "5.9.2"
   },
   "dependencies": {
@@ -49,6 +48,7 @@
     "moleculer-db": "^0.8.6",
     "moleculer-db-adapter-mongo": "^0.4.8",
     "moleculer-web": "0.9.1",
+    "moleculer-repl": "^0.6.3",
     "nats": "^1.4.8",
     "ncp": "^2.0.0",
     "node-fetch": "^2.6.0",
