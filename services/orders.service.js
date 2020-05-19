@@ -1219,7 +1219,7 @@ module.exports = {
 								self.settings.orderTemp.data.deliveryData.codename[typeKey] = {};
 								// need to filter language later
 								self.settings.orderTemp.data.deliveryData.codename[typeKey].value = shopDeliveryType.codename;
-								this.logger.info("orders.checkOrderData() - shopDeliveryType: ", shopDeliveryType);
+								self.logger.info("orders.checkOrderData() - shopDeliveryType: ", shopDeliveryType);
 								// count item prices to get total for getting delivery price
 								self.settings.orderTemp.prices.priceItems = 0;
 								self.countOrderPrices("items");
@@ -1264,7 +1264,7 @@ module.exports = {
 					if ( shopPaymentType && shopPaymentType.codename==paymentType ) {
 						// need to filter language later
 						self.settings.orderTemp.data.paymentData.name = shopPaymentType.name;
-						this.logger.info("orders.checkOrderData() - shopPaymentType: ", shopPaymentType);
+						self.logger.info("orders.checkOrderData() - shopPaymentType: ", shopPaymentType);
 						//--
 						if ( self.settings.orderTemp.prices.priceItems <= 0 ) {
 							self.countOrderPrices("items");

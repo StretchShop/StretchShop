@@ -99,7 +99,10 @@ module.exports = {
 				dateSynced: { type: "date", optional: true },
 			}},
 			note: { type: "string", optional: true },
-			activity: { type: "number", optional: true },
+			activity: { type: "object", optional: true, props: {
+				start: { type: "date", optional: true },
+				end: { type: "date", optional: true }
+			}},
 		}
 	},
 
@@ -340,14 +343,19 @@ module.exports = {
 									});
 							} else {
 								found["parentCategoryDetail"] = null;
+								return found;
 							}
-						} else { // no product found, create one
+						} else { // no product found
+							this.logger.info("products.detail - product not found");
 							return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found"}]));
 						}
 					})
+					.catch(err => {
+						this.logger.error("products.detail - found error", err);
+					})
 					.then(found => {
 						// optional data
-						if (typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
+						if (found && typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
 							return this.adapter.find({
 								"query": {
 									"variationGroupId": found.variationGroupId,
@@ -365,7 +373,7 @@ module.exports = {
 						return found;
 					})
 					.then(found => {
-						if (typeof found.data!=="undefined" && found.data.related && found.data.related.products && found.data.related.products.length>0) {
+						if (found && typeof found.data!=="undefined" && found.data.related && found.data.related.products && found.data.related.products.length>0) {
 							return this.adapter.find({
 								"query": {
 									"orderCode": {"$in": found.data.related.products}

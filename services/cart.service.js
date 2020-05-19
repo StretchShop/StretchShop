@@ -72,6 +72,12 @@ module.exports = {
 							tax: { type: "number", positive: true },
 						}
 					},
+					requirements: { type: "array", items: { type: "object", props: 
+						{
+							codename: { type: "string" },
+							value: { type: "string" }
+						}
+					}},
 					url: { type: "string", min: 2 },
 				}
 			}}
@@ -163,7 +169,8 @@ module.exports = {
 			cache: false,
 			params: {
 				itemId: { type: "string", min: 3 },
-				amount: { type: "number", positive: true }
+				amount: { type: "number", positive: true },
+				requirements: { type: "array", optional: true }
 			},
 			handler(ctx) {
 				// 1. check if product with that properties exists and
@@ -185,6 +192,11 @@ module.exports = {
 						return productAvailable;
 					})
 					.then(productAvailable => {
+						// if requirements available, add them
+						if (ctx.params.requirements && ctx.params.requirements.length>0) {
+							productAvailable["requirements"] = ctx.params.requirements;
+						}
+
 						return ctx.call("cart.me")
 							.then(cart => {
 								if (cart && cart.length>0) {
@@ -220,7 +232,8 @@ module.exports = {
 										cart.items = null;
 									}
 								}
-								// TODO - update stockAmount of product
+
+
 								cart.dateUpdated = new Date();
 
 								// 3. add to cart and write to datasource
@@ -228,7 +241,6 @@ module.exports = {
 								return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
 									.then(doc => this.transformDocuments(ctx, {}, doc))
 									.then(json => this.entityChanged("updated", json, ctx).then(() => json));
-								//return ctx.meta.cart;
 							});
 					});
 			}
@@ -328,6 +340,10 @@ module.exports = {
 										if (cart.items[productInCart].amount<=0) {
 											// if new amount less or equal to 0, remove whole product
 											cart.items.splice(productInCart, 1);
+										}
+										// if product contains requirements, remove amount
+										if (cart.items[productInCart].requirements && cart.items[productInCart].requirements.length>0) {
+											cart.items[productInCart].amount = 1;
 										}
 									}
 								}
