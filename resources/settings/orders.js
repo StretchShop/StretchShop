@@ -11,7 +11,7 @@ module.exports = {
 	deliveryMethods: [
 		{
 			codename: "personaly",
-			type: "physical",
+			type: "physical", // use if cart has ALSO physical product
 			name: {
 				"en": "Personaly on Branch",
 				"sk": "Osobne na Pobočke"
@@ -26,7 +26,7 @@ module.exports = {
 		},
 		{
 			codename: "courier",
-			type: "physical",
+			type: "physical", // use if cart has ALSO physical product
 			name: {
 				"en": "Courier",
 				"sk": "Kuriér"
@@ -45,7 +45,7 @@ module.exports = {
 		},
 		{
 			codename: "download",
-			type: "digital",
+			type: "digital", // use if cart has ALSO physical product
 			name: {
 				"en": "Download",
 				"sk": "Stiahnuť"
@@ -66,7 +66,7 @@ module.exports = {
 	paymentMethods: [
 		{
 			codename: "cod",
-			type: "product",
+			type: "physical", // show if cart has ONLY the physical products
 			name: {
 				"en": "Cash On Delivery",
 				"sk": "Platba Pri Doručení"
@@ -84,7 +84,7 @@ module.exports = {
 				}
 			]
 		},
-		{
+		{ // show if cart has any subtype of products
 			codename: "online_paypal_paypal",
 			name: {
 				"en": "Pay online with Paypal (Card, PayPal)",

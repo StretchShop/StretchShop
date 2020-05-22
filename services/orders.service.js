@@ -1199,44 +1199,81 @@ module.exports = {
 			this.settings.orderErrors.orderErrors = [];
 			let self = this;
 
+			// get order item types and subtypes - itemsTypology
+			let itemsTypology = { types: [], subtypes: [] };
+			this.settings.orderTemp.items.some(function(product){
+				// check if type not in array
+				if ( product && product.type && itemsTypology.types.indexOf(product.type)===-1 ) {
+					itemsTypology.types.push(product.type);
+				}
+				// check if subtype not in array
+				if ( product && product.subtype && itemsTypology.subtypes.indexOf(product.subtype)===-1 ) {
+					itemsTypology.subtypes.push(product.subtype);
+				}
+			});
+			
+			/**
+			 * Check received delivery data:
+			 * 1. loop received delivery types (digital, physical)
+			 * 2. check if delivery type is in shop settings
+			 * 3. get price for that type
+			 * 4. if some type is missing in itemsTypology.subtypes, return false
+			 */
 			// check if delivery type is set
 			if ( this.settings.orderTemp.data.deliveryData && this.settings.orderTemp.data.deliveryData.codename ) {
 				let deliveryType = this.settings.orderTemp.data.deliveryData.codename;
 				this.settings.orderTemp.data.deliveryData = { "codename": deliveryType };
 				let deliveryMethodExists = false;
+				let processedDeliveryMethodCodenames = [];
+				self.settings.orderTemp.prices.priceDelivery = 0;
+				self.settings.orderTemp.prices.priceDeliveryTaxData = null;
 
-				// go through delivery types of order
+				// go through delivery types of order (like physical, digital, ...)
 				Object.keys(deliveryType).forEach(function(typeKey){
 					// check if delivery type has values
 					if (deliveryType[typeKey]!=null) {
-						// loop delivery types of this e-shop
+						// loop delivery types of this shop
 						self.settings.order.deliveryMethods.some(function(shopDeliveryType){
 							if ( !deliveryType[typeKey].value ) {
 								let valueTemp = deliveryType[typeKey];
 								deliveryType[typeKey] = { value: valueTemp };
 							}
 							if ( shopDeliveryType && shopDeliveryType.codename==deliveryType[typeKey].value ) {
+								// delivery type exists in shop settings
 								self.settings.orderTemp.data.deliveryData.codename[typeKey] = {};
 								// need to filter language later
 								self.settings.orderTemp.data.deliveryData.codename[typeKey].value = shopDeliveryType.codename;
 								self.logger.info("orders.checkOrderData() - shopDeliveryType: ", shopDeliveryType);
 								// count item prices to get total for getting delivery price
 								self.settings.orderTemp.prices.priceItems = 0;
-								self.countOrderPrices("items");
+								// get delivery price specific to type of product (physical, digital, ...)
+								// first count total prices for that specific type of items, to get valid price
+								self.countOrderPrices("items", shopDeliveryType.type); // shopDeliveryType.codename = digital, physical, ...
 								if ( self.settings.orderTemp.prices.priceItems>0 ) {
-									// TODO - check if all items in cart are physical / digital and change delivery according to it
+									// get delivery price for that specific type and items total
 									shopDeliveryType.prices.some(function(deliveryPrice){
 										if ( self.settings.orderTemp.prices.priceItems>=deliveryPrice.range.from && self.settings.orderTemp.prices.priceItems<deliveryPrice.range.to ) {
 											// have match - set the delivery price
-											self.settings.orderTemp.prices.priceDelivery = deliveryPrice.price;
+											self.settings.orderTemp.prices.priceDelivery += deliveryPrice.price;
 											let deliveryProduct = {
 												price: deliveryPrice.price,
 												tax: deliveryPrice.tax
 											};
 											deliveryProduct = self.getProductTaxData(deliveryProduct, businessSettings.taxData.global);
-											self.settings.orderTemp.prices.priceDeliveryTaxData = deliveryProduct.taxData;
+											if ( self.settings.orderTemp.prices.priceDeliveryTaxData == null) {
+												self.settings.orderTemp.prices.priceDeliveryTaxData = deliveryProduct.taxData;
+												self.logger.error("Option #1", self.settings.orderTemp.prices.priceDeliveryTaxData, deliveryProduct.taxData);
+											} else {
+												self.settings.orderTemp.prices.priceDeliveryTaxData.priceWithTax += deliveryProduct.taxData.priceWithTax;
+												self.settings.orderTemp.prices.priceDeliveryTaxData.priceWithoutTax += deliveryProduct.taxData.priceWithoutTax;
+												self.settings.orderTemp.prices.priceDeliveryTaxData.tax += deliveryProduct.taxData.tax;
+											}
 											self.settings.orderTemp.data.deliveryData.codename[typeKey].price = deliveryPrice.price;
 											self.settings.orderTemp.data.deliveryData.codename[typeKey].taxData = deliveryProduct.taxData;
+											// add this (physical, digital) to processed delivery methods
+											if ( processedDeliveryMethodCodenames.indexOf(shopDeliveryType.type)==-1 ) {
+												processedDeliveryMethodCodenames.push(shopDeliveryType.type);
+											}
 											return true;
 										}
 									});
@@ -1247,10 +1284,37 @@ module.exports = {
 						});
 					}
 				});
+				self.countOrderPrices("items");
+
+				// 4. check if no received delivery method is missing for ordered items
+				if (deliveryMethodExists && processedDeliveryMethodCodenames) {
+					if ( processedDeliveryMethodCodenames.length>0 ) {
+						// loop typology to see if nothing is missing
+						let typeMissing = false;
+						itemsTypology.subtypes.some(function(type){
+							if ( processedDeliveryMethodCodenames.indexOf(type)==-1 ) {
+								typeMissing = true;
+								return false;
+							}
+						});
+						if ( typeMissing ) {
+							deliveryMethodExists = false;
+							this.logger.error("order.checkOrderData() - delivery type missing");
+							this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
+						}
+					} else {
+						deliveryMethodExists = false;
+						this.logger.error("order.checkOrderData() - delivery types not processed");
+						this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
+					}
+				}
+
 				if (!deliveryMethodExists) {
+					this.logger.error("order.checkOrderData() - delivery type not exist");
 					this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
 				}
 			} else {
+				this.logger.error("order.checkOrderData() - delivery type not set");
 				this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not set"});
 			}
 
@@ -1259,9 +1323,13 @@ module.exports = {
 				let paymentType = this.settings.orderTemp.data.paymentData.codename;
 				this.settings.orderTemp.data.paymentData = { "codename": paymentType };
 				let paymentMethodExists = false;
+				let selectedPaymentMethod = null;
 
+				// check if payment method is set in shop order.js settings
 				this.settings.order.paymentMethods.some(function(shopPaymentType){
 					if ( shopPaymentType && shopPaymentType.codename==paymentType ) {
+						// payment method is valid - store its data for later
+						selectedPaymentMethod = paymentType;
 						// need to filter language later
 						self.settings.orderTemp.data.paymentData.name = shopPaymentType.name;
 						self.logger.info("orders.checkOrderData() - shopPaymentType: ", shopPaymentType);
@@ -1288,6 +1356,18 @@ module.exports = {
 						return true;
 					}
 				});
+
+				// check if payment method is valid to items
+				if (paymentMethodExists && selectedPaymentMethod && selectedPaymentMethod.type) {
+					// type is set, that means it's limited only to specific subtype
+					// check if payment type restriction IS in itemsTypology.subtypes
+					// if there are more product types in order and this one specific is there, this payment method cannot be used
+					if ( itemsTypology.subtypes.length>1 && itemsTypology.subtypes.indexOf(selectedPaymentMethod.type)>-1 ) {
+						paymentMethodExists = false;
+						this.settings.orderErrors.orderErrors.push({"value": "Payment type", "desc": "not valid"});
+					}
+				}
+
 				if (!paymentMethodExists) {
 					this.settings.orderErrors.orderErrors.push({"value": "Payment type", "desc": "not found"});
 				}
@@ -1307,9 +1387,10 @@ module.exports = {
 		/**
 		 * Count cart items total price and order total prices
 		 */
-		countOrderPrices(calculate) {
+		countOrderPrices(calculate, specification) {
 			let calcTypes = ["all", "items", "totals"];
 			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
+			specification = typeof specification !== "undefined" ?  specification : null;
 			let self = this;
 			// use default VAT if not custom eg. for product
 			let tax = businessSettings.taxData.global.taxDecimal || self.settings.defaultConstants.tax;
@@ -1319,25 +1400,36 @@ module.exports = {
 				this.settings.orderTemp.prices.priceItems = 0;
 				this.settings.orderTemp.prices.priceItemsNoTax = 0;
 				this.settings.orderTemp.prices.priceTaxTotal = 0;
-				this.settings.orderTemp.items.forEach(function(value){
-					if ( value.taxData ) {
-						self.settings.orderTemp.prices.priceItems += value.taxData.priceWithTax * value.amount;
-						if ( value.tax && value.tax!=null ) {
-							tax = value.tax;
+				this.settings.orderTemp.items
+					.filter(function(item){
+						// if specification is set items are filtered for calculation by subtype - eg. only digital items
+						if (specification && specification!=null) {
+							if ( item.subtype==specification ) {
+								return true;
+							}
+							return false;
 						}
-						self.settings.orderTemp.prices.priceItemsNoTax += value.taxData.priceWithoutTax * value.amount;
-						self.settings.orderTemp.prices.priceTaxTotal += value.taxData.tax * value.amount;
-					} else {
-						self.settings.orderTemp.prices.priceItems += (value.price * value.amount);
-						if ( value.tax && value.tax!=null ) {
-							tax = value.tax;
+						return true;
+					})
+					.forEach(function(value){
+						if ( value.taxData ) {
+							self.settings.orderTemp.prices.priceItems += value.taxData.priceWithTax * value.amount;
+							if ( value.tax && value.tax!=null ) {
+								tax = value.tax;
+							}
+							self.settings.orderTemp.prices.priceItemsNoTax += value.taxData.priceWithoutTax * value.amount;
+							self.settings.orderTemp.prices.priceTaxTotal += value.taxData.tax * value.amount;
+						} else {
+							self.settings.orderTemp.prices.priceItems += (value.price * value.amount);
+							if ( value.tax && value.tax!=null ) {
+								tax = value.tax;
+							}
+							let priceNoTax = value.price / (1 + tax);
+							self.settings.orderTemp.prices.priceItemsNoTax += priceNoTax;
+							let taxOnly = value.price / (1 + tax);
+							self.settings.orderTemp.prices.priceTaxTotal += taxOnly;
 						}
-						let priceNoTax = value.price / (1 + tax);
-						self.settings.orderTemp.prices.priceItemsNoTax += priceNoTax;
-						let taxOnly = value.price / (1 + tax);
-						self.settings.orderTemp.prices.priceTaxTotal += taxOnly;
-					}
-				});
+					});
 				this.settings.orderTemp.prices.priceItems = this.formatPrice(this.settings.orderTemp.prices.priceItems);
 				this.settings.orderTemp.prices.priceItemsNoTax = this.formatPrice(this.settings.orderTemp.prices.priceItemsNoTax);
 				this.settings.orderTemp.prices.priceItemsTax = this.formatPrice(this.settings.orderTemp.prices.priceTaxTotal);
