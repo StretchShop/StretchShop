@@ -883,7 +883,6 @@ module.exports = {
 										products[i]["categoriesData"][catKey] = catVal;
 									}
 								}
-								this.logger.info("pages.getProductsById() - products: ", products);
 								return {
 									name: "getProductsById",
 									data: products,
