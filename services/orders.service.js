@@ -1722,6 +1722,8 @@ module.exports = {
 		 * @param {*} ctx 
 		 */
 		generateInvoice(order, ctx) {
+			let self = this;
+
 			if (order) {
 				let parentDir = this.settings.paths.resources+"/pdftemplates/";
 				parentDir = this.removeParentTraversing(parentDir);
@@ -1816,10 +1818,10 @@ module.exports = {
 							return ensureDir(dir, 0o2775)
 								.then(() => {
 									writeFileSync(path, buffer);
-									this.logger.info("orders.generateInvoice() - path:", path);
+									self.logger.info("orders.generateInvoice() - path:", path);
 								})
 								.catch(orderEnsureDirErr => {
-									this.logger.error("orders.generateInvoice() - orderEnsureDirErr:", orderEnsureDirErr);
+									self.logger.error("orders.generateInvoice() - orderEnsureDirErr:", orderEnsureDirErr);
 								})
 								.then(() => {
 									ctx.call("users.sendEmail",{ // return 
@@ -2027,7 +2029,13 @@ module.exports = {
 			}
 
 			return;
+		},
+
+		afterPaidActions() {
+			// replace this action with your own
+			this.logger.info("afterPaidActions default");
 		}
+
 	},
 
 	events: {

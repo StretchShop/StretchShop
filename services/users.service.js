@@ -743,7 +743,7 @@ module.exports = {
 				ctx.params.settings = (typeof ctx.params.settings !== "undefined") ?  ctx.params.settings : null;
 				ctx.params.functionSettings = (typeof ctx.params.functionSettings !== "undefined") ?  ctx.params.functionSettings : null;
 				// set language of template
-				let langCode = ctx.meta.localsDefault.lang || "null";
+				let langCode = (ctx.meta.localsDefault && ctx.meta.localsDefault.lang) || "null";
 				if ( ctx.params.functionSettings && typeof ctx.params.functionSettings.language !== "undefined" && ctx.params.functionSettings.language ) {
 					langCode = ctx.params.functionSettings.language;
 				}

@@ -8,8 +8,26 @@ module.exports = {
 	],
 	country: "sk",
 	countries: [
-		{ code: "sk", name: "Slovakia" },
-		{ code: "us", name: "USA" }
+		{ 
+			"name": "Slovakia", 
+			"code": "sk" 
+		},
+		{
+			"name":"Czechia",
+			"code":"cz"
+		},
+		{
+			"name":"Austria",
+			"code":"at"
+		},
+		{
+			"name":"Hungary",
+			"code":"hu"
+		},
+		{
+			"name":"United States of America",
+			"code":"us"
+		},
 	],
 	currency: "EUR", // currency codes only in internationaly accepted format, that is accepted by PayPal
 	currencies: [
