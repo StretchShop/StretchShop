@@ -16,3 +16,4 @@ resources/navigation/
 resources/pages/
 
 .vscode/
+copyToDemoData.sh

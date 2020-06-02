@@ -3,50 +3,50 @@
     <tr>
       <td><!-- company_logo //--></td>
       <td>
-        Faktúra číslo: 
+        Invoice ID: 
         <span style="font-size:12px;font-weight:bold;">{{order.invoice.id}}</span><br />
-        K objednávke číslo: <br />{{order.externalCode}}
+        For order ID: <br />{{order.externalCode}}
       </td>
     </tr>
   </table>
   <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;,&quot;*&quot;]}">
     <tr>
-      <td><strong>Dátum úhrady: {{order.dates.datePaid}}</strong></td>
-      <td>Spôsob úhrady: {{order.data.paymentData.nameReady}}</td>
+      <td><strong>Date Paid: {{order.dates.datePaid}}</strong></td>
+      <td>Delivery Type: {{order.data.paymentData.nameReady}}</td>
     </tr>
   </table>
-  <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;]}">
+  <table width="100%">
     <tr>
       <td style="font-size:10px;">
-        <h2 style="font-size:14px;">Dodávateľ</h2><br />
+        <h2 style="font-size:14px;">Purchaser</h2><br />
         <p><strong>{{business.invoiceData.company.name}}</strong><br />
           {{business.invoiceData.company.address.street}}, {{business.invoiceData.company.address.zip}} {{business.invoiceData.company.address.city}} {{business.invoiceData.company.address.country}}<br />
-          IČO: {{business.invoiceData.company.orgId}}, DIČ: {{business.invoiceData.company.taxId}}
+          ID: {{business.invoiceData.company.orgId}}, Tax ID: {{business.invoiceData.company.taxId}}
           {{#if business.invoiceData.company.taxVatId}}
             {{business.invoiceData.company.taxVatId}}
           {{/if}}<br />
           {{business.invoiceData.company.registration}}<br />
-          Číslo účtu v {{business.invoiceData.company.account.bank}}: {{business.invoiceData.company.account.number}}, IBAN: {{business.invoiceData.company.account.iban}}, SWIFT kód: {{business.invoiceData.company.account.swift}}<br />
-          Kontakty: tel. {{business.invoiceData.company.contacts.phone}}, e-mail: {{business.invoiceData.company.contacts.email}}, web: {{business.invoiceData.company.contacts.web}}</p>
+          Bank Account {{business.invoiceData.company.account.bank}}: {{business.invoiceData.company.account.number}}, IBAN: {{business.invoiceData.company.account.iban}}, SWIFT: {{business.invoiceData.company.account.swift}}<br />
+          Contacts: tel. {{business.invoiceData.company.contacts.phone}}, e-mail: {{business.invoiceData.company.contacts.email}}, web: {{business.invoiceData.company.contacts.web}}</p>
       </td>
     </tr>
   </table>
-  <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;]}">
+  <table width="100%">
     <tr>
       <td style="font-size:10px;">
-        <h2 style="font-size:14px;">Odberateľ</h2><br />
+        <h2 style="font-size:14px;">Purchaser</h2><br />
         <p><strong>{{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}</strong><br />
           {{#if order.addresses.invoiceAddress.companyName}}
           <strong>{{order.addresses.invoiceAddress.companyName}}</strong></strong><br />
           {{/if}}
           {{order.addresses.invoiceAddress.street}} {{order.addresses.invoiceAddress.street2}}<br />
           {{order.addresses.invoiceAddress.zip}} {{order.addresses.invoiceAddress.city}}<br />
-          Kontakty: tel. {{order.addresses.invoiceAddress.phone}}, e-mail {{order.user.email}}</p>
+          Contacts: tel. {{order.addresses.invoiceAddress.phone}}, e-mail {{order.user.email}}</p>
           {{#if order.addresses.invoiceAddress.companyOrgId}}
-            <br />IČO: {{order.addresses.invoiceAddress.companyOrgId}}
+            <br />ID: {{order.addresses.invoiceAddress.companyOrgId}}
           {{/if}}
           {{#if order.addresses.invoiceAddress.companyTaxId}}
-            , DIČ: {{order.addresses.invoiceAddress.companyTaxId}}, DIČ DPH: {{order.addresses.invoiceAddress.companyTaxVatId}}
+            , Tax ID: {{order.addresses.invoiceAddress.companyTaxId}}, VAT ID: {{order.addresses.invoiceAddress.companyTaxVatId}}
           {{/if}}
       </td>
     </tr>
@@ -54,24 +54,24 @@
   <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;,&quot;*&quot;]}">
     <tr>
       <td style="font-size:10px;">
-        Daňový doklad <strong>(Variabilný symbol):</strong>
+        Tax receipt ID <strong>(Invoice ID):</strong>
         <span style="font-size:12px;font-weight:bold;">{{order.invoice.id}}</span><br />
-        Konštantný symbol: 0308
+        Constant symbol: 0308
       </td>
       <td style="font-size:10px;">
-        Dátum vystavenia: {{order.dates.dateInvoiceIssued}}<br />
-        Zdaniteľné plnenie: {{order.dates.dateInvoiceIssued}}<br />
-        Dátum splatnosti: <strong style="font-size:12px;font-weight:bold;">10.1.2020</strong>
+        Date of issue: {{order.dates.dateInvoiceIssued}}<br />
+        Taxable supply: {{order.dates.dateInvoiceIssued}}<br />
+        Payment due: <strong style="font-size:12px;font-weight:bold;">10.1.2020</strong>
       </td>
     </tr>
   </table>
   <table width="100%" data-pdfmake="{&quot;widths&quot;:[200,&quot;*&quot;,&quot;*&quot;,&quot;*&quot;,&quot;*&quot;]}">
     <tr>
-      <th style="font-size:10px;">Názov</th>
-      <th style="font-size:10px;">Počet</th>
-      <th style="font-size:10px;">%<br />DPH</th>
-      <th style="font-size:10px;">Cena/ks<br />bez DPH</th>
-      <th style="font-size:10px;">Suma<br />s DPH</th>
+      <th style="font-size:10px;">Name</th>
+      <th style="font-size:10px;">Qty</th>
+      <th style="font-size:10px;">%<br />Tax</th>
+      <th style="font-size:10px;">Price/pc<br />no Tax</th>
+      <th style="font-size:10px;">Total<br />with Tax</th>
     </tr>
     {{#each order.items}}
     <tr>
@@ -107,34 +107,28 @@
       <td>
         <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;,&quot;*&quot;]}">
           <tr>
-            <td style="font-size:10px;">Spolu bez DPH</td>
+            <td style="font-size:10px;">Total no tax</td>
             <td style="font-size:10px;">{{order.prices.priceTotalNoTax}} {{order.prices.currency.symbol}}</td>
           </tr>
           <tr>
-            <td style="font-size:10px;">Spolu DPH</td>
+            <td style="font-size:10px;">Total Tax</td>
             <td style="font-size:10px;">{{order.prices.priceTaxTotal}} {{order.prices.currency.symbol}}</td>
           </tr>
           <tr>
-            <td style="font-size:10px;">Spolu s DPH</td>
+            <td style="font-size:10px;">Total with Tax</td>
             <td style="font-size:10px;">{{order.prices.priceTotal}} {{order.prices.currency.symbol}}</td>
           </tr>
           <tr>
-            <td style="font-size:10px;">Uhradené</td>
+            <td style="font-size:10px;">Paid</td>
             <td style="font-size:10px;">- {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}</td>
           </tr>
           <tr>
-            <td><strong>Celkom k úhrade</strong></td>
+            <td><strong>Total for Payment</strong></td>
             <td><strong>{{order.prices.priceTotalToPay}} {{order.prices.currency.symbol}}</strong></td>
           </tr>
         </table>
       </td>
     </tr>
   </table>
-  <p>Nie som platcom DPH</p>
-  <p style="font-size:8px;">
-    Daňový doklad v elektornickej forme je podľa Zákona o účtovníctve č. 431/2002 zo dňa 18. júna 2002, §32 "Preukázateľnosť účtovného
-    záznamu" právoplatným daňovým dokladom. Faktúry po dátume splatnosti automaticky prechádzajú pod správu firmy B4B Inkaso s.r.o.,
-    Kuzmányho 16, 974 01 Banská Bystrica, pričom suma faktúry sa okrem zákonnych úrokov z omeškania navyšuje aj o odmenu pre inkasnú
-    spoločnosť
-  </p>
+  <p>Not VAT payer</p>
 </div>
