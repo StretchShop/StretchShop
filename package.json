@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "repository": {
@@ -49,8 +49,8 @@
     "moleculer": "0.14.7",
     "moleculer-console-tracer": "^0.2.3",
     "moleculer-cron": "0.0.2",
-    "moleculer-db": "^0.8.7",
-    "moleculer-db-adapter-mongo": "^0.4.8",
+    "moleculer-db": "^0.8.8",
+    "moleculer-db-adapter-mongo": "^0.4.9",
     "moleculer-repl": "^0.6.4",
     "moleculer-web": "0.9.1",
     "nats": "^1.4.9",
