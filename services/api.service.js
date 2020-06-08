@@ -374,16 +374,16 @@ module.exports = {
 			this.logger.info("api.parseUploadedFile() #2");
 			return form.parse(req, function(err, fields, files) {
 				let promises = [];
-				this.logger.info("api.parseUploadedFile() #3", files, fields);
+				self.logger.info("api.parseUploadedFile() #3", files, fields);
 				if ( err ) {
-					this.logger.info("api.parseUploadedFile() ERROR:", err);
+					self.logger.error("api.parseUploadedFile() ERROR:", err);
 				}
 
 				// multiple files to upload - multiple promises as in import
 				// after all done, create message and send
 				for (let property in files) {
 					if (Object.prototype.hasOwnProperty.call(files,property)) {
-						this.logger.info("api.parseUploadedFile() files-"+property+": ", files[property]);
+						self.logger.info("api.parseUploadedFile() files-"+property+": ", files[property]);
 						let fileFrom = files[property].path;
 						let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH + self.stringReplaceParams(activePath.destination, req.$params);
 						let urlBaseDir = process.env.ASSETS_PATH + self.stringReplaceParams(activePath.destination, req.$params);
@@ -404,7 +404,7 @@ module.exports = {
 						// set result paths
 						let fileToSave = copyBaseDir+"/"+resultFullPath;
 						let fileToUrl = urlBaseDir+"/"+resultFullPath;
-						this.logger.info("api.parseuploadeFile() files-vars: ", fileFrom, fileToSave, fileToUrl, targetDir);
+						self.logger.info("api.parseuploadeFile() files-vars: ", fileFrom, fileToSave, fileToUrl, targetDir);
 						promises.push(
 							fs.ensureDir(copyBaseDir+"/"+targetDir)
 								.then(() => {
@@ -421,7 +421,7 @@ module.exports = {
 									});
 								})
 								.catch(err => {
-									this.logger.error("api.parseuploadeFile() files ensudeDir ERROR", err);
+									self.logger.error("api.parseuploadeFile() files ensudeDir ERROR", err);
 									return { "id": property, "from": files[property].name, "success": false, "error": err };
 								})); // push with ensureDir end
 					}
@@ -449,7 +449,7 @@ module.exports = {
 							}
 						});
 						let headers = res.getHeaders();
-						this.logger.info("api.parseUploadedFile Promise.all RES:", headers);
+						self.logger.info("api.parseUploadedFile Promise.all RES:", headers);
 						if ( typeof headers["content-type"] !== "undefined" ) {
 							res.writeHead(200, {"content-type": "application/json"});
 						}
@@ -461,7 +461,7 @@ module.exports = {
 						return values;
 					})
 					.catch(err => {
-						this.logger.error("api.parseUploadedFile Promise.all ERROR: ", err);
+						self.logger.error("api.parseUploadedFile Promise.all ERROR: ", err);
 						return null;
 					});
 			});
