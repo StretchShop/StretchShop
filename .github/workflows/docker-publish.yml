@@ -52,7 +52,7 @@ jobs:
 
       - name: Log into registry
         run: |
-          docker login  -u ${{ secret.DOCKER_USER }} -p ${{ secret.DOCKER_PASSWORD }}
+          docker login  -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Push image
         run: |
