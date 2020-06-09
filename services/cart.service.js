@@ -177,8 +177,7 @@ module.exports = {
 				// 2. if enough pieces on stock
 				return ctx.call("products.findWithId", {
 					"query": {
-						"_id": ctx.params.itemId,
-						"stockAmount": { "$gte": ctx.params.amount }
+						"_id": ctx.params.itemId
 					}
 				})
 					.then(productAvailable => {
@@ -188,6 +187,19 @@ module.exports = {
 						}
 						if (!productAvailable || (productAvailable.length===0 && productAvailable[0])) {
 							return this.Promise.reject(new MoleculerClientError("No matching product found"));
+						}
+						// check if amount is available
+						if (ctx.params.amount > productAvailable.stockAmount) {
+							// if digital or subscription - only 1 pcs can be ordered, 
+							// but only if stockAmount is set (more than -1) 
+							if (productAvailable.subtype=="subscription" || productAvailable.subtype=="digital") {
+								ctx.params.amount = 1;
+								if (productAvailable.stockAmount>-1) {
+									return this.Promise.reject(new MoleculerClientError("Requested amount is not available"));
+								}
+							} else { // physical products
+								return this.Promise.reject(new MoleculerClientError("Requested amount is not available"));
+							}
 						}
 						return productAvailable;
 					})
@@ -230,11 +242,15 @@ module.exports = {
 
 								// perform action according to
 								if ( isInCart>-1 ) { // is in cart, update quantity, note the max
-									let newAmount = cart.items[isInCart].amount + ctx.params.amount;
-									if ( newAmount>productAvailable.stockAmount ) {
-										newAmount = productAvailable.stockAmount;
+									if (cart.items[isInCart].subtype=="subscription" || cart.items[isInCart].subtype=="digital") {
+										cart.items[isInCart].amount = 1;
+									} else {
+										let newAmount = cart.items[isInCart].amount + ctx.params.amount;
+										if ( newAmount>productAvailable.stockAmount ) {
+											newAmount = productAvailable.stockAmount;
+										}
+										cart.items[isInCart].amount = newAmount;
 									}
-									cart.items[isInCart].amount = newAmount;
 								} else { // not in cart
 									if ( typeof productAvailable === "object" && productAvailable.constructor !== Array ) {
 										productAvailable.amount = ctx.params.amount;
@@ -243,7 +259,6 @@ module.exports = {
 										cart.items = null;
 									}
 								}
-
 
 								cart.dateUpdated = new Date();
 
