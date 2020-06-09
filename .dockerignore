@@ -13,3 +13,4 @@ demo/
 coverage/
 _backup/
 sonar-project.properties
+.github
