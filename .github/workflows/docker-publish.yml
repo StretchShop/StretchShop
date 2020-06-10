@@ -50,11 +50,13 @@ jobs:
       - name: Copy resource data
         run: |
           mkdir demodata
-          git clone https://github.com/StretchShop/StretchShop-demo-data.git demodata
+          git clone https://github.com/StretchShop/StretchShop-demo-data.git ./demodata
+          ls ./demodata/resouces/navigations
+          echo "----"
           cp -a ./demodata/public ./public
           cp -a ./demodata/resources ./resources
-          rm -R demodata
-          ls
+          rm -rf ./demodata
+          ls ./resouces/navigations
 
       - name: Build image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME
