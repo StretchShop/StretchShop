@@ -51,9 +51,10 @@ jobs:
         run: |
           mkdir demodata
           git clone https://github.com/StretchShop/StretchShop-demo-data.git demodata
-          cp -a demodata/public public
-          cp -a demodata/resources resources
+          cp -a ./demodata/public ./public
+          cp -a ./demodata/resources ./resources
           rm -R demodata
+          ls
 
       - name: Build image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME
