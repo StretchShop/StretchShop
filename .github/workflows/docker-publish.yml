@@ -46,6 +46,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      
+      - name: Copy resource data
+        run: |
+          mkdir demodata
+          git clone https://github.com/StretchShop/StretchShop-demo-data.git demodata
+          copy demodata/public public
+          copy demodata/resources resources
 
       - name: Build image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME
