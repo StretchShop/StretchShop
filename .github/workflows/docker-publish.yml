@@ -49,6 +49,7 @@ jobs:
       
       - name: Copy resource data
         run: |
+          rm -rf resources public
           mkdir demodata resources public
           git clone https://github.com/StretchShop/StretchShop-demo-data.git demodata
           ls demodata/resources/navigation
