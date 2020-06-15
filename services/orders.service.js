@@ -634,7 +634,7 @@ module.exports = {
 													}
 													this.logger.info("orders.paypalResult - invoice generated", { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
 													if ( order.prices.priceTotalToPay==0 && typeof this.afterPaidActions !== "undefined" ) {
-														this.afterPaidActions();
+														this.afterPaidActions(order);
 													}
 													return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
 												});
@@ -1812,6 +1812,7 @@ module.exports = {
 						let pdfDocGenerator = pdfMake.createPdf(docDefinition);
 						let publicDir = process.env.PATH_PUBLIC || "./public";
 						let dir = publicDir +"/"+ process.env.ASSETS_PATH +"/invoices/"+ order.user.id;
+						dir = dir.replace(/\/\//g, "/");
 						let path = dir + "/" + order.invoice.id + ".pdf";
 						let sendPath = "invoices/"+ order.user.id + "/" + order.invoice.id + ".pdf";
 						pdfDocGenerator.getBuffer(function(buffer) {
