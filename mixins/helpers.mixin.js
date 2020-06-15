@@ -6,8 +6,9 @@ module.exports = {
 		/**
 		 * simple function to split string into
 		 */
-		stringChunk(str, chunkSize) {
+		stringChunk(str, chunkSize, separator) {
 			chunkSize = (typeof chunkSize === "undefined") ? 2 : chunkSize;
+			separator = (typeof separator === "undefined") ? "/" : separator;
 			let resultString = "";
 
 			if ( str.length>0 ) {
@@ -20,7 +21,7 @@ module.exports = {
 					}
 				}
 				if (resultArray.length) {
-					resultString = resultArray.join("/");
+					resultString = resultArray.join(separator);
 				}
 			} else {
 				resultString = str;
