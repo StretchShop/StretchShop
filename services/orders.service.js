@@ -16,8 +16,8 @@ const pathResolve = require("path").resolve;
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
-const sppf = require("../mixins/subprojpathfix");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
+const sppf = require("../mixins/subproject.helper");
+let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
 const orderSettings = require(resourcesDirectory+"/settings/orders");
 
 const { writeFileSync, ensureDir, createReadStream } = require("fs-extra");
@@ -634,7 +634,7 @@ module.exports = {
 													}
 													this.logger.info("orders.paypalResult - invoice generated", { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
 													if ( order.prices.priceTotalToPay==0 && typeof this.afterPaidActions !== "undefined" ) {
-														this.afterPaidActions(order);
+														this.afterPaidActions(order, ctx);
 													}
 													return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
 												});

@@ -4,8 +4,8 @@ require("dotenv").config();
 const fs = require("fs");
 const pathResolve = require("path").resolve;
 const handlebars = require("handlebars");
-const sppf = require("../mixins/subprojpathfix");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
+const sppf = require("../mixins/subproject.helper");
+let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
 
 module.exports = function(emailTemplateName, inputData, requiredFormats){
 	emailTemplateName = (typeof emailTemplateName !== "undefined") ?  emailTemplateName : "registration";

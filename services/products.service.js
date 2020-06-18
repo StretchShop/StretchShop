@@ -8,8 +8,8 @@ const HelpersMixin = require("../mixins/helpers.mixin");
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
-const sppf = require("../mixins/subprojpathfix");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
+const sppf = require("../mixins/subproject.helper");
+let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
 const businessSettings = require( resourcesDirectory+"/settings/business");
 
 

@@ -13,11 +13,11 @@ const path = require("path");
 const formidable = require("formidable");
 const util = require("util");
 
-const sppf = require("../mixins/subprojpathfix");
-const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
+const sppf = require("../mixins/subproject.helper");
+const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
 const localsDefault = require(resourcesDirectory+"/settings/locals-default");
 
-const apiV1 = require( sppf.subprojpathfix(__dirname, "/../resources/routes/apiV1") );
+const apiV1 = require("../resources/routes/apiV1");
 
 module.exports = {
 	name: "api",
@@ -50,7 +50,8 @@ module.exports = {
 		port: process.env.PORT || 3000,
 
 		routes: [
-			apiV1, // routes from external file
+			// get routes from external file - merged with subproject if applicable
+			sppf.subprojectMergeRoutes(apiV1, path.resolve(resourcesDirectory+"/routes/apiV1") ),
 			{
 				path: "/backdirect",
 
@@ -90,14 +91,14 @@ module.exports = {
 		],
 
 		assets: {
-			folder: process.env.PATH_PUBLIC || sppf.subprojpathfix(__dirname, "/../public")
+			folder: process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../public")
 		},
 
 		localsDefault: localsDefault,
 
 		translation: {
 			type: "jamlin",
-			dictionaryPath: process.env.PATH_DICTIONARY || sppf.subprojpathfix(__dirname, "/../public/project_dictionary.json")
+			dictionaryPath: process.env.PATH_DICTIONARY || sppf.subprojectPathFix(__dirname, "/../public/project_dictionary.json")
 		},
 
 		siteSettings: {

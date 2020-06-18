@@ -96,6 +96,7 @@ module.exports = {
 	},
 
 	onAfterCall(ctx, route, req, res, data) {
+		// writing cookies
 		this.logger.info("apiV1 onAfterCall - ctx.meta.makeCookies: ", ctx.meta.makeCookies);
 		if (ctx.meta.makeCookies) {
 			Object.keys(ctx.meta.makeCookies).forEach(function(key) {
@@ -135,6 +136,8 @@ module.exports = {
 			}
 			res.cookies.set("order_no_verif", null, null);
 		}
+
+		// writing special headers
 		return data;
 	},
 
