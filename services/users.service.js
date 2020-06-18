@@ -16,8 +16,8 @@ const emailTemplate = require("../mixins/email.mixin");
 const validateAddress = require("../mixins/validate.address.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
 
-const sppf = require("../mixins/subprojpathfix");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojpathfix(__dirname, "/../resources");
+const sppf = require("../mixins/subproject.helper");
+let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
 const NavigationMain = require(resourcesDirectory+"/navigation/navigation-main");
 const NavigationFooter = require(resourcesDirectory+"/navigation/navigation-footer");
 const businessSettings = require( resourcesDirectory+"/settings/business");
@@ -747,6 +747,9 @@ module.exports = {
 				if ( ctx.params.functionSettings && typeof ctx.params.functionSettings.language !== "undefined" && ctx.params.functionSettings.language ) {
 					langCode = ctx.params.functionSettings.language;
 				}
+				if ( langCode == "null" && ctx.params.data && ctx.params.data.order && ctx.params.data.order.lang ) {
+					langCode = ctx.params.data.order.lang;
+				}
 				if ( typeof langCode.code !== "undefined" ) {
 					langCode = langCode.code;
 				}
@@ -793,6 +796,9 @@ module.exports = {
 						return emailSentResponse.then(result => {
 							return result;
 						});
+					})
+					.catch(err => {
+						this.logger.error("users.sendEmail - template error:", err);
 					});
 			}
 
