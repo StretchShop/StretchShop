@@ -221,8 +221,8 @@ module.exports = {
 											}
 										});
 								});
-						} else { // no category found, create one
-							return Promise.reject(new MoleculerClientError("Category not found!", 400, "", [{ field: "product", message: "not found"}]));
+						} else { // no category found
+							return null; // do not return category, just null
 						}
 					});
 			}
