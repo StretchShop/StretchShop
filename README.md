@@ -10,18 +10,9 @@ See https://stretchshop.app/ for working online demo with almost 100k of generat
 # Quick start
 There are 3 instalation options:
 
-  1. [npm](#quick-guide-to-run-with-npm) - quick and easy.
-  2. [Docker](#quick-guide-to-run-with-docker) - for bigger load and more serious usage.
-  3. [Git](#quick-guide-for-developers) - for contributors and developers.
-
-## Quick guide to run with **npm**
-
-Before trying to run app using npm, make sure you have:
-1. **Node.js** with **npm** installed
-2. **MongoDB** running and listening on default port 27017 (if you have docker, you can get instantly by running `docker container run -d --name mongo mongo`)
-
-### Once you have all that's required
-- in terminal simply run `npm i stretchshop`
+1. [npm](https://github.com/StretchShop/StretchShop/wiki/Installation#npm) - **your own project**. This is quick and easy way to create development environment for your own e-shop project, with demo data - so you can just try it in minutes.
+2. [Docker](https://github.com/StretchShop/StretchShop/wiki/Installation#docker) - **latest StretchShop container**. Use this for quick demo of latest container - you may need data first.
+3. [Git](https://github.com/StretchShop/StretchShop/wiki/Installation#git) - **for contributors**. And everyone who like to see the code.
 
 # Learn more
-For other options and more information about Stretchshop visit [Stretchshop Wiki](https://github.com/Wradgio/StretchShop/wiki/Installation)
+For more information about Installation and Stretchshop itself visit [Stretchshop Wiki](https://github.com/Wradgio/StretchShop/wiki)
