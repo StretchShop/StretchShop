@@ -129,6 +129,8 @@ module.exports = {
 					);
 				}
 			});
+		} else if (ctx.meta.doRedirect) {
+			res.setHeader("Location", ctx.meta.doRedirect);
 		} else {
 			if (ctx.meta.token === null) {
 				// delete token cookie if not set in ctx.meta - erased on logout
