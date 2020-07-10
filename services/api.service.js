@@ -38,9 +38,20 @@ module.exports = {
 			// Configures the Access-Control-Allow-Methods CORS header.
 			methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
 			// Configures the Access-Control-Allow-Headers CORS header.
-			allowedHeaders: ["Content-Type", "Origin", "X-Requested-With", "Accept", "Authorization", "Timeout", "Cookie", "Set-Cookie", "cookie", "x-xsrf-token"],
+			allowedHeaders: [
+				"Content-Type", 
+				"Origin", 
+				"X-Requested-With", 
+				"Accept", 
+				"Authorization", 
+				"Timeout", 
+				"Cookie", 
+				"Set-Cookie", 
+				"cookie", 
+				"x-xsrf-token", 
+			],
 			// Configures the Access-Control-Expose-Headers CORS header.
-			exposedHeaders: [],
+			exposedHeaders: ["Content-Type", "Content-Disposition"],
 			// Configures the Access-Control-Allow-Credentials CORS header.
 			credentials: true,
 			// Configures the Access-Control-Max-Age CORS header.
