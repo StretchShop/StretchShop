@@ -155,7 +155,9 @@ module.exports = {
 				type: "object", props: {
 					deliveryData: { type: "object" },
 					paymentData: { type: "object" },
-					couponData: { type: "object" }
+					couponData: { type: "object" },
+					requirements: { type: "object", optional: true },
+					optional: { type: "object", optional: true }
 				}
 			},
 			notes: {
@@ -562,10 +564,14 @@ module.exports = {
 		paypalResult: {
 			params: {
 				result: { type: "string", min: 3 },
-				PayerID: { type: "string" },
-				paymentId: { type: "string" }
+				PayerID: { type: "string", optional: true },
+				paymentId: { type: "string", optional: true }
 			},
 			handler(ctx) {
+				let urlPathPrefix = "/";
+				if ( process.env.NODE_ENV=="development" ) {
+					urlPathPrefix = "http://localhost:8080/";
+				}
 				this.logger.info("orders.paypalResult - ctx.params:", ctx.params);
 				if ( ctx.params.result == "return" ) {
 					// get order data
@@ -628,10 +634,6 @@ module.exports = {
 											return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 												.then(orderUpdated => {
 													this.entityChanged("updated", orderUpdated, ctx);
-													let urlPathPrefix = "/";
-													if ( process.env.NODE_ENV=="development" ) {
-														urlPathPrefix = "http://localhost:8080/";
-													}
 													this.logger.info("orders.paypalResult - invoice generated", { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
 													if ( order.prices.priceTotalToPay==0 && typeof this.afterPaidActions !== "undefined" ) {
 														this.afterPaidActions(order, ctx);
@@ -645,7 +647,9 @@ module.exports = {
 							}
 						});
 				} else {
-					// payment not finished
+					// payment not finished -- TODO - case cancel does not get correct language
+					this.logger.error("orders.paypalResult - payment canceled");
+					return { success: false, response: null, redirect: urlPathPrefix + "en/user/orders/" };
 				}
 			}
 		}, 
@@ -761,14 +765,14 @@ module.exports = {
 					"dateExpeded": null,
 					"userConfirmation": null
 				},
-				"lang": this.getValueByCode(ctx.meta.localsDefault.langs,ctx.meta.localsDefault.lang),
-				"country": this.getValueByCode(ctx.meta.localsDefault.countries,ctx.meta.localsDefault.country),
+				"lang": this.getValueByCode(ctx.meta.localsDefault.langs, ctx.meta.localsDefault.lang),
+				"country": this.getValueByCode(ctx.meta.localsDefault.countries, ctx.meta.localsDefault.country),
 				"addresses": {
 					"invoiceAddress": null,
 					"deliveryAddress": null
 				},
 				"prices": {
-					"currency": this.getValueByCode(ctx.meta.localsDefault.currencies,ctx.meta.localsDefault.currency),
+					"currency": this.getValueByCode(ctx.meta.localsDefault.currencies, ctx.meta.localsDefault.currency),
 					"taxData": businessSettings.taxData.global,
 					"priceTotal": null,
 					"priceTotalNoTax": null,
@@ -797,6 +801,10 @@ module.exports = {
 		createOrderAction(cart, ctx, adapter){
 			let updateResult = this.settings.emptyUpdateResult;
 			let order = this.createEmptyOrder(ctx);
+			// if user lang available, set it
+			if (ctx.meta.user && ctx.meta.user.settings && ctx.meta.user.settings.language) {
+				order.lang = this.getValueByCode(ctx.meta.localsDefault.langs, ctx.meta.user.settings.language);
+			}
 			// update order items
 			if ( cart.items ) {
 				order.items = cart.items;
