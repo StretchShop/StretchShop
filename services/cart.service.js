@@ -208,15 +208,16 @@ module.exports = {
 						if (ctx.params.requirements && ctx.params.requirements.length>0 && 
 							productAvailable && productAvailable.data && productAvailable.data.requirements &&
 							productAvailable.data.requirements.inputs) {
-							// loop requirements' input to fill in value
+							// loop requirements' input & params to fill in value
 							productAvailable.data.requirements.inputs.some((input, key) => {
-								if (input.codename && ctx.params.requirements.codename && 
-									ctx.params.requirements.value && 
-									input.codename == ctx.params.requirements.codename) {
-									// codename match, set value of requirement
-									productAvailable.data.requirements.inputs[key]["value"] = ctx.params.requirements.value;
-									return true;
-								}
+								ctx.params.requirements.some((paramReq) => {
+									if (input.codename && paramReq.codename && paramReq.value && 
+										input.codename == paramReq.codename) {
+										// codename match, set value of requirement
+										productAvailable.data.requirements.inputs[key]["value"] = paramReq.value;
+										return true;
+									}
+								});
 							});
 						}
 
