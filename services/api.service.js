@@ -33,7 +33,7 @@ module.exports = {
 		// Global CORS settings for all routes
 		cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev") ? {
 			// Configures the Access-Control-Allow-Origin CORS header.
-			origin: (process.env.NODE_ENV=="dockerdev") ? "https://localhost:3000" : "http://localhost:8080",
+			origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:8080",
 			// origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:4200",
 			// Configures the Access-Control-Allow-Methods CORS header.
 			methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
