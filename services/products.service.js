@@ -366,6 +366,16 @@ module.exports = {
 									if (!found.data) {
 										found.data = {};
 									}
+									variations.forEach((variation) => {
+										if (variation && variation.data) {
+											if (variation.data.variations) {
+												variation.data.variations = null;
+											}
+											if (variation.data.related) {
+												variation.data.related = null;
+											}
+										}
+									});
 									found.data.variations = variations;
 									return found;
 								});
@@ -380,6 +390,16 @@ module.exports = {
 								}
 							})
 								.then(related => {
+									related.forEach((rel) => {
+										if (rel && rel.data) {
+											if (rel.data.variations) {
+												rel.data.variations = null;
+											}
+											if (rel.data.related) {
+												rel.data.related = null;
+											}
+										}
+									});
 									found.data.related.productResults = related;
 									return found;
 								});

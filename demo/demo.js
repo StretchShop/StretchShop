@@ -6,7 +6,7 @@ const ncp = require("ncp").ncp;
 
 let args = process.argv;
 let changePath = "";
-if (args && args[2]=="base") {
+if (args && args[2]=="base" && fs.existsSync("../../node_modules/")) {
 	changePath = "../../";
 }
 

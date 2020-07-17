@@ -740,6 +740,7 @@ module.exports = {
 				functionSettings: { type: "object", optional: true }
 			},
 			handler(ctx) {
+				let self = this;
 				ctx.params.settings = (typeof ctx.params.settings !== "undefined") ?  ctx.params.settings : null;
 				ctx.params.functionSettings = (typeof ctx.params.functionSettings !== "undefined") ?  ctx.params.functionSettings : null;
 				// set language of template
@@ -779,14 +780,14 @@ module.exports = {
 						let emailSentResponse = new Promise(function(resolve, reject) {
 							transporter.sendMail(mailOptions, (error, info) => {
 								if (error) {
-									this.logger.error("users.sendEmail sendMail error: ", this.logger.info);
+									self.logger.error("users.sendEmail sendMail error: ", error);
 									reject(false);
 								}
 								if ( info && info.messageId ) {
-									this.logger.info("users.sendEmail sendMail MessageId: ", info.messageId);
+									self.logger.info("users.sendEmail sendMail MessageId: ", info.messageId);
 								}
 								// Preview only available when sending through an Ethereal account
-								this.logger.info("user.sendEmail sendMail messageUrl: ", nodemailer.getTestMessageUrl(info));
+								self.logger.info("user.sendEmail sendMail messageUrl: ", nodemailer.getTestMessageUrl(info));
 								// Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
 								// Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
 								resolve(true);
@@ -921,7 +922,7 @@ module.exports = {
 											// send email separately asynchronously not waiting for response
 											let emailData = {
 												"entity": entity,
-												"keepItForLater": this.buildHashSourceFromEntity(entity.user.password, entity.dates.dateCreated),
+												"keepItForLater": this.buildHashSourceFromEntity(entity.user.password, entity.user.dates.dateCreated),
 												"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
 												"language": entity.user.settings.language,
 												"templateName": "pwdreset"

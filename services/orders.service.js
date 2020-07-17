@@ -427,9 +427,9 @@ module.exports = {
 					// send query
 					return ctx.call("orders.find", filter)
 						.then(found => {
-							if (found) { // cart found in datasource, save to meta
+							if (found) { // order found in datasource, return it
 								return found;
-							} else { // no cart found in datasource, create one
+							} else { // no order found in datasource
 								return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
 							}
 						});
@@ -437,6 +437,18 @@ module.exports = {
 
 			}
 		},
+
+
+		paymentWebhook: {
+			params: {
+				service: { type: "string" }
+			},
+			handler(ctx) {
+				this.logger.info("orders.paymentWebhook service params:", JSON.stringify(ctx.params) );
+				return;
+			}
+		},
+
 
 		/**
 		 * Send payment info to PayPal and get redirect url  or error message
