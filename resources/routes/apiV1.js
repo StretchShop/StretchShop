@@ -139,6 +139,10 @@ module.exports = {
 			res.cookies.set("order_no_verif", null, null);
 		}
 
+		if (ctx.meta.afterCallAction) {
+			this.afterCallAction(ctx.meta.afterCallAction);
+		}
+
 		// writing special headers
 		return data;
 	},

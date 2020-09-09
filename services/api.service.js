@@ -49,6 +49,7 @@ module.exports = {
 				"Set-Cookie", 
 				"cookie", 
 				"x-xsrf-token", 
+				"Access-Control-Allow-Origin"
 			],
 			// Configures the Access-Control-Expose-Headers CORS header.
 			exposedHeaders: ["Content-Type", "Content-Disposition"],
@@ -481,7 +482,9 @@ module.exports = {
 
 
 		/**
-		 *
+		 * 
+		 * @param {*} req 
+		 * @param {*} res 
 		 */
 		processUpload(req, res) {
 			// get active path with variables
@@ -524,6 +527,17 @@ module.exports = {
 			}
 
 		},
+
+
+		/**
+		 * Actions that are call after route called
+		 * @param {*} actionData 
+		 */
+		afterCallAction(actionData) {
+			if (actionData) {
+				this.logger.info("api afterCallAction() actionData: ", actionData);
+			}
+		}
 
 	},
 

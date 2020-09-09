@@ -224,6 +224,44 @@ module.exports = {
 			product.taxData = result;
 			product.tax = result.taxDecimal;
 			return product;
+		},
+
+
+		/**
+		 * Get request url and query
+		 * @param {*} ctx 
+		 */
+		getRequestData(ctx) {
+			let result = {
+				url: null,
+				query: null
+			};
+			
+			if (ctx) {
+				if (ctx.options && ctx.options.parentCtx && ctx.options.parentCtx.params && 
+					ctx.options.parentCtx.params.req) {
+					
+					// get url as string and array
+					if (ctx.options.parentCtx.params.req.parsedUrl) {
+						result.url = {
+							string: ctx.options.parentCtx.params.req.parsedUrl,
+							array: ctx.options.parentCtx.params.req.parsedUrl.split("/")
+						};
+					}
+
+					// get query as object
+					if (ctx.options.parentCtx.params.req.query) {
+						result.query = ctx.options.parentCtx.params.req.query;
+					}
+
+					// get headers as object
+					if (ctx.options.parentCtx.params.req.headers) {
+						result.headers = ctx.options.parentCtx.params.req.headers;
+					}
+				}
+			}
+
+			return result;
 		}
 
 	}

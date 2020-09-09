@@ -491,6 +491,16 @@ module.exports = {
 													const update = {
 														"$set": entity
 													};
+
+													// after call action
+													ctx.meta.afterCallAction = {
+														name: "product update",
+														type: "render",
+														data: {
+															url: self.getRequestData(ctx)
+														}
+													};
+
 													return self.adapter.updateById(entityId, update);
 												});
 										} else { // no product found, create one
@@ -526,6 +536,15 @@ module.exports = {
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
 															self.logger.info("products.import - insert entity:", entity);
+
+															// after call action
+															ctx.meta.afterCallAction = {
+																name: "product insert",
+																type: "render",
+																data: {
+																	url: self.getRequestData(ctx)
+																}
+															};
 
 															return self.adapter.insert(entity)
 																.then(doc => self.transformDocuments(ctx, {}, doc))
@@ -581,6 +600,16 @@ module.exports = {
 											self.logger.info("products.delete - DELETING product: ", found);
 											return ctx.call("products.remove", {id: found._id} )
 												.then((deletedCount) => {
+
+													// after call action
+													ctx.meta.afterCallAction = {
+														name: "product delete",
+														type: "render",
+														data: {
+															url: self.getRequestData(ctx)
+														}
+													};
+
 													self.logger.info("products.delete - deleted product Count: ", deletedCount);
 													return deletedCount;
 												}); // returns number of removed items
