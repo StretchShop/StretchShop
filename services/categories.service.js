@@ -4,6 +4,7 @@ const { MoleculerClientError } = require("moleculer").Errors;
 const slug = require("slug");
 
 //const crypto 		= require("crypto");
+const HelpersMixin = require("../mixins/helpers.mixin");
 
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
@@ -16,6 +17,7 @@ module.exports = {
 	name: "categories",
 	mixins: [
 		DbService("categories"),
+		HelpersMixin,
 		CacheCleanerMixin([
 			"cache.clean.cart"
 		])
@@ -283,6 +285,16 @@ module.exports = {
 													const update = {
 														"$set": entity
 													};
+
+													// after call action
+													ctx.meta.afterCallAction = {
+														name: "category update",
+														type: "render",
+														data: {
+															url: self.getRequestData(ctx)
+														}
+													};
+
 													return self.adapter.updateById(entityId, update)
 														.then(doc => self.transformDocuments(ctx, {}, doc))
 														.then(json => self.entityChanged("updated", json, ctx).then(() => json));
@@ -326,6 +338,15 @@ module.exports = {
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
 															self.logger.info("categories.import - insert entity:", entity);
+
+															// after call action
+															ctx.meta.afterCallAction = {
+																name: "category insert",
+																type: "render",
+																data: {
+																	url: self.getRequestData(ctx)
+																}
+															};
 
 															return self.adapter.insert(entity)
 																.then(doc => self.transformDocuments(ctx, {}, doc))
@@ -380,6 +401,15 @@ module.exports = {
 											self.logger.info("categories.delete - DELETING category: ", found);
 											return ctx.call("categories.remove", {id: found._id} )
 												.then((deletedCount) => {
+													// after call action
+													ctx.meta.afterCallAction = {
+														name: "category delete",
+														type: "remove",
+														data: {
+															url: self.getRequestData(ctx)
+														}
+													};
+
 													self.logger.info("categories.delete - deleted category Count: ", deletedCount);
 													return deletedCount;
 												}); // returns number of removed items

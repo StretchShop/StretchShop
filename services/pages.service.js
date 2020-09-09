@@ -7,6 +7,7 @@ const { readdirSync, statSync, existsSync } = require("fs");
 const pathResolve = require("path").resolve;
 
 const DbService = require("../mixins/db.mixin");
+const HelpersMixin = require("../mixins/helpers.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 const sppf = require("../mixins/subproject.helper");
@@ -38,6 +39,7 @@ module.exports = {
 	name: "pages",
 	mixins: [
 		DbService("pages"),
+		HelpersMixin,
 		FileHelpers,
 		CacheCleanerMixin([
 			"cache.clean.pages"
@@ -617,6 +619,16 @@ module.exports = {
 													const update = {
 														"$set": entity
 													};
+
+													// after call action
+													ctx.meta.afterCallAction = {
+														name: "page update",
+														type: "render",
+														data: {
+															url: self.getRequestData(ctx)
+														}
+													};
+
 													return self.adapter.updateById(entityId, update)
 														.then(doc => self.transformDocuments(ctx, {}, doc))
 														.then(json => self.entityChanged("updated", json, ctx).then(() => json));
@@ -655,6 +667,15 @@ module.exports = {
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
 															self.logger.info("pages.import - insert entity:", entity);
+
+															// after call action
+															ctx.meta.afterCallAction = {
+																name: "page insert",
+																type: "render",
+																data: {
+																	url: self.getRequestData(ctx)
+																}
+															};
 
 															return self.adapter.insert(entity)
 																.then(doc => self.transformDocuments(ctx, {}, doc))
@@ -710,6 +731,15 @@ module.exports = {
 											self.logger.info("pages.delete - DELETING page: ", found);
 											return ctx.call("pages.remove", {id: found._id} )
 												.then((deletedCount) => {
+													// after call action
+													ctx.meta.afterCallAction = {
+														name: "page delete",
+														type: "render",
+														data: {
+															url: self.getRequestData(ctx)
+														}
+													};
+
 													self.logger.info("pages.delete - deleted page Count: ", deletedCount);
 													return deletedCount;
 												}); // returns number of removed items
