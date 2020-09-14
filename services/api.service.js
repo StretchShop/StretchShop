@@ -530,7 +530,7 @@ module.exports = {
 
 
 		/**
-		 * Actions that are call after route called
+		 * Anything you want to be called after route was called
 		 * @param {*} actionData 
 		 */
 		afterCallAction(actionData) {
