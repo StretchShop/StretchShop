@@ -4,6 +4,7 @@ const { MoleculerClientError } = require("moleculer").Errors;
 const slug = require("slug");
 
 const HelpersMixin = require("../mixins/helpers.mixin");
+const priceLevels = require("../mixins/price.levels.mixin");
 
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
@@ -31,6 +32,7 @@ module.exports = {
 	mixins: [
 		DbService("products"),
 		HelpersMixin,
+		priceLevels,
 		CacheCleanerMixin([
 			"cache.clean.products"
 		])
@@ -78,13 +80,20 @@ module.exports = {
 			descriptionLong: { type: "object", optional: true },
 			price: { type: "number" },
 			tax: { type: "number", optional: true },
-			priceLevels: { type: "array", optional: true, items:
-				{ type: "object", props: {
-					priceLevelId: { type: "string" },
-					priceLevelType: { type: "string", optional: true }, // can be price or percentage
-					price: { type: "number" }
-				} }
-			},
+			priceLevels: { type: "array", optional: true, props: {
+				/*
+				{
+					"user": {
+						"partner": {
+							"type": "calculated",
+							"price": 12.5
+						}
+					}
+				}
+				*/
+				// prop names from business.priceLevels.validUserTypes
+				// and exact price for that type
+			} },
 			properties: { type: "object", optional: true, props: {
 			} },
 			data: { type: "object", optional: true, props: {
@@ -115,15 +124,15 @@ module.exports = {
 		 * List products in category
 		 *
 		 * @actions
-		 * @param {Object} user - User entity
+		 * @param {String} category - category name
+		 * @param {Object} filter - filter object
 		 *
-		 * @returns {Object} Created entity & token
+		 * @returns {Object} List of products with additional data
 		 */
 		productsList: {
 			// auth: "",
 			params: {
 				category: { type: "string", min: 2 },
-				listSubs: { type: "boolean", optional: true },
 				filter: { type: "object", optional: true }
 			},
 			handler(ctx) {
@@ -145,24 +154,41 @@ module.exports = {
 							let filter = { query: {}, limit: 100};
 							if (typeof ctx.params.filter !== "undefined" && ctx.params.filter) {
 								filter = ctx.params.filter;
-								if (typeof filter.query === "undefined" || !filter.query) {
-									filter.query = {};
+							}
+
+							// add queries to $and array
+							let query = {"$and": []};
+							if (typeof filter.query !== "undefined" && filter.query) {
+								for (let q in filter.query) {
+									if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+										let obj = {};
+										obj[q] = filter.query[q];
+										query["$and"].push(obj);
+									}
 								}
 							}
 							// set categories if from detail
-							filter["query"]["categories"] = {
-								"$in": categoriesToListProductsIn
-							};
+							query["$and"].push({
+								"categories": { "$in": categoriesToListProductsIn }
+							});
+							query = this.filterOnlyActiveProducts(query);
+							filter.query = query;
+
 							// set max of results
 							if (filter.limit>100) {
 								filter.limit = 100;
 							}
-							if (typeof filter.sort === "undefined" || !filter.sort) {
-								filter.sort = "price";
-							}
+							// sort
+							this.getFilterSort(filter, ctx);
+							
+							this.logger.info("products productsList: ", JSON.stringify(filter));
 
 							return ctx.call("products.find", filter)
 								.then(categoryProducts => {
+									categoryProducts.forEach((product, i) => {
+										categoryProducts[i] = this.priceByUser(product, ctx.meta.user);
+									});
+
 									let result = {
 										"categoryDetail": category,
 										"results": categoryProducts
@@ -219,6 +245,22 @@ module.exports = {
 				if ( ctx.params.query.categories && typeof ctx.params.query.categories["$in"] !== "undefined") {
 					categories = ctx.params.query.categories["$in"];
 				}
+
+				// add queries to $and array
+				let query = {"$and": []};
+				if (typeof filter.query !== "undefined" && filter.query) {
+					for (let q in filter.query) {
+						if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+							let obj = {};
+							obj[q] = filter.query[q];
+							query["$and"].push(obj);
+						}
+					}
+				}
+				query = this.filterOnlyActiveProducts(query);
+				filter.query = query;
+
+				// TODO - add activity search params
 				// set offset
 				if (ctx.params.offset && ctx.params.offset>0) {
 					filter.offset = ctx.params.offset;
@@ -231,13 +273,16 @@ module.exports = {
 					filter.limit = 100;
 				}
 				// sort
-				filter.sort = "price";
-				if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
-					filter.sort = ctx.params.sort;
-				}
+				this.getFilterSort(filter, ctx);
+
+				this.logger.info("products findWithCount: ", JSON.stringify(filter));
 
 				return ctx.call("products.find", filter)
 					.then(categoryProducts => {
+						categoryProducts.forEach((product, i) => {
+							categoryProducts[i] = this.priceByUser(product, ctx.meta.user);
+						});
+
 						let result = {
 							"categories": categories,
 							"results": categoryProducts
@@ -361,6 +406,7 @@ module.exports = {
 									"variationGroupId": found.variationGroupId,
 									"_id": { "$ne": found._id }
 								}
+								// TODO - add activity search params
 							})
 								.then(variations => {
 									if (!found.data) {
@@ -484,6 +530,9 @@ module.exports = {
 													}
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
+													if (priceLevels) { // add price levels if needed
+														entity = self.priceLevels.makeProductPriceList(entity);
+													}
 													self.logger.info("products.import found - update entity:", entity);
 													let entityId = entity.id;
 													delete entity.id;
@@ -535,6 +584,9 @@ module.exports = {
 															entity.dates.dateCreated = new Date();
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
+															if (priceLevels) { // add price levels if needed
+																entity = self.priceLevels.makeProductPriceList(entity);
+															}
 															self.logger.info("products.import - insert entity:", entity);
 
 															// after call action
@@ -705,6 +757,48 @@ module.exports = {
 	 * Methods
 	 */
 	methods: {
+		/**
+		 * Add to db query options to return only active products
+		 * @param {array} query 
+		 */
+		filterOnlyActiveProducts(query) {
+			// only active products
+			query["$and"].push({
+				"$or": [ 
+					{ "activity.start": { "$exists": false } },
+					{ "activity.start": null },
+					{ "activity.start": { "$lte": new Date() } }
+				] 
+			});
+			query["$and"].push({
+				"$or": [ 
+					{ "activity.end": { "$exists": false } },
+					{ "activity.end": null },
+					{ "activity.end": { "$gte": new Date()} }
+				]
+			});
+			return query;
+		},
+
+		/**
+		 * Get sort based on request and user
+		 * @param {*} filter 
+		 * @param {*} ctx 
+		 */
+		getFilterSort(filter, ctx) {
+			filter.sort = businessSettings.sorting.products.default; // default
+			if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
+				// if applicable, get sort from request
+				filter.sort = ctx.params.sort;
+			}
+			if (filter.sort=="price") {
+				// if price, set user specific price
+				filter.sort = this.getPriceVariable(ctx.meta.user);
+			}
+
+			return filter;
+		}
+
 	},
 
 	events: {

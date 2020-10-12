@@ -126,7 +126,6 @@ module.exports = {
 			// auth: "",
 			params: {
 				category: { type: "string", min: 2 },
-				listSubs: { type: "boolean", optional: true },
 				filter: { type: "object", optional: true }
 			},
 			handler(ctx) {
