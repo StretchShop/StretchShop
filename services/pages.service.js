@@ -8,6 +8,7 @@ const pathResolve = require("path").resolve;
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
+const priceLevels = require("../mixins/price.levels.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 const sppf = require("../mixins/subproject.helper");
@@ -40,6 +41,7 @@ module.exports = {
 	mixins: [
 		DbService("pages"),
 		HelpersMixin,
+		priceLevels,
 		FileHelpers,
 		CacheCleanerMixin([
 			"cache.clean.pages"
@@ -881,6 +883,7 @@ module.exports = {
 
 
 		getProductsById(ctx, orderCodes) {
+			let self = this;
 			return ctx.call("products.find", {
 				"query": {
 					"orderCode": {"$in": orderCodes}
@@ -889,7 +892,8 @@ module.exports = {
 				.then(products => {
 					if ( products && products.length>0 ) {
 						let categoriesSlugs = [];
-						products.forEach(function(product) {
+						products.forEach(function(product, i) {
+							products[i] = self.priceByUser(product, ctx.meta.user);
 							if ( product.categories && product.categories.length>0 ) {
 								categoriesSlugs.push(...product.categories);
 							}

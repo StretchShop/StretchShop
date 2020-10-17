@@ -179,9 +179,7 @@ module.exports = {
 								filter.limit = 100;
 							}
 							// sort
-							this.getFilterSort(filter, ctx);
-							
-							this.logger.info("products productsList: ", JSON.stringify(filter));
+							filter = this.getFilterSort(filter, ctx);
 
 							return ctx.call("products.find", filter)
 								.then(categoryProducts => {
@@ -260,7 +258,6 @@ module.exports = {
 				query = this.filterOnlyActiveProducts(query);
 				filter.query = query;
 
-				// TODO - add activity search params
 				// set offset
 				if (ctx.params.offset && ctx.params.offset>0) {
 					filter.offset = ctx.params.offset;
@@ -273,9 +270,7 @@ module.exports = {
 					filter.limit = 100;
 				}
 				// sort
-				this.getFilterSort(filter, ctx);
-
-				this.logger.info("products findWithCount: ", JSON.stringify(filter));
+				filter = this.getFilterSort(filter, ctx);
 
 				return ctx.call("products.find", filter)
 					.then(categoryProducts => {
@@ -376,7 +371,31 @@ module.exports = {
 				return this.adapter.findById(ctx.params.product)
 					.then(found => {
 						if (found) { // product found, return it
-							found["taxData"] = businessSettings.taxData.global;
+							// check dates
+							if ( found.activity && 
+								((found.activity.start && found.activity.start!=null) || 
+								(found.activity.end && found.activity.end))
+							) {
+								let now = new Date();
+								if (found.activity.start) {
+									let startDate = new Date(found.activity.start);
+									if (startDate < now) { // not started
+										this.logger.info("products.detail - product not active (start)");
+										return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found"}]));
+									}
+								}
+								if (found.activity.end) {
+									let endDate = new Date(found.activity.end);
+									if (endDate > now) { // ended
+										this.logger.info("products.detail - product not active (end)");
+										return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found"}]));
+									}
+								}
+							}
+							// get taxData for product
+							if (!found["taxData"]) {
+								found["taxData"] = businessSettings.taxData.global;
+							}
 							if (found.categories.length>0) {
 								return ctx.call("categories.detail", {
 									categoryPath: found.categories[0],
@@ -401,18 +420,23 @@ module.exports = {
 					.then(found => {
 						// optional data
 						if (found && typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
+							// get Variations
+							let query = {"$and": []};
+							query["$and"].push({
+								"variationGroupId": found.variationGroupId
+							});
+							query["$and"].push({
+								"_id": { "$ne": found._id }
+							});
+							query = this.filterOnlyActiveProducts(query);
 							return this.adapter.find({
-								"query": {
-									"variationGroupId": found.variationGroupId,
-									"_id": { "$ne": found._id }
-								}
-								// TODO - add activity search params
+								"query": query
 							})
 								.then(variations => {
 									if (!found.data) {
 										found.data = {};
 									}
-									variations.forEach((variation) => {
+									variations.forEach((variation, i) => {
 										if (variation && variation.data) {
 											if (variation.data.variations) {
 												variation.data.variations = null;
@@ -421,6 +445,7 @@ module.exports = {
 												variation.data.related = null;
 											}
 										}
+										variations[i] = this.priceByUser(variation, ctx.meta.user);
 									});
 									found.data.variations = variations;
 									return found;
@@ -430,13 +455,17 @@ module.exports = {
 					})
 					.then(found => {
 						if (found && typeof found.data!=="undefined" && found.data.related && found.data.related.products && found.data.related.products.length>0) {
+							// get Related
+							let query = {"$and": []};
+							query["$and"].push({
+								"orderCode": {"$in": found.data.related.products}
+							});
+							query = this.filterOnlyActiveProducts(query);
 							return this.adapter.find({
-								"query": {
-									"orderCode": {"$in": found.data.related.products}
-								}
+								"query": query
 							})
 								.then(related => {
-									related.forEach((rel) => {
+									related.forEach((rel, i) => {
 										if (rel && rel.data) {
 											if (rel.data.variations) {
 												rel.data.variations = null;
@@ -445,6 +474,7 @@ module.exports = {
 												rel.data.related = null;
 											}
 										}
+										related[i] = this.priceByUser(rel, ctx.meta.user);
 									});
 									found.data.related.productResults = related;
 									return found;
@@ -531,7 +561,7 @@ module.exports = {
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
 													if (priceLevels) { // add price levels if needed
-														entity = self.priceLevels.makeProductPriceList(entity);
+														entity = self.makeProductPriceLevels(entity);
 													}
 													self.logger.info("products.import found - update entity:", entity);
 													let entityId = entity.id;
@@ -585,7 +615,7 @@ module.exports = {
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
 															if (priceLevels) { // add price levels if needed
-																entity = self.priceLevels.makeProductPriceList(entity);
+																entity = self.makeProductPriceLevels(entity);
 															}
 															self.logger.info("products.import - insert entity:", entity);
 
@@ -745,7 +775,59 @@ module.exports = {
 				}
 				return false;
 			}
-		}
+		},
+
+		
+		/**
+		 * Internal action to rebuild products
+		 * DON'T MAKE this action AVAILABLE from your API
+		 * until you know what you're doing, rather use
+		 * mol $ call products.rebuildProducts
+		 * 
+		 * @actions
+		 * @param {number} limit - maximum number of records to work with (paging)
+		 * @param {number} from - offset to read records from
+		 * @param {number} ids - array of record ids
+		 */
+		rebuildProducts: {
+			params: {
+				limit: { type: "number", optional: true },
+				offset: { type: "number", optional: true },
+				ids: { type: "array", optional: true, items: { type: "string" } }
+			},
+			handler(ctx) {
+				let limit = (typeof ctx.params.limit !== "undefined") ?  ctx.params.limit : 100;
+				let offset = (typeof ctx.params.offset !== "undefined") ?  ctx.params.offset : 0;
+				let ids = (typeof ctx.params.ids !== "undefined") ?  ctx.params.ids : null;
+				let self = this;
+
+				let filter = { query: {}, limit: limit };
+				// add ids
+				if (ids) { 
+					let idsObjs = [];
+					ids.forEach(id => {
+						idsObjs.push(self.fixStringToId(id));
+					});
+					filter.query = {
+						_id: { "$in": idsObjs }
+					};
+				}
+				// add limit and offset
+				filter.limit = limit;
+				// filter
+				filter.offset = offset;
+				console.log('rebuildProducts', filter);
+				const loop = async (value) => {
+					let result = false;
+					while (result == false) {
+						result = await this.rebuildProductChunks(filter, ctx);
+						value = value + 1;
+						filter.offset = value * filter.limit;
+					}
+				}
+				loop(0);
+			}
+		},
 
 
 	}, // *** actions end
@@ -777,6 +859,12 @@ module.exports = {
 					{ "activity.end": { "$gte": new Date()} }
 				]
 			});
+			query["$and"].push({
+				"$or": [
+					{"stockAmount": { "$gte": 0 }},
+					{"stockAmount": -1}
+				]
+			});
 			return query;
 		},
 
@@ -791,13 +879,45 @@ module.exports = {
 				// if applicable, get sort from request
 				filter.sort = ctx.params.sort;
 			}
-			if (filter.sort=="price") {
+			if (filter.sort=="price" || filter.sort=="-price") {
+				let isNegative = "";
+				if ( filter.sort.substring(0,1)=="-" ) {
+					isNegative = "-";
+				}
 				// if price, set user specific price
-				filter.sort = this.getPriceVariable(ctx.meta.user);
+				filter.sort = isNegative + this.getPriceVariable(ctx.meta.user);
 			}
 
 			return filter;
-		}
+		},
+
+
+		rebuildProductChunks(filter, ctx) {
+			console.log('rebuildProductChunks');
+			let self = this;
+			let result = false;
+
+			ctx.call("products.find", filter)
+			.then(products => {
+				if (products.length <= 0) {
+					result = true;
+				}
+				products.forEach(p => {
+					p = self.makeProductPriceLevels(p);
+					let entityId = p._id;
+					// delete p.id;
+					delete p._id;
+					const update = {
+						"$set": p
+					};
+					self.adapter.updateById(entityId, update);
+				});
+
+				return result;
+			});
+		},
+
+
 
 	},
 

@@ -10,7 +10,7 @@ module.exports = {
 		// READ functions
 		/**
 		 * Check if user is valid according to ./resources/settings/business.js
-		 * compare to its array priceLevels.validUserTypes
+		 * compare to its array priceLevels.validTypes.userTypes
 		 * @param {*} usertype 
 		 */
 		isValidUsertype(usertype) {
@@ -30,6 +30,8 @@ module.exports = {
 		 * @param {*} user 
 		 */
 		priceByUser(product, user) {
+			delete product.activity;
+
 			if ( user && user!=null && user.type && user.type!=null && 
 				user.subtype && user.subtype!=null && 
 				this.isValidUsertype(user.type+"."+user.subtype) ) {
@@ -41,6 +43,7 @@ module.exports = {
 					delete product.priceLevels;
 				}
 			}
+			
 			return product;
 		},
 
@@ -68,17 +71,19 @@ module.exports = {
 		 * 
 		 * @param {*} product 
 		 * @param {boolean} recalculate 
+		 * 
+		 * @returns {*} product
 		 */
 		makeProductPriceLevels(product, recalculate) {
 			recalculate = (typeof recalculate !== "undefined") ?  recalculate : false;
 			let newPriceLevels = {};
 
 			if (businessSettings && businessSettings.priceLevels && 
-				businessSettings.priceLevels.validUserTypes && 
-				businessSettings.priceLevels.validUserTypes.length>0 ) {
+				businessSettings.priceLevels.validTypes.userTypes && 
+				businessSettings.priceLevels.validTypes.userTypes.length>0 ) {
 
 				// loop usertypes of product
-				businessSettings.priceLevels.validUserTypes.forEach((usertype) => {
+				businessSettings.priceLevels.validTypes.userTypes.forEach((usertype) => {
 					let usertypes = usertype.split(".");
 
 					if ( !product.priceLevels ) {
@@ -102,6 +107,7 @@ module.exports = {
 						) 
 					) {
 						// recalculate it, force new values
+						newPriceLevels[usertypes[0]] = {};
 						newPriceLevels[usertypes[0]][usertypes[1]] = {
 							type: "calculated",
 							price: this.calculatePriceForUsertype(product.price, usertype)
@@ -117,7 +123,7 @@ module.exports = {
 				});
 
 				// finish setting price levels
-				if (newPriceLevels === {} ) {
+				if ( newPriceLevels === {} ) {
 					// if no price levels set, log an error
 					this.logger.error("No priceLevels for product.id: " + product.id);
 				} else {
@@ -150,18 +156,18 @@ module.exports = {
 					switch (discount.type) {
 					case "percent":
 						if (valueNegative) {
-							price = price - (price * (discount.value/100));
+							price = price - (price * (Math.abs(discount.value)/100));
 						} else {
-							price = price + (price * (discount.value/100));
+							price = price + (price * (Math.abs(discount.value)/100));
 						}
 						// price cannot be less < 0
 						if (price<0) { price = 0; }
 						break;
 					case "amount":
 						if (valueNegative) {
-							price = price - discount.value;
+							price = price - Math.abs(discount.value);
 						} else {
-							price = price + discount.value;
+							price = price + Math.abs(discount.value);
 						}
 						// price cannot be less < 0
 						if (price<0) { price = 0; }
