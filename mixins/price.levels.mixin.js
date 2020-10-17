@@ -12,6 +12,8 @@ module.exports = {
 		 * Check if user is valid according to ./resources/settings/business.js
 		 * compare to its array priceLevels.validTypes.userTypes
 		 * @param {*} usertype 
+		 * 
+		 * @returns {Boolean} if usertype is valid
 		 */
 		isValidUsertype(usertype) {
 			if (businessSettings && businessSettings.priceLevels && 
@@ -24,10 +26,13 @@ module.exports = {
 			return false;
 		},
 		
+
 		/**
 		 * Get price for specific user
 		 * @param {*} product 
 		 * @param {*} user 
+		 * 
+		 * @returns {*} product
 		 */
 		priceByUser(product, user) {
 			delete product.activity;
@@ -135,6 +140,7 @@ module.exports = {
 			return product;
 		},
 
+
 		/**
 		 * Calculate price for usertype based on settings in
 		 * /resources/settings/business.js
@@ -176,28 +182,6 @@ module.exports = {
 				}
 			}
 			return price;
-		},
-
-
-		addUsertypePriceLevel(usertype) {
-			if (usertype && this.isValidUsertype(usertype)) {
-				// add that price level from all products
-			}
-		},
-		removeUsertypePriceLevel(usertype) {
-			if (usertype && this.isValidUsertype(usertype)) {
-				// remove that price level from all products
-			}
-		},
-
-		rebuildPriceLevels() {
-			// add price to price levels
-		},
-
-		setPricesByUserDiscount(usertype) {
-			if (usertype && this.isValidUsertype(usertype)) {
-				// get user price
-			}
 		}
 
 	}

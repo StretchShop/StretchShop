@@ -781,7 +781,7 @@ module.exports = {
 		/**
 		 * Internal action to rebuild products
 		 * DON'T MAKE this action AVAILABLE from your API
-		 * until you know what you're doing, rather use
+		 * until you know what you're doing. Rather use
 		 * mol $ call products.rebuildProducts
 		 * 
 		 * @actions
@@ -842,6 +842,8 @@ module.exports = {
 		/**
 		 * Add to db query options to return only active products
 		 * @param {array} query 
+		 * 
+		 * @returns {*} updated query
 		 */
 		filterOnlyActiveProducts(query) {
 			// only active products
@@ -872,6 +874,8 @@ module.exports = {
 		 * Get sort based on request and user
 		 * @param {*} filter 
 		 * @param {*} ctx 
+		 * 
+		 * @returns {*} filter
 		 */
 		getFilterSort(filter, ctx) {
 			filter.sort = businessSettings.sorting.products.default; // default
@@ -892,6 +896,13 @@ module.exports = {
 		},
 
 
+		/**
+		 * Get chunk of products and update them with price levels
+		 * @param {*} filter 
+		 * @param {*} ctx 
+		 * 
+		 * @returns {Boolean} true if no results
+		 */
 		rebuildProductChunks(filter, ctx) {
 			console.log('rebuildProductChunks');
 			let self = this;
