@@ -343,6 +343,7 @@ module.exports = {
 					.then( results => {
 						if (results && results.length>0) {
 							results.forEach(result => {
+								result = this.priceByUser(result, ctx.meta.user);
 								result = self.getProductTaxData(result, businessSettings.taxData);
 							});
 						}
@@ -392,6 +393,8 @@ module.exports = {
 									}
 								}
 							}
+							// user price
+							found = this.priceByUser(found, ctx.meta.user);
 							// get taxData for product
 							if (!found["taxData"]) {
 								found["taxData"] = businessSettings.taxData.global;

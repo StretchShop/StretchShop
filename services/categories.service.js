@@ -99,6 +99,9 @@ module.exports = {
 								"query": {"parentPathSlug": ctx.params.category}
 							})
 								.then(categoryProducts => {
+									categoryProducts.forEach((product, i) => {
+										categoryProducts[i] = this.priceByUser(product, ctx.meta.user);
+									});
 									return categoryProducts;
 								});
 						}
