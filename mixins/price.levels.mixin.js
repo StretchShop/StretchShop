@@ -31,11 +31,15 @@ module.exports = {
 		 * Get price for specific user
 		 * @param {*} product 
 		 * @param {*} user 
+		 * @param {boolean} edit 
 		 * 
 		 * @returns {*} product
 		 */
-		priceByUser(product, user) {
-			delete product.activity;
+		priceByUser(product, user, edit) {
+			edit = (typeof edit !== "undefined") ? edit : false;
+			if (!user || !user.type || user.type!="admin") {
+				delete product.activity;
+			}
 
 			if ( user && user!=null && user.type && user.type!=null && 
 				user.subtype && user.subtype!=null && 
@@ -44,8 +48,13 @@ module.exports = {
 				if ( product.priceLevels && product.priceLevels[user.type] && 
 				product.priceLevels[user.type][user.subtype] && 
 				product.priceLevels[user.type][user.subtype]["price"] ) {
-					product.price = product.priceLevels[user.type][user.subtype]["price"];
-					delete product.priceLevels;
+					// don't change price if it's edit display
+					if (!edit) {
+						product.price = product.priceLevels[user.type][user.subtype]["price"];
+					}
+					if (!user || !user.type || user.type!="admin") {
+						delete product.priceLevels;
+					}
 				}
 			}
 			
