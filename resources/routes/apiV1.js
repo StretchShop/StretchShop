@@ -50,6 +50,7 @@ module.exports = {
 		"PUT /products": "products.import",
 		"POST /products/count": "products.count",
 		"DELETE /products": "products.delete",
+		"GET /products/rebuildpl/:id": "products.rebuildProductPriceLevels",
 		"POST /products/upload/:orderCode/:type": function (req, res) {
 			this.processUpload(req, res);
 		},

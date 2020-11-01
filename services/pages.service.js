@@ -8,6 +8,7 @@ const pathResolve = require("path").resolve;
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
+const priceLevels = require("../mixins/price.levels.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 const sppf = require("../mixins/subproject.helper");
@@ -40,6 +41,7 @@ module.exports = {
 	mixins: [
 		DbService("pages"),
 		HelpersMixin,
+		priceLevels,
 		FileHelpers,
 		CacheCleanerMixin([
 			"cache.clean.pages"
@@ -99,7 +101,10 @@ module.exports = {
 				dateHide: { type: "date", optional: true },
 			}},
 			note: { type: "string", optional: true },
-			activity: { type: "number", optional: true },
+			activity: { type: "object", optional: true, props: {
+				start: { type: "date", optional: true },
+				end: { type: "date", optional: true }
+			}},
 		},
 
 		// ------------- PAGES VARIABLES AND SETTINGS -------------
@@ -126,7 +131,6 @@ module.exports = {
 			// auth: "",
 			params: {
 				category: { type: "string", min: 2 },
-				listSubs: { type: "boolean", optional: true },
 				filter: { type: "object", optional: true }
 			},
 			handler(ctx) {
@@ -152,16 +156,32 @@ module.exports = {
 									filter.query = {};
 								}
 							}
+
+							// add queries to $and array
+							let query = {"$and": []};
+							if (typeof filter.query !== "undefined" && filter.query) {
+								for (let q in filter.query) {
+									if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+										let obj = {};
+										obj[q] = filter.query[q];
+										query["$and"].push(obj);
+									}
+								}
+							}
+
 							// set categories if from detail
-							filter["query"]["categories"] = {
-								"$in": categoriesToListPagesIn
-							};
+							query["$and"].push({
+								"categories": { "$in": categoriesToListPagesIn }
+							});
+							query = this.filterOnlyActivePages(query, ctx.meta.user);
+							filter.query = query;
+
 							// set max of results
 							if (filter.limit>100) {
 								filter.limit = 100;
 							}
 							if (typeof filter.sort === "undefined" || !filter.sort) {
-								filter.sort = "price";
+								filter.sort = "dates.dateUpdated";
 							}
 
 							return ctx.call("pages.find", filter)
@@ -172,7 +192,7 @@ module.exports = {
 									};
 
 									// TODO - check if this can be removed, if data not already in category var
-									return ctx.call("categories.find", {
+									return ctx.call("categories.findActive", {
 										"query": {
 											parentPathSlug: category.pathSlug
 										}
@@ -271,6 +291,22 @@ module.exports = {
 				if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
 					filter.query = ctx.params.query;
 				}
+
+				// add queries to $and array
+				let query = {"$and": []};
+				if (typeof filter.query !== "undefined" && filter.query) {
+					for (let q in filter.query) {
+						if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+							let obj = {};
+							obj[q] = filter.query[q];
+							query["$and"].push(obj);
+						}
+					}
+				}
+				
+				query = this.filterOnlyActivePages(query, ctx.meta.user);
+				filter.query = query;
+
 				// if categories sent, use them
 				let categories = [];
 				if (ctx.params.query.categories && typeof ctx.params.query.categories["$in"] !== "undefined") {
@@ -281,6 +317,7 @@ module.exports = {
 				if (ctx.params.query.pages && typeof ctx.params.query.pages["$in"] !== "undefined") {
 					pages = ctx.params.query.pages["$in"];
 				}
+
 				// set offset
 				if (ctx.params.offset && ctx.params.offset>0) {
 					filter.offset = ctx.params.offset;
@@ -293,12 +330,12 @@ module.exports = {
 					filter.limit = 100;
 				}
 				// sort
-				filter.sort = "price";
+				filter.sort = "dates.dateUpdated";
 				if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
 					filter.sort = ctx.params.sort;
 				}
 
-				this.logger.info("pages.findWithCount - filter", filter);
+				this.logger.info("pages.findWithCount - filter", JSON.stringify(filter));
 				return ctx.call("pages.find", filter)
 					.then(categoryPages => {
 						let result = {
@@ -437,6 +474,30 @@ module.exports = {
 											if ( page && page.length>0 && typeof page[0] !== "undefined" ) {
 												page = page[0];
 											}
+
+											// check dates
+											if ( ctx.meta.user && ctx.meta.user.type!="admin" && 
+												ctx.meta.user.email!=page.publisher && page.activity && 
+												((page.activity.start && page.activity.start!=null) || 
+												(page.activity.end && page.activity.end))
+											) {
+												let now = new Date();
+												if (page.activity.start) {
+													let startDate = new Date(page.activity.start);
+													if (startDate > now) { // not started
+														this.logger.info("page.detail - page not active (start)");
+														return Promise.reject(new MoleculerClientError("Page not found!", 400, "", [{ field: "page", message: "not found"}]));
+													}
+												}
+												if (page.activity.end) {
+													let endDate = new Date(page.activity.end);
+													if (endDate < now) { // ended
+														this.logger.info("page.detail - page not active (end)");
+														return Promise.reject(new MoleculerClientError("Page not found!", 400, "", [{ field: "page", message: "not found"}]));
+													}
+												}
+											}
+
 											// if WYSIWYG found, place first block
 											if (page && page.data && page.data.blocks && page.data.blocks.length>0) {
 												result.body = result.body.replace(
@@ -597,13 +658,23 @@ module.exports = {
 									.then(found => {
 										if (found) { // page found, update it
 
-											if ( entity && entity.dates ) {
-												Object.keys(entity.dates).forEach(function(key) {
-													let date = entity.dates[key];
-													if ( date && date!=null && date.trim()!="" ) {
-														entity.dates[key] = new Date(entity.dates[key]);
-													}
-												});
+											if ( entity ) {
+												if ( entity.dates ) {
+													Object.keys(entity.dates).forEach(function(key) {
+														let date = entity.dates[key];
+														if ( date && date!=null && date.trim()!="" ) {
+															entity.dates[key] = new Date(entity.dates[key]);
+														}
+													});
+												}
+												if ( entity.activity ) {
+													Object.keys(entity.activity).forEach(function(key) {
+														let date = entity.activity[key];
+														if ( date && date!=null && date.trim()!="" ) {
+															entity.activity[key] = new Date(entity.activity[key]);
+														}
+													});
+												}
 											}
 
 											return self.validateEntity(entity)
@@ -632,6 +703,9 @@ module.exports = {
 													return self.adapter.updateById(entityId, update)
 														.then(doc => self.transformDocuments(ctx, {}, doc))
 														.then(json => self.entityChanged("updated", json, ctx).then(() => json));
+												})
+												.catch(err => {
+													self.logger.error("pages import update validateEntity err:", err);
 												});
 										} else { // no page found, create one
 											return self.validateEntity(entity)
@@ -681,6 +755,9 @@ module.exports = {
 																.then(doc => self.transformDocuments(ctx, {}, doc))
 																.then(json => self.entityChanged("created", json, ctx).then(() => json));
 														});
+												})
+												.catch(err => {
+													self.logger.error("pages import insert validateEntity err:", err);
 												});
 										}
 									})); // push with find end
@@ -882,6 +959,7 @@ module.exports = {
 
 
 		getProductsById(ctx, orderCodes) {
+			let self = this;
 			return ctx.call("products.find", {
 				"query": {
 					"orderCode": {"$in": orderCodes}
@@ -890,12 +968,13 @@ module.exports = {
 				.then(products => {
 					if ( products && products.length>0 ) {
 						let categoriesSlugs = [];
-						products.forEach(function(product) {
+						products.forEach(function(product, i) {
+							products[i] = self.priceByUser(product, ctx.meta.user);
 							if ( product.categories && product.categories.length>0 ) {
 								categoriesSlugs.push(...product.categories);
 							}
 						});
-						return ctx.call("categories.find", {
+						return ctx.call("categories.findActive", {
 							"query": {
 								"pathSlug": {"$in": categoriesSlugs}
 							}
@@ -927,7 +1006,37 @@ module.exports = {
 						};
 					}
 				});
-		}
+		},
+
+
+		/**
+		 * Add to db query options to return only active products
+		 * @param {array} query 
+		 * 
+		 * @returns {*} updated query
+		 */
+		filterOnlyActivePages(query, ctx) {
+			// display only active products (admin can see all)
+			if (ctx.meta && ctx.meta.user && ctx.meta.user.type=="admin") {
+				return query;
+			}
+			query["$and"].push({
+				"$or": [ 
+					{ "activity.start": { "$exists": false } },
+					{ "activity.start": null },
+					{ "activity.start": { "$lte": new Date() } }
+				] 
+			});
+			query["$and"].push({
+				"$or": [ 
+					{ "activity.end": { "$exists": false } },
+					{ "activity.end": null },
+					{ "activity.end": { "$gte": new Date()} }
+				]
+			});
+			return query;
+		},
+
 
 	},
 

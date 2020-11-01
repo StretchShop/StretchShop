@@ -4,6 +4,7 @@ const { MoleculerClientError } = require("moleculer").Errors;
 const slug = require("slug");
 
 const HelpersMixin = require("../mixins/helpers.mixin");
+const priceLevels = require("../mixins/price.levels.mixin");
 
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
@@ -24,6 +25,9 @@ const businessSettings = require( resourcesDirectory+"/settings/business");
  *
  * When loading url of detail product /t-shirt-jam all these three products will be loaded and
  * used for creating available options for ordering in front-end app.
+ * 
+ * Product types can be: physical, digital, ... 
+ * Product subtypes can be: product, subscription, ...
  */
 
 module.exports = {
@@ -31,6 +35,7 @@ module.exports = {
 	mixins: [
 		DbService("products"),
 		HelpersMixin,
+		priceLevels,
 		CacheCleanerMixin([
 			"cache.clean.products"
 		])
@@ -78,13 +83,20 @@ module.exports = {
 			descriptionLong: { type: "object", optional: true },
 			price: { type: "number" },
 			tax: { type: "number", optional: true },
-			priceLevels: { type: "array", optional: true, items:
-				{ type: "object", props: {
-					priceLevelId: { type: "string" },
-					priceLevelType: { type: "string", optional: true }, // can be price or percentage
-					price: { type: "number" }
-				} }
-			},
+			priceLevels: { type: "object", optional: true, props: {
+				/*
+				{
+					"user": {
+						"partner": {
+							"type": "calculated", // calculated, defined
+							"price": 12.5
+						}
+					}
+				}
+				*/
+				// prop names from business.priceLevels.validUserTypes
+				// and exact price for that type
+			} },
 			properties: { type: "object", optional: true, props: {
 			} },
 			data: { type: "object", optional: true, props: {
@@ -115,15 +127,15 @@ module.exports = {
 		 * List products in category
 		 *
 		 * @actions
-		 * @param {Object} user - User entity
+		 * @param {String} category - category name
+		 * @param {Object} filter - filter object
 		 *
-		 * @returns {Object} Created entity & token
+		 * @returns {Array.<Object>} List of products with additional data
 		 */
 		productsList: {
 			// auth: "",
 			params: {
 				category: { type: "string", min: 2 },
-				listSubs: { type: "boolean", optional: true },
 				filter: { type: "object", optional: true }
 			},
 			handler(ctx) {
@@ -145,31 +157,46 @@ module.exports = {
 							let filter = { query: {}, limit: 100};
 							if (typeof ctx.params.filter !== "undefined" && ctx.params.filter) {
 								filter = ctx.params.filter;
-								if (typeof filter.query === "undefined" || !filter.query) {
-									filter.query = {};
+							}
+
+							// add queries to $and array
+							let query = {"$and": []};
+							if (typeof filter.query !== "undefined" && filter.query) {
+								for (let q in filter.query) {
+									if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+										let obj = {};
+										obj[q] = filter.query[q];
+										query["$and"].push(obj);
+									}
 								}
 							}
 							// set categories if from detail
-							filter["query"]["categories"] = {
-								"$in": categoriesToListProductsIn
-							};
+							query["$and"].push({
+								"categories": { "$in": categoriesToListProductsIn }
+							});
+							query = this.filterOnlyActiveProducts(query, ctx.meta.user);
+							filter.query = query;
+
 							// set max of results
 							if (filter.limit>100) {
 								filter.limit = 100;
 							}
-							if (typeof filter.sort === "undefined" || !filter.sort) {
-								filter.sort = "price";
-							}
+							// sort
+							filter = this.getFilterSort(filter, ctx);
 
 							return ctx.call("products.find", filter)
 								.then(categoryProducts => {
+									categoryProducts.forEach((product, i) => {
+										categoryProducts[i] = this.priceByUser(product, ctx.meta.user);
+									});
+
 									let result = {
 										"categoryDetail": category,
 										"results": categoryProducts
 									};
 
 									// TODO - check if this can be removed, if data not already in category var
-									return ctx.call("categories.find", {
+									return ctx.call("categories.findActive", {
 										"query": {
 											parentPathSlug: category.pathSlug
 										}
@@ -219,6 +246,21 @@ module.exports = {
 				if ( ctx.params.query.categories && typeof ctx.params.query.categories["$in"] !== "undefined") {
 					categories = ctx.params.query.categories["$in"];
 				}
+
+				// add queries to $and array
+				let query = {"$and": []};
+				if (typeof filter.query !== "undefined" && filter.query) {
+					for (let q in filter.query) {
+						if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+							let obj = {};
+							obj[q] = filter.query[q];
+							query["$and"].push(obj);
+						}
+					}
+				}
+				query = this.filterOnlyActiveProducts(query, ctx.meta.user);
+				filter.query = query;
+
 				// set offset
 				if (ctx.params.offset && ctx.params.offset>0) {
 					filter.offset = ctx.params.offset;
@@ -231,13 +273,14 @@ module.exports = {
 					filter.limit = 100;
 				}
 				// sort
-				filter.sort = "price";
-				if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
-					filter.sort = ctx.params.sort;
-				}
+				filter = this.getFilterSort(filter, ctx);
 
 				return ctx.call("products.find", filter)
 					.then(categoryProducts => {
+						categoryProducts.forEach((product, i) => {
+							categoryProducts[i] = this.priceByUser(product, ctx.meta.user);
+						});
+
 						let result = {
 							"categories": categories,
 							"results": categoryProducts
@@ -303,6 +346,7 @@ module.exports = {
 					.then( results => {
 						if (results && results.length>0) {
 							results.forEach(result => {
+								result = this.priceByUser(result, ctx.meta.user);
 								result = self.getProductTaxData(result, businessSettings.taxData);
 							});
 						}
@@ -328,10 +372,43 @@ module.exports = {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
+				let edit = false;
+				if (ctx.params.edit && ctx.params.edit=="true") {
+					edit = true;
+				}
 				return this.adapter.findById(ctx.params.product)
 					.then(found => {
 						if (found) { // product found, return it
-							found["taxData"] = businessSettings.taxData.global;
+
+							// check dates
+							if ( ctx.meta.user && ctx.meta.user.type!="admin" && 
+								ctx.meta.user.email!=found.publisher && found.activity && 
+								((found.activity.start && found.activity.start!=null) || 
+								(found.activity.end && found.activity.end))
+							) {
+								let now = new Date();
+								if (found.activity.start) {
+									let startDate = new Date(found.activity.start);
+									if (startDate > now) { // not started
+										this.logger.info("products.detail - product not active (start)");
+										return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found"}]));
+									}
+								}
+								if (found.activity.end) {
+									let endDate = new Date(found.activity.end);
+									if (endDate < now) { // ended
+										this.logger.info("products.detail - product not active (end)");
+										return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found"}]));
+									}
+								}
+							}
+
+							// user price
+							found = this.priceByUser(found, ctx.meta.user, edit);
+							// get taxData for product
+							if (!found["taxData"]) {
+								found["taxData"] = businessSettings.taxData.global;
+							}
 							if (found.categories.length>0) {
 								return ctx.call("categories.detail", {
 									categoryPath: found.categories[0],
@@ -356,17 +433,23 @@ module.exports = {
 					.then(found => {
 						// optional data
 						if (found && typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
+							// get Variations
+							let query = {"$and": []};
+							query["$and"].push({
+								"variationGroupId": found.variationGroupId
+							});
+							query["$and"].push({
+								"_id": { "$ne": found._id }
+							});
+							query = this.filterOnlyActiveProducts(query, ctx.meta.user);
 							return this.adapter.find({
-								"query": {
-									"variationGroupId": found.variationGroupId,
-									"_id": { "$ne": found._id }
-								}
+								"query": query
 							})
 								.then(variations => {
 									if (!found.data) {
 										found.data = {};
 									}
-									variations.forEach((variation) => {
+									variations.forEach((variation, i) => {
 										if (variation && variation.data) {
 											if (variation.data.variations) {
 												variation.data.variations = null;
@@ -375,6 +458,7 @@ module.exports = {
 												variation.data.related = null;
 											}
 										}
+										variations[i] = this.priceByUser(variation, ctx.meta.user);
 									});
 									found.data.variations = variations;
 									return found;
@@ -384,13 +468,17 @@ module.exports = {
 					})
 					.then(found => {
 						if (found && typeof found.data!=="undefined" && found.data.related && found.data.related.products && found.data.related.products.length>0) {
+							// get Related
+							let query = {"$and": []};
+							query["$and"].push({
+								"orderCode": {"$in": found.data.related.products}
+							});
+							query = this.filterOnlyActiveProducts(query, ctx.meta.user);
 							return this.adapter.find({
-								"query": {
-									"orderCode": {"$in": found.data.related.products}
-								}
+								"query": query
 							})
 								.then(related => {
-									related.forEach((rel) => {
+									related.forEach((rel, i) => {
 										if (rel && rel.data) {
 											if (rel.data.variations) {
 												rel.data.variations = null;
@@ -399,6 +487,7 @@ module.exports = {
 												rel.data.related = null;
 											}
 										}
+										related[i] = this.priceByUser(rel, ctx.meta.user);
 									});
 									found.data.related.productResults = related;
 									return found;
@@ -454,7 +543,6 @@ module.exports = {
 			},
 			cache: false,
 			handler(ctx) {
-				this.logger.info("products.import - ctx.meta", ctx.meta);
 				let products = ctx.params.products;
 				let promises = [];
 				let self = this;
@@ -468,13 +556,23 @@ module.exports = {
 								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
-											if ( entity && entity.dates ) {
-												Object.keys(entity.dates).forEach(function(key) {
-													let date = entity.dates[key];
-													if ( date && date!=null && date.trim()!="" ) {
-														entity.dates[key] = new Date(entity.dates[key]);
-													}
-												});
+											if ( entity ) {
+												if ( entity.dates ) {
+													Object.keys(entity.dates).forEach(function(key) {
+														let date = entity.dates[key];
+														if ( date && date!=null && date.trim()!="" ) {
+															entity.dates[key] = new Date(entity.dates[key]);
+														}
+													});
+												}
+												if ( entity.activity ) {
+													Object.keys(entity.activity).forEach(function(key) {
+														let date = entity.activity[key];
+														if ( date && date!=null && date.trim()!="" ) {
+															entity.activity[key] = new Date(entity.activity[key]);
+														}
+													});
+												}
 											}
 
 											return self.validateEntity(entity)
@@ -484,6 +582,9 @@ module.exports = {
 													}
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
+													if (!entity.priceLevels) { // add price levels if needed
+														entity = self.makeProductPriceLevels(entity);
+													}
 													self.logger.info("products.import found - update entity:", entity);
 													let entityId = entity.id;
 													delete entity.id;
@@ -502,6 +603,9 @@ module.exports = {
 													};
 
 													return self.adapter.updateById(entityId, update);
+												})
+												.catch(err => {
+													self.logger.error("products import update validateEntity err:", err);
 												});
 										} else { // no product found, create one
 											return self.validateEntity(entity)
@@ -535,6 +639,9 @@ module.exports = {
 															entity.dates.dateCreated = new Date();
 															entity.dates.dateUpdated = new Date();
 															entity.dates.dateSynced = new Date();
+															if (priceLevels) { // add price levels if needed
+																entity = self.makeProductPriceLevels(entity);
+															}
 															self.logger.info("products.import - insert entity:", entity);
 
 															// after call action
@@ -550,6 +657,9 @@ module.exports = {
 																.then(doc => self.transformDocuments(ctx, {}, doc))
 																.then(json => self.entityChanged("created", json, ctx).then(() => json));
 														});
+												})
+												.catch(err => {
+													self.logger.error("products import update validateEntity err:", err);
 												});
 										}
 									})); // push with find end
@@ -693,7 +803,114 @@ module.exports = {
 				}
 				return false;
 			}
-		}
+		},
+
+
+		/**
+		 * External product price level rebuild
+		 * @actions
+		 * @param {string} id - product id
+		 */
+		rebuildProductPriceLevels: {
+			auth: "required",
+			params: {
+				id: { type: "string" }
+			},
+			handler(ctx) {
+				let ids = [];
+				ids.push(ctx.params.id);
+				return ctx.call("products.rebuildProducts", {
+					limit: 1,
+					ids: ids
+				})
+					.then(rebuildSuccess => {
+						// TODO - add user verification - admin or author
+						if (rebuildSuccess && rebuildSuccess.products && rebuildSuccess.products[0]) {
+							return rebuildSuccess.products[0];
+						}
+						return null;
+					});
+			}
+		},
+
+		
+		/**
+		 * Internal action to rebuild products
+		 * DON'T MAKE this action AVAILABLE from your API
+		 * until you know what you're doing. Rather use
+		 * mol $ call products.rebuildProducts
+		 * 
+		 * @actions
+		 * @param {number} limit - maximum number of records to work with (paging)
+		 * @param {number} from - offset to read records from
+		 * @param {array} ids - array of record ids {string(s)}
+		 */
+		rebuildProducts: {
+			params: {
+				limit: { type: "number", optional: true },
+				offset: { type: "number", optional: true },
+				ids: { type: "array", optional: true, items: { type: "string" } }
+			},
+			handler(ctx) {
+				let chunkSize = 100;
+				let limit = (typeof ctx.params.limit !== "undefined") ?  ctx.params.limit : null;
+				let offset = (typeof ctx.params.offset !== "undefined") ?  ctx.params.offset : 0;
+				let ids = (typeof ctx.params.ids !== "undefined") ?  ctx.params.ids : null;
+				let self = this;
+				let result = {
+					count: 0,
+					products: []
+				};
+				let promisesChunks = [];
+
+				let filter = { query: {} };
+				// add ids
+				if (ids) { 
+					let idsObjs = [];
+					ids.forEach(id => {
+						idsObjs.push(self.fixStringToId(id));
+					});
+					filter.query = {
+						_id: { "$in": idsObjs }
+					};
+				}
+				// filter
+				// add limit and offset
+				if (limit && limit!=null) {
+					filter.limit = limit;
+				}
+				filter.offset = offset;
+
+				return ctx.call("products.count", filter)
+					.then(filteredProductsCount => {
+						result.count = filteredProductsCount;
+
+						const chunksCount = Math.ceil(filteredProductsCount / limit);
+						// filter - set chunk size
+						filter.limit = chunkSize;
+
+						// start selecting the chunks
+						for (let i=0; i<chunksCount; i++) {
+							// filter - set where chunk should start
+							filter.offset = chunkSize * i;
+							// create chunk data block
+							promisesChunks.push(
+								ctx.call("products.find", filter)
+									.then(products => {
+										return this.rebuildProductChunks(products);
+									})
+							);
+						}
+						return Promise.all(promisesChunks).then(chunks => {
+							for (let i=0; i<chunks.length; i++) {
+								result.products = result.products.concat(chunks[i]);
+							}
+							return result;
+						});
+					});
+				
+			}
+		},
 
 
 	}, // *** actions end
@@ -705,6 +922,99 @@ module.exports = {
 	 * Methods
 	 */
 	methods: {
+		/**
+		 * Add to db query options to return only active products
+		 * @param {array} query 
+		 * 
+		 * @returns {*} updated query
+		 */
+		filterOnlyActiveProducts(query, ctx) {
+			// display only active products (admin can see all)
+			if (ctx.meta && ctx.meta.user && ctx.meta.user.type=="admin") {
+				return query;
+			}
+			query["$and"].push({
+				"$or": [ 
+					{ "activity.start": { "$exists": false } },
+					{ "activity.start": null },
+					{ "activity.start": { "$lte": new Date() } }
+				] 
+			});
+			query["$and"].push({
+				"$or": [ 
+					{ "activity.end": { "$exists": false } },
+					{ "activity.end": null },
+					{ "activity.end": { "$gte": new Date()} }
+				]
+			});
+			query["$and"].push({
+				"$or": [
+					{"stockAmount": { "$gte": 0 }},
+					{"stockAmount": -1}
+				]
+			});
+			return query;
+		},
+
+		/**
+		 * Get sort based on request and user
+		 * @param {*} filter 
+		 * @param {*} ctx 
+		 * 
+		 * @returns {*} filter
+		 */
+		getFilterSort(filter, ctx) {
+			filter.sort = businessSettings.sorting.products.default; // default
+			if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
+				// if applicable, get sort from request
+				filter.sort = ctx.params.sort;
+			}
+			if (filter.sort=="price" || filter.sort=="-price") {
+				let isNegative = "";
+				if ( filter.sort.substring(0,1)=="-" ) {
+					isNegative = "-";
+				}
+				// if price, set user specific price
+				filter.sort = isNegative + this.getPriceVariable(ctx.meta.user);
+			}
+
+			return filter;
+		},
+
+
+		/**
+		 * Get chunk of products and update them with price levels
+		 * @param {Array} products 
+		 * 
+		 * @returns {Array} true if no results
+		 */
+		rebuildProductChunks(products) {
+			let self = this;
+			let result = [];
+
+			products.forEach(p => {
+				let entityId = p._id;
+				p = self.makeProductPriceLevels(p);
+				if (p.priceLevels) {
+					result.push({
+						id: entityId, 
+						levels: p.priceLevels
+					});
+				}
+				// delete p.id;
+				let p2 = Object.assign({}, p);
+				delete p2._id;
+				const update = {
+					"$set": p2
+				};
+				self.adapter.updateById(entityId, update);
+			});
+
+			return result;
+		},
+
+
+
 	},
 
 	events: {

@@ -67,7 +67,10 @@ module.exports = {
 				dateSynced: { type: "date", optional: true },
 			}},
 			note: { type: "string", optional: true },
-			activity: { type: "number", optional: true },
+			activity: { type: "object", optional: true, props: {
+				start: { type: "date", optional: true },
+				end: { type: "date", optional: true }
+			}},
 		}
 	},
 
@@ -99,6 +102,9 @@ module.exports = {
 								"query": {"parentPathSlug": ctx.params.category}
 							})
 								.then(categoryProducts => {
+									categoryProducts.forEach((product, i) => {
+										categoryProducts[i] = this.priceByUser(product, ctx.meta.user);
+									});
 									return categoryProducts;
 								});
 						}
@@ -106,13 +112,79 @@ module.exports = {
 			}
 		},
 
+
+		/**
+		 * Extension of build-in find action, with filtering only active categories
+		 * 
+		 * @actions
+		 * @param {Object} filter - filter object
+		 *
+		 * @returns {Array.<Object>} List of categories with additional data
+		 */
+		findActive: {
+			params: {
+				limit: { type: "number", optional: true },
+				offset: { type: "number", optional: true },
+				sort: { type: "string", optional: true },
+				query: { type: "object" }
+			},
+			handler(ctx) {
+				// fix filter if needed
+				let filter = { query: {}, limit: 100};
+				if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
+					filter.query = ctx.params.query;
+				}
+				if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
+					filter.limit = ctx.params.limit;
+				}
+				if (typeof ctx.params.offset !== "undefined" && ctx.params.offset) {
+					filter.offset = ctx.params.offset;
+				}
+				if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
+					filter.sort = ctx.params.sort;
+				}
+
+				let query = {"$and": []};
+				if (typeof filter.query !== "undefined" && filter.query) {
+					for (let q in filter.query) {
+						if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+							let obj = {};
+							obj[q] = filter.query[q];
+							query["$and"].push(obj);
+						}
+					}
+				}
+
+				query = this.filterOnlyActiveCategories(query, ctx);
+				filter.query = query;
+
+				return ctx.call("categories.find", filter)
+					.then(categories => {
+						return categories;
+					})
+					.catch(err => {
+						this.logger.error("categories findActive error: ", err);
+					});
+			}
+		},
+
+
+		/**
+		 * Return category with related page
+		 * 
+		 * @actions
+		 * @param {Object} query - query object
+		 * @param {String} lang - page language
+		 * 
+		 * @returns {Object} - object with category & page data
+		 */
 		findWithContent: {
 			params: {
 				query: { type: "object" },
 				lang: { type: "string", min: 2, optional: true } 
 			},
 			handler(ctx) {
-				return ctx.call("categories.find", { query: ctx.params.query })
+				return ctx.call("categories.findActive", { query: ctx.params.query })
 					.then(categories => {
 						return ctx.call("pages.detail", { 
 							page: ctx.params.query.type,
@@ -131,6 +203,7 @@ module.exports = {
 					});
 			}
 		},
+
 
 		/**
 		 * Get detail of Category.
@@ -261,14 +334,23 @@ module.exports = {
 								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
-
-											if ( entity && entity.dates ) {
-												Object.keys(entity.dates).forEach(function(key) {
-													let date = entity.dates[key];
-													if ( date && date!=null && date.trim()!="" ) {
-														entity.dates[key] = new Date(entity.dates[key]);
-													}
-												});
+											if ( entity ) {
+												if ( entity.dates ) {
+													Object.keys(entity.dates).forEach(function(key) {
+														let date = entity.dates[key];
+														if ( date && date!=null && date.trim()!="" ) {
+															entity.dates[key] = new Date(entity.dates[key]);
+														}
+													});
+												}
+												if ( entity.activity ) {
+													Object.keys(entity.activity).forEach(function(key) {
+														let date = entity.activity[key];
+														if ( date && date!=null && date.trim()!="" ) {
+															entity.activity[key] = new Date(entity.activity[key]);
+														}
+													});
+												}
 											}
 
 											return self.validateEntity(entity)
@@ -500,7 +582,36 @@ module.exports = {
 			}
 
 			return results;
-		}
+		}, 
+
+
+		/**
+		 * Add to db query options to return only active products
+		 * @param {array} query 
+		 * 
+		 * @returns {*} updated query
+		 */
+		filterOnlyActiveCategories(query, ctx) {
+			// display only active products (admin can see all)
+			if (ctx.meta && ctx.meta.user && ctx.meta.user.type=="admin") {
+				return query;
+			}
+			query["$and"].push({
+				"$or": [ 
+					{ "activity.start": { "$exists": false } },
+					{ "activity.start": null },
+					{ "activity.start": { "$lte": new Date() } }
+				] 
+			});
+			query["$and"].push({
+				"$or": [ 
+					{ "activity.end": { "$exists": false } },
+					{ "activity.end": null },
+					{ "activity.end": { "$gte": new Date()} }
+				]
+			});
+			return query;
+		},
 	},
 
 	events: {

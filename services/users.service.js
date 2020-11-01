@@ -15,6 +15,7 @@ const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 const emailTemplate = require("../mixins/email.mixin");
 const validateAddress = require("../mixins/validate.address.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
+const priceLevels = require("../mixins/price.levels.mixin");
 
 const sppf = require("../mixins/subproject.helper");
 let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
@@ -30,6 +31,7 @@ module.exports = {
 			"cache.clean.users",
 		]),
 		HelpersMixin, 
+		priceLevels,
 		Cron
 	],
 
@@ -496,13 +498,16 @@ module.exports = {
 
 				return this.Promise.resolve()
 					.then(() => {
-						if (newData.username)
+						if (newData.username) {
 							return this.adapter.findOne({ username: newData.username })
 								.then(found => {
-									if (found && found._id.toString() !== ctx.meta.user._id.toString())
-										return Promise.reject(new MoleculerClientError("Username is exist!", 422, "", [{ field: "username", message: "is exist"}]));
-
+									if (found && found._id.toString() !== ctx.meta.user._id.toString()) {
+										return Promise.reject(
+											new MoleculerClientError("Username is exist!", 422, "", [{ field: "username", message: "is exist"}])
+										);
+									}
 								});
+						}
 					})
 					.then(() => {
 						if (newData.email)
@@ -534,6 +539,14 @@ module.exports = {
 						}
 					})
 					.then(() => {
+						// if user type is not set in /resources/settings/business.js
+						if (newData.type && 
+							( !priceLevels || priceLevels.isValidUsertype(newData.type) )
+						) {
+							return Promise.reject(new MoleculerClientError("Invalid user type!", 422, "", [{ field: "type", message: "invalid"}]));
+						}
+					})
+					.then(() => {
 						// get user only if it's logged and new data id&username&email is same as logged or logged user is admin
 						if ( this.userCanUpdate(loggedUser, newData) ) {
 							let findId = loggedUser._id;
@@ -562,6 +575,16 @@ module.exports = {
 										newData.dates.dateUpdated = new Date();
 									}
 									return this.adapter.updateById(ctx.meta.user._id, this.prepareForUpdate(found));
+								})
+								.then(user => {
+									// get used usertypes and add new pricesLevel if needed
+									return this.adapter.collection.distinct("type")
+										.then(types => {
+											if ( types && types.indexOf(user.type)<0 ) {
+												priceLevels.addUsertypePriceLevel(user.type);
+											}
+											return user;
+										});
 								});
 						}
 						return Promise.reject(new MoleculerClientError("User not valid", 422, "", [{ field: "user", message: "invalid"}]));

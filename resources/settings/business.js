@@ -36,5 +36,29 @@ module.exports = {
 			taxDecimal: 0.2, // 
 			taxType: "VAT" // VAT - tax included in price, IT - tax not included
 		}
+	},
+	priceLevels: {
+		defaultPriceSortValue: "price",
+		validTypes: {
+			userTypes: [
+				"user.partner",
+				"admin.partner",
+			]
+		},
+		discounts: {
+			"user.partner": { // defined as usertype.usersubtype
+				type: "percent", // percent / amount with +/-
+				value: -5
+			},
+			"admin.partner": { // defined as usertype.usersubtype
+				type: "percent", // percent / amount with +/-
+				value: -10
+			}
+		}
+	},
+	sorting: {
+		products: {
+			default: "price"
+		}
 	}
 };

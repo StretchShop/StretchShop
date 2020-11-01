@@ -234,7 +234,7 @@ module.exports = {
 								if (user) {
 									this.logger.info("api.authorize() username: ", user.username);
 									// Reduce user fields (it will be transferred to other nodes)
-									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "addresses", "settings", "dates"]);
+									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "subtype", "addresses", "settings", "dates"]);
 									ctx.meta.token = token;
 									ctx.meta.userID = user._id;
 								}

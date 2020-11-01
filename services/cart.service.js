@@ -43,7 +43,7 @@ module.exports = {
 			user: { type: "string" },
 			ip: { type: "string", min: 4 },
 			hash: {type: "string", min: 32 },
-			order: { type: "number", positive: true },
+			order: { type: "string" },
 			dateCreated: { type: "date" },
 			dateUpdated: { type: "date" },
 			items: { type: "array", items: { type: "object", props:
