@@ -97,12 +97,13 @@ module.exports = {
 			cache: false
 		},
 
+
 		/**
 		 * Get current user cart.
 		 *
 		 * @actions
 		 *
-		 * @returns {Object} User entity
+		 * @returns {Object} User cart entity with items
 		 */
 		me: {
 			cache: {
@@ -162,8 +163,13 @@ module.exports = {
 
 		/**
 		 * Add item to user's cart
+		 * 
+		 * @actions
+		 * @param {String} itemId - id of item to add
+		 * @param {Number} amount - amount to add
+		 * @param {Array} requirements - data that need to be filled for 
 		 *
-		 * @returns {Object} cart entity with items
+		 * @returns {Object} updated cart entity with items
 		 */
 		add: {
 			cache: false,
@@ -273,10 +279,15 @@ module.exports = {
 			}
 		},
 
+
 		/**
 		 * Delete item(s) from user's cart
+		 * 
+		 * @actions
+		 * @param {String} itemId - id of item to delete - removes all items if not set
+		 * @param {number} amount - amount to remove - removes whole product if not set
 		 *
-		 * @returns {Object} cart entity with items
+		 * @returns {Object} updated cart entity with items
 		 */
 		delete: {
 			cache: false,
@@ -333,6 +344,15 @@ module.exports = {
 		},
 
 
+		/**
+		 * Update item's amount
+		 * 
+		 * @actions
+		 * @param {String} itemId - id of item to update - returns cart with unchanged items if not set
+		 * @param {number} amount - new amount - adds 1 if not set
+		 *
+		 * @returns {Object} updated cart entity with items
+		 */
 		updateCartItemAmount: {
 			cache: false,
 			params: {
@@ -387,6 +407,14 @@ module.exports = {
 		},
 
 
+		/**
+		 * Update whole cart
+		 * 
+		 * @actions
+		 * @param {Object} cartNew - new cart object
+		 *
+		 * @returns {Object} updated cart entity with items
+		 */
 		updateMyCart: {
 			cache: false,
 			params: {
@@ -421,6 +449,13 @@ module.exports = {
 		}, 
 
 
+		/**
+		 * Remove old carts
+		 * 
+		 * @actions
+		 *
+		 * @returns {Array} Array of stringified removed carts
+		 */
 		cleanCarts: {
 			cache: false,
 			handler(ctx) {
@@ -457,8 +492,14 @@ module.exports = {
 	 * Methods
 	 */
 	methods: {
+		/**
+		 * Remove id of record and prepare it for MongoDB before saving
+		 * @param {Object} object - object to save
+		 * 
+		 * @returns {Object} object of MongoDB object to update record
+		 */
 		prepareForUpdate(object) {
-			let objectToSave = JSON.parse(JSON.stringify(object));
+			let objectToSave = Object.assign({}, object);
 			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
 				delete objectToSave._id;
 			}

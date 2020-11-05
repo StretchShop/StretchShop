@@ -928,9 +928,9 @@ module.exports = {
 		 * 
 		 * @returns {*} updated query
 		 */
-		filterOnlyActiveProducts(query, ctx) {
+		filterOnlyActiveProducts(query, metaUser) {
 			// display only active products (admin can see all)
-			if (ctx.meta && ctx.meta.user && ctx.meta.user.type=="admin") {
+			if (metaUser && metaUser.type=="admin") {
 				return query;
 			}
 			query["$and"].push({
