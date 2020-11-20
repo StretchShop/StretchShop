@@ -198,7 +198,7 @@ module.exports = {
 						if (ctx.params.amount > productAvailable.stockAmount) {
 							// if digital or subscription - only 1 pcs can be ordered, 
 							// but only if stockAmount is set (more than -1) 
-							if (productAvailable.subtype=="subscription" || productAvailable.subtype=="digital") {
+							if (productAvailable.type=="subscription" || productAvailable.subtype=="digital") {
 								ctx.params.amount = 1;
 								if (productAvailable.stockAmount>-1) {
 									return this.Promise.reject(new MoleculerClientError("Requested amount is not available"));
@@ -249,7 +249,7 @@ module.exports = {
 
 								// perform action according to
 								if ( isInCart>-1 ) { // is in cart, update quantity, note the max
-									if (cart.items[isInCart].subtype=="subscription" || cart.items[isInCart].subtype=="digital") {
+									if (cart.items[isInCart].type=="subscription" || cart.items[isInCart].subtype=="digital") {
 										cart.items[isInCart].amount = 1;
 									} else {
 										let newAmount = cart.items[isInCart].amount + ctx.params.amount;

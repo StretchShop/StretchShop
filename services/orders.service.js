@@ -1699,11 +1699,24 @@ module.exports = {
 		 */
 		orderAfterAcceptedActions(ctx, orderResult) {
 			let self = this;
+			// 1. process any subscriptions of order
+			if ( orderResult && orderResult.items && orderResult.items.length>0 ) {
+				let hasSubscriptions = false;
+				orderResult.items.some(item => {
+					if (item.type=="subscription") {
+						hasSubscriptions = true;
+					}
+				});
+				if (hasSubscriptions) {
+					ctx.call("subscriptions.orderToSubscription", orderResult);
+				}
+			}
+
 			this.logger.info("orders.orderAfterAcceptedActions() - OrderResult:", orderResult);
-			// 1. clear the cart
+			// 2. clear the cart
 			return ctx.call("cart.delete")
 				.then(() => { //(cart)
-					// 2. send email about order
+					// 3. send email about order
 					let userEmail = "";
 					if ( ctx.meta.user && typeof ctx.meta.user.email !== "undefined" && ctx.meta.user.email ) {
 						userEmail = ctx.meta.user.email;

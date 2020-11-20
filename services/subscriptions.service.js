@@ -18,15 +18,15 @@ module.exports = {
 
 	crons: [{
 		name: "SubscriptionsCleaner",
-		cronTime: "0 1 * * *",
+		cronTime: "0 0 * * *",
 		onTick: function() {
 
-			this.logger.info("Starting to Clean up the Carts");
+			this.logger.info("Starting to Clean up the Subscriptions");
 
-			this.getLocalService("cart")
-				.actions.cleanCarts()
+			this.getLocalService("subscriptions")
+				.actions.runSubscriptions()
 				.then((data) => {
-					this.logger.info("Carts Cleaned up", data);
+					this.logger.info("Subscriptions runned", data);
 				});
 		}
 	}],
@@ -36,7 +36,7 @@ module.exports = {
 	 */
 	settings: {
 		/** Public fields */
-		fields: ["_id", "userId", "ip", "type", "period", "duration", "orderId", "dates", "price", "data", "history"],
+		fields: ["_id", "userId", "ip", "type", "period", "duration", "status", "orderOriginId", "orderItemName", "dates", "price", "data", "history"],
 
 		/** Validator schema for entity */
 		entityValidator: {
@@ -45,9 +45,12 @@ module.exports = {
 			type: {type: "string", min: 3 }, // autorefresh, singletime, ...
 			period: {type: "string", min: 3 }, // year, month, week, day, ...
 			duration: {type: "number", positive: true }, // 1, 3, 9.5, ...
-			orderId: { type: "string", min: 3 },
+			status: { type: "string", min: 3 }, // active, finished, ...
+			orderOriginId: { type: "string", min: 3 },
+			orderItemName: { type: "string", min: 3 },
 			dates: { type: "object", props: {
 				dateStart: { type: "date" },
+				dateOrderNext: { type: "date" },
 				dateEnd: { type: "date" },
 				dateCreated: { type: "date" },
 				dateUpdated: { type: "date" },
@@ -55,7 +58,8 @@ module.exports = {
 			price: { type: "number" },
 			data: { type: "object", props:
 				{
-					product: { type: "object" }
+					product: { type: "object" },
+					order: { type: "object", optional: true }
 				}
 			},
 			history: { type: "array", optional: true, items:
@@ -65,7 +69,7 @@ module.exports = {
 					date: { type: "date" },
 					data: { type: "object", optional: true }
 				} }
-			},
+			}
 		}
 	},
 
@@ -96,7 +100,7 @@ module.exports = {
 			},
 			handler(ctx) {
 				if ( ctx.meta.user && ctx.meta.user._id ) {
-					return ctx.call("cart.find", {
+					return ctx.call("subscriptions.find", {
 						"query": {
 							userId: ctx.meta.user._id
 						}
@@ -121,6 +125,176 @@ module.exports = {
 		},
 
 
+		checkMySubscription: {
+			cache: false,
+			params: {
+				subscriptionProductId: { type: "string", min: 3 }
+			},
+			handler(ctx) {
+
+			}
+		},
+
+
+		/**
+		 * 
+		 */
+		orderToSubscription: {
+			// auth: "required",
+			cache: false,
+			params: {
+				order: { type: "object" }
+			},
+			handler(ctx) {
+				// 1. get subscription items from order
+				const subscriptions = this.getOrderSubscriptions(ctx.params.order);
+				
+				// 2. create subscription for every subscribe item
+				if (subscriptions && subscriptions.length>0) {
+					for (let i=0; i<subscriptions.length; i++) {
+						let subscription = this.createEmptySubscription();
+						// 3. get subscription order
+						let order = this.prepareOrderForSubscription(ctx.params.order, subscriptions[i]);
+						subscription.data.product = subscriptions[i];
+						subscription.data.order = order;
+						let durationMax = 12; // maximum count of period repeats
+						// type & period & duration & durationMax
+						if (subscriptions[i].data && subscriptions[i].data.subscription) {
+							if (subscriptions[i].data.subscription.type) {
+								subscription.type = subscriptions[i].data.subscription.type;
+							}
+							if (subscriptions[i].data.subscription.period) {
+								subscription.period = subscriptions[i].data.subscription.period;
+							}
+							if (subscriptions[i].data.subscription.duration) {
+								subscription.duration = subscriptions[i].data.subscription.duration;
+							}
+							if (subscriptions[i].data.subscription.durationMax) {
+								durationMax = subscriptions[i].data.subscription.durationMax;
+							}
+						}
+						// basics
+						subscription.userId = order.user.id;
+						subscription.ip = ctx.meta.remoteAddress+":"+ctx.meta.remotePort;
+						subscription.orderOriginId = ctx.params.order._id.$oid || ctx.params.order._id.toString();
+						subscription.orderItemName = ctx.params.order.items[0].name[order.lang.code];
+						subscription.dates.dateStart = new Date();
+						subscription.dates.dateOrderNext = this.calculateDateOrderNext(
+							subscription.period,
+							subscription.duration
+						);
+						subscription.price = ctx.params.order.items[0].price;
+
+						// setting up date when subscription ends
+						let dateEnd = this.calculateDateEnd(
+							subscription.dates.dateStart,
+							subscription.period,
+							subscription.duration,
+							durationMax
+						);
+						subscription.dates.dateEnd = dateEnd;
+
+						// 4. save subscription
+						ctx.call("subscriptions.save", {entity: subscription} )
+							.then((saved) => {
+								this.logger.info("subscriptions.orderToSubscription - added subscription: ", saved);
+							})
+							.catch(err => {
+								this.logger.error("subscriptions.orderToSubscription - err: ", err);
+							});
+					}
+				}
+			}
+		},
+
+
+		runSubscriptions: {
+			cache: false,
+			handler(ctx) {
+				let promises = [];
+				const today = new Date();
+				return this.adapter.find({
+					query: {
+						"dates.dateOrderNext": { "$lte": today },
+						"dates.dateEnd": { "$gte": today },
+						status: "active"
+					}
+				})
+					.then(found => {
+						found.forEach(subscription => {
+							let newOrder = subscription.data.order;
+							promises.push( 
+								ctx.call("orders.progress", {orderParams: newOrder} )
+									.then(orderResult => {
+										this.logger.info("Created new subscription order ", JSON.stringify(orderResult));
+										let dateEnd = new Date(subscription.dates.dateEnd);
+										if ( dateEnd > today ) {
+											// set new value for dateOrderNext
+											subscription.dateOrderNext = this.calculateDateOrderNext(
+												subscription.period,
+												subscription.duration
+											);
+										} else {
+											subscription.status = "finished";
+										}
+										return this.adapter.updateById(subscription._id, this.prepareForUpdate(subscription))
+											.then(subscriptionUpdated => {
+												return subscriptionUpdated;
+											});
+									})
+							);
+						});
+						// return all delete results
+						return Promise.all(promises).then((result) => {
+							return result;
+						});
+					});
+			}
+		},
+
+
+		/**
+		 * Import subscriptions data:
+		 *
+		 * @actions
+		 *
+		 * @returns {Object} Category entity
+		 */
+		import: {
+			auth: "required",
+			params: {
+				subscriptions: { type: "array", items: "object", optional: true },
+			},
+			// cache: {
+			// 	keys: ["#subscriptionID"]
+			// },
+			handler(ctx) {
+				this.logger.info("subscriptions.import - ctx.meta");
+				let subscriptions = ctx.params.subscriptions;
+				let promises = [];
+
+				if (ctx.meta.user.type=="admin") {
+					if ( subscriptions && subscriptions.length>0 ) {
+						// loop products to import
+						subscriptions.forEach(function(entity) {
+							promises.push(
+								// add subscription results into result variable
+								ctx.call("subscriptions.save", {entity})
+							); // push with find end
+						});
+					}
+
+					// return multiple promises results
+					return Promise.all(promises).then(prom => {
+						return prom;
+					});
+				} else { // not admin user
+					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
+				}	
+			}
+		},
+
+
 		/**
 		 * Save subscription:
 		 *  - if no ID, create new;
@@ -131,286 +305,93 @@ module.exports = {
 		save: {
 			cache: false,
 			params: {
-				itemId: { type: "string", min: 3 },
-				amount: { type: "number", positive: true },
-				requirements: { type: "array", optional: true }
+				entity: { type: "object" } // su
 			},
 			handler(ctx) {
-				// 1. check if product with that properties exists and
-				// 2. if enough pieces on stock
-				return ctx.call("products.findWithId", {
-					"query": {
-						"_id": ctx.params.itemId
-					}
-				})
-					.then(productAvailable => {
-						if (productAvailable && productAvailable.length>0) {
-							productAvailable = productAvailable[0];
-							productAvailable._id = productAvailable._id.toString();
-						}
-						if (!productAvailable || (productAvailable.length===0 && productAvailable[0])) {
-							return this.Promise.reject(new MoleculerClientError("No matching product found"));
-						}
-						// check if amount is available
-						if (ctx.params.amount > productAvailable.stockAmount) {
-							// if digital or subscription - only 1 pcs can be ordered, 
-							// but only if stockAmount is set (more than -1) 
-							if (productAvailable.subtype=="subscription" || productAvailable.subtype=="digital") {
-								ctx.params.amount = 1;
-								if (productAvailable.stockAmount>-1) {
-									return this.Promise.reject(new MoleculerClientError("Requested amount is not available"));
-								}
-							} else { // physical products
-								return this.Promise.reject(new MoleculerClientError("Requested amount is not available"));
-							}
-						}
-						return productAvailable;
-					})
-					.then(productAvailable => {
-						// if requirements available, add them
-						if (ctx.params.requirements && ctx.params.requirements.length>0 && 
-							productAvailable && productAvailable.data && productAvailable.data.requirements &&
-							productAvailable.data.requirements.inputs) {
-							// loop requirements' input & params to fill in value
-							productAvailable.data.requirements.inputs.some((input, key) => {
-								ctx.params.requirements.some((paramReq) => {
-									if (input.codename && paramReq.codename && paramReq.value && 
-										input.codename == paramReq.codename) {
-										// codename match, set value of requirement
-										productAvailable.data.requirements.inputs[key]["value"] = paramReq.value;
-										return true;
-									}
-								});
-							});
-						}
+				let self = this;
+				let entity = ctx.params.entity;
 
-						return ctx.call("cart.me")
-							.then(cart => {
-								if (cart && cart.length>0) {
-									cart = cart[0];
-								}
-
-								// 2. check if it's already in cart
-								let isInCart = -1;
-								if ( cart.items ) {
-									for (let i=0; i<cart.items.length; i++) {
-										if (cart.items[i]._id == productAvailable._id) {
-											isInCart = i;
-											break;
-										}
-									}
-								} else {
-									cart.items = [];
-								}
-								// TODO - check if it's in cart with specific data of product (color, size, ...) if any
-
-								// perform action according to
-								if ( isInCart>-1 ) { // is in cart, update quantity, note the max
-									if (cart.items[isInCart].subtype=="subscription" || cart.items[isInCart].subtype=="digital") {
-										cart.items[isInCart].amount = 1;
-									} else {
-										let newAmount = cart.items[isInCart].amount + ctx.params.amount;
-										if ( newAmount>productAvailable.stockAmount ) {
-											newAmount = productAvailable.stockAmount;
-										}
-										cart.items[isInCart].amount = newAmount;
-									}
-								} else { // not in cart
-									if ( typeof productAvailable === "object" && productAvailable.constructor !== Array ) {
-										productAvailable.amount = ctx.params.amount;
-										cart.items.push(productAvailable);
-									} else {
-										cart.items = null;
-									}
-								}
-
-								cart.dateUpdated = new Date();
-
-								// 3. add to cart and write to datasource
-								ctx.meta.cart = cart;
-								return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
-									.then(doc => this.transformDocuments(ctx, {}, doc))
-									.then(json => this.entityChanged("updated", json, ctx).then(() => json));
-							});
-					});
-			}
-		},
-
-		/**
-		 * Delete item(s) from user's cart
-		 *
-		 * @returns {Object} cart entity with items
-		 */
-		delete: {
-			cache: false,
-			params: {
-				itemId: { type: "string", min: 3, optional: true },
-				amount: { type: "number", positive: true, optional: true }
-			},
-			handler(ctx) {
-				// get cart
-				return ctx.call("cart.me")
-					.then(cart => {
-						if (cart && cart.length>0) {
-							cart = cart[0];
-						}
-						// check if there are any items inside
-						if ( cart.items.length>0 ) {
-							if ( ctx.params.itemId ) {
-								// find product in cart
-								let productInCart = -1;
-								for (let i=0; i<cart.items.length; i++) {
-									if (cart.items[i]._id == ctx.params.itemId) {
-										productInCart = i;
-										break;
-									}
-								}
-								// if found, remove one product from cart
-								if (productInCart>-1) {
-									if ( ctx.params.amount && ctx.params.amount>0 ) {
-										// remove amount from existing value
-										cart.items[productInCart].amount = cart.items[productInCart].amount - ctx.params.amount;
-										if (cart.items[productInCart].amount<=0) {
-											// if new amount less or equal to 0, remove whole product
-											cart.items.splice(productInCart, 1);
-										}
-									} else {
-										// remove whole product from cart
-										cart.items.splice(productInCart, 1);
-									}
-								}
-							} else {
-								// no ID, remove all items from cart
-								cart.items = [];
-							}
-							cart.dateUpdated = new Date();
-
-							// update cart in variable and datasource
-							ctx.meta.cart = cart;
-							return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
-								.then(doc => this.transformDocuments(ctx, {}, doc))
-								.then(json => this.entityChanged("removed", json, ctx).then(() => json));
-						}
-					});
-			}
-		},
-
-
-		updateCartItemAmount: {
-			cache: false,
-			params: {
-				itemId: { type: "string", min: 3, optional: true },
-				amount: { type: "number", positive: true, optional: true }
-			},
-			handler(ctx) {
-				ctx.params.itemId = (typeof ctx.params.itemId !== "undefined") ?  ctx.params.itemId : null;
-				ctx.params.amount = (typeof ctx.params.amount !== "undefined") ?  ctx.params.amount : 1;
-				// get cart
-				return ctx.call("cart.me")
-					.then(cart => {
-						if (cart && cart.length>0) {
-							cart = cart[0];
-						}
-						// check if there are any items inside
-						if ( cart.items && cart.items.length>0 ) {
-							if ( ctx.params.itemId ) {
-								// find product in cart
-								let productInCart = -1;
-								for (let i=0; i<cart.items.length; i++) {
-									if (cart.items[i]._id == ctx.params.itemId) {
-										productInCart = i;
-										break;
-									}
-								}
-								// if found, remove one product from cart
-								if (productInCart>-1) {
-									if ( ctx.params.amount && ctx.params.amount>0 ) {
-										// remove amount from existing value
-										cart.items[productInCart].amount = ctx.params.amount;
-										if (cart.items[productInCart].amount<=0) {
-											// if new amount less or equal to 0, remove whole product
-											cart.items.splice(productInCart, 1);
-										}
-										// if product contains requirements, remove amount
-										if (cart.items[productInCart].requirements && cart.items[productInCart].requirements.length>0) {
-											cart.items[productInCart].amount = 1;
-										}
-									}
-								}
-							}
-							cart.dateUpdated = new Date();
-							// update cart in variable and datasource
-							ctx.meta.cart = cart;
-							return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
-								.then(doc => this.transformDocuments(ctx, {}, doc))
-								.then(json => this.entityChanged("updated", json, ctx).then(() => json));
-						}
-					});
-			}
-		},
-
-
-		updateMyCart: {
-			cache: false,
-			params: {
-				cartNew: { type: "object" }
-			},
-			handler(ctx) {
-				// get user's cart
-				return ctx.call("cart.me")
-					.then(cart => {
-						if (cart && cart.length>0) {
-							cart = cart[0];
-						}
-
-						// update old cart according to new one, if property set, otherwise keep old
-						if ( ctx.params.cartNew ) {
-							for ( let property in ctx.params.cartNew ) {
-								if ( Object.prototype.hasOwnProperty.call(cart,property) && Object.prototype.hasOwnProperty.call(ctx.params.cartNew,property) ) {
-									cart[property] = ctx.params.cartNew[property];
-								}
-							}
-						}
-
-						cart.dateUpdated = new Date();
-						// update cart in variable and datasource
-						ctx.meta.cart = cart;
-						this.logger.info("cart.updateMyCart - newCart: ", cart);
-						return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
-							.then(doc => this.transformDocuments(ctx, {}, doc))
-							.then(json => this.entityChanged("updated", json, ctx).then(() => json));
-					});
-			}
-		}, 
-
-
-		cleanCarts: {
-			cache: false,
-			handler(ctx) {
-				let promises = [];
-				const d = new Date();
-				d.setMonth(d.getMonth() - 1);
-				return this.adapter.find({
-					query: {
-						dateUpdated: { "$lt": d }
-					}
-				})
+				return this.adapter.findById(entity.id)
 					.then(found => {
-						found.forEach(cart => {
-							promises.push( 
-								ctx.call("cart.remove", {id: cart._id} )
-									.then(removed => {
-										return "Removed carts: " +JSON.stringify(removed);
+						if (found) { // entity found, update it
+							if ( entity ) {
+								if ( entity.dates ) {
+									// convert strings to Dates
+									Object.keys(entity.dates).forEach(function(key) {
+										let date = entity.dates[key];
+										if ( date && date!=null && !(date instanceof Date) && 
+										date.toString().trim()!="" ) {
+											entity.dates[key] = new Date(entity.dates[key]);
+										}
+									});
+								}
+							}
+
+							return self.validateEntity(entity)
+								.then(() => {
+									if (!entity.dates) {
+										entity.dates = {};
+									}
+									entity.dates.dateUpdated = new Date();
+									entity.dates.dateSynced = new Date();
+									self.logger.info("subscription.save found - update entity:", entity);
+									let entityId = entity.id;
+									delete entity.id;
+									delete entity._id;
+									const update = {
+										"$set": entity
+									};
+
+									return self.adapter.updateById(entityId, update)
+										.then(doc => self.transformDocuments(ctx, {}, doc))
+										.then(json => self.entityChanged("updated", json, ctx).then(() => json));
+								})
+								.catch(err => {
+									self.logger.error("subscriptions.save update validation error: ", err);
+								});
+						} else { // no product found, create one
+							return self.validateEntity(entity)
+								.then(() => {
+									// check if user doesn't have same subscription in that time
+									return ctx.call("subscriptions.find", {
+										"query": {
+											userId: entity.userId,
+											orderItemName: entity.orderItemName,
+											// "dates.dateStart": {"$le": entity.dates.dateStart} // TODO - set date range
+										}
 									})
-							);
-						});
-						// return all delete results
-						return Promise.all(promises).then((result) => {
-							return result;
-						});
+										.then(entityFound => {
+											if (entityFound && entityFound.constructor === Array && 
+											entityFound.length>0) {
+												self.logger.warn("subscriptions.save - insert - found similar entity:", entityFound);
+											}
+											if (!entity.dates) {
+												entity.dates = {};
+											}
+											// convert strings to Dates
+											Object.keys(entity.dates).forEach(function(key) {
+												let date = entity.dates[key];
+												if ( date && date!=null && !(date instanceof Date) && 
+												date.toString().trim()!="" ) {
+													entity.dates[key] = new Date(entity.dates[key]);
+												}
+											});
+											self.logger.info("subscriptions.save - insert entity:", entity);
+
+											return self.adapter.insert(entity)
+												.then(doc => self.transformDocuments(ctx, {}, doc))
+												.then(json => self.entityChanged("created", json, ctx).then(() => json));
+										});
+								})
+								.catch(err => {
+									self.logger.error("subscriptions.save insert validation error: ", err);
+								});
+						} // else end
 					});
 			}
-		}
+		},
+
+		// add delete action
 
 	},
 
@@ -426,11 +407,156 @@ module.exports = {
 				delete objectToSave._id;
 			}
 			return { "$set": objectToSave };
-		}
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} order 
+		 * 
+		 * @returns Object
+		 */
+		prepareOrderForSubscription(order, item) {
+			item = (typeof item !== "undefined") ? item : null;
+			let subscriptionOrder = Object.assign({}, order);
+			// remove unwanted attributes
+			delete subscriptionOrder._id;
+			subscriptionOrder.status = "cart";
+
+			subscriptionOrder.data.paymentData.lastResponseResult = [];
+			delete subscriptionOrder.invoice;
+			
+			subscriptionOrder.prices.priceTotal = 0;
+			subscriptionOrder.prices.priceTotalNoTax = 0;
+			subscriptionOrder.prices.priceItems = 0;
+			subscriptionOrder.prices.priceItemsNoTax = 0;
+			subscriptionOrder.prices.priceTaxTotal = 0;
+			subscriptionOrder.prices.priceDelivery = 0;
+			subscriptionOrder.prices.pricePayment = 0;
+			
+			// define items
+			subscriptionOrder.items = [];
+			if (item && item!=null) {
+				// add the item
+				subscriptionOrder.items.push(item);
+				// subscriptionOrder.items[0].id = subscriptionOrder.items[0]._id;
+				// delete subscriptionOrder.items[0]._id;
+				// count the prices
+			}
+			// do NOT set the dates
+			return subscriptionOrder;
+		},
+
+		
+		/**
+		 * 
+		 * @param {Object} order 
+		 * 
+		 * @returns Array - subscriptions in order
+		 */
+		getOrderSubscriptions(order) {
+			let subscriptions = [];
+
+			if (order.items && order.items.length>0) {
+				order.items.forEach(item => {
+					if (item.type === "subscription") {
+						subscriptions.push(item);
+					}
+				});
+			}
+
+			return subscriptions;
+		},
+
+
+		createEmptySubscription() {
+			const nextYear = new Date();
+			nextYear.setFullYear( nextYear.getFullYear() + 1);
+
+			return {
+				userId: null,
+				ip: null,
+				type: "autorefresh", // autorefresh, singletime, ...
+				period: "month", // year, month, week, day, ...
+				duration: 1, // 1, 3, 9.5, ...
+				status: "active", // active, inactive, ...
+				orderOriginId: null,
+				orderItemName: null,
+				dates: {
+					dateStart: new Date(),
+					dateEnd: nextYear,
+					dateCreated: new Date(),
+					dateUpdated: new Date(),
+				},
+				price: null,
+				data: { 
+					product: null,
+					order: null
+				},
+				history: [],
+			};
+		},
+
+
+		/**
+		 * 
+		 * @param {Date} dateStart 
+		 * @param {String} period 
+		 * @param {Number} duration 
+		 * @param {Number} durationMax 
+		 */
+		calculateDateEnd(dateStart, period, duration, durationMax) {
+			let dateEnd = new Date(dateStart.getTime());
+			for (let i=0; i<durationMax; i++) {
+				dateEnd = this.calculateDateOrderNext(period, duration, dateEnd);
+			}
+			return dateEnd;
+		},
+
+
+		/**
+		 * 
+		 * @param {String} period 
+		 * @param {Number} duration 
+		 */
+		calculateDateOrderNext(period, duration, dateStart) {
+			Date.prototype.addDays = function(days) {
+				let date = new Date(this.valueOf());
+				date.setDate(date.getDate() + days);
+				return date;
+			};
+			const addMonths = (date, months) => {
+				let d = date.getDate();
+				date.setMonth(date.getMonth() + +months);
+				if (date.getDate() != d) {
+					date.setDate(0);
+				}
+				return date;
+			};
+
+			let dateOrderNext = dateStart || new Date();
+			switch (period) {
+			case "day":
+				dateOrderNext.addDays(duration); // add a day(s)
+				break;
+			case "week": 
+				dateOrderNext.addDays(duration * 7); // add a week(s)
+				return;
+			case "month":
+				dateOrderNext = addMonths(dateOrderNext, duration); // add month(s)
+				break;
+			default: // year
+				dateOrderNext.setFullYear(dateOrderNext.getFullYear() + duration); // add years
+				break;
+			}
+			return dateOrderNext;
+		},
+
+
 	},
 
 	events: {
-		"cache.clean.cart"() {
+		"cache.clean.subscriptions"() {
 			if (this.broker.cacher)
 				this.broker.cacher.clean(`${this.name}.*`);
 		}
