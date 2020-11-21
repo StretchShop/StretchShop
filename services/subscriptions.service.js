@@ -221,16 +221,17 @@ module.exports = {
 					}
 				})
 					.then(found => {
+						this.logger.info("subsp found ", found);
 						found.forEach(subscription => {
 							let newOrder = subscription.data.order;
 							promises.push( 
-								ctx.call("orders.progress", {orderParams: newOrder} )
+								ctx.call("orders.create", {order: newOrder} )
 									.then(orderResult => {
 										this.logger.info("Created new subscription order ", JSON.stringify(orderResult));
 										let dateEnd = new Date(subscription.dates.dateEnd);
 										if ( dateEnd > today ) {
 											// set new value for dateOrderNext
-											subscription.dateOrderNext = this.calculateDateOrderNext(
+											subscription.dates.dateOrderNext = this.calculateDateOrderNext(
 												subscription.period,
 												subscription.duration
 											);

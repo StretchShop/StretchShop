@@ -321,6 +321,29 @@ module.exports = {
 		},
 
 
+		/**
+		 * Insert order from object sent - with recalculating the prices
+		 * 
+		 * @param {Object} order
+		 */
+		create: {
+			params: {
+				order: { type: "object", optional: true },
+			},
+			handler(ctx) {
+				ctx.params.order = this.countOrderPrices("all", null, ctx.params.order);
+				// TODO - update dates, send to remote, set status to "sent"
+				// TODO - make payment and set status to "paid"
+
+				return this.adapter.insert(ctx.params.order)
+					.then(doc => this.transformDocuments(ctx, {}, doc))
+					.then(json => this.entityChanged("created", json, ctx).then(() => json));
+
+			}
+		},
+
+
+
 		cancel: {
 			params: {
 				itemId: { type: "string", min: 3, optional: true },
@@ -1407,20 +1430,27 @@ module.exports = {
 		/**
 		 * Count cart items total price and order total prices
 		 */
-		countOrderPrices(calculate, specification) {
+		countOrderPrices(calculate, specification, order) {
 			let calcTypes = ["all", "items", "totals"];
 			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
 			specification = typeof specification !== "undefined" ?  specification : null;
+			
+			let orderFromParam = true;
+			if ( typeof order == "undefined" ) {
+				order = this.settings.orderTemp;	
+				orderFromParam = false;
+			}
+
 			let self = this;
 			// use default VAT if not custom eg. for product
 			let tax = businessSettings.taxData.global.taxDecimal || self.settings.defaultConstants.tax;
 
 			// prices of items
 			if ( calculate=="all" || calculate=="items" ) {
-				this.settings.orderTemp.prices.priceItems = 0;
-				this.settings.orderTemp.prices.priceItemsNoTax = 0;
-				this.settings.orderTemp.prices.priceTaxTotal = 0;
-				this.settings.orderTemp.items
+				order.prices.priceItems = 0;
+				order.prices.priceItemsNoTax = 0;
+				order.prices.priceTaxTotal = 0;
+				order.items
 					.filter(function(item){
 						// if specification is set items are filtered for calculation by subtype - eg. only digital items
 						if (specification && specification!=null) {
@@ -1433,28 +1463,28 @@ module.exports = {
 					})
 					.forEach(function(value){
 						if ( value.taxData ) {
-							self.settings.orderTemp.prices.priceItems += value.taxData.priceWithTax * value.amount;
+							order.prices.priceItems += value.taxData.priceWithTax * value.amount;
 							if ( value.tax && value.tax!=null ) {
 								tax = value.tax;
 							}
-							self.settings.orderTemp.prices.priceItemsNoTax += value.taxData.priceWithoutTax * value.amount;
-							self.settings.orderTemp.prices.priceTaxTotal += value.taxData.tax * value.amount;
+							order.prices.priceItemsNoTax += value.taxData.priceWithoutTax * value.amount;
+							order.prices.priceTaxTotal += value.taxData.tax * value.amount;
 						} else {
-							self.settings.orderTemp.prices.priceItems += (value.price * value.amount);
+							order.prices.priceItems += (value.price * value.amount);
 							if ( value.tax && value.tax!=null ) {
 								tax = value.tax;
 							}
 							let priceNoTax = value.price / (1 + tax);
-							self.settings.orderTemp.prices.priceItemsNoTax += priceNoTax;
+							order.prices.priceItemsNoTax += priceNoTax;
 							let taxOnly = value.price / (1 + tax);
-							self.settings.orderTemp.prices.priceTaxTotal += taxOnly;
+							order.prices.priceTaxTotal += taxOnly;
 						}
 					});
-				this.settings.orderTemp.prices.priceItems = this.formatPrice(this.settings.orderTemp.prices.priceItems);
-				this.settings.orderTemp.prices.priceItemsNoTax = this.formatPrice(this.settings.orderTemp.prices.priceItemsNoTax);
-				this.settings.orderTemp.prices.priceItemsTax = this.formatPrice(this.settings.orderTemp.prices.priceTaxTotal);
+				order.prices.priceItems = this.formatPrice(order.prices.priceItems);
+				order.prices.priceItemsNoTax = this.formatPrice(order.prices.priceItemsNoTax);
+				order.prices.priceItemsTax = this.formatPrice(order.prices.priceTaxTotal);
 				if ( calculate=="items" ) { // format only if calculate items
-					this.settings.orderTemp.prices.priceTaxTotal = this.formatPrice(this.settings.orderTemp.prices.priceTaxTotal);
+					order.prices.priceTaxTotal = this.formatPrice(order.prices.priceTaxTotal);
 				}
 			}
 
@@ -1462,39 +1492,45 @@ module.exports = {
 			if ( calculate=="all" || calculate=="totals" ) {
 				tax = businessSettings.taxData.global.taxDecimal || self.settings.defaultConstants.tax;
 				// price and tax of delivery
-				let priceDeliveryNoTax = this.settings.orderTemp.prices.priceDelivery / (1 + tax);
-				let priceDeliveryTax = this.settings.orderTemp.prices.priceDelivery * tax;
-				if ( this.settings.orderTemp.prices.priceDeliveryTaxData ) {
-					priceDeliveryNoTax = this.settings.orderTemp.prices.priceDeliveryTaxData.priceWithoutTax;
-					priceDeliveryTax = this.settings.orderTemp.prices.priceDeliveryTaxData.tax;
+				let priceDeliveryNoTax = order.prices.priceDelivery / (1 + tax);
+				let priceDeliveryTax = order.prices.priceDelivery * tax;
+				if ( order.prices.priceDeliveryTaxData ) {
+					priceDeliveryNoTax = order.prices.priceDeliveryTaxData.priceWithoutTax;
+					priceDeliveryTax = order.prices.priceDeliveryTaxData.tax;
 				}
 				// price and tax of delivery
-				let pricePaymentNoTax = this.settings.orderTemp.prices.pricePayment / (1 + tax);
-				let pricePaymentTax = this.settings.orderTemp.prices.pricePayment * tax;
-				if ( this.settings.orderTemp.prices.pricePaymentTaxData ) {
-					pricePaymentNoTax = this.settings.orderTemp.prices.pricePaymentTaxData.priceWithoutTax;
-					pricePaymentTax = this.settings.orderTemp.prices.pricePaymentTaxData.tax;
+				let pricePaymentNoTax = order.prices.pricePayment / (1 + tax);
+				let pricePaymentTax = order.prices.pricePayment * tax;
+				if ( order.prices.pricePaymentTaxData ) {
+					pricePaymentNoTax = order.prices.pricePaymentTaxData.priceWithoutTax;
+					pricePaymentTax = order.prices.pricePaymentTaxData.tax;
 				}
 				// tax total with tax for delivery and payment
-				this.settings.orderTemp.prices.priceTaxTotal += priceDeliveryTax + pricePaymentTax;
+				order.prices.priceTaxTotal += priceDeliveryTax + pricePaymentTax;
 				// price total without tax
-				this.settings.orderTemp.prices.priceTotalNoTax = this.settings.orderTemp.prices.priceItemsNoTax +
+				order.prices.priceTotalNoTax = order.prices.priceItemsNoTax +
 					priceDeliveryNoTax + pricePaymentNoTax;
-				this.settings.orderTemp.prices.priceTotalNoTax = this.formatPrice(this.settings.orderTemp.prices.priceTotalNoTax);
+				order.prices.priceTotalNoTax = this.formatPrice(order.prices.priceTotalNoTax);
 				// total with tax, delivery and payment
 				// total for IT tax
 				if ( businessSettings.taxData.global.taxType==="IT" ) {
-					this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
-						this.settings.orderTemp.prices.priceDelivery +
-						this.settings.orderTemp.prices.pricePayment + 
-						this.settings.orderTemp.prices.priceTaxTotal;
+					order.prices.priceTotal = order.prices.priceItems +
+						order.prices.priceDelivery +
+						order.prices.pricePayment + 
+						order.prices.priceTaxTotal;
 				} else {
 					// total for VAT tax
-					this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
-						this.settings.orderTemp.prices.priceDelivery +
-						this.settings.orderTemp.prices.pricePayment;
+					order.prices.priceTotal = order.prices.priceItems +
+						order.prices.priceDelivery +
+						order.prices.pricePayment;
 				}
-				this.settings.orderTemp.prices.priceTotal = this.formatPrice(this.settings.orderTemp.prices.priceTotal);
+				order.prices.priceTotal = this.formatPrice(order.prices.priceTotal);
+			}
+
+			if (orderFromParam) {
+				return order;
+			} else {
+				this.settings.orderTemp = order;
 			}
 		},
 
