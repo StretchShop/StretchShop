@@ -544,6 +544,8 @@ module.exports = {
 
 
 		/**
+		 * Calculate when subscriptions ends
+		 * We always use some maximum limit
 		 * 
 		 * @param {Date} dateStart 
 		 * @param {String} period 
@@ -552,8 +554,13 @@ module.exports = {
 		 */
 		calculateDateEnd(dateStart, period, duration, durationMax) {
 			let dateEnd = new Date(dateStart.getTime());
-			for (let i=0; i<durationMax; i++) {
-				dateEnd = this.calculateDateOrderNext(period, duration, dateEnd);
+			const maxDuration = 500; // eternity does not exist and it prevents infinite loops
+			if (!durationMax || durationMax<=0 || durationMax>maxDuration) {
+				dateEnd.setFullYear(dateEnd.getFullYear() + maxDuration);
+			} else {
+				for (let i=0; i<durationMax; i++) {
+					dateEnd = this.calculateDateOrderNext(period, duration, dateEnd);
+				}
 			}
 			return dateEnd;
 		},
