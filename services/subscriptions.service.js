@@ -64,7 +64,7 @@ module.exports = {
 			},
 			history: { type: "array", optional: true, items:
 				{ type: "object", props: {
-					action: { type: "string" }, // created, prolonged, stopped, paused
+					action: { type: "string" }, // created, prolonged, stopped, paused, ...
 					type: { type: "string" }, // user, automatic, ...
 					date: { type: "date" },
 					data: { type: "object", optional: true }
@@ -86,6 +86,7 @@ module.exports = {
 			cache: false
 		},
 
+
 		/**
 		 * Get currently active user's subscriptions
 		 *
@@ -93,7 +94,8 @@ module.exports = {
 		 *
 		 * @returns {Object} User entity
 		 */
-		me: {
+		mySubscriptions: {
+			auth: "required",
 			cache: {
 				keys: ["dates.dateUpdated"],
 				ttl: 30
@@ -113,6 +115,10 @@ module.exports = {
 							}
 						})
 						.then(subscriptions => {
+							// delete history for user
+							subscriptions.forEach(s => {
+								delete s.history;
+							});
 							return this.transformEntity(subscriptions, true, ctx);
 						})
 						.catch((error) => {
@@ -125,19 +131,14 @@ module.exports = {
 		},
 
 
-		checkMySubscription: {
-			cache: false,
-			params: {
-				subscriptionProductId: { type: "string", min: 3 }
-			},
-			handler(ctx) {
-
-			}
-		},
-
-
 		/**
+		 * Converts order with subscription items to subscription records
 		 * 
+		 * @actions
+		 * 
+		 * @param {Object} - order object to get subscriptions from
+		 * 
+		 * @returns {Object} 
 		 */
 		orderToSubscription: {
 			// auth: "required",
@@ -177,7 +178,11 @@ module.exports = {
 						// basics
 						subscription.userId = order.user.id;
 						subscription.ip = ctx.meta.remoteAddress+":"+ctx.meta.remotePort;
-						subscription.orderOriginId = ctx.params.order._id.$oid || ctx.params.order._id.toString();
+						// this is just for development debuging needs
+						if (ctx.params.order._id["$oid"]) {
+							ctx.params.order._id = ctx.params.order._id["$oid"];
+						}
+						subscription.orderOriginId = ctx.params.order._id || ctx.params.order._id.toString();
 						subscription.orderItemName = ctx.params.order.items[0].name[order.lang.code];
 						subscription.dates.dateStart = new Date();
 						subscription.dates.dateOrderNext = this.calculateDateOrderNext(
@@ -185,6 +190,10 @@ module.exports = {
 							subscription.duration
 						);
 						subscription.price = ctx.params.order.items[0].price;
+
+						subscription.history.push( 
+							this.newHistoryRecord("created", "user", ctx.params.order) 
+						);
 
 						// setting up date when subscription ends
 						let dateEnd = this.calculateDateEnd(
@@ -210,6 +219,12 @@ module.exports = {
 		},
 
 
+		/**
+		 * CRON action (see crons.cronTime setting for time to process):
+		 *  1. find all subscriptions that need to processed
+		 *  2. create and process new order for these subscriptions
+		 *  3. update subscriptions
+		 */
 		runSubscriptions: {
 			cache: false,
 			handler(ctx) {
@@ -240,6 +255,9 @@ module.exports = {
 										} else {
 											subscription.status = "finished";
 										}
+										subscription.history.push( 
+											this.newHistoryRecord("prolonged", "automatic") 
+										);
 										return this.adapter.updateById(subscription._id, this.prepareForUpdate(subscription))
 											.then(subscriptionUpdated => {
 												return subscriptionUpdated;
@@ -247,7 +265,7 @@ module.exports = {
 									})
 							);
 						});
-						// return all delete results
+						// return all runned subscriptions
 						return Promise.all(promises).then((result) => {
 							return result;
 						});
@@ -260,6 +278,8 @@ module.exports = {
 		 * Import subscriptions data:
 		 *
 		 * @actions
+		 * 
+		 * @param {Array} - array of subscription to import
 		 *
 		 * @returns {Object} Category entity
 		 */
@@ -404,6 +424,13 @@ module.exports = {
 	 * Methods
 	 */
 	methods: {
+		/**
+		 * Remove _id and return object wrapped for mongoDB
+		 * 
+		 * @param {Object} object - subscription to update
+		 * 
+		 * @returns {Object}
+		 */
 		prepareForUpdate(object) {
 			let objectToSave = Object.assign({}, object); //JSON.parse(JSON.stringify(object));
 			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
@@ -427,8 +454,15 @@ module.exports = {
 			subscriptionOrder.externalId = null;
 			subscriptionOrder.externalCode = null;
 
+			subscriptionOrder.dates.datePaid = null;
+			subscriptionOrder.dates.emailSent = null;
+
 			subscriptionOrder.status = "cart";
 
+			delete subscriptionOrder.data.paymentData.paymentRequestId;
+			delete subscriptionOrder.data.paymentData.lastStatus;
+			delete subscriptionOrder.data.paymentData.lastDate;
+			delete subscriptionOrder.data.paymentData.paidAmountTotal;
 			subscriptionOrder.data.paymentData.lastResponseResult = [];
 			delete subscriptionOrder.invoice;
 			
@@ -477,6 +511,9 @@ module.exports = {
 		},
 
 
+		/**
+		 * @returns {Object} - empty subscription object
+		 */
 		createEmptySubscription() {
 			const nextYear = new Date();
 			nextYear.setFullYear( nextYear.getFullYear() + 1);
@@ -558,6 +595,28 @@ module.exports = {
 				break;
 			}
 			return dateOrderNext;
+		},
+
+
+		/**
+		 * Helper to create history record
+		 * 
+		 * @param {String} action // created, prolonged, stopped, paused, ...
+		 * @param {String} type // user, automatic, ...
+		 * @param {Object} data 
+		 */
+		newHistoryRecord(action, type, data) {
+			action = action ? action : "created";
+			type = type ? type : "user";
+			let result = {
+				action,
+				type,
+				date: new Date()
+			};
+			if (data) {
+				result.data = data;
+			}
+			return result;
 		},
 
 

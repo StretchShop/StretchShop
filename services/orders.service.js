@@ -1697,6 +1697,11 @@ module.exports = {
 		 * This implementation represents the most conservative version - changes
 		 * only amount of cart items. It's up to business model if any more liberal
 		 * approach is needed. But be carefull to not create backdoors.
+		 * 
+		 * @param {Object} orderOriginal 
+		 * @param {Object} orderResponse 
+		 * 
+		 * @returns {Object} processed order
 		 */
 		processResponseOfOrderSent(orderOriginal, orderResponse) {
 			if ( orderOriginal && orderResponse ) {
