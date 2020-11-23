@@ -155,6 +155,7 @@ module.exports = {
 						let subscription = this.createEmptySubscription();
 						// 3. get subscription order
 						let order = this.prepareOrderForSubscription(ctx.params.order, subscriptions[i]);
+
 						subscription.data.product = subscriptions[i];
 						subscription.data.order = order;
 						let durationMax = 12; // maximum count of period repeats
@@ -195,9 +196,10 @@ module.exports = {
 						subscription.dates.dateEnd = dateEnd;
 
 						// 4. save subscription
-						ctx.call("subscriptions.save", {entity: subscription} )
+						return ctx.call("subscriptions.save", {entity: subscription} )
 							.then((saved) => {
 								this.logger.info("subscriptions.orderToSubscription - added subscription: ", saved);
+								return saved;
 							})
 							.catch(err => {
 								this.logger.error("subscriptions.orderToSubscription - err: ", err);
@@ -223,7 +225,7 @@ module.exports = {
 					.then(found => {
 						this.logger.info("subsp found ", found);
 						found.forEach(subscription => {
-							let newOrder = subscription.data.order;
+							let newOrder = Object.assign({}, subscription.data.order);
 							promises.push( 
 								ctx.call("orders.create", {order: newOrder} )
 									.then(orderResult => {
@@ -403,7 +405,7 @@ module.exports = {
 	 */
 	methods: {
 		prepareForUpdate(object) {
-			let objectToSave = JSON.parse(JSON.stringify(object));
+			let objectToSave = Object.assign({}, object); //JSON.parse(JSON.stringify(object));
 			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
 				delete objectToSave._id;
 			}
@@ -422,6 +424,9 @@ module.exports = {
 			let subscriptionOrder = Object.assign({}, order);
 			// remove unwanted attributes
 			delete subscriptionOrder._id;
+			subscriptionOrder.externalId = null;
+			subscriptionOrder.externalCode = null;
+
 			subscriptionOrder.status = "cart";
 
 			subscriptionOrder.data.paymentData.lastResponseResult = [];
@@ -434,6 +439,8 @@ module.exports = {
 			subscriptionOrder.prices.priceTaxTotal = 0;
 			subscriptionOrder.prices.priceDelivery = 0;
 			subscriptionOrder.prices.pricePayment = 0;
+
+			subscriptionOrder.data.subscription = new Date();
 			
 			// define items
 			subscriptionOrder.items = [];

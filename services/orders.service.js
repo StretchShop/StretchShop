@@ -331,13 +331,24 @@ module.exports = {
 				order: { type: "object", optional: true },
 			},
 			handler(ctx) {
+				let self = this;
+				// count order prices
 				ctx.params.order = this.countOrderPrices("all", null, ctx.params.order);
-				// TODO - update dates, send to remote, set status to "sent"
+				// update dates
+				ctx.params.order.dates.dateCreated = new Date();
+				ctx.params.order.dates.dateChanged = new Date();
 				// TODO - make payment and set status to "paid"
 
 				return this.adapter.insert(ctx.params.order)
 					.then(doc => this.transformDocuments(ctx, {}, doc))
-					.then(json => this.entityChanged("created", json, ctx).then(() => json));
+					.then(json => {
+						return this.entityChanged("created", json, ctx)
+							.then(() => {
+								this.logger.info("order.create - created do afterSaveActions:", json);
+								self.orderAfterSaveActions(ctx, {order: json});
+								return json;
+							});
+					});
 
 			}
 		},
@@ -1635,7 +1646,7 @@ module.exports = {
 								// process response
 								let updatedOrder = this.processResponseOfOrderSent(orderProcessedResult.order, orderSentResponse.result.order);
 								// 2. clear cart + 3. send email
-								return self.orderAfterAcceptedActions(ctx, orderProcessedResult)
+								return self.orderAfterAcceptedActions(ctx, orderProcessedResult.order)
 									.then(success => {
 										if ( success ) {
 											orderProcessedResult.order = updatedOrder;
@@ -1644,7 +1655,7 @@ module.exports = {
 											// save with sent status and email sent date after it
 											return this.adapter.updateById(orderProcessedResult.order._id, self.prepareForUpdate(orderProcessedResult.order))
 												.then(() => { //(orderUpdated)
-													this.entityChanged("updated", orderProcessedResult, ctx);
+													this.entityChanged("updated", orderProcessedResult.order, ctx);
 													return orderProcessedResult;
 												});
 										}
@@ -1729,49 +1740,66 @@ module.exports = {
 
 
 		/**
-		 * actions to perform after order was sent and accepted
+		 * Actions to perform after order was sent and accepted.
+		 * It is used by manual (user) and also automated order (subscriptions)
 		 *
 		 * @returns {Boolean}
 		 */
-		orderAfterAcceptedActions(ctx, orderResult) {
-			let self = this;
+		orderAfterAcceptedActions(ctx, order) {
+			if (!order) {
+				return false;
+			}
 			// 1. process any subscriptions of order
-			if ( orderResult && orderResult.items && orderResult.items.length>0 ) {
+			if (order.data && 
+				(!order.data.subscription || order.data.subscription==null) && 
+				order.items && order.items.length>0 ) {
 				let hasSubscriptions = false;
-				orderResult.items.some(item => {
+				order.items.some(item => {
 					if (item.type=="subscription") {
 						hasSubscriptions = true;
 					}
 				});
 				if (hasSubscriptions) {
-					ctx.call("subscriptions.orderToSubscription", orderResult);
+					ctx.call("subscriptions.orderToSubscription", order);
 				}
 			}
 
-			this.logger.info("orders.orderAfterAcceptedActions() - OrderResult:", orderResult);
+			this.logger.info("orders.orderAfterAcceptedActions() - order:", order);
 			// 2. clear the cart
 			return ctx.call("cart.delete")
 				.then(() => { //(cart)
 					// 3. send email about order
-					let userEmail = "";
-					if ( ctx.meta.user && typeof ctx.meta.user.email !== "undefined" && ctx.meta.user.email ) {
-						userEmail = ctx.meta.user.email;
+					let user = ctx.meta.user || ""; // ctx is default user data source
+					let userEmail = user.email || "";
+					let invoiceAddress = "";
+					// if available, define invoiceAddress from order
+					if ( order.invoiceAddress ) {
+						invoiceAddress = order.invoiceAddress;
 					}
-					if ( typeof self.settings.orderTemp.addresses.invoiceAddress.email !== "undefined" && self.settings.orderTemp.addresses.invoiceAddress.email ) {
-						userEmail = self.settings.orderTemp.addresses.invoiceAddress.email;
+					// if avaiblable, define email from invoiceAddress.email
+					if (invoiceAddress && invoiceAddress!=null && invoiceAddress.email) {
+						userEmail = invoiceAddress.email;
+					}
+					// if order.user defined, use it
+					if (order.user) {
+						user = order.user;
+						if (order.user.email) {
+							userEmail = order.user.email;
+						}
 					}
 					this.logger.info("orders.orderAfterAcceptedActions():", {
-						email: userEmail, 
-						metaUser: ctx.meta.user, 
-						invoiceAddress: self.settings.orderTemp.addresses.invoiceAddress
+						userEmail, 
+						user, 
+						invoiceAddress, 
+						order
 					});
 					ctx.call("users.sendEmail",{ // return 
 						template: "ordered",
 						data: {
-							order: self.settings.orderTemp
+							order,
 						},
 						settings: {
-							subject: process.env.SITE_NAME +" - Your Order #"+ self.settings.orderTemp._id,
+							subject: process.env.SITE_NAME +" - Your Order #"+ order._id,
 							to: userEmail
 						}
 					})

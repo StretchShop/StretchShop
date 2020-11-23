@@ -771,7 +771,7 @@ module.exports = {
 				if ( ctx.params.functionSettings && typeof ctx.params.functionSettings.language !== "undefined" && ctx.params.functionSettings.language ) {
 					langCode = ctx.params.functionSettings.language;
 				}
-				if ( langCode == "null" && ctx.params.data && ctx.params.data.order && ctx.params.data.order.lang ) {
+				if ( (langCode == "null" || !langCode) && ctx.params.data && ctx.params.data.order && ctx.params.data.order.lang ) {
 					langCode = ctx.params.data.order.lang;
 				}
 				if ( typeof langCode.code !== "undefined" ) {

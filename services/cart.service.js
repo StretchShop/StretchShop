@@ -303,7 +303,7 @@ module.exports = {
 							cart = cart[0];
 						}
 						// check if there are any items inside
-						if ( cart.items.length>0 ) {
+						if ( cart.items && cart.items.length>0 ) {
 							if ( ctx.params.itemId ) {
 								// find product in cart
 								let productInCart = -1;
