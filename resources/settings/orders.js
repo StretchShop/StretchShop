@@ -102,5 +102,9 @@ module.exports = {
 				}
 			]
 		}
+	],
+	availablePaymentActions: [
+		"paypalOrderGeturl",
+		"paypalResult"
 	]
 };

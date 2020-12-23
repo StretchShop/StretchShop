@@ -36,7 +36,7 @@ module.exports = {
 	 */
 	settings: {
 		/** Public fields */
-		fields: ["_id", "userId", "ip", "type", "period", "duration", "status", "orderOriginId", "orderItemName", "dates", "price", "data", "history"],
+		fields: ["_id", "userId", "ip", "type", "period", "duration", "cycles", "status", "orderOriginId", "orderItemName", "dates", "price", "data", "history"],
 
 		/** Validator schema for entity */
 		entityValidator: {
@@ -45,6 +45,7 @@ module.exports = {
 			type: {type: "string", min: 3 }, // autorefresh, singletime, ...
 			period: {type: "string", min: 3 }, // year, month, week, day, ...
 			duration: {type: "number", positive: true }, // 1, 3, 9.5, ...
+			cycles: {type: "number"}, // number of repeats, for infinity use 0 and less
 			status: { type: "string", min: 3 }, // active, finished, ...
 			orderOriginId: { type: "string", min: 3 },
 			orderItemName: { type: "string", min: 3 },
@@ -59,7 +60,8 @@ module.exports = {
 			data: { type: "object", props:
 				{
 					product: { type: "object" },
-					order: { type: "object", optional: true }
+					order: { type: "object", optional: true },
+					remoteData: { type: "object", optional: true }
 				}
 			},
 			history: { type: "array", optional: true, items:
@@ -182,13 +184,14 @@ module.exports = {
 						if (ctx.params.order._id["$oid"]) {
 							ctx.params.order._id = ctx.params.order._id["$oid"];
 						}
-						subscription.orderOriginId = ctx.params.order._id || ctx.params.order._id.toString();
+						subscription.orderOriginId = ctx.params.order._id.toString();
 						subscription.orderItemName = ctx.params.order.items[0].name[order.lang.code];
 						subscription.dates.dateStart = new Date();
-						subscription.dates.dateOrderNext = this.calculateDateOrderNext(
+						subscription.dates.dateOrderNext = new Date();
+						/*this.calculateDateOrderNext(
 							subscription.period,
 							subscription.duration
-						);
+						);*/
 						subscription.price = ctx.params.order.items[0].price;
 
 						subscription.history.push( 
@@ -203,6 +206,7 @@ module.exports = {
 							durationMax
 						);
 						subscription.dates.dateEnd = dateEnd;
+						this.logger.info("subscriptions.orderToSubscription subscription 2 save:", subscription);
 
 						// 4. save subscription
 						return ctx.call("subscriptions.save", {entity: subscription} )
@@ -524,7 +528,8 @@ module.exports = {
 				type: "autorefresh", // autorefresh, singletime, ...
 				period: "month", // year, month, week, day, ...
 				duration: 1, // 1, 3, 9.5, ...
-				status: "active", // active, inactive, ...
+				cycles: 0,
+				status: "inactive", // active, inactive, ...
 				orderOriginId: null,
 				orderItemName: null,
 				dates: {
@@ -545,7 +550,7 @@ module.exports = {
 
 		/**
 		 * Calculate when subscriptions ends
-		 * We always use some maximum limit
+		 * For infinity (durationMax==0) it calculates date to nex
 		 * 
 		 * @param {Date} dateStart 
 		 * @param {String} period 
@@ -554,7 +559,7 @@ module.exports = {
 		 */
 		calculateDateEnd(dateStart, period, duration, durationMax) {
 			let dateEnd = new Date(dateStart.getTime());
-			const maxDuration = 500; // eternity does not exist and it prevents infinite loops
+			const maxDuration = 1000; // eternity does not exist and it prevents infinite loops
 			if (!durationMax || durationMax<=0 || durationMax>maxDuration) {
 				dateEnd.setFullYear(dateEnd.getFullYear() + maxDuration);
 			} else {

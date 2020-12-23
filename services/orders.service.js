@@ -6,13 +6,15 @@ const Cron = require("moleculer-cron");
 
 const passGenerator = require("generate-password");
 const fetch 		= require("node-fetch");
+const jwt	= require("jsonwebtoken");
 const paypal = require("paypal-rest-sdk");
 const payments = paypal.v1.payments;
-const jwt	= require("jsonwebtoken");
+let base64 = require("base-64");
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
 const pathResolve = require("path").resolve;
+const paymentsPaypal = require("../mixins/payments.paypal1.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
@@ -37,6 +39,7 @@ module.exports = {
 		DbService("orders"),
 		HelpersMixin,
 		FileHelpers,
+		paymentsPaypal,
 		CacheCleanerMixin([
 			"cache.clean.orders"
 		]),
@@ -186,13 +189,6 @@ module.exports = {
 		emptyUpdateResult: { "id": -1, "name": "order not processed", "success": false },
 
 		paymentsConfigs: {
-			paypal: {
-				environment: (process.env.PAYPAL_ENV==="production" || process.env.PAYPAL_ENV==="live") ? "live" : "sandbox",
-				merchantId: process.env.PAYPAL_CLIENT_ID,
-				publicKey: null,
-				privateKey: process.env.PAYPAL_SECRET,
-				gateway: null
-			}
 		}, 
 
 		paths: {
@@ -473,6 +469,83 @@ module.exports = {
 		},
 
 
+		/**
+		 * Payment router - call action related to request and 
+		 * allowed in the order settings
+		 * 
+		 * @actions
+		 * 
+     * @param {String} supplier - supplier name (eg. paypal)
+     * @param {String} action - action name (eg. geturl)
+     * @param {String} orderId - id of order to pay
+     * @param {Object} data - data specific for payment
+		 * 
+		 * @returns {Object} Unified result from related action
+		 */
+		payment: {
+			params: {
+				supplier: { type: "string", min: 3 },
+				action: { type: "string", min: 3 },
+				orderId: { type: "string", min: 3 },
+				data: { type: "object", optional: true }
+			},
+			handler(ctx) {
+				// get action to call - get its name from supplier & action params
+				let supplier = ctx.params.supplier.toLowerCase();
+				let action = ctx.params.action.charAt(0).toUpperCase();
+				action += ctx.params.action.slice(1);
+				let actionName = supplier+"Order"+action;
+
+				// using resources/settings/orders.js check if final payment action can be called
+				this.logger.info("order.payment - calling payment: ", actionName, this.settings.order.availablePaymentActions.indexOf(actionName)>-1);
+				if ( this.settings.order.availablePaymentActions &&
+				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
+					return ctx.call("orders."+actionName, {
+						orderId: ctx.params.orderId,
+						data: ctx.params.data
+					})
+						.then(result => {
+							return result;
+						})
+						.catch(error => {
+							this.logger.error("order.payment - calling payment error: ", error);
+							return null;
+						});
+				}
+			}
+		},
+
+
+		/**
+		 * process PayPal result after user paid and returned to website
+		 */
+		paymentResult: {
+			params: {
+				supplier: { type: "string", min: 3 },
+				result: { type: "string", min: 3 },
+				PayerID: { type: "string", optional: true },
+				paymentId: { type: "string", optional: true }
+			},
+			handler(ctx) {
+				let supplier = ctx.params.supplier.toLowerCase();
+				let actionName = supplier+"Result";
+
+				// using resources/settings/orders.js check if final payment action can be called
+				if ( this.settings.order.availablePaymentActions &&
+				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
+					return ctx.call("orders."+actionName, {
+						result: ctx.params.result,
+						PayerID: ctx.params.PayerID,
+						paymentId: ctx.params.paymentId
+					})
+						.then(result => {
+							return result;
+						});
+				}
+			}
+		},
+
+
 		paymentWebhook: {
 			params: {
 				service: { type: "string" }
@@ -482,223 +555,6 @@ module.exports = {
 				return;
 			}
 		},
-
-
-		/**
-		 * Send payment info to PayPal and get redirect url  or error message
-		 *
-		 * @actions
-		 * 
-		 * @returns {Object} Result from PayPal order checkout
-		 */
-		paypalOrderCheckout: {
-			params: {
-				orderId: { type: "string", min: 3 },
-				checkoutData: { type: "object", optional: true }
-			},
-			handler(ctx) {
-				let result = { success: false, url: null, message: "error" };
-
-				// get order data
-				return this.adapter.findById(ctx.params.orderId)
-					.then(order => {
-						if ( order ) {
-							let paymentType = order.data.paymentData.codename.replace("online_paypal_","");
-
-							let items = [];
-							for (let i=0; i<order.items.length; i++ ) {
-								items.push({
-									"name": order.items[i].name[order.lang.code],
-									"sku": order.items[i].orderCode,
-									"price": this.formatPrice(order.items[i].price),
-									"currency": order.prices.currency.code,
-									"quantity": order.items[i].amount
-								});
-							}
-							items.push({
-								"name": order.data.paymentData.name[order.lang.code],
-								"sku": order.data.paymentData.name[order.lang.code],
-								"price": this.formatPrice(order.prices.pricePayment),
-								"currency": order.prices.currency.code,
-								"quantity": 1
-							});
-							let deliveryName = "Delivery - ";
-							if (order.data.deliveryData.codename && order.data.deliveryData.codename.physical) {
-								deliveryName += order.data.deliveryData.codename.physical.value;
-							}
-							if (order.data.deliveryData.codename && order.data.deliveryData.codename.digital) {
-								deliveryName += order.data.deliveryData.codename.digital.value;
-							}
-							items.push({
-								"name": deliveryName,
-								"sku": deliveryName,
-								"price": this.formatPrice(order.prices.priceDelivery),
-								"currency": order.prices.currency.code,
-								"quantity": 1
-							});
-
-							let client = this.createPayPalHttpClient();
-
-							let url = ctx.meta.siteSettings.url;
-							if ( process.env.NODE_ENV=="development" ) {
-								url = "http://localhost:3000";
-							}
-
-							let payment = {
-								"intent": "sale",
-								"payer": {
-									"payment_method": paymentType
-								},
-								"redirect_urls": {
-									"cancel_url": url +"/backdirect/order/paypal/cancel",
-									"return_url": url +"/backdirect/order/paypal/return"
-								},
-								"transactions": [{
-									"item_list": {
-										"items": items
-									},
-									"amount": {
-										"currency": order.prices.currency.code,
-										"total": this.formatPrice(order.prices.priceTotal)
-									},
-									// "note_to_payer": "Order ID "+order._id,
-									"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
-								}]
-							};
-							this.logger.info("PAYMENT:\n", payment, "\n", payment.transactions[0].item_list.items, "\n", payment.transactions[0].amount, "\n\n");
-
-							let request = new payments.PaymentCreateRequest();
-							request.requestBody(payment);
-
-							return client.execute(request).then((response) => {
-								order.data.paymentData.paymentRequestId = response.result.id;
-								return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-									.then(orderUpdated => {
-										this.entityChanged("updated", orderUpdated, ctx);
-										this.logger.info("orders.paypalOrderCheckout - orderUpdated after payment", orderUpdated);
-										return { order: orderUpdated, payment: response };
-									});
-							})
-								.then(responses => {
-									this.logger.info("orders.paypalOrderCheckout - response.payment", responses.payment);
-
-									if (responses.payment.result) {
-										for (let i=0; i<responses.payment.result.links.length; i++) {
-											if (responses.payment.result.links[i].rel=="approval_url") {
-												result.url = responses.payment.result.links[i].href;
-												break;
-											}
-										}
-									}
-									if ( result.url!=null && typeof result.url=="string" && result.url.trim()!="" ) {
-										result.success = true;
-									}
-									return result;
-								}).catch((error) => {
-									this.logger.error("orders.paypalOrderCheckout - payment error: ", error);
-									result.message = error.message;
-									return result;
-								});
-						} // if order
-					});
-			}
-		},
-
-		/**
-		 * process PayPal result after user paid and returned to website
-		 */
-		paypalResult: {
-			params: {
-				result: { type: "string", min: 3 },
-				PayerID: { type: "string", optional: true },
-				paymentId: { type: "string", optional: true }
-			},
-			handler(ctx) {
-				let urlPathPrefix = "/";
-				if ( process.env.NODE_ENV=="development" ) {
-					urlPathPrefix = "http://localhost:8080/";
-				}
-				this.logger.info("orders.paypalResult - ctx.params:", ctx.params);
-				if ( ctx.params.result == "return" ) {
-					// get order data
-					return ctx.call("orders.find", {
-						"query": {
-							"data.paymentData.paymentRequestId": ctx.params.paymentId
-						}
-					})
-						.then(orders => {
-							if ( orders && orders.length>0 && orders[0] ) {
-								let order = orders[0];
-
-								const execute_payment_json = {
-									"payer_id": ctx.params.PayerID,
-									"transactions": [{
-										"amount": {
-											"currency": order.prices.currency.code,
-											"total": this.formatPrice(order.prices.priceTotal)
-										}
-									}]
-								};
-
-								let client = this.createPayPalHttpClient();
-								let request = new payments.PaymentExecuteRequest(ctx.params.paymentId);
-								request.requestBody(execute_payment_json);
-
-								return client.execute(request).then((response) => {
-									this.logger.info("response:", response);
-
-									order.dates.datePaid = new Date();
-									order.status = "paid";
-									order.data.paymentData.lastStatus = response.result.state;
-									order.data.paymentData.lastDate = new Date();
-									order.data.paymentData.paidAmountTotal = 0;
-									if ( !order.data.paymentData.lastResponseResult ) {
-										order.data.paymentData.lastResponseResult = [];
-									}
-									order.data.paymentData.lastResponseResult.push(response.result);
-									// calculate total amount paid
-									for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
-										if (order.data.paymentData.lastResponseResult[i].state && 
-											order.data.paymentData.lastResponseResult[i].state == "approved" && 
-											order.data.paymentData.lastResponseResult[i].transactions) {
-											for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
-												if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
-													order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
-													order.data.paymentData.paidAmountTotal += parseFloat(
-														order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
-													);
-												}
-											}
-										}
-									}
-									// calculate how much to pay
-									order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
-									return this.generateInvoice(order, ctx)
-										.then(invoice => {
-											order.invoice["html"] = invoice.html;
-											order.invoice["path"] = invoice.path;
-											return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-												.then(orderUpdated => {
-													this.entityChanged("updated", orderUpdated, ctx);
-													this.logger.info("orders.paypalResult - invoice generated", { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
-													if ( order.prices.priceTotalToPay==0 && typeof this.afterPaidActions !== "undefined" ) {
-														this.afterPaidActions(order, ctx);
-													}
-													return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
-												});
-										});
-								}).catch((error) => {
-									this.logger.error("orders.paypalResult - paypal execute error: ", error);
-								});
-							}
-						});
-				} else {
-					// payment not finished -- TODO - case cancel does not get correct language
-					this.logger.error("orders.paypalResult - payment canceled");
-					return { success: false, response: null, redirect: urlPathPrefix + "en/user/orders/" };
-				}
-			}
-		}, 
 
 
 		/**
@@ -1765,7 +1621,10 @@ module.exports = {
 					}
 				});
 				if (hasSubscriptions) {
-					ctx.call("subscriptions.orderToSubscription", order);
+					ctx.call("subscriptions.orderToSubscription", {order} )
+						.catch(err => {
+							this.logger.error("order.orderAfterAcceptedActions hasSubscriptions err:", err);
+						});
 				}
 			}
 
@@ -2078,22 +1937,6 @@ module.exports = {
 			};
 			return userData;
 		},
-
-
-		/**
-		 * Setting up PayPal HttpClient for specific transaction
-		 */
-		createPayPalHttpClient() {
-			let env;
-			if (this.settings.paymentsConfigs.paypal.environment === "live") {
-				// Live Account details
-				env = new paypal.core.LiveEnvironment(this.settings.paymentsConfigs.paypal.merchantId, this.settings.paymentsConfigs.paypal.privateKey);
-			} else {
-				env = new paypal.core.SandboxEnvironment(this.settings.paymentsConfigs.paypal.merchantId, this.settings.paymentsConfigs.paypal.privateKey);
-			}
-
-			return new paypal.core.PayPalHttpClient(env);
-		}, 
 
 
 		/**
