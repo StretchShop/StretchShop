@@ -8,8 +8,9 @@ const passGenerator = require("generate-password");
 const fetch 		= require("node-fetch");
 const jwt	= require("jsonwebtoken");
 const paypal = require("paypal-rest-sdk");
-const payments = paypal.v1.payments;
+// const payments = paypal.payments;
 let base64 = require("base-64");
+const url = require("url");
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
@@ -321,10 +322,12 @@ module.exports = {
 		 * Insert order from object sent - with recalculating the prices
 		 * 
 		 * @param {Object} order
+		 * 
+		 * @returns {Object} saved order
 		 */
 		create: {
 			params: {
-				order: { type: "object", optional: true },
+				order: { type: "object" },
 			},
 			handler(ctx) {
 				let self = this;
@@ -344,55 +347,94 @@ module.exports = {
 								self.orderAfterSaveActions(ctx, {order: json});
 								return json;
 							});
+					})
+					.catch(error => {
+						self.logger.error("order.create - insert error: ", error);
+						return null;
 					});
 
 			}
 		},
 
 
-
-		cancel: {
+		/**
+		 * Update order with object sent - with recalculating the prices
+		 * 
+		 * @param {Object} order
+		 * 
+		 * @returns {Object} saved order
+		 */
+		update: {
 			params: {
-				itemId: { type: "string", min: 3, optional: true },
-				amount: { type: "number", positive: true, optional: true }
+				order: { type: "object" },
+				params: { type: "object", optional: true }
 			},
 			handler(ctx) {
-				// get cart
-				return ctx.call("cart.me")
-					.then(cart => {
-						// check if there are any items inside
-						if ( cart.items.length>0 ) {
-							if ( ctx.params.itemId ) {
-								// find product in cart
-								let productInCart = -1;
-								for (let i=0; i<cart.items.length; i++) {
-									if (cart.items[i]._id == ctx.params.itemId) {
-										productInCart = i;
-										break;
-									}
-								}
-								// if found, remove one product from cart
-								if (productInCart>-1) {
-									if ( ctx.params.amount && ctx.params.amount>0 ) {
-										// remove amount from existing value
-										cart.items[productInCart].amount = cart.items[productInCart].amount - ctx.params.amount;
-										if (cart.items[productInCart].amount<=0) {
-											// if new amount less or equal to 0, remove whole product
-											cart.items.splice(productInCart, 1);
-										}
-									} else {
-										// remove whole product from cart
-										cart.items.splice(productInCart, 1);
-									}
-								}
-							} else {
-								// no ID, remove all items from cart
-								cart.items = [];
+				let self = this;
+				let entity = ctx.params.order;
+				// count order prices
+				this.logger.info("order.update - order:", entity);
+
+				return this.adapter.findById(entity.id)
+					.then(found => {
+						if (found) { // entity found, update it
+							if ( entity ) {
+								entity = this.countOrderPrices("all", null, entity);
+								// update dates
+								entity.dates.dateChanged = new Date();
+
+								let entityId = entity.id;
+								delete entity.id;
+								delete entity._id;
+								const update = {
+									"$set": entity
+								};
+
+								return self.adapter.updateById(entityId, update)
+									.then(doc => this.transformDocuments(ctx, {}, doc))
+									.then(json => {
+										return this.entityChanged("updated", json, ctx)
+											.then(() => {
+												this.logger.info("order.update - updated order:", json);
+												self.orderAfterSaveActions(ctx, {order: json});
+												return json;
+											});
+									})
+									.catch(error => {
+										self.logger.error("order.create - insert error: ", error);
+										return null;
+									});
 							}
-							// update cart in variable and datasource
-							ctx.meta.cart = cart;
-							return this.adapter.updateById(ctx.meta.cart._id, cart);
 						}
+					});
+
+			}
+		},
+
+
+		/**
+		 * Cancel order - TODO - NOT IMPLEMENTED YET
+		 * 
+		 * @param {String} orderId - id of order to cancel
+		 * @param {Array} items - items to cancel order - only if applicable
+		 * 
+		 * @returns {Object} saved order
+		 */
+		cancel: {
+			params: {
+				orderId: { type: "string", min: 3 },
+				items: { type: "array", optional: true }
+			},
+			handler(ctx) {
+				// get order
+				let self = this;
+
+				return this.adapter.findById(ctx.params.orderId)
+					.then(order => {
+						return order;
+					})
+					.catch(error => {
+						self.logger.error("subscriptions.save update validation error: ", error);
 					});
 			}
 		},
@@ -420,7 +462,7 @@ module.exports = {
 			},
 			handler(ctx) {
 				// check if we have logged user
-				if ( ctx.meta.user._id ) { // we have user
+				if ( ctx.meta.user && ctx.meta.user._id ) { // we have user
 					let filter = { query: {}, limit: 20};
 					if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
 						filter.query = ctx.params.query;
@@ -517,7 +559,7 @@ module.exports = {
 
 
 		/**
-		 * process PayPal result after user paid and returned to website
+		 * process result after user paid and returned to website
 		 */
 		paymentResult: {
 			params: {
@@ -638,7 +680,8 @@ module.exports = {
 					}
 				}
 			}
-		}
+		}, 
+
 
 	},
 
@@ -1501,8 +1544,8 @@ module.exports = {
 							if ( orderSentResponse.result.status=="accepted" ) {
 								// process response
 								let updatedOrder = this.processResponseOfOrderSent(orderProcessedResult.order, orderSentResponse.result.order);
-								// 2. clear cart + 3. send email
-								return self.orderAfterAcceptedActions(ctx, orderProcessedResult.order)
+								// actions that don't change order - 2. clear cart + 3. send email
+								return self.orderAfterAcceptedActions(ctx, updatedOrder)
 									.then(success => {
 										if ( success ) {
 											orderProcessedResult.order = updatedOrder;
@@ -1610,69 +1653,90 @@ module.exports = {
 			if (!order) {
 				return false;
 			}
-			// 1. process any subscriptions of order
-			if (order.data && 
-				(!order.data.subscription || order.data.subscription==null) && 
-				order.items && order.items.length>0 ) {
-				let hasSubscriptions = false;
-				order.items.some(item => {
-					if (item.type=="subscription") {
-						hasSubscriptions = true;
-					}
-				});
-				if (hasSubscriptions) {
-					ctx.call("subscriptions.orderToSubscription", {order} )
-						.catch(err => {
-							this.logger.error("order.orderAfterAcceptedActions hasSubscriptions err:", err);
-						});
-				}
-			}
 
 			this.logger.info("orders.orderAfterAcceptedActions() - order:", order);
-			// 2. clear the cart
+			// 1. clear the cart
 			return ctx.call("cart.delete")
 				.then(() => { //(cart)
-					// 3. send email about order
-					let user = ctx.meta.user || ""; // ctx is default user data source
-					let userEmail = user.email || "";
-					let invoiceAddress = "";
-					// if available, define invoiceAddress from order
-					if ( order.invoiceAddress ) {
-						invoiceAddress = order.invoiceAddress;
-					}
-					// if avaiblable, define email from invoiceAddress.email
-					if (invoiceAddress && invoiceAddress!=null && invoiceAddress.email) {
-						userEmail = invoiceAddress.email;
-					}
-					// if order.user defined, use it
-					if (order.user) {
-						user = order.user;
-						if (order.user.email) {
-							userEmail = order.user.email;
-						}
-					}
-					this.logger.info("orders.orderAfterAcceptedActions():", {
-						userEmail, 
-						user, 
-						invoiceAddress, 
-						order
-					});
-					ctx.call("users.sendEmail",{ // return 
-						template: "ordered",
-						data: {
-							order,
-						},
-						settings: {
-							subject: process.env.SITE_NAME +" - Your Order #"+ order._id,
-							to: userEmail
-						}
-					})
-						.then(booleanResult => {
-							this.logger.info("orders.orderAfterAcceptedActions() - Email order SENT:", booleanResult);
-							//return true;
+
+					// 2. send email about order
+					this.sendOrderedEmail(ctx, order);
+
+					// 3. process any subscriptions of order
+					if (order.data && 
+						(!order.data.subscription || order.data.subscription==null) && 
+						order.items && order.items.length>0 ) {
+						let hasSubscriptions = false;
+						order.items.some(item => {
+							if (item.type=="subscription") {
+								hasSubscriptions = true;
+							}
 						});
+						if (hasSubscriptions && !order.data.subscription) {
+							return ctx.call("subscriptions.orderToSubscription", {order} )
+								.then(subscriptions => {
+									// save subscription data to order
+									this.logger.info("order.orderAfterAcceptedActions orderToSubscription saved subscription IDs", subscriptions);
+									if (subscriptions && subscriptions.length>0) {
+										return true;
+									}
+									return false;
+								})
+								.catch(err => {
+									this.logger.error("order.orderAfterAcceptedActions orderToSubscription err:", err);
+								});
+						}
+					}
+
+					this.logger.info("order.orderAfterAcceptedActions no subscriptions");
 					return true;
 				});
+		},
+
+
+		/**
+		 * Send email after order was sent
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} order 
+		 * 
+		 * @returns {Boolean}
+		 */
+		sendOrderedEmail(ctx, order) {
+			// 3. send email about order
+			let user = ctx.meta.user || ""; // ctx is default user data source
+			let userEmail = user.email || "";
+			let invoiceAddress = "";
+			// if available, define invoiceAddress from order
+			if ( order.invoiceAddress ) {
+				invoiceAddress = order.invoiceAddress;
+			}
+			// if avaiblable, define email from invoiceAddress.email
+			if (invoiceAddress && invoiceAddress!=null && invoiceAddress.email) {
+				userEmail = invoiceAddress.email;
+			}
+			// if order.user defined, use it
+			if (order.user) {
+				user = order.user;
+				if (order.user.email) {
+					userEmail = order.user.email;
+				}
+			}
+			ctx.call("users.sendEmail",{ // return 
+				template: "ordered",
+				data: {
+					order,
+				},
+				settings: {
+					subject: process.env.SITE_NAME +" - Your Order #"+ order._id,
+					to: userEmail
+				}
+			})
+				.then(booleanResult => {
+					this.logger.info("orders.orderAfterAcceptedActions() - Email order SENT:", booleanResult);
+					//return true;
+				});
+			return true;
 		},
 
 
@@ -1738,7 +1802,7 @@ module.exports = {
 						try {
 							template();
 						}	catch (error) {
-							this.logger.error("orders.generateInvoice() - handlebars ERROR:", error);
+							self.logger.error("orders.generateInvoice() - handlebars ERROR:", error);
 						}
 						let data = {
 							order: order, 
@@ -1756,7 +1820,7 @@ module.exports = {
 								return html.toString().replace("<!-- company_logo //-->",logoCode);
 							})
 							.catch(logoCodeErr => {
-								this.logger.error("orders.generateInvoice() - logo error:", logoCodeErr);
+								self.logger.error("orders.generateInvoice() - logo error:", logoCodeErr);
 								return html;
 							});
 					})
@@ -1801,7 +1865,7 @@ module.exports = {
 										}
 									})
 										.then(booleanResult => {
-											this.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
+											self.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
 											//return true;
 										});
 								});
@@ -1852,7 +1916,6 @@ module.exports = {
 					data.order.items[i], 
 					businessSettings.taxData.global
 				);
-				this.logger.info("item:", data.order.items[i]);
 				data.order.items[i].nameReady = data.order.items[i].name[lang];
 				data.order.items[i].itemTotal = data.order.items[i].taxData.priceWithTax * data.order.items[i].amount;
 			}
@@ -1977,10 +2040,151 @@ module.exports = {
 			return;
 		},
 
+
+		/**
+		 * Update this function as you need after project created using npm install
+		 */
 		afterPaidActions() {
 			// replace this action with your own
 			this.logger.info("afterPaidActions default");
-		}
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} order 
+		 * @param {Object} response 
+		 * 
+		 * @returns {Object} order updated
+		 */
+		updatePaidOrderData(order, response) {
+			order.dates.datePaid = new Date();
+			order.status = "paid";
+			order.data.paymentData.lastStatus = response.state;
+			order.data.paymentData.lastDate = new Date();
+			order.data.paymentData.paidAmountTotal = 0;
+			if ( !order.data.paymentData.lastResponseResult ) {
+				order.data.paymentData.lastResponseResult = [];
+			}
+			order.data.paymentData.lastResponseResult.push(response);
+			// calculate total amount paid
+			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
+				if (order.data.paymentData.lastResponseResult[i].state && 
+					order.data.paymentData.lastResponseResult[i].state == "approved" && 
+					order.data.paymentData.lastResponseResult[i].transactions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+							order.data.paymentData.paidAmountTotal += parseFloat(
+								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+							);
+						}
+					}
+				}
+			}
+			// calculate how much to pay
+			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+
+			return order;
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} order 
+		 * @param {Object} response 
+		 * 
+		 * @returns {Object} order updated
+		 */
+		updatePaidOrderSubscriptionData(order, response) {
+			// TODO - update subscription status & history
+
+			order.dates.datePaid = new Date();
+			order.status = "paid";
+			order.data.paymentData.lastStatus = response.state;
+			order.data.paymentData.lastDate = new Date();
+			order.data.paymentData.paidAmountTotal = 0;
+			if ( !order.data.paymentData.lastResponseResult ) {
+				order.data.paymentData.lastResponseResult = [];
+			}
+			order.data.paymentData.lastResponseResult.push(response);
+			// calculate total amount paid
+			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
+				if (order.data.paymentData.lastResponseResult[i].state && 
+					order.data.paymentData.lastResponseResult[i].state == "approved" && 
+					order.data.paymentData.lastResponseResult[i].transactions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+							order.data.paymentData.paidAmountTotal += parseFloat(
+								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+							);
+						}
+					}
+				}
+			}
+			// calculate how much to pay
+			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+
+			return order;
+		},
+
+
+		/**
+		 * 
+		 * @param {*} order 
+		 */
+		countOrderItemTypes(order) {
+			let result = {};
+			if (order && order.items && order.items.length>0) {
+				order.items.forEach(item => {
+					if (item && item.type && item.type.toString().trim()!="") {
+						if (typeof result[item.type]=="undefined") {
+							result[item.type] = 1;
+						} else {
+							result[item.type]++;
+						}
+					}
+				});
+			}
+			return result;
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} order 
+		 */
+		getOrderSubscriptionsToProcess(ctx, order) {
+			// const today = new Date();
+			const query = {
+				userId: order.user.id,
+				orderOriginId: order._id.toString(),
+				// "dates.dateOrderNext": { "$lte": today },
+				// "dates.dateEnd": { "$gte": today },
+				status: "inactive"
+			};
+			this.logger.info("orders.getOrderSubscriptionsToProcess - order", order, query);
+
+			return ctx.call("subscriptions.find", {
+				"query": query
+			})
+				.then(found => {
+					this.logger.info("orders.getOrderSubscriptionsToProcess - subscriptions.find FOUND:", found);
+
+					// check if found any inactive subscriptions
+					if (found && found.length>0) {
+						// those found are NOT confirmed - remaing are the ones already working in this order
+						// return array of those that need to be confirmed
+						return found;
+					}
+					return null;
+				})
+				.catch(error => {
+					this.logger.error("orders.getOrderSubscriptionsToProcess - error:", error);
+				});
+		},
 
 	},
 

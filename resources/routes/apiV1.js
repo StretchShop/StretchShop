@@ -71,11 +71,15 @@ module.exports = {
 		"POST /webhook/:service": "orders.paymentWebhook",
 		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
 		"GET /order/invoice/generate/:orderId": "orders.invoiceGenerate",
+		// Subscriptions
+		"POST /subscription/list": "subscriptions.listSubscriptions",
+		"GET /subscription/suspend/:subscriptionId": "subscriptions.reactivate",
+		"GET /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
 		// Payment
-		"POST /order/payment/:supplier/:action": "orders.payment",
-		// PayPal
-		"GET /order/payment/paypalipn": "orders.paypalIpn",
+		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/paypal/geturl
 		"GET /order/payment/:supplier/:result": "orders.paymentResult",
+		// PayPal
+		"POST /order/payment/paypalipn": "orders.paypalIpn",
 
 		// Pages
 		"GET /pages/:category": "pages.pagesList",
@@ -96,9 +100,11 @@ module.exports = {
 		// Helpers
 		"POST /helpers/recaptcha": "users.recaptcha",
 
+		// TODO - remove
 		"POST /dev/subs": "subscriptions.orderToSubscription",
-		"POST /dev/subs2": "order.paypalOrderSubscription",
+		"POST /dev/subs2": "subscriptions.runSubscriptions",
 	},
+
 
 	onAfterCall(ctx, route, req, res, data) {
 		// writing cookies
