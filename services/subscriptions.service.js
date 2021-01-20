@@ -325,11 +325,13 @@ module.exports = {
 						"dates.dateEnd": { "$gte": today },
 						status: "active"
 					}
+					// TODO - only after IPN sent message payment was done
 				})
 					.then(found => {
 						this.logger.info("subsp found ", found);
 						found.forEach(subscription => {
 							let newOrder = Object.assign({}, subscription.data.order);
+							newOrder.status = "paid";
 							promises.push( 
 								ctx.call("orders.create", {order: newOrder} )
 									.then(orderResult => {
@@ -594,7 +596,7 @@ module.exports = {
 				let self = this;
 				let filter = { 
 					query: { 
-						_id: this.fixStringToId(ctx.meta.subscriptionId) 
+						_id: this.fixStringToId(ctx.params.subscriptionId) 
 					}, 
 					limit: 1
 				};
@@ -608,16 +610,18 @@ module.exports = {
 
 				return ctx.call("subscriptions.find", filter)
 					.then(found => {
-						if (found) {
+						this.logger.info("subscriptions.suspend found:", filter, found);
+						if (found && found[0]) {
+							found = found[0];
 							found.status = "suspend request";
-							found.dates.dateStopped = new Date();
+							found.dates["dateStopped"] = new Date();
 							found.history.push(
 								this.newHistoryRecord(found.status, "user", {
 									relatedOrder: null
 								})
 							);
 
-							// get agreement ID from history
+							// get agreement ID from history - also means it's paid
 							let agreementId = null;
 							if ( found.history && found.history.length>0 ) {
 								found.history.some(record => {
@@ -627,6 +631,7 @@ module.exports = {
 									}
 								});
 							}
+							this.logger.info("subscriptions.suspend agreementId:", agreementId);
 
 							if (agreementId && agreementId!=null) {
 								// update agreement
@@ -641,11 +646,14 @@ module.exports = {
 										);
 
 										result.success = true;
+										result.message = "suspended";
 										result.data = {
 											subscription: found,
 											agreement: suspendResult
 										};
 
+										found.id = found._id.toString();
+										found.status = "suspended";
 										delete found._id;
 										
 										return ctx.call("subscriptions.save", {
@@ -675,7 +683,9 @@ module.exports = {
 							} else {
 								result.error = "agreementId not found";
 								this.logger.error("subscriptions.suspend - " + result.error);
-								self.addToHistory(ctx, found._id, self.newHistoryRecord("error", "user", { errorMsg: result.error}));
+								self.addToHistory(ctx, found._id, self.newHistoryRecord("error", "user", { 
+									errorMsg: result.error+" error"
+								}));
 								return result;
 							}
 						}
@@ -702,12 +712,27 @@ module.exports = {
 			handler(ctx) {
 				let result = { success: false, url: null, message: "error" };
 				let self = this;
+				let filter = { 
+					query: { 
+						_id: this.fixStringToId(ctx.params.subscriptionId) 
+					}, 
+					limit: 1
+				};
 
-				return this.adapter.findById(ctx.params.updateObject.id)
+				// update filter acording to user
+				if ( ctx.meta.user.type=="admin" ) {
+					// admin can browse all orders
+				} else {
+					filter.query["user.id"] = ctx.meta.user._id.toString();
+				}
+
+				return ctx.call("subscriptions.find", filter)
 					.then(found => {
-						if (found) {
+						this.logger.info("subscriptions.reactivate found:", filter, found);
+						if (found && found[0]) {
+							found = found[0];
 							found.status = "reactivate request";
-							found.dates.dateStopped = new Date();
+							found.dates["dateStopped"] = new Date();
 							found.history.push(
 								this.newHistoryRecord(found.status, "user", {
 									relatedOrder: null
@@ -738,11 +763,14 @@ module.exports = {
 										);
 
 										result.success = true;
+										result.message = "reactivated";
 										result.data = {
 											subscription: found,
 											agreement: suspendResult
 										};
 
+										found.id = found._id.toString();
+										found.status = "active";
 										delete found._id;
 										
 										return ctx.call("subscriptions.save", {

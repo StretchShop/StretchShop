@@ -12,6 +12,8 @@ const paypal = require("paypal-rest-sdk");
 let base64 = require("base-64");
 const url = require("url");
 
+let util = require("util"); // only temporaly
+
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
 const pathResolve = require("path").resolve;
@@ -303,7 +305,7 @@ module.exports = {
 													this.logger.error("user error: ", ctxWithUserError);
 													return null;
 												});
-										} else { // default option, creates new order if none found - TODO - add auto clear
+										} else { // default option, creates new order if none found
 											return this.createOrderAction(cart, ctx, this.adapter);
 										}
 									}
@@ -336,7 +338,6 @@ module.exports = {
 				// update dates
 				ctx.params.order.dates.dateCreated = new Date();
 				ctx.params.order.dates.dateChanged = new Date();
-				// TODO - make payment and set status to "paid"
 
 				return this.adapter.insert(ctx.params.order)
 					.then(doc => this.transformDocuments(ctx, {}, doc))
@@ -359,6 +360,7 @@ module.exports = {
 
 		/**
 		 * Update order with object sent - with recalculating the prices
+		 * TODO - implement Frontend UI change
 		 * 
 		 * @param {Object} order
 		 * 
@@ -413,28 +415,62 @@ module.exports = {
 
 
 		/**
-		 * Cancel order - TODO - NOT IMPLEMENTED YET
+		 * Cancel order
+		 * 
+		 * @actions
 		 * 
 		 * @param {String} orderId - id of order to cancel
-		 * @param {Array} items - items to cancel order - only if applicable
 		 * 
 		 * @returns {Object} saved order
 		 */
 		cancel: {
+			cache: false,
+			auth: "required",
 			params: {
 				orderId: { type: "string", min: 3 },
 				items: { type: "array", optional: true }
 			},
 			handler(ctx) {
-				// get order
+				let result = { success: false, order: null, message: null };
 				let self = this;
 
 				return this.adapter.findById(ctx.params.orderId)
 					.then(order => {
-						return order;
+						order.status = "canceled";
+						order.dates.dateChanged = new Date();
+						if (order.dates["dateCanceled"]) { order.dates["dateCanceled"] = null; }
+						order.dates.dateCanceled = new Date();
+						if (order.data["canceledUserId"]) { order.dates["canceledUserId"] = null; }
+						order.data.canceledUserId = ctx.meta.user._id.toString();
+						
+						let orderId = order.id;
+						delete order.id;
+						delete order._id;
+						const update = {
+							"$set": order
+						};
+
+						return self.adapter.updateById(orderId, update)
+							.then(doc => this.transformDocuments(ctx, {}, doc))
+							.then(json => {
+								return this.entityChanged("updated", json, ctx)
+									.then(() => {
+										self.logger.error("order.cancel - cancel success: ");
+										result.success = true;
+										result.order = json;
+										return result;
+									});
+							})
+							.catch(error => {
+								self.logger.error("order.cancel - update error: ", error);
+								result.message = "error: " + JSON.stringify(error);
+								return result;
+							});
 					})
 					.catch(error => {
-						self.logger.error("subscriptions.save update validation error: ", error);
+						self.logger.error("order.cancel - not found: ", error);
+						result.message = "error: " + JSON.stringify(error);
+						return result;
 					});
 			}
 		},
@@ -670,6 +706,16 @@ module.exports = {
 									.then(invoice => {
 										order.invoice["html"] = invoice.html;
 										order.invoice["path"] = invoice.path;
+										order.status = "paid";
+										order.dates.datePaid = new Date();
+										if (!order.data.paymentData.paidAmountTotal) { order.data.paymentData["paidAmountTotal"] = 0; }
+										order.data.paymentData.paidAmountTotal = order.prices.priceTotal;
+										if (!order.data.paymentData.lastResponseResult) { order.data.paymentData["lastResponseResult"] = []; }
+										order.data.paymentData.lastResponseResult.push({
+											description: "Marked as Paid by Admin by Generating Invoice",
+											date: new Date(),
+											userId: ctx.meta.user._id.toString()
+										});
 										return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 											.then(orderUpdated => {
 												this.entityChanged("updated", orderUpdated, ctx);
@@ -2097,8 +2143,6 @@ module.exports = {
 		 * @returns {Object} order updated
 		 */
 		updatePaidOrderSubscriptionData(order, response) {
-			// TODO - update subscription status & history
-
 			order.dates.datePaid = new Date();
 			order.status = "paid";
 			order.data.paymentData.lastStatus = response.state;
@@ -2111,13 +2155,13 @@ module.exports = {
 			// calculate total amount paid
 			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
 				if (order.data.paymentData.lastResponseResult[i].state && 
-					order.data.paymentData.lastResponseResult[i].state == "approved" && 
-					order.data.paymentData.lastResponseResult[i].transactions) {
-					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
-						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
-							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+					order.data.paymentData.lastResponseResult[i].state == "Active" && 
+					order.data.paymentData.lastResponseResult[i].payment_definitions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].payment_definitions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].payment_definitions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].payment_definitions[j].amount.value) {
 							order.data.paymentData.paidAmountTotal += parseFloat(
-								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+								order.data.paymentData.lastResponseResult[i].payment_definitions[j].amount.value
 							);
 						}
 					}

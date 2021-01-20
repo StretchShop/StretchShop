@@ -5,6 +5,8 @@ const url = require("url");
 const paypal = require("paypal-rest-sdk");
 const HelpersMixin = require("../mixins/helpers.mixin");
 
+let fs = require("fs"); // only temporaly
+
 module.exports = {
 	settings: {
 
@@ -191,7 +193,7 @@ module.exports = {
 						return self.paypalExecutePayment(ctx, urlPathPrefix);
 					}
 				} else {
-					// payment not finished -- TODO - case cancel does not get correct language
+					// payment not finished -- TODO - cancel result does not get correct language
 					this.logger.error("orders.paypalResult - payment canceled");
 					return { success: false, response: null, redirect: urlPathPrefix + "en/user/orders/" };
 				}
@@ -367,9 +369,11 @@ module.exports = {
 			},
 			handler(ctx) {
 				let self = this;
-				let suspendNote = "User canceled from StretchShop";
+				let suspendNote = { note: "User canceled from StretchShop" };
 
 				this.paypalConfigure();
+				self.logger.info("payments.paypal1.mixin paypalSuspendBillingAgreement ctx.params.billingAgreementId: ", ctx.params.billingAgreementId);
+
 
 				return new Promise((resolve, reject) => {
 					paypal.billingAgreement.suspend(
@@ -412,7 +416,7 @@ module.exports = {
 			},
 			handler(ctx) {
 				let self = this;
-				let reactivateNote = "User reactivated from StretchShop";
+				let reactivateNote = { note: "User reactivated from StretchShop" };
 
 				this.paypalConfigure();
 
@@ -444,9 +448,13 @@ module.exports = {
 		paypalIpn: {
 			cache: false,
 			handler(ctx) {
-				let self = this;
-				this.logger.info("paypalIpn", ctx.params);
-				// TODO - add logging into file and sending email
+				// let self = this;
+				this.logger.info("paypalIpn response:", ctx.params);
+				// TEMP - temporaly IPN debug
+				let log_file = fs.createWriteStream(__dirname + "/../.temp/ipnlog.log", {flags : "a"});
+				let date = new Date();
+				log_file.write( date.toISOString() + ":\n"+ JSON.stringify(ctx.params) + "\n\n");
+				return ctx.params;
 			}
 		},
 
@@ -713,7 +721,6 @@ module.exports = {
 			let self = this;
 			isoDate.setSeconds(isoDate.getSeconds() + 4);
 			isoDate.toISOString().slice(0, 19) + "Z";
-			// TODO - add state information
 
 			let billingAgreementAttributes = {
 				"name": subscription.orderItemName,
@@ -945,47 +952,6 @@ module.exports = {
 		 * @returns {Object} order updated
 		 */
 		updatePaidOrderData(order, response) {
-			order.dates.datePaid = new Date();
-			order.status = "paid";
-			order.data.paymentData.lastStatus = response.state;
-			order.data.paymentData.lastDate = new Date();
-			order.data.paymentData.paidAmountTotal = 0;
-			if ( !order.data.paymentData.lastResponseResult ) {
-				order.data.paymentData.lastResponseResult = [];
-			}
-			order.data.paymentData.lastResponseResult.push(response);
-			// calculate total amount paid
-			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
-				if (order.data.paymentData.lastResponseResult[i].state && 
-					order.data.paymentData.lastResponseResult[i].state == "approved" && 
-					order.data.paymentData.lastResponseResult[i].transactions) {
-					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
-						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
-							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
-							order.data.paymentData.paidAmountTotal += parseFloat(
-								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
-							);
-						}
-					}
-				}
-			}
-			// calculate how much to pay
-			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
-
-			return order;
-		},
-
-
-		/**
-		 * 
-		 * @param {Object} order 
-		 * @param {Object} response 
-		 * 
-		 * @returns {Object} order updated
-		 */
-		updatePaidOrderSubscriptionData(order, response) {
-			// TODO - add history record
-
 			order.dates.datePaid = new Date();
 			order.status = "paid";
 			order.data.paymentData.lastStatus = response.state;

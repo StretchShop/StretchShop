@@ -71,9 +71,10 @@ module.exports = {
 		"POST /webhook/:service": "orders.paymentWebhook",
 		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
 		"GET /order/invoice/generate/:orderId": "orders.invoiceGenerate",
+		"GET /order/invoice/cancel/:orderId": "orders.orderCancel",
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",
-		"GET /subscription/suspend/:subscriptionId": "subscriptions.reactivate",
+		"GET /subscription/suspend/:subscriptionId": "subscriptions.suspend",
 		"GET /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
 		// Payment
 		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/paypal/geturl
@@ -99,10 +100,6 @@ module.exports = {
 
 		// Helpers
 		"POST /helpers/recaptcha": "users.recaptcha",
-
-		// TODO - remove
-		"POST /dev/subs": "subscriptions.orderToSubscription",
-		"POST /dev/subs2": "subscriptions.runSubscriptions",
 	},
 
 
