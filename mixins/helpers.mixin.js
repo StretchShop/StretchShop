@@ -262,6 +262,53 @@ module.exports = {
 			}
 
 			return result;
+		},
+
+
+		/**
+		 * Remove diacritics in string
+		 * 
+		 * @param {String} inputString 
+		 * 
+		 * @returns {String}
+		 */
+		removeDiacritics(inputString) {
+			return inputString.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+		},
+
+
+		/**
+		 * Thanks to Bergi https://stackoverflow.com/users/1048572/bergi
+		 * for this nice code taken from 
+		 * https://stackoverflow.com/questions/12534238/updating-javascript-object-attributes-from-another-object/12534361#12534361
+		 * 
+		 * @param {Object} original 
+		 * @param {Object} updater - any other object to use for update
+		 * 
+		 * @returns {Object}
+		 */
+		updateObject(original/*, …*/) {
+			if (original) {
+				for (let i=1; i<arguments.length; i++) {
+					for (let prop in arguments[i]) {
+						let val = arguments[i][prop];
+						if (typeof val === "object" && val !== null && val.constructor !== Array) {
+							this.updateObject(original[prop], val);
+						} else {
+							try {
+								// console.log("\n\n------------------", original, prop);
+								original[prop] = val;
+							} catch (e) {
+								console.log("\n\n------------------", original, prop);
+								console.log("\n\n ---!!! ---!!! ---!!! ---!!! ERROR ---!!! ---!!! ---!!! ---!!!\n"+ e +"\n\n");
+							}
+						}
+					}
+				}
+				return original;
+			} else {
+				return;
+			}
 		}
 
 	}

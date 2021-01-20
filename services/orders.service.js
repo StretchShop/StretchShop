@@ -6,13 +6,18 @@ const Cron = require("moleculer-cron");
 
 const passGenerator = require("generate-password");
 const fetch 		= require("node-fetch");
-const paypal = require("paypal-rest-sdk");
-const payments = paypal.v1.payments;
 const jwt	= require("jsonwebtoken");
+const paypal = require("paypal-rest-sdk");
+// const payments = paypal.payments;
+let base64 = require("base-64");
+const url = require("url");
+
+let util = require("util"); // only temporaly
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
 const pathResolve = require("path").resolve;
+const paymentsPaypal = require("../mixins/payments.paypal1.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
@@ -37,6 +42,7 @@ module.exports = {
 		DbService("orders"),
 		HelpersMixin,
 		FileHelpers,
+		paymentsPaypal,
 		CacheCleanerMixin([
 			"cache.clean.orders"
 		]),
@@ -186,13 +192,6 @@ module.exports = {
 		emptyUpdateResult: { "id": -1, "name": "order not processed", "success": false },
 
 		paymentsConfigs: {
-			paypal: {
-				environment: (process.env.PAYPAL_ENV==="production" || process.env.PAYPAL_ENV==="live") ? "live" : "sandbox",
-				merchantId: process.env.PAYPAL_CLIENT_ID,
-				publicKey: null,
-				privateKey: process.env.PAYPAL_SECRET,
-				gateway: null
-			}
 		}, 
 
 		paths: {
@@ -306,7 +305,7 @@ module.exports = {
 													this.logger.error("user error: ", ctxWithUserError);
 													return null;
 												});
-										} else { // default option, creates new order if none found - TODO - add auto clear
+										} else { // default option, creates new order if none found
 											return this.createOrderAction(cart, ctx, this.adapter);
 										}
 									}
@@ -321,48 +320,157 @@ module.exports = {
 		},
 
 
-		cancel: {
+		/**
+		 * Insert order from object sent - with recalculating the prices
+		 * 
+		 * @param {Object} order
+		 * 
+		 * @returns {Object} saved order
+		 */
+		create: {
 			params: {
-				itemId: { type: "string", min: 3, optional: true },
-				amount: { type: "number", positive: true, optional: true }
+				order: { type: "object" },
 			},
 			handler(ctx) {
-				// get cart
-				return ctx.call("cart.me")
-					.then(cart => {
-						// check if there are any items inside
-						if ( cart.items.length>0 ) {
-							if ( ctx.params.itemId ) {
-								// find product in cart
-								let productInCart = -1;
-								for (let i=0; i<cart.items.length; i++) {
-									if (cart.items[i]._id == ctx.params.itemId) {
-										productInCart = i;
-										break;
-									}
-								}
-								// if found, remove one product from cart
-								if (productInCart>-1) {
-									if ( ctx.params.amount && ctx.params.amount>0 ) {
-										// remove amount from existing value
-										cart.items[productInCart].amount = cart.items[productInCart].amount - ctx.params.amount;
-										if (cart.items[productInCart].amount<=0) {
-											// if new amount less or equal to 0, remove whole product
-											cart.items.splice(productInCart, 1);
-										}
-									} else {
-										// remove whole product from cart
-										cart.items.splice(productInCart, 1);
-									}
-								}
-							} else {
-								// no ID, remove all items from cart
-								cart.items = [];
+				let self = this;
+				// count order prices
+				ctx.params.order = this.countOrderPrices("all", null, ctx.params.order);
+				// update dates
+				ctx.params.order.dates.dateCreated = new Date();
+				ctx.params.order.dates.dateChanged = new Date();
+
+				return this.adapter.insert(ctx.params.order)
+					.then(doc => this.transformDocuments(ctx, {}, doc))
+					.then(json => {
+						return this.entityChanged("created", json, ctx)
+							.then(() => {
+								this.logger.info("order.create - created do afterSaveActions:", json);
+								self.orderAfterSaveActions(ctx, {order: json});
+								return json;
+							});
+					})
+					.catch(error => {
+						self.logger.error("order.create - insert error: ", error);
+						return null;
+					});
+
+			}
+		},
+
+
+		/**
+		 * Update order with object sent - with recalculating the prices
+		 * TODO - implement Frontend UI change
+		 * 
+		 * @param {Object} order
+		 * 
+		 * @returns {Object} saved order
+		 */
+		update: {
+			params: {
+				order: { type: "object" },
+				params: { type: "object", optional: true }
+			},
+			handler(ctx) {
+				let self = this;
+				let entity = ctx.params.order;
+				// count order prices
+				this.logger.info("order.update - order:", entity);
+
+				return this.adapter.findById(entity.id)
+					.then(found => {
+						if (found) { // entity found, update it
+							if ( entity ) {
+								entity = this.countOrderPrices("all", null, entity);
+								// update dates
+								entity.dates.dateChanged = new Date();
+
+								let entityId = entity.id;
+								delete entity.id;
+								delete entity._id;
+								const update = {
+									"$set": entity
+								};
+
+								return self.adapter.updateById(entityId, update)
+									.then(doc => this.transformDocuments(ctx, {}, doc))
+									.then(json => {
+										return this.entityChanged("updated", json, ctx)
+											.then(() => {
+												this.logger.info("order.update - updated order:", json);
+												self.orderAfterSaveActions(ctx, {order: json});
+												return json;
+											});
+									})
+									.catch(error => {
+										self.logger.error("order.create - insert error: ", error);
+										return null;
+									});
 							}
-							// update cart in variable and datasource
-							ctx.meta.cart = cart;
-							return this.adapter.updateById(ctx.meta.cart._id, cart);
 						}
+					});
+
+			}
+		},
+
+
+		/**
+		 * Cancel order
+		 * 
+		 * @actions
+		 * 
+		 * @param {String} orderId - id of order to cancel
+		 * 
+		 * @returns {Object} saved order
+		 */
+		cancel: {
+			cache: false,
+			auth: "required",
+			params: {
+				orderId: { type: "string", min: 3 },
+				items: { type: "array", optional: true }
+			},
+			handler(ctx) {
+				let result = { success: false, order: null, message: null };
+				let self = this;
+
+				return this.adapter.findById(ctx.params.orderId)
+					.then(order => {
+						order.status = "canceled";
+						order.dates.dateChanged = new Date();
+						if (order.dates["dateCanceled"]) { order.dates["dateCanceled"] = null; }
+						order.dates.dateCanceled = new Date();
+						if (order.data["canceledUserId"]) { order.dates["canceledUserId"] = null; }
+						order.data.canceledUserId = ctx.meta.user._id.toString();
+						
+						let orderId = order.id;
+						delete order.id;
+						delete order._id;
+						const update = {
+							"$set": order
+						};
+
+						return self.adapter.updateById(orderId, update)
+							.then(doc => this.transformDocuments(ctx, {}, doc))
+							.then(json => {
+								return this.entityChanged("updated", json, ctx)
+									.then(() => {
+										self.logger.error("order.cancel - cancel success: ");
+										result.success = true;
+										result.order = json;
+										return result;
+									});
+							})
+							.catch(error => {
+								self.logger.error("order.cancel - update error: ", error);
+								result.message = "error: " + JSON.stringify(error);
+								return result;
+							});
+					})
+					.catch(error => {
+						self.logger.error("order.cancel - not found: ", error);
+						result.message = "error: " + JSON.stringify(error);
+						return result;
 					});
 			}
 		},
@@ -390,7 +498,7 @@ module.exports = {
 			},
 			handler(ctx) {
 				// check if we have logged user
-				if ( ctx.meta.user._id ) { // we have user
+				if ( ctx.meta.user && ctx.meta.user._id ) { // we have user
 					let filter = { query: {}, limit: 20};
 					if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
 						filter.query = ctx.params.query;
@@ -439,6 +547,83 @@ module.exports = {
 		},
 
 
+		/**
+		 * Payment router - call action related to request and 
+		 * allowed in the order settings
+		 * 
+		 * @actions
+		 * 
+     * @param {String} supplier - supplier name (eg. paypal)
+     * @param {String} action - action name (eg. geturl)
+     * @param {String} orderId - id of order to pay
+     * @param {Object} data - data specific for payment
+		 * 
+		 * @returns {Object} Unified result from related action
+		 */
+		payment: {
+			params: {
+				supplier: { type: "string", min: 3 },
+				action: { type: "string", min: 3 },
+				orderId: { type: "string", min: 3 },
+				data: { type: "object", optional: true }
+			},
+			handler(ctx) {
+				// get action to call - get its name from supplier & action params
+				let supplier = ctx.params.supplier.toLowerCase();
+				let action = ctx.params.action.charAt(0).toUpperCase();
+				action += ctx.params.action.slice(1);
+				let actionName = supplier+"Order"+action;
+
+				// using resources/settings/orders.js check if final payment action can be called
+				this.logger.info("order.payment - calling payment: ", actionName, this.settings.order.availablePaymentActions.indexOf(actionName)>-1);
+				if ( this.settings.order.availablePaymentActions &&
+				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
+					return ctx.call("orders."+actionName, {
+						orderId: ctx.params.orderId,
+						data: ctx.params.data
+					})
+						.then(result => {
+							return result;
+						})
+						.catch(error => {
+							this.logger.error("order.payment - calling payment error: ", error);
+							return null;
+						});
+				}
+			}
+		},
+
+
+		/**
+		 * process result after user paid and returned to website
+		 */
+		paymentResult: {
+			params: {
+				supplier: { type: "string", min: 3 },
+				result: { type: "string", min: 3 },
+				PayerID: { type: "string", optional: true },
+				paymentId: { type: "string", optional: true }
+			},
+			handler(ctx) {
+				let supplier = ctx.params.supplier.toLowerCase();
+				let actionName = supplier+"Result";
+
+				// using resources/settings/orders.js check if final payment action can be called
+				if ( this.settings.order.availablePaymentActions &&
+				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
+					return ctx.call("orders."+actionName, {
+						result: ctx.params.result,
+						PayerID: ctx.params.PayerID,
+						paymentId: ctx.params.paymentId
+					})
+						.then(result => {
+							return result;
+						});
+				}
+			}
+		},
+
+
 		paymentWebhook: {
 			params: {
 				service: { type: "string" }
@@ -448,223 +633,6 @@ module.exports = {
 				return;
 			}
 		},
-
-
-		/**
-		 * Send payment info to PayPal and get redirect url  or error message
-		 *
-		 * @actions
-		 * 
-		 * @returns {Object} Result from PayPal order checkout
-		 */
-		paypalOrderCheckout: {
-			params: {
-				orderId: { type: "string", min: 3 },
-				checkoutData: { type: "object", optional: true }
-			},
-			handler(ctx) {
-				let result = { success: false, url: null, message: "error" };
-
-				// get order data
-				return this.adapter.findById(ctx.params.orderId)
-					.then(order => {
-						if ( order ) {
-							let paymentType = order.data.paymentData.codename.replace("online_paypal_","");
-
-							let items = [];
-							for (let i=0; i<order.items.length; i++ ) {
-								items.push({
-									"name": order.items[i].name[order.lang.code],
-									"sku": order.items[i].orderCode,
-									"price": this.formatPrice(order.items[i].price),
-									"currency": order.prices.currency.code,
-									"quantity": order.items[i].amount
-								});
-							}
-							items.push({
-								"name": order.data.paymentData.name[order.lang.code],
-								"sku": order.data.paymentData.name[order.lang.code],
-								"price": this.formatPrice(order.prices.pricePayment),
-								"currency": order.prices.currency.code,
-								"quantity": 1
-							});
-							let deliveryName = "Delivery - ";
-							if (order.data.deliveryData.codename && order.data.deliveryData.codename.physical) {
-								deliveryName += order.data.deliveryData.codename.physical.value;
-							}
-							if (order.data.deliveryData.codename && order.data.deliveryData.codename.digital) {
-								deliveryName += order.data.deliveryData.codename.digital.value;
-							}
-							items.push({
-								"name": deliveryName,
-								"sku": deliveryName,
-								"price": this.formatPrice(order.prices.priceDelivery),
-								"currency": order.prices.currency.code,
-								"quantity": 1
-							});
-
-							let client = this.createPayPalHttpClient();
-
-							let url = ctx.meta.siteSettings.url;
-							if ( process.env.NODE_ENV=="development" ) {
-								url = "http://localhost:3000";
-							}
-
-							let payment = {
-								"intent": "sale",
-								"payer": {
-									"payment_method": paymentType
-								},
-								"redirect_urls": {
-									"cancel_url": url +"/backdirect/order/paypal/cancel",
-									"return_url": url +"/backdirect/order/paypal/return"
-								},
-								"transactions": [{
-									"item_list": {
-										"items": items
-									},
-									"amount": {
-										"currency": order.prices.currency.code,
-										"total": this.formatPrice(order.prices.priceTotal)
-									},
-									// "note_to_payer": "Order ID "+order._id,
-									"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
-								}]
-							};
-							this.logger.info("PAYMENT:\n", payment, "\n", payment.transactions[0].item_list.items, "\n", payment.transactions[0].amount, "\n\n");
-
-							let request = new payments.PaymentCreateRequest();
-							request.requestBody(payment);
-
-							return client.execute(request).then((response) => {
-								order.data.paymentData.paymentRequestId = response.result.id;
-								return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-									.then(orderUpdated => {
-										this.entityChanged("updated", orderUpdated, ctx);
-										this.logger.info("orders.paypalOrderCheckout - orderUpdated after payment", orderUpdated);
-										return { order: orderUpdated, payment: response };
-									});
-							})
-								.then(responses => {
-									this.logger.info("orders.paypalOrderCheckout - response.payment", responses.payment);
-
-									if (responses.payment.result) {
-										for (let i=0; i<responses.payment.result.links.length; i++) {
-											if (responses.payment.result.links[i].rel=="approval_url") {
-												result.url = responses.payment.result.links[i].href;
-												break;
-											}
-										}
-									}
-									if ( result.url!=null && typeof result.url=="string" && result.url.trim()!="" ) {
-										result.success = true;
-									}
-									return result;
-								}).catch((error) => {
-									this.logger.error("orders.paypalOrderCheckout - payment error: ", error);
-									result.message = error.message;
-									return result;
-								});
-						} // if order
-					});
-			}
-		},
-
-		/**
-		 * process PayPal result after user paid and returned to website
-		 */
-		paypalResult: {
-			params: {
-				result: { type: "string", min: 3 },
-				PayerID: { type: "string", optional: true },
-				paymentId: { type: "string", optional: true }
-			},
-			handler(ctx) {
-				let urlPathPrefix = "/";
-				if ( process.env.NODE_ENV=="development" ) {
-					urlPathPrefix = "http://localhost:8080/";
-				}
-				this.logger.info("orders.paypalResult - ctx.params:", ctx.params);
-				if ( ctx.params.result == "return" ) {
-					// get order data
-					return ctx.call("orders.find", {
-						"query": {
-							"data.paymentData.paymentRequestId": ctx.params.paymentId
-						}
-					})
-						.then(orders => {
-							if ( orders && orders.length>0 && orders[0] ) {
-								let order = orders[0];
-
-								const execute_payment_json = {
-									"payer_id": ctx.params.PayerID,
-									"transactions": [{
-										"amount": {
-											"currency": order.prices.currency.code,
-											"total": this.formatPrice(order.prices.priceTotal)
-										}
-									}]
-								};
-
-								let client = this.createPayPalHttpClient();
-								let request = new payments.PaymentExecuteRequest(ctx.params.paymentId);
-								request.requestBody(execute_payment_json);
-
-								return client.execute(request).then((response) => {
-									this.logger.info("response:", response);
-
-									order.dates.datePaid = new Date();
-									order.status = "paid";
-									order.data.paymentData.lastStatus = response.result.state;
-									order.data.paymentData.lastDate = new Date();
-									order.data.paymentData.paidAmountTotal = 0;
-									if ( !order.data.paymentData.lastResponseResult ) {
-										order.data.paymentData.lastResponseResult = [];
-									}
-									order.data.paymentData.lastResponseResult.push(response.result);
-									// calculate total amount paid
-									for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
-										if (order.data.paymentData.lastResponseResult[i].state && 
-											order.data.paymentData.lastResponseResult[i].state == "approved" && 
-											order.data.paymentData.lastResponseResult[i].transactions) {
-											for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
-												if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
-													order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
-													order.data.paymentData.paidAmountTotal += parseFloat(
-														order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
-													);
-												}
-											}
-										}
-									}
-									// calculate how much to pay
-									order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
-									return this.generateInvoice(order, ctx)
-										.then(invoice => {
-											order.invoice["html"] = invoice.html;
-											order.invoice["path"] = invoice.path;
-											return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-												.then(orderUpdated => {
-													this.entityChanged("updated", orderUpdated, ctx);
-													this.logger.info("orders.paypalResult - invoice generated", { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
-													if ( order.prices.priceTotalToPay==0 && typeof this.afterPaidActions !== "undefined" ) {
-														this.afterPaidActions(order, ctx);
-													}
-													return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
-												});
-										});
-								}).catch((error) => {
-									this.logger.error("orders.paypalResult - paypal execute error: ", error);
-								});
-							}
-						});
-				} else {
-					// payment not finished -- TODO - case cancel does not get correct language
-					this.logger.error("orders.paypalResult - payment canceled");
-					return { success: false, response: null, redirect: urlPathPrefix + "en/user/orders/" };
-				}
-			}
-		}, 
 
 
 		/**
@@ -738,6 +706,16 @@ module.exports = {
 									.then(invoice => {
 										order.invoice["html"] = invoice.html;
 										order.invoice["path"] = invoice.path;
+										order.status = "paid";
+										order.dates.datePaid = new Date();
+										if (!order.data.paymentData.paidAmountTotal) { order.data.paymentData["paidAmountTotal"] = 0; }
+										order.data.paymentData.paidAmountTotal = order.prices.priceTotal;
+										if (!order.data.paymentData.lastResponseResult) { order.data.paymentData["lastResponseResult"] = []; }
+										order.data.paymentData.lastResponseResult.push({
+											description: "Marked as Paid by Admin by Generating Invoice",
+											date: new Date(),
+											userId: ctx.meta.user._id.toString()
+										});
 										return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 											.then(orderUpdated => {
 												this.entityChanged("updated", orderUpdated, ctx);
@@ -748,7 +726,8 @@ module.exports = {
 					}
 				}
 			}
-		}
+		}, 
+
 
 	},
 
@@ -1407,20 +1386,27 @@ module.exports = {
 		/**
 		 * Count cart items total price and order total prices
 		 */
-		countOrderPrices(calculate, specification) {
+		countOrderPrices(calculate, specification, order) {
 			let calcTypes = ["all", "items", "totals"];
 			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
 			specification = typeof specification !== "undefined" ?  specification : null;
+			
+			let orderFromParam = true;
+			if ( typeof order == "undefined" ) {
+				order = this.settings.orderTemp;	
+				orderFromParam = false;
+			}
+
 			let self = this;
 			// use default VAT if not custom eg. for product
 			let tax = businessSettings.taxData.global.taxDecimal || self.settings.defaultConstants.tax;
 
 			// prices of items
 			if ( calculate=="all" || calculate=="items" ) {
-				this.settings.orderTemp.prices.priceItems = 0;
-				this.settings.orderTemp.prices.priceItemsNoTax = 0;
-				this.settings.orderTemp.prices.priceTaxTotal = 0;
-				this.settings.orderTemp.items
+				order.prices.priceItems = 0;
+				order.prices.priceItemsNoTax = 0;
+				order.prices.priceTaxTotal = 0;
+				order.items
 					.filter(function(item){
 						// if specification is set items are filtered for calculation by subtype - eg. only digital items
 						if (specification && specification!=null) {
@@ -1433,28 +1419,28 @@ module.exports = {
 					})
 					.forEach(function(value){
 						if ( value.taxData ) {
-							self.settings.orderTemp.prices.priceItems += value.taxData.priceWithTax * value.amount;
+							order.prices.priceItems += value.taxData.priceWithTax * value.amount;
 							if ( value.tax && value.tax!=null ) {
 								tax = value.tax;
 							}
-							self.settings.orderTemp.prices.priceItemsNoTax += value.taxData.priceWithoutTax * value.amount;
-							self.settings.orderTemp.prices.priceTaxTotal += value.taxData.tax * value.amount;
+							order.prices.priceItemsNoTax += value.taxData.priceWithoutTax * value.amount;
+							order.prices.priceTaxTotal += value.taxData.tax * value.amount;
 						} else {
-							self.settings.orderTemp.prices.priceItems += (value.price * value.amount);
+							order.prices.priceItems += (value.price * value.amount);
 							if ( value.tax && value.tax!=null ) {
 								tax = value.tax;
 							}
 							let priceNoTax = value.price / (1 + tax);
-							self.settings.orderTemp.prices.priceItemsNoTax += priceNoTax;
+							order.prices.priceItemsNoTax += priceNoTax;
 							let taxOnly = value.price / (1 + tax);
-							self.settings.orderTemp.prices.priceTaxTotal += taxOnly;
+							order.prices.priceTaxTotal += taxOnly;
 						}
 					});
-				this.settings.orderTemp.prices.priceItems = this.formatPrice(this.settings.orderTemp.prices.priceItems);
-				this.settings.orderTemp.prices.priceItemsNoTax = this.formatPrice(this.settings.orderTemp.prices.priceItemsNoTax);
-				this.settings.orderTemp.prices.priceItemsTax = this.formatPrice(this.settings.orderTemp.prices.priceTaxTotal);
+				order.prices.priceItems = this.formatPrice(order.prices.priceItems);
+				order.prices.priceItemsNoTax = this.formatPrice(order.prices.priceItemsNoTax);
+				order.prices.priceItemsTax = this.formatPrice(order.prices.priceTaxTotal);
 				if ( calculate=="items" ) { // format only if calculate items
-					this.settings.orderTemp.prices.priceTaxTotal = this.formatPrice(this.settings.orderTemp.prices.priceTaxTotal);
+					order.prices.priceTaxTotal = this.formatPrice(order.prices.priceTaxTotal);
 				}
 			}
 
@@ -1462,39 +1448,45 @@ module.exports = {
 			if ( calculate=="all" || calculate=="totals" ) {
 				tax = businessSettings.taxData.global.taxDecimal || self.settings.defaultConstants.tax;
 				// price and tax of delivery
-				let priceDeliveryNoTax = this.settings.orderTemp.prices.priceDelivery / (1 + tax);
-				let priceDeliveryTax = this.settings.orderTemp.prices.priceDelivery * tax;
-				if ( this.settings.orderTemp.prices.priceDeliveryTaxData ) {
-					priceDeliveryNoTax = this.settings.orderTemp.prices.priceDeliveryTaxData.priceWithoutTax;
-					priceDeliveryTax = this.settings.orderTemp.prices.priceDeliveryTaxData.tax;
+				let priceDeliveryNoTax = order.prices.priceDelivery / (1 + tax);
+				let priceDeliveryTax = order.prices.priceDelivery * tax;
+				if ( order.prices.priceDeliveryTaxData ) {
+					priceDeliveryNoTax = order.prices.priceDeliveryTaxData.priceWithoutTax;
+					priceDeliveryTax = order.prices.priceDeliveryTaxData.tax;
 				}
 				// price and tax of delivery
-				let pricePaymentNoTax = this.settings.orderTemp.prices.pricePayment / (1 + tax);
-				let pricePaymentTax = this.settings.orderTemp.prices.pricePayment * tax;
-				if ( this.settings.orderTemp.prices.pricePaymentTaxData ) {
-					pricePaymentNoTax = this.settings.orderTemp.prices.pricePaymentTaxData.priceWithoutTax;
-					pricePaymentTax = this.settings.orderTemp.prices.pricePaymentTaxData.tax;
+				let pricePaymentNoTax = order.prices.pricePayment / (1 + tax);
+				let pricePaymentTax = order.prices.pricePayment * tax;
+				if ( order.prices.pricePaymentTaxData ) {
+					pricePaymentNoTax = order.prices.pricePaymentTaxData.priceWithoutTax;
+					pricePaymentTax = order.prices.pricePaymentTaxData.tax;
 				}
 				// tax total with tax for delivery and payment
-				this.settings.orderTemp.prices.priceTaxTotal += priceDeliveryTax + pricePaymentTax;
+				order.prices.priceTaxTotal += priceDeliveryTax + pricePaymentTax;
 				// price total without tax
-				this.settings.orderTemp.prices.priceTotalNoTax = this.settings.orderTemp.prices.priceItemsNoTax +
+				order.prices.priceTotalNoTax = order.prices.priceItemsNoTax +
 					priceDeliveryNoTax + pricePaymentNoTax;
-				this.settings.orderTemp.prices.priceTotalNoTax = this.formatPrice(this.settings.orderTemp.prices.priceTotalNoTax);
+				order.prices.priceTotalNoTax = this.formatPrice(order.prices.priceTotalNoTax);
 				// total with tax, delivery and payment
 				// total for IT tax
 				if ( businessSettings.taxData.global.taxType==="IT" ) {
-					this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
-						this.settings.orderTemp.prices.priceDelivery +
-						this.settings.orderTemp.prices.pricePayment + 
-						this.settings.orderTemp.prices.priceTaxTotal;
+					order.prices.priceTotal = order.prices.priceItems +
+						order.prices.priceDelivery +
+						order.prices.pricePayment + 
+						order.prices.priceTaxTotal;
 				} else {
 					// total for VAT tax
-					this.settings.orderTemp.prices.priceTotal = this.settings.orderTemp.prices.priceItems +
-						this.settings.orderTemp.prices.priceDelivery +
-						this.settings.orderTemp.prices.pricePayment;
+					order.prices.priceTotal = order.prices.priceItems +
+						order.prices.priceDelivery +
+						order.prices.pricePayment;
 				}
-				this.settings.orderTemp.prices.priceTotal = this.formatPrice(this.settings.orderTemp.prices.priceTotal);
+				order.prices.priceTotal = this.formatPrice(order.prices.priceTotal);
+			}
+
+			if (orderFromParam) {
+				return order;
+			} else {
+				this.settings.orderTemp = order;
 			}
 		},
 
@@ -1598,8 +1590,8 @@ module.exports = {
 							if ( orderSentResponse.result.status=="accepted" ) {
 								// process response
 								let updatedOrder = this.processResponseOfOrderSent(orderProcessedResult.order, orderSentResponse.result.order);
-								// 2. clear cart + 3. send email
-								return self.orderAfterAcceptedActions(ctx, orderProcessedResult)
+								// actions that don't change order - 2. clear cart + 3. send email
+								return self.orderAfterAcceptedActions(ctx, updatedOrder)
 									.then(success => {
 										if ( success ) {
 											orderProcessedResult.order = updatedOrder;
@@ -1608,7 +1600,7 @@ module.exports = {
 											// save with sent status and email sent date after it
 											return this.adapter.updateById(orderProcessedResult.order._id, self.prepareForUpdate(orderProcessedResult.order))
 												.then(() => { //(orderUpdated)
-													this.entityChanged("updated", orderProcessedResult, ctx);
+													this.entityChanged("updated", orderProcessedResult.order, ctx);
 													return orderProcessedResult;
 												});
 										}
@@ -1650,6 +1642,11 @@ module.exports = {
 		 * This implementation represents the most conservative version - changes
 		 * only amount of cart items. It's up to business model if any more liberal
 		 * approach is needed. But be carefull to not create backdoors.
+		 * 
+		 * @param {Object} orderOriginal 
+		 * @param {Object} orderResponse 
+		 * 
+		 * @returns {Object} processed order
 		 */
 		processResponseOfOrderSent(orderOriginal, orderResponse) {
 			if ( orderOriginal && orderResponse ) {
@@ -1693,45 +1690,99 @@ module.exports = {
 
 
 		/**
-		 * actions to perform after order was sent and accepted
+		 * Actions to perform after order was sent and accepted.
+		 * It is used by manual (user) and also automated order (subscriptions)
 		 *
 		 * @returns {Boolean}
 		 */
-		orderAfterAcceptedActions(ctx, orderResult) {
-			let self = this;
-			this.logger.info("orders.orderAfterAcceptedActions() - OrderResult:", orderResult);
+		orderAfterAcceptedActions(ctx, order) {
+			if (!order) {
+				return false;
+			}
+
+			this.logger.info("orders.orderAfterAcceptedActions() - order:", order);
 			// 1. clear the cart
 			return ctx.call("cart.delete")
 				.then(() => { //(cart)
+
 					// 2. send email about order
-					let userEmail = "";
-					if ( ctx.meta.user && typeof ctx.meta.user.email !== "undefined" && ctx.meta.user.email ) {
-						userEmail = ctx.meta.user.email;
-					}
-					if ( typeof self.settings.orderTemp.addresses.invoiceAddress.email !== "undefined" && self.settings.orderTemp.addresses.invoiceAddress.email ) {
-						userEmail = self.settings.orderTemp.addresses.invoiceAddress.email;
-					}
-					this.logger.info("orders.orderAfterAcceptedActions():", {
-						email: userEmail, 
-						metaUser: ctx.meta.user, 
-						invoiceAddress: self.settings.orderTemp.addresses.invoiceAddress
-					});
-					ctx.call("users.sendEmail",{ // return 
-						template: "ordered",
-						data: {
-							order: self.settings.orderTemp
-						},
-						settings: {
-							subject: process.env.SITE_NAME +" - Your Order #"+ self.settings.orderTemp._id,
-							to: userEmail
-						}
-					})
-						.then(booleanResult => {
-							this.logger.info("orders.orderAfterAcceptedActions() - Email order SENT:", booleanResult);
-							//return true;
+					this.sendOrderedEmail(ctx, order);
+
+					// 3. process any subscriptions of order
+					if (order.data && 
+						(!order.data.subscription || order.data.subscription==null) && 
+						order.items && order.items.length>0 ) {
+						let hasSubscriptions = false;
+						order.items.some(item => {
+							if (item.type=="subscription") {
+								hasSubscriptions = true;
+							}
 						});
+						if (hasSubscriptions && !order.data.subscription) {
+							return ctx.call("subscriptions.orderToSubscription", {order} )
+								.then(subscriptions => {
+									// save subscription data to order
+									this.logger.info("order.orderAfterAcceptedActions orderToSubscription saved subscription IDs", subscriptions);
+									if (subscriptions && subscriptions.length>0) {
+										return true;
+									}
+									return false;
+								})
+								.catch(err => {
+									this.logger.error("order.orderAfterAcceptedActions orderToSubscription err:", err);
+								});
+						}
+					}
+
+					this.logger.info("order.orderAfterAcceptedActions no subscriptions");
 					return true;
 				});
+		},
+
+
+		/**
+		 * Send email after order was sent
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} order 
+		 * 
+		 * @returns {Boolean}
+		 */
+		sendOrderedEmail(ctx, order) {
+			// 3. send email about order
+			let user = ctx.meta.user || ""; // ctx is default user data source
+			let userEmail = user.email || "";
+			let invoiceAddress = "";
+			// if available, define invoiceAddress from order
+			if ( order.invoiceAddress ) {
+				invoiceAddress = order.invoiceAddress;
+			}
+			// if avaiblable, define email from invoiceAddress.email
+			if (invoiceAddress && invoiceAddress!=null && invoiceAddress.email) {
+				userEmail = invoiceAddress.email;
+			}
+			// if order.user defined, use it
+			if (order.user) {
+				user = order.user;
+				if (order.user.email) {
+					userEmail = order.user.email;
+				}
+			}
+			ctx.call("users.sendEmail",{ // return 
+				template: "ordered",
+				data: {
+					order,
+				},
+				settings: {
+					subject: process.env.SITE_NAME +" - Your Order #"+ order._id,
+					to: userEmail
+				}
+			})
+				.then(booleanResult => {
+					this.logger.info("orders.orderAfterAcceptedActions() - Email order SENT:", booleanResult);
+					//return true;
+				});
+			return true;
 		},
 
 
@@ -1797,7 +1848,7 @@ module.exports = {
 						try {
 							template();
 						}	catch (error) {
-							this.logger.error("orders.generateInvoice() - handlebars ERROR:", error);
+							self.logger.error("orders.generateInvoice() - handlebars ERROR:", error);
 						}
 						let data = {
 							order: order, 
@@ -1815,7 +1866,7 @@ module.exports = {
 								return html.toString().replace("<!-- company_logo //-->",logoCode);
 							})
 							.catch(logoCodeErr => {
-								this.logger.error("orders.generateInvoice() - logo error:", logoCodeErr);
+								self.logger.error("orders.generateInvoice() - logo error:", logoCodeErr);
 								return html;
 							});
 					})
@@ -1860,7 +1911,7 @@ module.exports = {
 										}
 									})
 										.then(booleanResult => {
-											this.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
+											self.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
 											//return true;
 										});
 								});
@@ -1911,7 +1962,6 @@ module.exports = {
 					data.order.items[i], 
 					businessSettings.taxData.global
 				);
-				this.logger.info("item:", data.order.items[i]);
 				data.order.items[i].nameReady = data.order.items[i].name[lang];
 				data.order.items[i].itemTotal = data.order.items[i].taxData.priceWithTax * data.order.items[i].amount;
 			}
@@ -1999,22 +2049,6 @@ module.exports = {
 
 
 		/**
-		 * Setting up PayPal HttpClient for specific transaction
-		 */
-		createPayPalHttpClient() {
-			let env;
-			if (this.settings.paymentsConfigs.paypal.environment === "live") {
-				// Live Account details
-				env = new paypal.core.LiveEnvironment(this.settings.paymentsConfigs.paypal.merchantId, this.settings.paymentsConfigs.paypal.privateKey);
-			} else {
-				env = new paypal.core.SandboxEnvironment(this.settings.paymentsConfigs.paypal.merchantId, this.settings.paymentsConfigs.paypal.privateKey);
-			}
-
-			return new paypal.core.PayPalHttpClient(env);
-		}, 
-
-
-		/**
 		 * Generate a JWT token from user entity
 		 *
 		 * @param {Object} user
@@ -2052,10 +2086,149 @@ module.exports = {
 			return;
 		},
 
+
+		/**
+		 * Update this function as you need after project created using npm install
+		 */
 		afterPaidActions() {
 			// replace this action with your own
 			this.logger.info("afterPaidActions default");
-		}
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} order 
+		 * @param {Object} response 
+		 * 
+		 * @returns {Object} order updated
+		 */
+		updatePaidOrderData(order, response) {
+			order.dates.datePaid = new Date();
+			order.status = "paid";
+			order.data.paymentData.lastStatus = response.state;
+			order.data.paymentData.lastDate = new Date();
+			order.data.paymentData.paidAmountTotal = 0;
+			if ( !order.data.paymentData.lastResponseResult ) {
+				order.data.paymentData.lastResponseResult = [];
+			}
+			order.data.paymentData.lastResponseResult.push(response);
+			// calculate total amount paid
+			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
+				if (order.data.paymentData.lastResponseResult[i].state && 
+					order.data.paymentData.lastResponseResult[i].state == "approved" && 
+					order.data.paymentData.lastResponseResult[i].transactions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+							order.data.paymentData.paidAmountTotal += parseFloat(
+								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+							);
+						}
+					}
+				}
+			}
+			// calculate how much to pay
+			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+
+			return order;
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} order 
+		 * @param {Object} response 
+		 * 
+		 * @returns {Object} order updated
+		 */
+		updatePaidOrderSubscriptionData(order, response) {
+			order.dates.datePaid = new Date();
+			order.status = "paid";
+			order.data.paymentData.lastStatus = response.state;
+			order.data.paymentData.lastDate = new Date();
+			order.data.paymentData.paidAmountTotal = 0;
+			if ( !order.data.paymentData.lastResponseResult ) {
+				order.data.paymentData.lastResponseResult = [];
+			}
+			order.data.paymentData.lastResponseResult.push(response);
+			// calculate total amount paid
+			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
+				if (order.data.paymentData.lastResponseResult[i].state && 
+					order.data.paymentData.lastResponseResult[i].state == "Active" && 
+					order.data.paymentData.lastResponseResult[i].payment_definitions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].payment_definitions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].payment_definitions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].payment_definitions[j].amount.value) {
+							order.data.paymentData.paidAmountTotal += parseFloat(
+								order.data.paymentData.lastResponseResult[i].payment_definitions[j].amount.value
+							);
+						}
+					}
+				}
+			}
+			// calculate how much to pay
+			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+
+			return order;
+		},
+
+
+		/**
+		 * 
+		 * @param {*} order 
+		 */
+		countOrderItemTypes(order) {
+			let result = {};
+			if (order && order.items && order.items.length>0) {
+				order.items.forEach(item => {
+					if (item && item.type && item.type.toString().trim()!="") {
+						if (typeof result[item.type]=="undefined") {
+							result[item.type] = 1;
+						} else {
+							result[item.type]++;
+						}
+					}
+				});
+			}
+			return result;
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} order 
+		 */
+		getOrderSubscriptionsToProcess(ctx, order) {
+			// const today = new Date();
+			const query = {
+				userId: order.user.id,
+				orderOriginId: order._id.toString(),
+				// "dates.dateOrderNext": { "$lte": today },
+				// "dates.dateEnd": { "$gte": today },
+				status: "inactive"
+			};
+			this.logger.info("orders.getOrderSubscriptionsToProcess - order", order, query);
+
+			return ctx.call("subscriptions.find", {
+				"query": query
+			})
+				.then(found => {
+					this.logger.info("orders.getOrderSubscriptionsToProcess - subscriptions.find FOUND:", found);
+
+					// check if found any inactive subscriptions
+					if (found && found.length>0) {
+						// those found are NOT confirmed - remaing are the ones already working in this order
+						// return array of those that need to be confirmed
+						return found;
+					}
+					return null;
+				})
+				.catch(error => {
+					this.logger.error("orders.getOrderSubscriptionsToProcess - error:", error);
+				});
+		},
 
 	},
 

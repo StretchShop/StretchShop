@@ -71,10 +71,16 @@ module.exports = {
 		"POST /webhook/:service": "orders.paymentWebhook",
 		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
 		"GET /order/invoice/generate/:orderId": "orders.invoiceGenerate",
-		// Payment PayPal
-		"POST /order/paypalcheckout": "orders.paypalOrderCheckout",
-		"GET /order/paypalipn": "orders.paypalIpn",
-		"GET /order/paypal/:result": "orders.paypalResult",
+		"GET /order/invoice/cancel/:orderId": "orders.orderCancel",
+		// Subscriptions
+		"POST /subscription/list": "subscriptions.listSubscriptions",
+		"GET /subscription/suspend/:subscriptionId": "subscriptions.suspend",
+		"GET /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
+		// Payment
+		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/paypal/geturl
+		"GET /order/payment/:supplier/:result": "orders.paymentResult",
+		// PayPal
+		"POST /order/payment/paypalipn": "orders.paypalIpn",
 
 		// Pages
 		"GET /pages/:category": "pages.pagesList",
@@ -93,8 +99,9 @@ module.exports = {
 		},
 
 		// Helpers
-		"POST /helpers/recaptcha": "users.recaptcha"
+		"POST /helpers/recaptcha": "users.recaptcha",
 	},
+
 
 	onAfterCall(ctx, route, req, res, data) {
 		// writing cookies
