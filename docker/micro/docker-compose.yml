@@ -105,6 +105,22 @@ services:
     #deploy:
     #  replicas: 2
 
+  subscriptions:
+    build:
+      context: .
+    image: wradgio/stretchshop:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: subscriptions
+    links:
+      # - redis
+      - mongo
+    depends_on:
+      # - redis
+      - mongo
+    #deploy:
+    #  replicas: 2
+
   # redis:
   #   image: redis:alpine
 
