@@ -105,6 +105,7 @@ module.exports = {
 	],
 	availablePaymentActions: [
 		"paypalOrderGeturl",
-		"paypalResult"
+		"paypalResult",
+		"paypalWebhook"
 	]
 };

@@ -123,6 +123,14 @@ module.exports = {
 	 * Actions
 	 */
 	actions: {
+
+		/**
+		 * disable cache for find action
+		 */
+		find: {
+			cache: false
+		},
+
 		/**
 		 * List products in category
 		 *
@@ -133,6 +141,11 @@ module.exports = {
 		 * @returns {Array.<Object>} List of products with additional data
 		 */
 		productsList: {
+			cache: false,
+			// cache: {
+			// 	keys: ["#user", "category", "filter"],
+			// 	ttl: 30
+			// },
 			// auth: "",
 			params: {
 				category: { type: "string", min: 2 },

@@ -332,6 +332,7 @@ module.exports = {
 						found.forEach(subscription => {
 							let newOrder = Object.assign({}, subscription.data.order);
 							newOrder.status = "paid";
+							// newOrder.data['']
 							promises.push( 
 								ctx.call("orders.create", {order: newOrder} )
 									.then(orderResult => {
@@ -548,7 +549,7 @@ module.exports = {
 							let updatedOriginal = self.updateObject(original, ctx.params.updateObject);
 							
 							// add history record if set
-							if (this.params.historyRecordToAdd) {
+							if (ctx.params.historyRecordToAdd) {
 								updatedOriginal.history.push(
 									JSON.parse(JSON.stringify(this.params.historyRecordToAdd))
 								);
@@ -1060,6 +1061,10 @@ module.exports = {
 				})
 				.then(updated => {
 					return updated;
+				})
+				.catch(error => {
+					this.logger.error("subscriptions.addToHistory() - error: ", JSON.stringify(error));
+					return null;
 				});
 		},
 
