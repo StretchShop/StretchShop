@@ -4,6 +4,7 @@ const { result } = require("lodash");
 const url = require("url");
 const paypal = require("paypal-rest-sdk");
 const HelpersMixin = require("../mixins/helpers.mixin");
+const fetch 		= require("node-fetch");
 
 let fs = require("fs"); // only temporaly
 
@@ -230,6 +231,7 @@ module.exports = {
 							// check if order has any product
 							const itemsCount = this.countOrderItemTypes(order);
 							if ( itemsCount ) {
+								this.logger.error("payments.paypal1.paypalOrderGeturl - itemsCount:", itemsCount);
 								if ( typeof ctx.params.data == "undefined" ) {
 									ctx.params["data"] = {};
 								}
@@ -316,7 +318,8 @@ module.exports = {
 														updateObject: {
 															id: subscriptions[0]._id.toString(),
 															data: {
-																token: token
+																token: token,
+																agreementId: ""
 															}
 														}
 													})
@@ -445,16 +448,110 @@ module.exports = {
 		},
 
 		
+		paypalWebhook: {
+			cache: false,
+			handler(ctx) {
+				let self = this;
+				let data = Object.assign({}, ctx.params.data);
+				if ( data.supplier ) { delete data.supplier; }
+				this.logger.info("paypalWebhook #1:", data);
+
+				this.paypalConfigure();
+
+				return new Promise((resolve, reject) => {
+					paypal.notification.webhookEvent.getAndVerify(JSON.stringify(data), function (error, response) {
+						if (error) {
+							self.logger.error("payments.paypal1.mixin paypalWebhook error: ", error);
+							reject(error);
+						} else {
+							self.logger.info("payments.paypal1.mixin paypalWebhook result: ", response);
+							resolve(response);
+						}
+					});
+				})
+					.then(response => {
+						self.logger.info("payments.paypal1.mixin paypalWebhook response: ", JSON.stringify(response));
+						// cancel subscription in DB
+						if (response && response==true && ctx.params.data && 
+						ctx.params.data.event_type) {
+							switch (ctx.params.data.event_type) {
+							case "BILLING.SUBSCRIPTION.CANCELLED":
+								self.cancelSubscriptionOnWebhookAction(ctx);
+								break;
+							default:
+								self.logger.info("payments.paypal1.mixin paypalWebhook - notification recived:", JSON.stringify(data));
+							}
+						}
+					})
+					.catch(error => {
+						this.logger.error("payments.paypal1.mixin - paypalWebhook error2: ", JSON.stringify(error));
+						let log_file = fs.createWriteStream(__dirname + "/../.temp/ipnlog.log", {flags : "a"});
+						let date = new Date();
+						log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
+						return null;
+					});
+			}
+		},
+
+		
+		// old paypal notification system
+		// TODO - always returns INVALID, need to fix
 		paypalIpn: {
 			cache: false,
 			handler(ctx) {
 				// let self = this;
-				this.logger.info("paypalIpn response:", ctx.params);
 				// TEMP - temporaly IPN debug
 				let log_file = fs.createWriteStream(__dirname + "/../.temp/ipnlog.log", {flags : "a"});
 				let date = new Date();
-				log_file.write( date.toISOString() + ":\n"+ JSON.stringify(ctx.params) + "\n\n");
-				return ctx.params;
+				this.logger.info("paypalIpn #1:", ctx.params);
+				log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
+
+				let url = "https://ipnpb.paypal.com/cgi-bin/webscr";
+				if ( process.env.NODE_ENV=="development" ) {
+					url = "https://ipnpb.sandbox.paypal.com/cgi-bin/webscr";
+				}
+				this.logger.info("paypalIpn #0:", url);
+
+
+				// sending empty POST
+				fetch(url, {
+					method: "post",
+					headers: { "User-Agent": "NODE-IPN-VerificationScript" },
+				})
+					.then(res => {
+						this.logger.info("paypalIpn #2:", res.body);
+						return res;
+					}) // expecting a json response, checking it
+					.then(response => {
+						this.logger.info("paypalIpn #3:", response);
+						log_file.write( "\n" + date.toISOString() + " #3:\n"+ response + "\n");
+						let requestString = "cmd=_notify-validate";
+						// Iterate the original request payload object
+						// and prepend its keys and values to the post string
+						Object.keys(ctx.params).map((key) => {
+							requestString = requestString +"&"+ key +"="+ encodeURIComponent(ctx.params[key]).replace(/%20/g,"+");
+							return key;
+						});
+
+						this.logger.info("paypalIpn #4.0:", requestString);
+						return fetch(url, {
+							method: "post",
+							body: requestString,
+							headers: { 
+								"User-Agent": "NODE-IPN-VerificationScript", 
+								"Content-Length": requestString.length 
+							},
+						})
+							.then(res2 => {
+								this.logger.info("paypalIpn #4:", res2);
+								// log_file.write( "\n" + date.toISOString() + " #4:\n"+ res2 + "\n");
+								return res2.text();
+							})
+							.then(result => {
+								this.logger.info("paypalIpn #5:", result);//, JSON.stringify(result));
+								return result;
+							});
+					});
 			}
 		},
 
@@ -724,7 +821,7 @@ module.exports = {
 
 			let billingAgreementAttributes = {
 				"name": subscription.orderItemName,
-				"description": subscription.orderItemName + " - " + subscription.data.product._id,
+				"description": subscription.orderItemName + " - " + subscription.price +"/"+ subscription.period, //subscription.data.product._id,
 				"start_date": isoDate,
 				"plan": {
 					"id": billingPlan.id
@@ -1016,6 +1113,9 @@ module.exports = {
 								id: subscription._id.toString(),
 								status: "active", 
 								history: subscription.history,
+								data: {
+									agreementId: agreement.id // add agreement id after paid
+								},
 								dates: {
 									dateOrderNext: dateOrderNextResult
 								}
@@ -1038,6 +1138,57 @@ module.exports = {
 					this.logger.error("payments.paypal1.mixin - updateSubscriptionAfterPaid calculateDateOrderNext error: ", error);
 					return null;
 				});
+		},
+
+
+		cancelSubscriptionOnWebhookAction(ctx) {
+			if (ctx.params.data && 
+			ctx.params.data.resource && ctx.params.data.resource.id) {
+				let filter = { 
+					query: { 
+						"data.agreementId": ctx.params.data.resource.id 
+					}, 
+					limit: 1
+				};
+				return ctx.call("subscriptions.find", filter)
+					.then(found => {
+						this.logger.info("subscriptions.suspend found:", filter, found);
+						if (found && found[0]) {
+							found = found[0];
+							found.status = "canceled";
+							found.dates["dateStopped"] = new Date();
+							found.history.push(
+								{
+									action: "paid",
+									type: "user",
+									date: new Date(),
+									data: {
+										webhookResponse: JSON.stringify(ctx.params.data),
+										relatedOrder: null
+									}
+								}
+							);
+
+							found.id = found._id.toString();
+							found.status = "suspended";
+							delete found._id;
+
+							return ctx.call("subscriptions.save", {
+								entity: found
+							})
+								.then(updated => {
+									this.logger.info("subscriptions.suspend - subscriptions.save:", updated);
+									result.data.subscription = updated;
+									delete result.data.subscription.history;
+									return result;
+								})
+								.catch(error => {
+									this.logger.error("subscriptions.suspend - subscriptions.save error: ", error);
+									return null;
+								});
+						}
+					});
+			} // response & .resource.is END if
 		}
 
 		

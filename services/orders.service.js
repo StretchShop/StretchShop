@@ -12,7 +12,7 @@ const paypal = require("paypal-rest-sdk");
 let base64 = require("base-64");
 const url = require("url");
 
-let util = require("util"); // only temporaly
+let fs = require("fs"); // only temporaly
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
@@ -626,11 +626,24 @@ module.exports = {
 
 		paymentWebhook: {
 			params: {
-				service: { type: "string" }
+				supplier: { type: "string", min: 3 }
 			},
 			handler(ctx) {
 				this.logger.info("orders.paymentWebhook service params:", JSON.stringify(ctx.params) );
-				return;
+				
+				let supplier = ctx.params.supplier.toLowerCase();
+				let actionName = supplier+"Webhook";
+
+				// using resources/settings/orders.js check if final payment action can be called
+				if ( this.settings.order.availablePaymentActions &&
+				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
+					return ctx.call("orders."+actionName, {
+						data: ctx.params
+					})
+						.then(result => {
+							return result;
+						});
+				}
 			}
 		},
 
@@ -682,10 +695,15 @@ module.exports = {
 					let dir = assets +"/"+ process.env.ASSETS_PATH +"invoices/"+ invoiceData[0];
 					let path = dir + "/" + invoiceData[1] + ".pdf";
 					this.logger.info("orders.invoiceDownload - path:", {path: path, resolvedPath: pathResolve(path)});
-					let readStream = createReadStream( pathResolve(path) );
-					// We replaced all the event handlers with a simple call to readStream.pipe()
-					// readStream.pipe(ctx.options.parentCtx.params.res);
-					return readStream;
+					try {
+						let readStream = createReadStream( pathResolve(path) );
+						// We replaced all the event handlers with a simple call to readStream.pipe()
+						// readStream.pipe(ctx.options.parentCtx.params.res);
+						return readStream;
+					} catch(e) {
+						this.logger.error("orders.invoiceDownload - id #"+ctx.params.invoice+" error:", JSON.stringify(e));
+						return null;
+					}
 				}
 			}
 		}, 
@@ -1595,7 +1613,9 @@ module.exports = {
 									.then(success => {
 										if ( success ) {
 											orderProcessedResult.order = updatedOrder;
-											orderProcessedResult.order.status = "sent";
+											if (orderProcessedResult.order.status != "paid") {
+												orderProcessedResult.order.status = "sent";
+											}
 											orderProcessedResult.order.dates.emailSent = new Date();
 											// save with sent status and email sent date after it
 											return this.adapter.updateById(orderProcessedResult.order._id, self.prepareForUpdate(orderProcessedResult.order))
@@ -2178,8 +2198,12 @@ module.exports = {
 		 * 
 		 * @param {*} order 
 		 */
-		countOrderItemTypes(order) {
+		countOrderItemTypes(order, includingProcessed) {
+			includingProcessed = (typeof includingProcessed !== "undefined") ? includingProcessed : false;
 			let result = {};
+			let typesToCheck = ["subscription"]; // item types to check individualy
+
+			// 1. get all item types
 			if (order && order.items && order.items.length>0) {
 				order.items.forEach(item => {
 					if (item && item.type && item.type.toString().trim()!="") {
@@ -2191,6 +2215,40 @@ module.exports = {
 					}
 				});
 			}
+
+			// 2. if includingProcessed==false, use 
+			// 2.1 order.data.subscription.ids[x].processed to count items
+			// 2.2 and order.status to determine the rest
+			if (order && !includingProcessed) {
+				// 2.1 fix numbers of items that should be check individually
+				typesToCheck.forEach(t => { // loop typesToCheck
+					let processedToRemove = 0;
+					if (result[t] && result[t]>0) {
+						if (order && order.data && order.data[t] && 
+						order.data[t].ids && order.data[t].ids.length>0) {
+							order.data[t].ids.forEach(s => { // loop all items
+								if (s && s.processed && s.processed.trim()!=="") {
+									processedToRemove++;
+								}
+							});
+						}
+					}
+					if (result && result[t]) { // subtract processed from result
+						result[t] = result[t] - processedToRemove;
+					}
+				});
+
+				// 2.2 fix numbers of remaining items if status is paid
+				if (order.status && order.status=="paid") { // order has been paid
+					Object.keys(result).forEach(function(key) {
+						if ( typesToCheck.indexOf(key)<0 ) { // not item to check individualy
+							result[key] = 0;
+						}
+					});
+				}
+			}
+			
+
 			return result;
 		},
 
