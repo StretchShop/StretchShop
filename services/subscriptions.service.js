@@ -20,7 +20,7 @@ module.exports = {
 
 	crons: [{
 		name: "SubscriptionsCleaner",
-		cronTime: "0 0 * * *",
+		cronTime: "50 23 * * *",
 		onTick: function() {
 
 			this.logger.info("Starting to Clean up the Subscriptions");
@@ -62,7 +62,9 @@ module.exports = {
 				{
 					product: { type: "object" },
 					order: { type: "object", optional: true },
-					remoteData: { type: "object", optional: true }
+					remoteData: { type: "object", optional: true },
+					agreementId: { type: "string", optional: true },
+					agreement: { type: "any", optional: true }
 				}
 			},
 			history: { type: "array", optional: true, items:
@@ -149,7 +151,6 @@ module.exports = {
 
 					return ctx.call("subscriptions.find", filter)
 						.then(found => {
-							this.logger.info("subscriptions listSubscriptions found:", found);
 							if (found && found.constructor===Array ) {
 								return self.transformDocuments(ctx, {}, found);
 							} else {
@@ -163,12 +164,22 @@ module.exports = {
 									delete s.history;
 								});
 							}
-							return subscriptions;
+							return ctx.call("subscriptions.count", filter)
+								.then(count => {
+									return {
+										total: count,
+										results: subscriptions
+									};
+								})
+								.catch(error => {
+									self.logger.error("orders.listOrders count error", error);
+									return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found"}]));
+								});
 							// return self.transformEntity(subscriptions, true, ctx);
 						})
 						.catch((error) => {
-							self.logger.error("subscriptions.me error", error);
-							return null;
+							self.logger.error("orders.listOrders find error", error);
+							return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
 						});
 				}
 
@@ -304,8 +315,8 @@ module.exports = {
 		/**
 		 * CRON action (see crons.cronTime setting for time to process):
 		 *  1. find all subscriptions that need to processed
-		 *  2. create and process new order for these subscriptions
-		 *  3. update subscriptions
+		 *  2. check if all payments in subscription have been received
+		 *  3. if not, make them inactive
 		 * 
 		 * to debug you can use - mol $ call subscriptions.runSubscriptions
 		 * 
@@ -325,41 +336,13 @@ module.exports = {
 						"dates.dateEnd": { "$gte": today },
 						status: "active"
 					}
-					// TODO - only after IPN sent message payment was done
+					
 				})
 					.then(found => {
 						this.logger.info("subsp found ", found);
 						found.forEach(subscription => {
-							let newOrder = Object.assign({}, subscription.data.order);
-							newOrder.status = "paid";
-							// newOrder.data['']
 							promises.push( 
-								ctx.call("orders.create", {order: newOrder} )
-									.then(orderResult => {
-										this.logger.info("subscriptions.service runSubscriptions orderResult: ", JSON.stringify(orderResult));
-										let dateEnd = new Date(subscription.dates.dateEnd);
-										if ( dateEnd > today ) {
-											// set new value for dateOrderNext
-											subscription.dates.dateOrderNext = this.calculateDateOrderNext(
-												subscription.period,
-												subscription.duration
-											);
-										} else {
-											subscription.status = "finished";
-										}
-										subscription.history.push( 
-											{
-												action: "prolonged",
-												type: "automatic",
-												date: new Date(),
-												relatedOrder: orderResult._id.toString()
-											} 
-										);
-										return self.adapter.updateById(subscription._id, this.prepareForUpdate(subscription))
-											.then(subscriptionUpdated => {
-												return subscriptionUpdated;
-											});
-									})
+								//self.createPaidSubscriptionOrder(ctx, subscription)
 							);
 						});
 						// return all runned subscriptions
@@ -559,17 +542,17 @@ module.exports = {
 								entity: updatedOriginal
 							})
 								.then(updated => {
-									this.logger.info("payments.paypal1.mixin - saveTokenToSubscription updated:", updated);
+									this.logger.info("subscriptions.save updated:", updated);
 									return updated;
 								})
 								.catch(error => {
-									this.logger.error("payments.paypal1.mixin - saveTokenToSubscription update error: ", error);
+									this.logger.error("subscriptions.save update error: ", error);
 									return null;
 								});
 						}
 					})
 					.catch(err => {
-						self.logger.error("subscriptions.save insert validation error: ", err);
+						self.logger.error("subscriptions.save update validation error: ", err);
 						return null;
 					});
 
@@ -778,13 +761,13 @@ module.exports = {
 											entity: found
 										})
 											.then(updated => {
-												this.logger.info("payments.paypal1.mixin - saveTokenToSubscription updated:", updated);
+												this.logger.info("subscriptions.reactivate - subscription.save updated:", updated);
 												result.data.subscription = updated;
 												delete result.data.subscription.history;
 												return result;
 											})
 											.catch(error => {
-												this.logger.error("payments.paypal1.mixin - saveTokenToSubscription update error: ", error);
+												this.logger.error("subscriptions.reactivate - subscription.save error: ", error);
 												return null;
 											});
 
@@ -830,6 +813,23 @@ module.exports = {
 					ctx.params.duration,
 					ctx.params.dateStart
 				);
+			}
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} subscription
+		 * 
+		 * @returns {Object} date of next order
+		 */
+		createPaidSubscriptionOrder: {
+			cache: false,
+			params: {
+				subscription: { type: "object" } 
+			},
+			handler(ctx) {
+				return this.createPaidSubscriptionOrder(ctx, ctx.params.subscription);
 			}
 		},
 
@@ -934,6 +934,11 @@ module.exports = {
 
 
 		/**
+		 * Create template for subscription 
+		 * with properties, that it should have
+		 * NOTE: you may have problem to insert properties that 
+		 * are not in this object and settings.fields && settings.entityValidator
+		 * 
 		 * @returns {Object} - empty subscription object
 		 */
 		createEmptySubscription() {
@@ -957,9 +962,10 @@ module.exports = {
 					dateUpdated: new Date(),
 				},
 				price: null,
-				data: { 
+				data: { // create here if you want to have it after helpers.mixin.js updateObject()
 					product: null,
-					order: null
+					order: null,
+					agreement: null
 				},
 				history: [],
 			};
@@ -1067,6 +1073,51 @@ module.exports = {
 					return null;
 				});
 		},
+
+
+		/**
+		 * create order of paid subscription
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} subscription 
+		 * 
+		 * @returns {Object}
+		 */
+		createPaidSubscriptionOrder(ctx, subscription) {
+			let newOrder = Object.assign({}, subscription.data.order);
+			newOrder.status = "paid";
+			const today = new Date();
+
+			return ctx.call("orders.create", {order: newOrder} )
+				.then(orderResult => {
+					this.logger.info("subscriptions.service createPaidSubscriptionOrder orderResult: ", JSON.stringify(orderResult));
+					let dateEnd = new Date(subscription.dates.dateEnd);
+					if ( dateEnd > today ) {
+						// set new value for dateOrderNext
+						subscription.dates.dateOrderNext = this.calculateDateOrderNext(
+							subscription.period,
+							subscription.duration
+						);
+					} else {
+						subscription.status = "finished";
+					}
+					subscription.history.push( 
+						{
+							action: "prolonged",
+							type: "automatic",
+							date: new Date(),
+							relatedOrder: orderResult._id.toString()
+						} 
+					);
+					return this.adapter.updateById(subscription._id, this.prepareForUpdate(subscription))
+						.then(subscriptionUpdated => {
+							return {
+								subscription: subscriptionUpdated,
+								order: orderResult
+							};
+						});
+				});
+		}
 
 
 	},

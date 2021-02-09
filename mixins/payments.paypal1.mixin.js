@@ -4,7 +4,10 @@ const { result } = require("lodash");
 const url = require("url");
 const paypal = require("paypal-rest-sdk");
 const HelpersMixin = require("../mixins/helpers.mixin");
+const priceLevels = require("../mixins/price.levels.mixin");
 const fetch 		= require("node-fetch");
+
+const pathResolve = require("path").resolve;
 
 let fs = require("fs"); // only temporaly
 
@@ -25,7 +28,8 @@ module.exports = {
 
 
 	mixins: [
-		HelpersMixin
+		HelpersMixin, 
+		priceLevels
 	],
 
 
@@ -42,6 +46,7 @@ module.exports = {
 		 * @returns {Object} Result from PayPal order checkout
 		 */
 		paypalOrderCheckout: {
+			cache: false,
 			auth: "required",
 			params: {
 				orderId: { type: "string", min: 3 },
@@ -58,14 +63,22 @@ module.exports = {
 							let paymentType = order.data.paymentData.codename.replace("online_paypal_","");
 
 							let items = [];
+							let priceTotalNoSubscriptions = 0;
+							let priceSubscriptions = 0;
 							for (let i=0; i<order.items.length; i++ ) {
-								items.push({
-									"name": order.items[i].name[order.lang.code],
-									"sku": order.items[i].orderCode,
-									"price": this.formatPrice(order.items[i].price),
-									"currency": order.prices.currency.code,
-									"quantity": order.items[i].amount
-								});
+								if (order.items[i].type && order.items[i].type=="subscription") {
+									if (order.items[i].price && order.items[i].price>0) {
+										priceSubscriptions += order.items[i].price;
+									}
+								} else {
+									items.push({
+										"name": order.items[i].name[order.lang.code],
+										"sku": order.items[i].orderCode,
+										"price": this.formatPrice(order.items[i].price),
+										"currency": order.prices.currency.code,
+										"quantity": order.items[i].amount
+									});
+								}
 							}
 							items.push({
 								"name": order.data.paymentData.name[order.lang.code],
@@ -95,6 +108,8 @@ module.exports = {
 								url = "http://localhost:3000";
 							}
 
+							priceTotalNoSubscriptions = order.prices.priceTotal - priceSubscriptions;
+
 							let payment = {
 								"intent": "sale",
 								"payer": {
@@ -110,7 +125,7 @@ module.exports = {
 									},
 									"amount": {
 										"currency": order.prices.currency.code,
-										"total": this.formatPrice(order.prices.priceTotal)
+										"total": this.formatPrice(priceTotalNoSubscriptions)
 									},
 									// "note_to_payer": "Order ID "+order._id,
 									"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
@@ -171,6 +186,8 @@ module.exports = {
 		 * process PayPal result after user paid and returned to website
 		 */
 		paypalResult: {
+			cache: false,
+			auth: "required",
 			params: {
 				result: { type: "string", min: 3 },
 				PayerID: { type: "string", optional: true },
@@ -291,7 +308,7 @@ module.exports = {
 				return this.getOrderSubscriptionsToProcess(ctx, ctx.params.data.order)
 					.then(subscriptions => {
 						// get first subscription if possible
-						this.logger.info("payments.paypal1.paypalOrderSubscription - subscription", subscriptions, ctx.params.data);
+						this.logger.info("payments.paypal1.paypalOrderSubscription - subscription", subscriptions.length);
 
 						if (subscriptions && subscriptions!=null && subscriptions[0] && 
 						subscriptions[0].data.product && subscriptions[0].data.product._id){
@@ -313,6 +330,7 @@ module.exports = {
 											if (parsedUrl && parsedUrl.searchParams.has("token")) {
 												token = parsedUrl.searchParams.get("token");
 												if (token) {
+													this.logger.info("paypalOrderSubscription billingAgreement token: ", token);
 													// update subscription with token
 													return ctx.call("subscriptions.update", {
 														updateObject: {
@@ -331,6 +349,8 @@ module.exports = {
 															this.logger.error("payments.paypal1.mixin - saveTokenToSubscription update error: ", error);
 															return null;
 														});
+												} else { // no token
+													this.logger.error("paypalOrderSubscription billingAgreement NO TOKEN FOUND: ", parsedUrl.searchParams);
 												}
 												return { success: false, url: null, message: "error - missing token in url 2" };
 											}
@@ -454,7 +474,11 @@ module.exports = {
 				let self = this;
 				let data = Object.assign({}, ctx.params.data);
 				if ( data.supplier ) { delete data.supplier; }
-				this.logger.info("paypalWebhook #1:", data);
+				this.logger.info("paypalWebhook #1:", JSON.stringify(data));
+				this.logger.info("path resolve:", pathResolve("./.temp/ipnlog.log"));
+				let log_file = fs.createWriteStream("./.temp/ipnlog.log", {flags : "a"});
+				let date = new Date();
+				log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
 
 				this.paypalConfigure();
 
@@ -476,16 +500,19 @@ module.exports = {
 						ctx.params.data.event_type) {
 							switch (ctx.params.data.event_type) {
 							case "BILLING.SUBSCRIPTION.CANCELLED":
-								self.cancelSubscriptionOnWebhookAction(ctx);
+								self.paypalWebhookBillingSubscriptionCancelled(ctx);
+								break;
+							case "PAYMENT.SALE.COMPLETED":
+								self.paypalWebhookPaymentSaleCompleted(ctx);
 								break;
 							default:
-								self.logger.info("payments.paypal1.mixin paypalWebhook - notification recived:", JSON.stringify(data));
+								self.logger.info("payments.paypal1.mixin paypalWebhook - notification received:", JSON.stringify(data));
 							}
 						}
 					})
 					.catch(error => {
 						this.logger.error("payments.paypal1.mixin - paypalWebhook error2: ", JSON.stringify(error));
-						let log_file = fs.createWriteStream(__dirname + "/../.temp/ipnlog.log", {flags : "a"});
+						let log_file = fs.createWriteStream("./.temp/ipnlog.log", {flags : "a"});
 						let date = new Date();
 						log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
 						return null;
@@ -501,7 +528,7 @@ module.exports = {
 			handler(ctx) {
 				// let self = this;
 				// TEMP - temporaly IPN debug
-				let log_file = fs.createWriteStream(__dirname + "/../.temp/ipnlog.log", {flags : "a"});
+				let log_file = fs.createWriteStream("../.temp/ipnlog.log", {flags : "a"});
 				let date = new Date();
 				this.logger.info("paypalIpn #1:", ctx.params);
 				log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
@@ -589,12 +616,32 @@ module.exports = {
 					if ( orders && orders.length>0 && orders[0] ) {
 						let order = orders[0];
 
+						// remove amount of subscriptions, as they will be paid separately
+						// after user agrees with their automated payments
+						let priceTotalNoSubscriptions = 0;
+
+						if (order.items && order.items.length>0) {
+							let priceSubscriptions = 0;
+							order.items.forEach(item => {
+								// get the right price to remove
+								self.logger.info("payments.paypal1 paypalExecutePayment() item.price:", item.price);
+								if (item && item.type && item.type=="subscription") {
+									let tempProduct = self.priceByUser(item, ctx.meta.user);
+									if (tempProduct.price && tempProduct.price>0) {
+										priceSubscriptions += tempProduct.price;
+									}
+								}
+							});
+							priceTotalNoSubscriptions = order.prices.priceTotal - priceSubscriptions;
+							self.logger.info("payments.paypal1 paypalExecutePayment() priceTotalNoSubscriptions:", priceTotalNoSubscriptions, order.prices.priceTotal, priceSubscriptions);
+						}
+
 						const execute_payment_json = {
 							"payer_id": ctx.params.PayerID,
 							"transactions": [{
 								"amount": {
 									"currency": order.prices.currency.code,
-									"total": self.formatPrice(order.prices.priceTotal)
+									"total": self.formatPrice(priceTotalNoSubscriptions)
 								}
 							}]
 						};
@@ -631,8 +678,9 @@ module.exports = {
 												return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
 											});
 									});
-							}).catch((error) => {
-								self.logger.error("payments.paypal1.mixin - paypalExecutePayment - paypal execute error: ", error);
+							})
+							.catch((error) => {
+								self.logger.error("payments.paypal1.mixin - paypalExecutePayment - paypal execute error: ", JSON.stringify(error));
 								return { success: false, response: "payments.paypal1.mixin - paypalExecutePayment - execute error", redirect: urlPathPrefix };
 							});
 					}
@@ -951,7 +999,8 @@ module.exports = {
 
 
 		/**
-		 * Execute subscription payment of subscription confirmed by customer
+		 * Execute subscription means:
+		 * 1. get related agreement of subscription confirmed by customer
 		 * 
 		 * @param {Object} ctx 
 		 * 
@@ -960,71 +1009,92 @@ module.exports = {
 		paypalExecuteSubscription(ctx, urlPathPrefix) {
 			let self = this;
 
-			// find and update subscription and order
-			return ctx.call("subscriptions.find", {
+			let querySubscriptions = {
 				"query": {
 					"data.token": ctx.params.token
 				}
-			})
+			};
+			// only administrator can edit subscription of any other user
+			if (ctx.meta && ctx.meta.user && ctx.meta.user.type && ctx.meta.user.type!="admin") {
+				querySubscriptions.query["userId"] = ctx.meta.user._id.toString();
+			}
+
+			// find and update subscription and order
+			return ctx.call("subscriptions.find", querySubscriptions)
 				.then(subscriptions => {
-					self.logger.info("payments.paypal1.mixin - paypalExecuteSubscription subscriptions (token):", ctx.params.token, subscriptions[0].orderOriginId);
 					if (subscriptions && subscriptions[0]) {
+						self.logger.info("payments.paypal1.mixin - paypalExecuteSubscription subscriptions (token):", ctx.params.token, subscriptions[0].orderOriginId);
+						let subscription = subscriptions[0];
 						// get order by data.order._id saved in subscription
-						return ctx.call("orders.find", {
+						let queryOrders = {
 							"query": {
-								"_id": self.fixStringToId(subscriptions[0].orderOriginId)
+								"_id": self.fixStringToId(subscription.orderOriginId),
 							}
-						})
+						};
+						// only administrator can edit subscription of any other user
+						if (ctx.meta && ctx.meta.user && ctx.meta.user.type && ctx.meta.user.type!="admin") {
+							queryOrders.query["user.id"] = ctx.meta.user._id.toString();
+						}
+						return ctx.call("orders.find", queryOrders)
 							.then(orders => {
 								if ( orders && orders.length>0 && orders[0] ) {
 									let order = orders[0];
 
 									return this.processAgreement(ctx)
 										.then((agreement) => {
-											// agreement is processed, first payment will come
-											self.logger.info("payments.paypal1.mixin - paypalExecuteSubscription processAgreement agreement:", agreement);
+											// agreement is processed, webhook will get payment confirmation
+											self.logger.info("payments.paypal1.mixin - paypalExecuteSubscription processAgreement agreement:", JSON.stringify(agreement) );
+											
+											// save history and agreement into subscription
+											let historyRecord = {
+												action: "agreed",
+												type: "user",
+												date: new Date(),
+												data: {
+													relatedOrder: order._id,
+													agreement: agreement
+												}
+											};
+											subscription.status = "agreed";
+											subscription.history.push(historyRecord);
+											subscription.data.agreementId = agreement.id.toString();
+											subscription.data.agreement = JSON.parse(JSON.stringify(agreement));
+											subscription.id = subscription._id.toString();
+											delete subscription._id;
+											self.logger.info("payments.paypal1.mixin - paypalExecuteSubscription processAgreement subscription:", JSON.stringify(subscription) );
+											
+											// save subscription
+											// - it's active and waiting for payment
+											return ctx.call("subscriptions.save", {
+												entity: subscription
+											})
+												.then(updatedSubscription => {
+													this.logger.info("payments.paypal1.mixin - updateSubscriptionAfterPaid updated:", updatedSubscription);
 
-											order = self.updatePaidOrderSubscriptionData(order, agreement); // find it in orders.service
-
-											return self.generateInvoice(order, ctx)
-												.then(invoice => {
-													// set invoices into order
-													order.invoice["html"] = invoice.html;
-													order.invoice["path"] = invoice.path;
-													// set related subscription product and data as processed
-													if (order.items && order.items.length>0) {
-														for (let i=0; i<order.items.length; i++) {
-															if (order.items[i].type==="subscription" && 
-															order.items[i]._id.toString()===subscriptions[0].data.product._id.toString()) {
-																order.items[i]["processed"] = true;
-															}
-														}
-													}
+													// set related subscription product and data as agreed
 													if (order.data && order.data.subscription && 
 													order.data.subscription.ids && 
 													order.data.subscription.ids.length>0) {
 														for (let i=0; i<order.data.subscription.ids.length; i++) {
-															if (order.data.subscription.ids[i].subscription==subscriptions[0]._id.toString()) {
-																order.data.subscription.ids[i]["processed"] = new Date();
+															if (order.data.subscription.ids[i].subscription==updatedSubscription._id.toString()) {
+																order.data.subscription.ids[i]["agreed"] = new Date();
 															}
 														}
 													}
-													// updating order after all set
-													return self.adapter.updateById(order._id, self.prepareForUpdate(order))
+
+													// update order
+													return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 														.then(orderUpdated => {
-															self.entityChanged("updated", orderUpdated, ctx);
-															self.logger.info("payments.paypal1.mixin - paypalExecuteSubscription - invoice generated, order updated", { success: true, response: agreement, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() } );
-															if ( order.prices.priceTotalToPay==0 && typeof self.afterPaidActions !== "undefined" ) {
-																self.afterPaidActions(order, ctx); // find it in orders.service
-															}
-															return self.updateSubscriptionAfterPaid(ctx, subscriptions[0], agreement)
-																.then(updatedSubscr => {
-																	self.logger.info(" - updatedSubscr", updatedSubscr );
-																	// redirect to original Order to make user accept all ordered subscriptions
-																	return { success: true, response: agreement, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() };
-																});
+															this.entityChanged("updated", orderUpdated, ctx);
+															// redirect to order to finish required
+															return { success: true, response: agreement, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() };
 														});
+												})
+												.catch(error => {
+													this.logger.error("payments.paypal1.mixin - updateSubscriptionAfterPaid update error: ", error);
+													return null;
 												});
+
 										}).catch((error) => {
 											this.logger.error("payments.paypal1.mixin - paypalExecuteSubscription - paypal execute error: ", error, error.details);
 											return { success: false, response: "payments.paypal1.mixin - paypalExecuteSubscription - execute error", redirect: urlPathPrefix };
@@ -1039,6 +1109,136 @@ module.exports = {
 				});
 
 		},
+
+
+
+		/**
+		 * Perform actions after subscription payment received
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} subscription 
+		 */
+		subscriptionPaymentReceived(ctx, subscription) {
+			let self = this;
+			let agreement = null;
+			if (subscription.data && subscription.data.agreement) {
+				agreement = subscription.data.agreement;
+			}
+			
+			// get related original order
+			let queryOrders = {
+				"query": {
+					"_id": self.fixStringToId(subscription.orderOriginId),
+				}
+			};
+			// only administrator can edit subscription of any other user
+			if (ctx.meta && ctx.meta.user && ctx.meta.user.type && ctx.meta.user.type!="admin") {
+				queryOrders.query["user.id"] = ctx.meta.user._id.toString();
+			}
+			return ctx.call("orders.find", queryOrders)
+				.then(orders => {
+					if ( orders && orders.length>0 && orders[0] ) {
+						let order = orders[0];
+
+						/**
+						 * check out what payment or this subscription it is:
+						 * 1st payment of this subcription - original order
+						 * 2nd & later payment of this subsc - create new
+						 * */
+						let paymentCount = 0;
+						if (subscription.history && subscription.history.length>0) {
+							subscription.history.forEach(h => {
+								if (h && h.action=="paid") {
+									paymentCount++;
+								}
+							});
+						}
+						if (paymentCount==0) {
+							// original order - recalculated based on paid amount
+							order = self.updatePaidOrderSubscriptionData(order, agreement); // find it in orders.service
+							this.afterSubscriptionPaidOrderActions(
+								ctx, 
+								order, 
+								subscription
+							);
+						} else {
+							// create order for >1st subscription
+							return ctx.call("subscriptions.createPaidSubscriptionOrder", {subscription: subscription} )
+								.then(result => {
+									this.afterSubscriptionPaidOrderActions(
+										ctx, 
+										result.order, 
+										result.subscription
+									);
+								})
+								.catch(error => {
+									self.logger.error("payments.paypal1.mixin.subscriptionPaymentReceived - subscriptions.createPaidSubscriptionOrder - paypal execute error: ", JSON.stringify(error));
+								});
+						}
+
+					}
+				});
+
+		},
+
+
+		/**
+		 * Perform order action after related subscription was paid
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} order 
+		 * @param {Object} subscription 
+		 * @param {Object} agreement 
+		 */
+		afterSubscriptionPaidOrderActions(ctx, order, subscription) {
+			let self = this;
+			let urlPathPrefix = "/";
+			if ( process.env.NODE_ENV=="development" ) {
+				urlPathPrefix = "http://localhost:8080/";
+			}
+
+			return self.generateInvoice(order, ctx)
+				.then(invoice => {
+					// set invoices into order
+					order.invoice["html"] = invoice.html;
+					order.invoice["path"] = invoice.path;
+					// set related subscription product and data as paid
+					if (order.items && order.items.length>0) {
+						for (let i=0; i<order.items.length; i++) {
+							if (order.items[i].type==="subscription" && 
+							order.items[i]._id.toString()===subscription.data.product._id.toString()) {
+								order.items[i]["paid"] = true;
+							}
+						}
+					}
+					if (order.data && order.data.subscription && 
+					order.data.subscription.ids && 
+					order.data.subscription.ids.length>0) {
+						for (let i=0; i<order.data.subscription.ids.length; i++) {
+							if (order.data.subscription.ids[i].subscription==subscription._id.toString()) {
+								order.data.subscription.ids[i]["paid"] = new Date();
+							}
+						}
+					}
+					// updating order after all set
+					return self.adapter.updateById(order._id, self.prepareForUpdate(order))
+						.then(orderUpdated => {
+							self.entityChanged("updated", orderUpdated, ctx);
+							self.logger.info("payments.paypal1.mixin - paypalExecuteSubscription - invoice generated, order updated", { success: true, response: "paid", redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() } );
+							if ( order.prices.priceTotalToPay==0 && typeof self.afterPaidActions !== "undefined" ) {
+								self.afterPaidActions(order, ctx); // find it in orders.service
+							}
+							return self.updateSubscriptionAfterPaid(ctx, subscription)
+								.then(updatedSubscr => {
+									self.logger.info(" - updatedSubscr", updatedSubscr );
+									// redirect to original Order to make user accept all ordered subscriptions
+									// TODO - send email to customer
+									return { success: true, response: "paid", redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() };
+								});
+						});
+				});
+		},
+
 
 
 		/**
@@ -1088,13 +1288,12 @@ module.exports = {
 		 * 
 		 * @returns {Object} updated subscription
 		 */
-		updateSubscriptionAfterPaid(ctx, subscription, agreement) {
+		updateSubscriptionAfterPaid(ctx, subscription) {
 			let historyRecord = {
-				action: "paid",
+				action: "calculateDateOrderNext",
 				type: "user",
 				date: new Date(),
 				data: {
-					agreementResponse: JSON.parse(JSON.stringify(agreement)),
 					relatedOrder: null
 				}
 			};
@@ -1113,9 +1312,6 @@ module.exports = {
 								id: subscription._id.toString(),
 								status: "active", 
 								history: subscription.history,
-								data: {
-									agreementId: agreement.id // add agreement id after paid
-								},
 								dates: {
 									dateOrderNext: dateOrderNextResult
 								}
@@ -1141,7 +1337,7 @@ module.exports = {
 		},
 
 
-		cancelSubscriptionOnWebhookAction(ctx) {
+		paypalWebhookBillingSubscriptionCancelled(ctx) {
 			if (ctx.params.data && 
 			ctx.params.data.resource && ctx.params.data.resource.id) {
 				let filter = { 
@@ -1152,14 +1348,14 @@ module.exports = {
 				};
 				return ctx.call("subscriptions.find", filter)
 					.then(found => {
-						this.logger.info("subscriptions.suspend found:", filter, found);
+						this.logger.info("subscriptions to webhook cancel found:", filter, found);
 						if (found && found[0]) {
 							found = found[0];
 							found.status = "canceled";
 							found.dates["dateStopped"] = new Date();
 							found.history.push(
 								{
-									action: "paid",
+									action: "canceled",
 									type: "user",
 									date: new Date(),
 									data: {
@@ -1170,25 +1366,65 @@ module.exports = {
 							);
 
 							found.id = found._id.toString();
-							found.status = "suspended";
 							delete found._id;
 
 							return ctx.call("subscriptions.save", {
 								entity: found
 							})
 								.then(updated => {
-									this.logger.info("subscriptions.suspend - subscriptions.save:", updated);
+									this.logger.info("subscriptions to webhook cancel - subscriptions.save:", updated);
 									result.data.subscription = updated;
 									delete result.data.subscription.history;
 									return result;
 								})
 								.catch(error => {
-									this.logger.error("subscriptions.suspend - subscriptions.save error: ", error);
+									this.logger.error("subscriptions to webhook cancel - subscriptions.save error: ", error);
 									return null;
 								});
 						}
 					});
 			} // response & .resource.is END if
+		}, 
+
+
+
+		/**
+		 * Try to pair with action - if product payment or subscription
+		 * 
+		 * @param {Object} ctx 
+		 */
+		paypalWebhookPaymentSaleCompleted(ctx) {
+			// if subscription (paired by agreement ID)
+			if (ctx.params.data && ctx.params.data.resource && 
+			ctx.params.data.resource.billing_agreement_id) {
+				let filter = { 
+					query: { 
+						"data.agreementId": ctx.params.data.resource.billing_agreement_id 
+					}, 
+					limit: 1
+				};
+				return ctx.call("subscriptions.find", filter)
+					.then(subscriptions => {
+						this.logger.info("subscriptions to webhook cancel found:", filter, subscriptions);
+						if (subscriptions && subscriptions[0]) {
+							let subscription = subscriptions[0];
+							// add message into history
+							let historyRecord = {
+								action: "payment",
+								type: "webhook",
+								date: new Date(),
+								data: {
+									message: ctx.params.data,
+									relatedOrder: null
+								}
+							};
+							subscription.history.push(historyRecord);
+							// found, call subscription paid actions	
+							this.subscriptionPaymentReceived(ctx, subscription);
+						}
+					});
+			}
+
 		}
 
 		

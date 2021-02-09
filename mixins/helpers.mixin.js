@@ -281,6 +281,7 @@ module.exports = {
 		 * Thanks to Bergi https://stackoverflow.com/users/1048572/bergi
 		 * for this nice code taken from 
 		 * https://stackoverflow.com/questions/12534238/updating-javascript-object-attributes-from-another-object/12534361#12534361
+		 * NOTE: ignores properties as objects that are not created in original eg. data.something
 		 * 
 		 * @param {Object} original 
 		 * @param {Object} updater - any other object to use for update
@@ -292,6 +293,9 @@ module.exports = {
 				for (let i=1; i<arguments.length; i++) {
 					for (let prop in arguments[i]) {
 						let val = arguments[i][prop];
+						if (prop=="agreement") {
+							console.log(" _________ ssxxs:", val, (typeof val === "object" && val !== null && val.constructor !== Array), typeof val === "object" , val !== null , val.constructor !== Array );
+						}
 						if (typeof val === "object" && val !== null && val.constructor !== Array) {
 							this.updateObject(original[prop], val);
 						} else {

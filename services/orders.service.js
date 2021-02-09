@@ -16,6 +16,7 @@ let fs = require("fs"); // only temporaly
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
+const priceLevels = require("../mixins/price.levels.mixin");
 const pathResolve = require("path").resolve;
 const paymentsPaypal = require("../mixins/payments.paypal1.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
@@ -41,6 +42,7 @@ module.exports = {
 	mixins: [
 		DbService("orders"),
 		HelpersMixin,
+		priceLevels,
 		FileHelpers,
 		paymentsPaypal,
 		CacheCleanerMixin([
@@ -217,7 +219,7 @@ module.exports = {
 			},
 			handler(ctx) {
 				let updateResult = this.settings.emptyUpdateResult;
-				this.logger.info("orders.progress - ctx.meta: ", ctx.meta);
+				// this.logger.info("orders.progress - ctx.meta: ", ctx.meta);
 
 				return ctx.call("cart.me")
 					.then(cart => {
@@ -360,7 +362,6 @@ module.exports = {
 
 		/**
 		 * Update order with object sent - with recalculating the prices
-		 * TODO - implement Frontend UI change
 		 * 
 		 * @param {Object} order
 		 * 
@@ -497,6 +498,8 @@ module.exports = {
 				fullData: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
+				let self = this;
+
 				// check if we have logged user
 				if ( ctx.meta.user && ctx.meta.user._id ) { // we have user
 					let filter = { query: {}, limit: 20};
@@ -535,11 +538,25 @@ module.exports = {
 					// send query
 					return ctx.call("orders.find", filter)
 						.then(found => {
-							if (found) { // order found in datasource, return it
-								return found;
+							if (found && found.constructor===Array) { // order found in datasource, return it
+								return ctx.call("orders.count", filter)
+									.then(count => {
+										return {
+											total: count,
+											results: found
+										};
+									})
+									.catch(error => {
+										self.logger.error("orders.listOrders count error", error);
+										return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found"}]));
+									});
 							} else { // no order found in datasource
-								return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
+								return Promise.reject(new MoleculerClientError("Orders not found!.", 400, "", [{ field: "orders", message: "not found"}]));
 							}
+						})
+						.catch(error => {
+							self.logger.error("orders.listOrders find error", error);
+							return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
 						});
 				}
 
@@ -595,7 +612,7 @@ module.exports = {
 
 
 		/**
-		 * process result after user paid and returned to website
+		 * process result after user paid or agreed and returned to website
 		 */
 		paymentResult: {
 			params: {
@@ -2126,7 +2143,7 @@ module.exports = {
 		updatePaidOrderData(order, response) {
 			order.dates.datePaid = new Date();
 			order.status = "paid";
-			order.data.paymentData.lastStatus = response.state;
+			order.data.paymentData.lastStatus = (response && response.state) ? response.state : "---";
 			order.data.paymentData.lastDate = new Date();
 			order.data.paymentData.paidAmountTotal = 0;
 			if ( !order.data.paymentData.lastResponseResult ) {
@@ -2156,6 +2173,8 @@ module.exports = {
 
 
 		/**
+		 * Updates order amount according to response from subscription
+		 * agreement
 		 * 
 		 * @param {Object} order 
 		 * @param {Object} response 
@@ -2254,6 +2273,7 @@ module.exports = {
 
 
 		/**
+		 * Get inactive subscriptions related to specific order & user
 		 * 
 		 * @param {Object} ctx 
 		 * @param {Object} order 
@@ -2267,7 +2287,7 @@ module.exports = {
 				// "dates.dateEnd": { "$gte": today },
 				status: "inactive"
 			};
-			this.logger.info("orders.getOrderSubscriptionsToProcess - order", order, query);
+			this.logger.info("orders.getOrderSubscriptionsToProcess - query", query);
 
 			return ctx.call("subscriptions.find", {
 				"query": query
