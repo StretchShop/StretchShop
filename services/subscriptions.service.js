@@ -26,7 +26,7 @@ module.exports = {
 			this.logger.info("Starting to Clean up the Subscriptions");
 
 			this.getLocalService("subscriptions")
-				.actions.runSubscriptions()
+				.actions.checkSubscriptions()
 				.then((data) => {
 					this.logger.info("Subscriptions runned", data);
 				});
@@ -52,8 +52,8 @@ module.exports = {
 			orderItemName: { type: "string", min: 3 },
 			dates: { type: "object", props: {
 				dateStart: { type: "date" },
-				dateOrderNext: { type: "date" },
-				dateEnd: { type: "date" },
+				dateOrderNext: { type: "date", optional: true },
+				dateEnd: { type: "date", optional: true },
 				dateCreated: { type: "date" },
 				dateUpdated: { type: "date" },
 			}},
@@ -318,11 +318,11 @@ module.exports = {
 		 *  2. check if all payments in subscription have been received
 		 *  3. if not, make them inactive
 		 * 
-		 * to debug you can use - mol $ call subscriptions.runSubscriptions
+		 * to debug you can use - mol $ call subscriptions.checkSubscriptions
 		 * 
 		 * @actions
 		 */
-		runSubscriptions: {
+		checkSubscriptions: {
 			cache: false,
 			handler(ctx) {
 				let self = this;
@@ -338,9 +338,9 @@ module.exports = {
 					}
 					
 				})
-					.then(found => {
-						this.logger.info("subsp found ", found);
-						found.forEach(subscription => {
+					.then(subscriptions => {
+						this.logger.info("subscriptions.checkSubscriptions - subscriptions found", subscriptions);
+						subscriptions.forEach(subscription => {
 							promises.push( 
 								//self.createPaidSubscriptionOrder(ctx, subscription)
 							);
@@ -800,19 +800,30 @@ module.exports = {
 		 * 
 		 * @returns {Date} date of next order
 		 */
-		calculateDateOrderNext: {
+		calculateDates: {
 			cache: false,
 			params: {
 				period: { type: "string" }, 
 				duration: { type: "number" }, 
-				dateStart: { type: "date" } 
+				dateStart: { type: "date" },
+				cycles: { type: "number" } 
 			},
 			handler(ctx) {
-				return this.calculateDateOrderNext(
+				const dateOrderNext = this.calculateDateOrderNext(
 					ctx.params.period,
 					ctx.params.duration,
 					ctx.params.dateStart
 				);
+				const dateEnd = this.calculateDateEnd(
+					ctx.params.dateStart,
+					ctx.params.period,
+					ctx.params.duration,
+					ctx.params.cycles
+				);
+				return {
+					dateOrderNext: dateOrderNext,
+					dateEnd: dateEnd
+				};
 			}
 		},
 
@@ -957,6 +968,7 @@ module.exports = {
 				orderItemName: null,
 				dates: {
 					dateStart: new Date(),
+					dateOrderNext: null,
 					dateEnd: nextYear,
 					dateCreated: new Date(),
 					dateUpdated: new Date(),
@@ -1004,6 +1016,7 @@ module.exports = {
 		 * @returns {Date} 
 		 */
 		calculateDateOrderNext(period, duration, dateStart) {
+			this.logger.info("subscriptions.calculateDateOrderNext() - period, duration, datestart", period, duration, dateStart);
 			Date.prototype.addDays = function(days) {
 				let date = new Date(this.valueOf());
 				date.setDate(date.getDate() + days);
@@ -1017,14 +1030,14 @@ module.exports = {
 				}
 				return date;
 			};
-
+		
 			let dateOrderNext = dateStart || new Date();
 			switch (period) {
 			case "day":
-				dateOrderNext.addDays(duration); // add a day(s)
+				dateOrderNext = dateOrderNext.addDays(duration); // add a day(s)
 				break;
 			case "week": 
-				dateOrderNext.addDays(duration * 7); // add a week(s)
+				dateOrderNext = dateOrderNext.addDays(duration * 7); // add a week(s)
 				return;
 			case "month":
 				dateOrderNext = addMonths(dateOrderNext, duration); // add month(s)
@@ -1033,6 +1046,8 @@ module.exports = {
 				dateOrderNext.setFullYear(dateOrderNext.getFullYear() + duration); // add years
 				break;
 			}
+			this.logger.info("subscriptions.calculateDateOrderNext() - dateOrderNext", dateOrderNext);
+
 			return dateOrderNext;
 		},
 
