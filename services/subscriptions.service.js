@@ -340,15 +340,27 @@ module.exports = {
 				})
 					.then(subscriptions => {
 						this.logger.info("subscriptions.checkSubscriptions - subscriptions found", subscriptions);
-						subscriptions.forEach(subscription => {
-							promises.push( 
-								//self.createPaidSubscriptionOrder(ctx, subscription)
-							);
-						});
-						// return all runned subscriptions
-						return Promise.all(promises).then((result) => {
-							return result;
-						});
+						if (subscriptions && subscriptions.length>0) {
+							subscriptions.forEach(s => {
+								promises.push( 
+									ctx.call("subscriptions.suspend", {
+										subscriptionId: s._id,
+										altUser: "checkSubscription CRON",
+										altMessage: "subscription suspended because no payment received"
+									})
+										.then(result => {
+											// TODO - send email
+											return result;
+										})
+								);
+							});
+							// return all runned subscriptions
+							return Promise.all(promises).then((result) => {
+								return result;
+							});
+						} else {
+							return "No results";
+						}
 					});
 			}
 		},
@@ -573,10 +585,14 @@ module.exports = {
 			cache: false,
 			auth: "required",
 			params: {
-				subscriptionId: { type: "string" }
+				subscriptionId: { type: "string" }, 
+				altUser: { type: "string", optional: true }, 
+				altMessage: { type: "string", optional: true }
 			},
 			handler(ctx) {
 				let result = { success: false, url: null, message: "error" };
+				let altUser = (ctx.params.altUser && ctx.params.altUser.trim()!=="") ? ctx.params.altUser : "user";
+				let altMessage = ctx.params.altMessage ? ctx.params.altMessage : "";
 				let self = this;
 				let filter = { 
 					query: { 
@@ -600,8 +616,9 @@ module.exports = {
 							found.status = "suspend request";
 							found.dates["dateStopped"] = new Date();
 							found.history.push(
-								this.newHistoryRecord(found.status, "user", {
-									relatedOrder: null
+								this.newHistoryRecord(found.status, altUser, {
+									relatedOrder: null,
+									message: altMessage
 								})
 							);
 
@@ -624,8 +641,9 @@ module.exports = {
 										// return suspendResult
 
 										found.history.push(
-											this.newHistoryRecord("suspended", "user", {
-												relatedOrder: null
+											this.newHistoryRecord("suspended", altUser, {
+												relatedOrder: null,
+												message: altMessage
 											})
 										);
 

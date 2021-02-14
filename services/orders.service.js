@@ -2501,10 +2501,16 @@ module.exports = {
 		 * @returns {Object} updated subscription
 		 */
 		updateSubscriptionAfterPaid(ctx, subscription) {
+			// always use dateOrderNext if available
+			// in the begining it's same as dateStart, later it's updated
+			let dateToStart = subscription.dates.dateOrderNext;
+			if (!dateToStart || dateToStart===null) {
+				subscription.dates.dateStart;
+			}
 			return ctx.call("subscriptions.calculateDates", {
 				period: subscription.period,
 				duration: subscription.duration,
-				dateStart: subscription.dates.dateStart,
+				dateStart: dateToStart,
 				cycles: subscription.cycles,
 			})
 				.then(resultDates => {

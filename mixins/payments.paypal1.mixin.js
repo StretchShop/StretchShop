@@ -1145,7 +1145,7 @@ module.exports = {
 						if (subscriptions && subscriptions[0]) {
 							let subscription = subscriptions[0];
 							// found, call subscription paid actions
-							this.subscriptionPaymentReceived(ctx, subscription);
+							this.subscriptionPaymentReceived(ctx, subscription); // in orders.service
 						}
 					});
 			}
