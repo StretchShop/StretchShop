@@ -20,13 +20,13 @@ module.exports = {
 
 	crons: [{
 		name: "SubscriptionsCleaner",
-		cronTime: "0 0 * * *",
+		cronTime: "50 23 * * *",
 		onTick: function() {
 
 			this.logger.info("Starting to Clean up the Subscriptions");
 
 			this.getLocalService("subscriptions")
-				.actions.runSubscriptions()
+				.actions.checkSubscriptions()
 				.then((data) => {
 					this.logger.info("Subscriptions runned", data);
 				});
@@ -52,8 +52,8 @@ module.exports = {
 			orderItemName: { type: "string", min: 3 },
 			dates: { type: "object", props: {
 				dateStart: { type: "date" },
-				dateOrderNext: { type: "date" },
-				dateEnd: { type: "date" },
+				dateOrderNext: { type: "date", optional: true },
+				dateEnd: { type: "date", optional: true },
 				dateCreated: { type: "date" },
 				dateUpdated: { type: "date" },
 			}},
@@ -62,7 +62,9 @@ module.exports = {
 				{
 					product: { type: "object" },
 					order: { type: "object", optional: true },
-					remoteData: { type: "object", optional: true }
+					remoteData: { type: "object", optional: true },
+					agreementId: { type: "string", optional: true },
+					agreement: { type: "any", optional: true }
 				}
 			},
 			history: { type: "array", optional: true, items:
@@ -149,7 +151,6 @@ module.exports = {
 
 					return ctx.call("subscriptions.find", filter)
 						.then(found => {
-							this.logger.info("subscriptions listSubscriptions found:", found);
 							if (found && found.constructor===Array ) {
 								return self.transformDocuments(ctx, {}, found);
 							} else {
@@ -163,12 +164,22 @@ module.exports = {
 									delete s.history;
 								});
 							}
-							return subscriptions;
+							return ctx.call("subscriptions.count", filter)
+								.then(count => {
+									return {
+										total: count,
+										results: subscriptions
+									};
+								})
+								.catch(error => {
+									self.logger.error("orders.listOrders count error", error);
+									return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found"}]));
+								});
 							// return self.transformEntity(subscriptions, true, ctx);
 						})
 						.catch((error) => {
-							self.logger.error("subscriptions.me error", error);
-							return null;
+							self.logger.error("orders.listOrders find error", error);
+							return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
 						});
 				}
 
@@ -304,14 +315,14 @@ module.exports = {
 		/**
 		 * CRON action (see crons.cronTime setting for time to process):
 		 *  1. find all subscriptions that need to processed
-		 *  2. create and process new order for these subscriptions
-		 *  3. update subscriptions
+		 *  2. check if all payments in subscription have been received
+		 *  3. if not, make them inactive
 		 * 
-		 * to debug you can use - mol $ call subscriptions.runSubscriptions
+		 * to debug you can use - mol $ call subscriptions.checkSubscriptions
 		 * 
 		 * @actions
 		 */
-		runSubscriptions: {
+		checkSubscriptions: {
 			cache: false,
 			handler(ctx) {
 				let self = this;
@@ -325,47 +336,31 @@ module.exports = {
 						"dates.dateEnd": { "$gte": today },
 						status: "active"
 					}
-					// TODO - only after IPN sent message payment was done
+					
 				})
-					.then(found => {
-						this.logger.info("subsp found ", found);
-						found.forEach(subscription => {
-							let newOrder = Object.assign({}, subscription.data.order);
-							newOrder.status = "paid";
-							// newOrder.data['']
-							promises.push( 
-								ctx.call("orders.create", {order: newOrder} )
-									.then(orderResult => {
-										this.logger.info("subscriptions.service runSubscriptions orderResult: ", JSON.stringify(orderResult));
-										let dateEnd = new Date(subscription.dates.dateEnd);
-										if ( dateEnd > today ) {
-											// set new value for dateOrderNext
-											subscription.dates.dateOrderNext = this.calculateDateOrderNext(
-												subscription.period,
-												subscription.duration
-											);
-										} else {
-											subscription.status = "finished";
-										}
-										subscription.history.push( 
-											{
-												action: "prolonged",
-												type: "automatic",
-												date: new Date(),
-												relatedOrder: orderResult._id.toString()
-											} 
-										);
-										return self.adapter.updateById(subscription._id, this.prepareForUpdate(subscription))
-											.then(subscriptionUpdated => {
-												return subscriptionUpdated;
-											});
+					.then(subscriptions => {
+						this.logger.info("subscriptions.checkSubscriptions - subscriptions found", subscriptions);
+						if (subscriptions && subscriptions.length>0) {
+							subscriptions.forEach(s => {
+								promises.push( 
+									ctx.call("subscriptions.suspend", {
+										subscriptionId: s._id,
+										altUser: "checkSubscription CRON",
+										altMessage: "subscription suspended because no payment received"
 									})
-							);
-						});
-						// return all runned subscriptions
-						return Promise.all(promises).then((result) => {
-							return result;
-						});
+										.then(result => {
+											// TODO - send email
+											return result;
+										})
+								);
+							});
+							// return all runned subscriptions
+							return Promise.all(promises).then((result) => {
+								return result;
+							});
+						} else {
+							return "No results";
+						}
 					});
 			}
 		},
@@ -559,17 +554,17 @@ module.exports = {
 								entity: updatedOriginal
 							})
 								.then(updated => {
-									this.logger.info("payments.paypal1.mixin - saveTokenToSubscription updated:", updated);
+									this.logger.info("subscriptions.save updated:", updated);
 									return updated;
 								})
 								.catch(error => {
-									this.logger.error("payments.paypal1.mixin - saveTokenToSubscription update error: ", error);
+									this.logger.error("subscriptions.save update error: ", error);
 									return null;
 								});
 						}
 					})
 					.catch(err => {
-						self.logger.error("subscriptions.save insert validation error: ", err);
+						self.logger.error("subscriptions.save update validation error: ", err);
 						return null;
 					});
 
@@ -590,10 +585,14 @@ module.exports = {
 			cache: false,
 			auth: "required",
 			params: {
-				subscriptionId: { type: "string" }
+				subscriptionId: { type: "string" }, 
+				altUser: { type: "string", optional: true }, 
+				altMessage: { type: "string", optional: true }
 			},
 			handler(ctx) {
 				let result = { success: false, url: null, message: "error" };
+				let altUser = (ctx.params.altUser && ctx.params.altUser.trim()!=="") ? ctx.params.altUser : "user";
+				let altMessage = ctx.params.altMessage ? ctx.params.altMessage : "";
 				let self = this;
 				let filter = { 
 					query: { 
@@ -617,8 +616,9 @@ module.exports = {
 							found.status = "suspend request";
 							found.dates["dateStopped"] = new Date();
 							found.history.push(
-								this.newHistoryRecord(found.status, "user", {
-									relatedOrder: null
+								this.newHistoryRecord(found.status, altUser, {
+									relatedOrder: null,
+									message: altMessage
 								})
 							);
 
@@ -641,8 +641,9 @@ module.exports = {
 										// return suspendResult
 
 										found.history.push(
-											this.newHistoryRecord("suspended", "user", {
-												relatedOrder: null
+											this.newHistoryRecord("suspended", altUser, {
+												relatedOrder: null,
+												message: altMessage
 											})
 										);
 
@@ -778,13 +779,13 @@ module.exports = {
 											entity: found
 										})
 											.then(updated => {
-												this.logger.info("payments.paypal1.mixin - saveTokenToSubscription updated:", updated);
+												this.logger.info("subscriptions.reactivate - subscription.save updated:", updated);
 												result.data.subscription = updated;
 												delete result.data.subscription.history;
 												return result;
 											})
 											.catch(error => {
-												this.logger.error("payments.paypal1.mixin - saveTokenToSubscription update error: ", error);
+												this.logger.error("subscriptions.reactivate - subscription.save error: ", error);
 												return null;
 											});
 
@@ -817,19 +818,47 @@ module.exports = {
 		 * 
 		 * @returns {Date} date of next order
 		 */
-		calculateDateOrderNext: {
+		calculateDates: {
 			cache: false,
 			params: {
 				period: { type: "string" }, 
 				duration: { type: "number" }, 
-				dateStart: { type: "date" } 
+				dateStart: { type: "date" },
+				cycles: { type: "number" } 
 			},
 			handler(ctx) {
-				return this.calculateDateOrderNext(
+				const dateOrderNext = this.calculateDateOrderNext(
 					ctx.params.period,
 					ctx.params.duration,
 					ctx.params.dateStart
 				);
+				const dateEnd = this.calculateDateEnd(
+					ctx.params.dateStart,
+					ctx.params.period,
+					ctx.params.duration,
+					ctx.params.cycles
+				);
+				return {
+					dateOrderNext: dateOrderNext,
+					dateEnd: dateEnd
+				};
+			}
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} subscription
+		 * 
+		 * @returns {Object} date of next order
+		 */
+		createPaidSubscriptionOrder: {
+			cache: false,
+			params: {
+				subscription: { type: "object" } 
+			},
+			handler(ctx) {
+				return this.createPaidSubscriptionOrder(ctx, ctx.params.subscription);
 			}
 		},
 
@@ -934,6 +963,11 @@ module.exports = {
 
 
 		/**
+		 * Create template for subscription 
+		 * with properties, that it should have
+		 * NOTE: you may have problem to insert properties that 
+		 * are not in this object and settings.fields && settings.entityValidator
+		 * 
 		 * @returns {Object} - empty subscription object
 		 */
 		createEmptySubscription() {
@@ -952,14 +986,16 @@ module.exports = {
 				orderItemName: null,
 				dates: {
 					dateStart: new Date(),
+					dateOrderNext: null,
 					dateEnd: nextYear,
 					dateCreated: new Date(),
 					dateUpdated: new Date(),
 				},
 				price: null,
-				data: { 
+				data: { // create here if you want to have it after helpers.mixin.js updateObject()
 					product: null,
-					order: null
+					order: null,
+					agreement: null
 				},
 				history: [],
 			};
@@ -998,6 +1034,7 @@ module.exports = {
 		 * @returns {Date} 
 		 */
 		calculateDateOrderNext(period, duration, dateStart) {
+			this.logger.info("subscriptions.calculateDateOrderNext() - period, duration, datestart", period, duration, dateStart);
 			Date.prototype.addDays = function(days) {
 				let date = new Date(this.valueOf());
 				date.setDate(date.getDate() + days);
@@ -1011,14 +1048,14 @@ module.exports = {
 				}
 				return date;
 			};
-
+		
 			let dateOrderNext = dateStart || new Date();
 			switch (period) {
 			case "day":
-				dateOrderNext.addDays(duration); // add a day(s)
+				dateOrderNext = dateOrderNext.addDays(duration); // add a day(s)
 				break;
 			case "week": 
-				dateOrderNext.addDays(duration * 7); // add a week(s)
+				dateOrderNext = dateOrderNext.addDays(duration * 7); // add a week(s)
 				return;
 			case "month":
 				dateOrderNext = addMonths(dateOrderNext, duration); // add month(s)
@@ -1027,6 +1064,8 @@ module.exports = {
 				dateOrderNext.setFullYear(dateOrderNext.getFullYear() + duration); // add years
 				break;
 			}
+			this.logger.info("subscriptions.calculateDateOrderNext() - dateOrderNext", dateOrderNext);
+
 			return dateOrderNext;
 		},
 
@@ -1067,6 +1106,51 @@ module.exports = {
 					return null;
 				});
 		},
+
+
+		/**
+		 * create order of paid subscription
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} subscription 
+		 * 
+		 * @returns {Object}
+		 */
+		createPaidSubscriptionOrder(ctx, subscription) {
+			let newOrder = Object.assign({}, subscription.data.order);
+			newOrder.status = "paid";
+			const today = new Date();
+
+			return ctx.call("orders.create", {order: newOrder} )
+				.then(orderResult => {
+					this.logger.info("subscriptions.service createPaidSubscriptionOrder orderResult: ", JSON.stringify(orderResult));
+					let dateEnd = new Date(subscription.dates.dateEnd);
+					if ( dateEnd > today ) {
+						// set new value for dateOrderNext
+						subscription.dates.dateOrderNext = this.calculateDateOrderNext(
+							subscription.period,
+							subscription.duration
+						);
+					} else {
+						subscription.status = "finished";
+					}
+					subscription.history.push( 
+						{
+							action: "prolonged",
+							type: "automatic",
+							date: new Date(),
+							relatedOrder: orderResult._id.toString()
+						} 
+					);
+					return this.adapter.updateById(subscription._id, this.prepareForUpdate(subscription))
+						.then(subscriptionUpdated => {
+							return {
+								subscription: subscriptionUpdated,
+								order: orderResult
+							};
+						});
+				});
+		}
 
 
 	},

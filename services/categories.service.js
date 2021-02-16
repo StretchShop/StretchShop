@@ -79,6 +79,14 @@ module.exports = {
 	 * Actions
 	 */
 	actions: {
+
+		/**
+		 * disable cache for find action
+		 */
+		find: {
+			cache: false
+		},
+		
 		/**
 		 * list categories
 		 *

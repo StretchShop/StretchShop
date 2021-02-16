@@ -16,6 +16,7 @@ let fs = require("fs"); // only temporaly
 
 const DbService = require("../mixins/db.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
+const priceLevels = require("../mixins/price.levels.mixin");
 const pathResolve = require("path").resolve;
 const paymentsPaypal = require("../mixins/payments.paypal1.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
@@ -41,6 +42,7 @@ module.exports = {
 	mixins: [
 		DbService("orders"),
 		HelpersMixin,
+		priceLevels,
 		FileHelpers,
 		paymentsPaypal,
 		CacheCleanerMixin([
@@ -217,7 +219,7 @@ module.exports = {
 			},
 			handler(ctx) {
 				let updateResult = this.settings.emptyUpdateResult;
-				this.logger.info("orders.progress - ctx.meta: ", ctx.meta);
+				// this.logger.info("orders.progress - ctx.meta: ", ctx.meta);
 
 				return ctx.call("cart.me")
 					.then(cart => {
@@ -360,7 +362,6 @@ module.exports = {
 
 		/**
 		 * Update order with object sent - with recalculating the prices
-		 * TODO - implement Frontend UI change
 		 * 
 		 * @param {Object} order
 		 * 
@@ -497,6 +498,8 @@ module.exports = {
 				fullData: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
+				let self = this;
+
 				// check if we have logged user
 				if ( ctx.meta.user && ctx.meta.user._id ) { // we have user
 					let filter = { query: {}, limit: 20};
@@ -535,11 +538,25 @@ module.exports = {
 					// send query
 					return ctx.call("orders.find", filter)
 						.then(found => {
-							if (found) { // order found in datasource, return it
-								return found;
+							if (found && found.constructor===Array) { // order found in datasource, return it
+								return ctx.call("orders.count", filter)
+									.then(count => {
+										return {
+											total: count,
+											results: found
+										};
+									})
+									.catch(error => {
+										self.logger.error("orders.listOrders count error", error);
+										return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found"}]));
+									});
 							} else { // no order found in datasource
-								return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
+								return Promise.reject(new MoleculerClientError("Orders not found!.", 400, "", [{ field: "orders", message: "not found"}]));
 							}
+						})
+						.catch(error => {
+							self.logger.error("orders.listOrders find error", error);
+							return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
 						});
 				}
 
@@ -595,7 +612,7 @@ module.exports = {
 
 
 		/**
-		 * process result after user paid and returned to website
+		 * process result after user paid or agreed and returned to website
 		 */
 		paymentResult: {
 			params: {
@@ -1720,7 +1737,7 @@ module.exports = {
 				return false;
 			}
 
-			this.logger.info("orders.orderAfterAcceptedActions() - order:", order);
+			this.logger.info("orders.orderAfterAcceptedActions() - order:", order._id);
 			// 1. clear the cart
 			return ctx.call("cart.delete")
 				.then(() => { //(cart)
@@ -2117,45 +2134,8 @@ module.exports = {
 
 
 		/**
-		 * 
-		 * @param {Object} order 
-		 * @param {Object} response 
-		 * 
-		 * @returns {Object} order updated
-		 */
-		updatePaidOrderData(order, response) {
-			order.dates.datePaid = new Date();
-			order.status = "paid";
-			order.data.paymentData.lastStatus = response.state;
-			order.data.paymentData.lastDate = new Date();
-			order.data.paymentData.paidAmountTotal = 0;
-			if ( !order.data.paymentData.lastResponseResult ) {
-				order.data.paymentData.lastResponseResult = [];
-			}
-			order.data.paymentData.lastResponseResult.push(response);
-			// calculate total amount paid
-			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
-				if (order.data.paymentData.lastResponseResult[i].state && 
-					order.data.paymentData.lastResponseResult[i].state == "approved" && 
-					order.data.paymentData.lastResponseResult[i].transactions) {
-					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
-						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
-							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
-							order.data.paymentData.paidAmountTotal += parseFloat(
-								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
-							);
-						}
-					}
-				}
-			}
-			// calculate how much to pay
-			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
-
-			return order;
-		},
-
-
-		/**
+		 * Updates order amount according to response from subscription
+		 * agreement
 		 * 
 		 * @param {Object} order 
 		 * @param {Object} response 
@@ -2254,6 +2234,7 @@ module.exports = {
 
 
 		/**
+		 * Get inactive subscriptions related to specific order & user
 		 * 
 		 * @param {Object} ctx 
 		 * @param {Object} order 
@@ -2267,7 +2248,7 @@ module.exports = {
 				// "dates.dateEnd": { "$gte": today },
 				status: "inactive"
 			};
-			this.logger.info("orders.getOrderSubscriptionsToProcess - order", order, query);
+			this.logger.info("orders.getOrderSubscriptionsToProcess - query", query);
 
 			return ctx.call("subscriptions.find", {
 				"query": query
@@ -2287,6 +2268,287 @@ module.exports = {
 					this.logger.error("orders.getOrderSubscriptionsToProcess - error:", error);
 				});
 		},
+
+
+
+		/**
+		 * Webhook logic - step #2.2
+		 * Perform actions after subscription payment received
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} subscription 
+		 */
+		subscriptionPaymentReceived(ctx, subscription) {
+			let self = this;
+			let agreement = null;
+
+			// add message into history
+			let historyRecord = {
+				action: "payment",
+				type: "webhook",
+				date: new Date(),
+				data: {
+					message: ctx.params.data,
+					relatedOrder: null
+				}
+			};
+			subscription.history.push(historyRecord);
+
+			if (subscription.data && subscription.data.agreement) {
+				agreement = subscription.data.agreement;
+			}
+			
+			// get related original order
+			let queryOrders = {
+				"query": {
+					"_id": self.fixStringToId(subscription.orderOriginId),
+				}
+			};
+			// only administrator can edit subscription of any other user
+			if (ctx.meta && ctx.meta.user && ctx.meta.user.type && ctx.meta.user.type!="admin") {
+				queryOrders.query["user.id"] = ctx.meta.user._id.toString();
+			}
+			return ctx.call("orders.find", queryOrders)
+				.then(orders => {
+					if ( orders && orders.length>0 && orders[0] ) {
+						let order = orders[0];
+
+						/**
+						 * check out what payment or this subscription it is:
+						 * 1st payment of this subcription - original order
+						 * 2nd & later payment of this subsc - create new
+						 * */
+						let paymentCount = 0;
+						if (subscription.history && subscription.history.length>0) {
+							subscription.history.forEach(h => {
+								if (h && h.action=="payment") {
+									paymentCount++;
+								}
+							});
+						}
+						if (paymentCount==0) {
+							// original order - recalculated based on paid amount
+							order = self.updatePaidOrderSubscriptionData(order, agreement); // find it in orders.service
+							this.afterSubscriptionPaidOrderActions(
+								ctx, 
+								order, 
+								subscription
+							);
+						} else {
+							// create order for >1st subscription
+							return ctx.call("subscriptions.createPaidSubscriptionOrder", {subscription: subscription} )
+								.then(result => {
+									this.afterSubscriptionPaidOrderActions(
+										ctx, 
+										result.order, 
+										result.subscription
+									);
+								})
+								.catch(error => {
+									self.logger.error("payments.paypal1.mixin.subscriptionPaymentReceived - subscriptions.createPaidSubscriptionOrder - paypal execute error: ", JSON.stringify(error));
+								});
+						}
+
+					}
+				});
+
+		},
+
+
+		/**
+		 * Perform order action after related subscription was paid
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} order 
+		 * @param {Object} subscription 
+		 * @param {Object} agreement 
+		 */
+		afterSubscriptionPaidOrderActions(ctx, order, subscription) {
+			let self = this;
+			let urlPathPrefix = "/";
+			if ( process.env.NODE_ENV=="development" ) {
+				urlPathPrefix = "http://localhost:8080/";
+			}
+
+			return self.generateInvoice(order, ctx)
+				.then(invoice => {
+					// set invoices into order
+					order.invoice["html"] = invoice.html;
+					order.invoice["path"] = invoice.path;
+					// set related subscription product and data as paid
+					if (order.items && order.items.length>0) {
+						for (let i=0; i<order.items.length; i++) {
+							if (order.items[i].type==="subscription" && 
+							order.items[i]._id.toString()===subscription.data.product._id.toString()) {
+								order.items[i]["paid"] = true;
+							}
+						}
+					}
+					if (order.data && order.data.subscription && 
+					order.data.subscription.ids && 
+					order.data.subscription.ids.length>0) {
+						for (let i=0; i<order.data.subscription.ids.length; i++) {
+							if (order.data.subscription.ids[i].subscription==subscription._id.toString()) {
+								order.data.subscription.ids[i]["paid"] = new Date();
+							}
+						}
+					}
+					// updating order after all set
+					return self.adapter.updateById(order._id, self.prepareForUpdate(order))
+						.then(orderUpdated => {
+							self.entityChanged("updated", orderUpdated, ctx);
+							self.logger.info("payments.paypal1.mixin - paypalExecuteSubscription - invoice generated, order updated", { success: true, response: "paid", redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() } );
+							if ( order.prices.priceTotalToPay==0 && typeof self.afterPaidActions !== "undefined" ) {
+								self.afterPaidActions(order, ctx); // find it in orders.service
+							}
+							return self.updateSubscriptionAfterPaid(ctx, subscription)
+								.then(updatedSubscr => {
+									self.logger.info(" - updatedSubscr", updatedSubscr );
+									// send email to customer and admin
+									self.sendEmailPaymentReceivedSubscription(ctx, updatedSubscr);
+									// redirect to original Order to make user accept all ordered subscriptions
+									return { success: true, response: "paid", redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() };
+								});
+						});
+				});
+		},
+
+
+		/**
+		 * Update subscription making it active and adding history
+		 * 
+		 * @param {*} ctx 
+		 * @param {*} subscription 
+		 * 
+		 * @returns {Object} updated subscription
+		 */
+		updateSubscriptionAfterPaid(ctx, subscription) {
+			// always use dateOrderNext if available
+			// in the begining it's same as dateStart, later it's updated
+			let dateToStart = subscription.dates.dateOrderNext;
+			if (!dateToStart || dateToStart===null) {
+				subscription.dates.dateStart;
+			}
+			return ctx.call("subscriptions.calculateDates", {
+				period: subscription.period,
+				duration: subscription.duration,
+				dateStart: dateToStart,
+				cycles: subscription.cycles,
+			})
+				.then(resultDates => {
+					this.logger.info("payments.paypal1.mixin - updateSubscriptionAfterPaid resultDates", resultDates);
+					let historyRecord = {
+						action: "calculateDateOrderNext",
+						type: "user",
+						date: new Date(),
+						data: {
+							relatedOrder: null,
+							relatedData: resultDates
+						}
+					};
+					subscription.history.push(historyRecord);
+
+					subscription.status = "active";
+					subscription.id = subscription._id.toString();
+					subscription.dates.dateOrderNext = resultDates.dateOrderNext;
+					subscription.dates.dateEnd = resultDates.dateEnd;
+					delete subscription._id;
+
+					if (resultDates && resultDates.dateOrderNext && resultDates.dateEnd) {
+					// update subscription
+						return ctx.call("subscriptions.save", {
+							entity: subscription
+						})
+							.then(updated => {
+								this.logger.info("payments.paypal1.mixin - updateSubscriptionAfterPaid updated:", updated);
+								return updated;
+							})
+							.catch(error => {
+								this.logger.error("payments.paypal1.mixin - updateSubscriptionAfterPaid update error: ", error);
+								return null;
+							});
+					} else {
+						this.logger.error("payments.paypal1.mixin - updateSubscriptionAfterPaid resultDates wrong: ", resultDates);
+						return null;
+					}
+				})
+				.catch(error => {
+					this.logger.error("payments.paypal1.mixin - updateSubscriptionAfterPaid calculateDates error: ", error);
+					return null;
+				});
+		},
+
+
+
+		/**
+		 * 
+		 * @param {Object} order 
+		 * @param {Object} response 
+		 * 
+		 * @returns {Object} order updated
+		 */
+		updatePaidOrderData(order, response) {
+			order.dates.datePaid = new Date();
+			order.status = "paid";
+			order.data.paymentData.lastStatus = response.state;
+			order.data.paymentData.lastDate = new Date();
+			order.data.paymentData.paidAmountTotal = 0;
+			if ( !order.data.paymentData.lastResponseResult ) {
+				order.data.paymentData.lastResponseResult = [];
+			}
+			order.data.paymentData.lastResponseResult.push(response);
+			// calculate total amount paid
+			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
+				if (order.data.paymentData.lastResponseResult[i].state && 
+					order.data.paymentData.lastResponseResult[i].state == "approved" && 
+					order.data.paymentData.lastResponseResult[i].transactions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+							order.data.paymentData.paidAmountTotal += parseFloat(
+								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+							);
+						}
+					}
+				}
+			}
+			// calculate how much to pay
+			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+
+			return order;
+		},
+
+
+
+		/**
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} subscription 
+		 */
+		sendEmailPaymentReceivedSubscription(ctx, subscription) {
+			// configuring email message
+			let emailSetup = {
+				settings: {
+					to: [subscription.data.order.user.email, "support@stretchshop.app"]
+				},
+				functionSettings: {
+					language: subscription.data.order.user.settings.language
+				},
+				template: "order/payment/paymentreceived",
+				data: {
+					webname: ctx.meta.siteSettings.name,
+					username: subscription.data.order.user.username,
+					email: subscription.data.order.user.email, 
+					support_email: ctx.meta.siteSettings.supportEmail
+				}
+			};
+			// sending email
+			ctx.call("users.sendEmail", emailSetup).then(json => {
+				this.logger.info("users.cancelDelete - email sent:", json);
+			});
+		}
+
+
 
 	},
 
