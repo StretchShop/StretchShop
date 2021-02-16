@@ -662,7 +662,7 @@ module.exports = {
 							.then((response) => {
 								self.logger.info("payments.paypal1.mixin - paypalExecutePayment response:", response);
 
-								order = self.updatePaidOrderData(order, response); // find it in orders.service
+								order = self.paypalUpdatePaidOrderData(order, response); // find it in orders.service
 								
 								return self.generateInvoice(order, ctx)
 									.then(invoice => {
@@ -1069,6 +1069,47 @@ module.exports = {
 					}
 				});
 
+		},
+
+
+
+
+		/**
+		 * 
+		 * @param {Object} order 
+		 * @param {Object} response 
+		 * 
+		 * @returns {Object} order updated
+		 */
+		paypalUpdatePaidOrderData(order, response) {
+			order.dates.datePaid = new Date();
+			order.status = "paid";
+			order.data.paymentData.lastStatus = (response && response.state) ? response.state : "---";
+			order.data.paymentData.lastDate = new Date();
+			order.data.paymentData.paidAmountTotal = 0;
+			if ( !order.data.paymentData.lastResponseResult ) {
+				order.data.paymentData.lastResponseResult = [];
+			}
+			order.data.paymentData.lastResponseResult.push(response);
+			// calculate total amount paid
+			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
+				if (order.data.paymentData.lastResponseResult[i].state && 
+					order.data.paymentData.lastResponseResult[i].state == "approved" && 
+					order.data.paymentData.lastResponseResult[i].transactions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+							order.data.paymentData.paidAmountTotal += parseFloat(
+								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+							);
+						}
+					}
+				}
+			}
+			// calculate how much to pay
+			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+
+			return order;
 		},
 
 

@@ -1737,7 +1737,7 @@ module.exports = {
 				return false;
 			}
 
-			this.logger.info("orders.orderAfterAcceptedActions() - order:", order);
+			this.logger.info("orders.orderAfterAcceptedActions() - order:", order._id);
 			// 1. clear the cart
 			return ctx.call("cart.delete")
 				.then(() => { //(cart)
@@ -2134,45 +2134,6 @@ module.exports = {
 
 
 		/**
-		 * 
-		 * @param {Object} order 
-		 * @param {Object} response 
-		 * 
-		 * @returns {Object} order updated
-		 */
-		updatePaidOrderData(order, response) {
-			order.dates.datePaid = new Date();
-			order.status = "paid";
-			order.data.paymentData.lastStatus = (response && response.state) ? response.state : "---";
-			order.data.paymentData.lastDate = new Date();
-			order.data.paymentData.paidAmountTotal = 0;
-			if ( !order.data.paymentData.lastResponseResult ) {
-				order.data.paymentData.lastResponseResult = [];
-			}
-			order.data.paymentData.lastResponseResult.push(response);
-			// calculate total amount paid
-			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
-				if (order.data.paymentData.lastResponseResult[i].state && 
-					order.data.paymentData.lastResponseResult[i].state == "approved" && 
-					order.data.paymentData.lastResponseResult[i].transactions) {
-					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
-						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
-							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
-							order.data.paymentData.paidAmountTotal += parseFloat(
-								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
-							);
-						}
-					}
-				}
-			}
-			// calculate how much to pay
-			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
-
-			return order;
-		},
-
-
-		/**
 		 * Updates order amount according to response from subscription
 		 * agreement
 		 * 
@@ -2443,52 +2404,13 @@ module.exports = {
 							return self.updateSubscriptionAfterPaid(ctx, subscription)
 								.then(updatedSubscr => {
 									self.logger.info(" - updatedSubscr", updatedSubscr );
+									// send email to customer and admin
+									self.sendEmailPaymentReceivedSubscription(ctx, updatedSubscr);
 									// redirect to original Order to make user accept all ordered subscriptions
-									// TODO - send email to customer
 									return { success: true, response: "paid", redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() };
 								});
 						});
 				});
-		},
-
-
-
-		/**
-		 * 
-		 * @param {Object} order 
-		 * @param {Object} response 
-		 * 
-		 * @returns {Object} order updated
-		 */
-		updatePaidOrderData(order, response) {
-			order.dates.datePaid = new Date();
-			order.status = "paid";
-			order.data.paymentData.lastStatus = response.state;
-			order.data.paymentData.lastDate = new Date();
-			order.data.paymentData.paidAmountTotal = 0;
-			if ( !order.data.paymentData.lastResponseResult ) {
-				order.data.paymentData.lastResponseResult = [];
-			}
-			order.data.paymentData.lastResponseResult.push(response);
-			// calculate total amount paid
-			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
-				if (order.data.paymentData.lastResponseResult[i].state && 
-					order.data.paymentData.lastResponseResult[i].state == "approved" && 
-					order.data.paymentData.lastResponseResult[i].transactions) {
-					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
-						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
-							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
-							order.data.paymentData.paidAmountTotal += parseFloat(
-								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
-							);
-						}
-					}
-				}
-			}
-			// calculate how much to pay
-			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
-
-			return order;
 		},
 
 
@@ -2555,6 +2477,76 @@ module.exports = {
 					return null;
 				});
 		},
+
+
+
+		/**
+		 * 
+		 * @param {Object} order 
+		 * @param {Object} response 
+		 * 
+		 * @returns {Object} order updated
+		 */
+		updatePaidOrderData(order, response) {
+			order.dates.datePaid = new Date();
+			order.status = "paid";
+			order.data.paymentData.lastStatus = response.state;
+			order.data.paymentData.lastDate = new Date();
+			order.data.paymentData.paidAmountTotal = 0;
+			if ( !order.data.paymentData.lastResponseResult ) {
+				order.data.paymentData.lastResponseResult = [];
+			}
+			order.data.paymentData.lastResponseResult.push(response);
+			// calculate total amount paid
+			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
+				if (order.data.paymentData.lastResponseResult[i].state && 
+					order.data.paymentData.lastResponseResult[i].state == "approved" && 
+					order.data.paymentData.lastResponseResult[i].transactions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+							order.data.paymentData.paidAmountTotal += parseFloat(
+								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+							);
+						}
+					}
+				}
+			}
+			// calculate how much to pay
+			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+
+			return order;
+		},
+
+
+
+		/**
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} subscription 
+		 */
+		sendEmailPaymentReceivedSubscription(ctx, subscription) {
+			// configuring email message
+			let emailSetup = {
+				settings: {
+					to: [subscription.data.order.user.email, "support@stretchshop.app"]
+				},
+				functionSettings: {
+					language: subscription.data.order.user.settings.language
+				},
+				template: "order/payment/paymentreceived",
+				data: {
+					webname: ctx.meta.siteSettings.name,
+					username: subscription.data.order.user.username,
+					email: subscription.data.order.user.email, 
+					support_email: ctx.meta.siteSettings.supportEmail
+				}
+			};
+			// sending email
+			ctx.call("users.sendEmail", emailSetup).then(json => {
+				this.logger.info("users.cancelDelete - email sent:", json);
+			});
+		}
 
 
 
