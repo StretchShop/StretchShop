@@ -202,6 +202,9 @@ module.exports = {
 				/*
 				subscription result:
 				{ token: 'EC-0FK67327KB3942143', ba_token: 'BA-0RH05639H6174205F', result: 'return' }
+				
+				admin clicke subscription paid result:
+				{ token: 'I-BWXCTWMVXFAU', ba_token: 'run_by_admin', result: 'adminsubscriptionpaid' }
 				*/
 				this.logger.info("orders.paypalResult - ctx.params:", ctx.params);
 				if ( ctx.params.result == "return" ) {
@@ -209,6 +212,22 @@ module.exports = {
 						return self.paypalExecuteSubscription(ctx, urlPathPrefix);
 					} else { // payment
 						return self.paypalExecutePayment(ctx, urlPathPrefix);
+					}
+				} else if ( ctx.params.result == "adminsubscriptionpaid" ) {
+					this.logger.info("orders.paypalResult - adminsubscriptionpaid", ctx.params.token , ctx.params.ba_token , ctx.params.ba_token=="run_by_admin" , ctx.meta.user.type=="admin");
+					if ( ctx.params.paymentId && ctx.params.ba_token && 
+					ctx.params.ba_token=="run_by_admin" && ctx.meta.user.type=="admin" ) { // subscription
+						ctx.params["data"] = {
+							type: "adminpaid",
+							resource: {
+								billing_agreement_id: ctx.params.paymentId
+							}
+						};
+						// TODO - update to be more universal
+						return self.paypalWebhookPaymentSaleCompleted(ctx)
+							.then(result => {
+								return { success: result.success, response: result.response, redirect: null };
+							});
 					}
 				} else {
 					// payment not finished -- TODO - cancel result does not get correct language
@@ -468,6 +487,12 @@ module.exports = {
 		},
 
 		
+		/**
+		 * Reactivate Billing Agreement
+		 * 
+		 * @actions
+		 * 
+		 */
 		paypalWebhook: {
 			cache: false,
 			handler(ctx) {
@@ -1186,7 +1211,7 @@ module.exports = {
 						if (subscriptions && subscriptions[0]) {
 							let subscription = subscriptions[0];
 							// found, call subscription paid actions
-							this.subscriptionPaymentReceived(ctx, subscription); // in orders.service
+							return this.subscriptionPaymentReceived(ctx, subscription); // in orders.service
 						}
 					});
 			}

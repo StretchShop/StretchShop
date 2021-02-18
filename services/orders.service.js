@@ -624,15 +624,23 @@ module.exports = {
 			handler(ctx) {
 				let supplier = ctx.params.supplier.toLowerCase();
 				let actionName = supplier+"Result";
+				let params = {
+					result: ctx.params.result,
+					PayerID: ctx.params.PayerID,
+					paymentId: ctx.params.paymentId
+				};
+				// token params
+				if (ctx.params.token) {
+					params.token = ctx.params.token;
+				}
+				if (ctx.params.ba_token) {
+					params.ba_token = ctx.params.ba_token;
+				}
 
 				// using resources/settings/orders.js check if final payment action can be called
 				if ( this.settings.order.availablePaymentActions &&
 				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
-					return ctx.call("orders."+actionName, {
-						result: ctx.params.result,
-						PayerID: ctx.params.PayerID,
-						paymentId: ctx.params.paymentId
-					})
+					return ctx.call("orders."+actionName, params)
 						.then(result => {
 							return result;
 						});
@@ -2281,11 +2289,15 @@ module.exports = {
 		subscriptionPaymentReceived(ctx, subscription) {
 			let self = this;
 			let agreement = null;
+			let type = "webhook";
+			if (ctx.params.data && ctx.params.data.type) {
+				type = ctx.params.data.type;
+			}
 
 			// add message into history
 			let historyRecord = {
 				action: "payment",
-				type: "webhook",
+				type: type,
 				date: new Date(),
 				data: {
 					message: ctx.params.data,
@@ -2329,7 +2341,7 @@ module.exports = {
 						if (paymentCount==0) {
 							// original order - recalculated based on paid amount
 							order = self.updatePaidOrderSubscriptionData(order, agreement); // find it in orders.service
-							this.afterSubscriptionPaidOrderActions(
+							return this.afterSubscriptionPaidOrderActions(
 								ctx, 
 								order, 
 								subscription
@@ -2338,7 +2350,7 @@ module.exports = {
 							// create order for >1st subscription
 							return ctx.call("subscriptions.createPaidSubscriptionOrder", {subscription: subscription} )
 								.then(result => {
-									this.afterSubscriptionPaidOrderActions(
+									return this.afterSubscriptionPaidOrderActions(
 										ctx, 
 										result.order, 
 										result.subscription
