@@ -246,6 +246,7 @@ module.exports = {
 				});
 
 				if (withPages) {
+					// pages
 					return ctx.call("pages.findWithId", {
 						"query": {
 							"slug": { "$regex": ctx.params.query.slug.toLowerCase() }
@@ -260,7 +261,23 @@ module.exports = {
 									}
 								});
 							}
-							return results;
+							// categories
+							return ctx.call("categories.find", {
+								"query": {
+									"slug": { "$regex": ctx.params.query.slug.toLowerCase() }
+								}
+							})
+								.then(categories => {
+									if (categories && categories.length>0) {
+										categories.some(function(category){
+											if (category && category.slug) {
+												results.push(":"+category.slug);
+											}
+										});
+									}
+									return results;
+								});
+							//return results;
 						});
 				} else {
 					return dirs;
@@ -510,62 +527,7 @@ module.exports = {
 											return result;
 										})
 										.then( result => {
-											// TODO - move into separate function
-											// preparing to get parent category for breadcrumbs
-											let category = null;
-											// check what data for categories will be used
-											let hasStaticCategories = ( result.staticData && result.staticData.categories && result.staticData.categories.length>0 );
-											if ( hasStaticCategories ) {
-												category = result.staticData.categories[0];
-											}
-											let hasCategories = ( result.data && result.data.categories && result.data.categories.length>0 );
-											if ( hasCategories ) {
-												category = result.data.categories[0];
-											} 
-											result.global.usedCategories = hasStaticCategories ? "static" : "dynamic";
-											result.global.parentCategorySlug = category;
-											//
-											let pages = []; 
-											// check what pages will be used
-											let hasStaticPages = ( result.staticData && result.staticData.pages && result.staticData.pages.length>0 );
-											if ( hasStaticPages ) {
-												pages = result.staticData.pages;
-											}
-											let hasPages = ( result.data && result.data.pages && result.data.pages.length>0 );
-											if ( hasPages ) {
-												pages = result.data.pages;
-											} 
-											//
-											if (ctx.params.category && (hasStaticCategories || hasCategories)) {
-												return ctx.call("categories.detail", {
-													categoryPath: category,
-													type: "pages"
-												})
-													.then(parentCategoryDetail => {
-														result = this.pageGlobalResultHelper_ParentCat(
-															result, 
-															parentCategoryDetail, 
-															[hasCategories, hasStaticCategories]
-														);
-														// get related pages
-														return ctx.call("pages.find", {
-															"query": {
-																"slug": {"$in": pages}
-															}
-														})
-															.then(relatedPages => {
-																result.global.relatedPage = pages;
-																result.global.relatedPageObjects = relatedPages;
-																return result;
-															});
-													});
-											} else {
-												return this.pageGlobalResultHelper_ParentCat(
-													result, 
-													null, 
-													[hasCategories, hasStaticCategories]
-												);
-											}
+											return this.processPageDetailResult(ctx, result);
 										})
 										.then( result => {
 											let resultWithFunctions = self.checkAndRunPageFunctions(ctx, result.data, ctx.params.lang);
@@ -1035,6 +997,98 @@ module.exports = {
 				]
 			});
 			return query;
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} result 
+		 */
+		processPageDetailResult(ctx, result) {
+			// preparing to get parent category for breadcrumbs
+			let category = null;
+			// check what data for categories will be used
+			let hasStaticCategories = ( result.staticData && result.staticData.categories && result.staticData.categories.length>0 );
+			if ( hasStaticCategories ) {
+				category = result.staticData.categories[0];
+			}
+			let hasCategories = ( result.data && result.data.categories && result.data.categories.length>0 );
+			if ( hasCategories ) {
+				category = result.data.categories[0];
+			} 
+			result.global.usedCategories = hasStaticCategories ? "static" : "dynamic";
+			result.global.parentCategorySlug = category;
+			//
+			let pagesTemp = [];
+			// check what pages will be used
+			let hasStaticPages = ( result.staticData && result.staticData.pages && result.staticData.pages.length>0 );
+			if ( hasStaticPages ) {
+				pagesTemp = result.staticData.pages;
+			}
+			let hasPages = ( result.data && result.data.pages && result.data.pages.length>0 );
+			if ( hasPages ) {
+				pagesTemp = result.data.pages;
+			} 
+			// fill related items
+			let pages = [];
+			let categories = [];
+			let urls = [];
+			if (pagesTemp.length>0) {
+				pagesTemp.forEach(p => {
+					if (p.substring(0,8)=="https://" || p.substring(0,7)=="http://" || p.substring(0,7)=="./" || p.charAt(0)=="/") {
+						urls.push(p);
+					} else if (p.charAt(0)==":") {
+						categories.push(p.substring(1));
+					} else {
+						pages.push(p);
+					}
+				});
+			}
+			//
+			if (ctx.params.category && (hasStaticCategories || hasCategories)) {
+				return ctx.call("categories.detail", {
+					categoryPath: category,
+					type: "pages"
+				})
+					.then(parentCategoryDetail => {
+						result = this.pageGlobalResultHelper_ParentCat(
+							result, 
+							parentCategoryDetail, 
+							[hasCategories, hasStaticCategories]
+						);
+						// get related pages
+						return ctx.call("pages.find", {
+							"query": {
+								"slug": {"$in": pages}
+							}
+						})
+							.then(relatedPages => {
+								result.global.relatedPage = pages;
+								result.global.relatedPageObjects = relatedPages;
+								// get related categories
+								return ctx.call("categories.find", {
+									"query": {
+										"slug": {"$in": categories}
+									}
+								})
+									.then(relatedCategories => {
+										result.global.relatedCat = categories;
+										result.global.relatedCatObjects = relatedCategories;
+										// urls
+										result.global.relatedUrls = urls;
+										return result;
+									});
+								//return result;
+							});
+					});
+			} else {
+				return this.pageGlobalResultHelper_ParentCat(
+					result, 
+					null, 
+					[hasCategories, hasStaticCategories]
+				);
+			}
 		},
 
 
