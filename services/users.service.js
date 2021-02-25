@@ -1090,6 +1090,43 @@ module.exports = {
 									}
 								}
 							});
+					} else if ( ctx.params.type=="pages" ) {
+						//--
+						return ctx.call("pages.find", {
+							"query": { "slug": ctx.params.code }
+						})
+							.then(pages => {
+								let deletePageImage = false;
+								if ( pages && pages[0] ) {
+									if ( ctx.meta.user.type=="admin" ) {
+										this.logger.info("users.deleteUserImage pages - You can delete "+ctx.params.type+" image, because you are admin ("+ctx.meta.user.type+"=='admin')", ctx.meta.user.type=="admin");
+										deletePageImage = true;
+									} else if ( pages && pages[0] && pages[0].publisher==ctx.meta.user.email ) {
+										this.logger.info("users.deleteUserImage pages -You can "+ctx.params.type+" image, because you are publisher ("+pages[0].publisher+"=="+ctx.meta.user.email+")", pages[0].publisher==ctx.meta.user.email);
+										deletePageImage = true;
+									}
+									if (deletePageImage===true) {
+										let pageCodePath = pages[0].slug;
+										let path = ctx.meta.siteSettings.assets.folder +"/"+ process.env.ASSETS_PATH + ctx.params.type +"/cover/"+ pageCodePath +"/"+ ctx.params.image;
+										return new Promise((resolve, reject) => {
+											fs.unlink(path, (err) => {
+												if (err) {
+													this.logger.error("users.deleteUserImage error:", err);
+													reject( {success: false, message: "delete failed"} );
+												}
+												this.logger.info("users.deleteUserImage - DELETED file: ", path);
+												resolve( {success: true, message: "file deleted"} );
+											});
+										})
+											.then(result => {
+												return result;
+											})
+											.catch(error => {
+												return error;
+											});
+									}
+								}
+							});
 					}
 				}
 				return "Hi there!";

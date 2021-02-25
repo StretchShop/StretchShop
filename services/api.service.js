@@ -350,6 +350,20 @@ module.exports = {
 					postAction: "pages.updatePageImage",
 				},
 				{
+					url: "/pages/upload/:slug/:type",
+					destination: "pages/cover",
+					fileName: ["cover"],
+					validUserTypes: ["author", "admin"],
+					checkAuthorAction: "pages.checkAuthor",
+					checkAuthorActionParams: {
+						"slug": req.$params.slug,
+						"publisher": req.$ctx.meta.user.email
+					},
+					stringToChunk: req.$params.slug ? req.$params.slug : "",
+					chunkSize: 0,
+					postAction: "pages.updatePageImage",
+				},
+				{
 					url: "/categories/upload/:slug",
 					destination: "categories",
 					fileName: [":slug"],

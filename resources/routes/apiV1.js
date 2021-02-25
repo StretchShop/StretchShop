@@ -94,7 +94,7 @@ module.exports = {
 		"DELETE /pages": "pages.delete",
 		"GET /pages/tags": "pages.tags",
 		"GET /pages/feed": "pages.feed",
-		"POST /pages/upload/:slug": function (req, res) {
+		"POST /pages/upload/:slug/:type": function (req, res) {
 			this.processUpload(req, res);
 		},
 
