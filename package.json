@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.4.38",
+  "version": "0.4.39",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "repository": {
@@ -46,7 +46,7 @@
     "ioredis": "^4.19.4",
     "jsdom": "^16.4.0",
     "jsonwebtoken": "8.5.1",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "moleculer": "^0.14.12",
     "moleculer-console-tracer": "^0.2.3",
     "moleculer-cron": "0.0.2",
