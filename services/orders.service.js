@@ -772,6 +772,31 @@ module.exports = {
 		}, 
 
 
+		paymentSuspend: {
+			cache: false,
+			auth: "required",
+			params: {
+				billingAgreementId: { type: "string", min: 3 },
+				supplier: { type: "string", min: 3 }
+			},
+			handler(ctx) {
+				let supplier = (ctx.params.supplier) ? ctx.params.supplier : "paypal";
+
+				// only admin can generate invoices
+				return ctx.call("orders."+supplier+"SuspendBillingAgreement", {
+					billingAgreementId: ctx.params.agreementId
+				} )
+					.then(suspendResult => {
+						return suspendResult;
+					})
+					.catch(error => {
+						this.logger.error("order.paymentSuspend - error: ", JSON.stringify(error));
+						return null;
+					});
+			}
+		}, 
+
+
 	},
 
 	/**
@@ -2340,7 +2365,7 @@ module.exports = {
 						}
 						if (paymentCount==0) {
 							// original order - recalculated based on paid amount
-							order = self.updatePaidOrderSubscriptionData(order, agreement); // find it in orders.service
+							order = self.updatePaidOrderSubscriptionData(order, agreement);
 							return this.afterSubscriptionPaidOrderActions(
 								ctx, 
 								order, 

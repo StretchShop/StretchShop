@@ -19,7 +19,7 @@ module.exports = {
 	],
 
 	crons: [{
-		name: "SubscriptionsCleaner",
+		name: "SubscriptionsCheck",
 		cronTime: "50 23 * * *",
 		onTick: function() {
 
@@ -206,7 +206,6 @@ module.exports = {
 				// 1. get subscription items from order
 				const subscriptions = this.getOrderSubscriptions(ctx.params.order);
 				let promises = [];
-				let self = this;
 				
 				// 2. create subscription for every subscribe item
 				if (subscriptions && subscriptions.length>0) {
@@ -325,8 +324,8 @@ module.exports = {
 		checkSubscriptions: {
 			cache: false,
 			handler(ctx) {
-				let self = this;
 				let promises = [];
+				let self = this;
 				const today = new Date();
 				
 				// get dateOrder for today and less
@@ -349,7 +348,11 @@ module.exports = {
 										altMessage: "subscription suspended because no payment received"
 									})
 										.then(result => {
-											// TODO - send email
+											// send email to customer
+											self.sendSubscriptionEmail(
+												ctx, s, 
+												"subscription/suspended"
+											);
 											return result;
 										})
 								);
@@ -477,7 +480,6 @@ module.exports = {
 											userId: entity.userId,
 											orderItemName: entity.orderItemName,
 											status: "active"
-											// "dates.dateStart": {"$le": entity.dates.dateStart} // TODO - set date range
 										}
 									})
 										.then(entityFound => {
@@ -636,7 +638,22 @@ module.exports = {
 
 							if (agreementId && agreementId!=null) {
 								// update agreement
-								return ctx.call("orders.paypalSuspendBillingAgreement", {billingAgreementId: agreementId} )
+								let paymentType = "online_paypal_paypal";
+								if (found.data && found.data.order && found.data.order.data && 
+								found.data.order.data.paymentData && 
+								found.data.order.data.paymentData.codename) {
+									paymentType = found.data.order.data.paymentData.codename;
+								}
+								// using suspendPayment to be more universal call
+								// TODO - need to setup rules for creating payment names
+								let supplier = "paypal";
+								if (paymentType=="online_paypal_paypal") {
+									supplier = "paypal";
+								}
+								return ctx.call("orders.paymentSuspend", {
+									supplier: supplier,
+									billingAgreementId: agreementId
+								})
 									.then(suspendResult => {
 										// return suspendResult
 
@@ -1150,6 +1167,36 @@ module.exports = {
 							};
 						});
 				});
+		},
+
+
+		/**
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} subscription 
+		 */
+		sendSubscriptionEmail(ctx, subscription, template) {
+			// configuring email message
+			let emailSetup = {
+				settings: {
+					to: [subscription.data.order.user.email, "support@stretchshop.app"]
+				},
+				functionSettings: {
+					language: subscription.data.order.user.settings.language
+				},
+				template: template,
+				data: {
+					webname: ctx.meta.siteSettings.name,
+					username: subscription.data.order.user.username,
+					email: subscription.data.order.user.email, 
+					subscription: subscription, 
+					support_email: ctx.meta.siteSettings.supportEmail
+				}
+			};
+			// sending email
+			ctx.call("users.sendEmail", emailSetup).then(json => {
+				this.logger.info("users.cancelDelete - email sent:", json);
+			});
 		}
 
 

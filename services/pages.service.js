@@ -909,9 +909,7 @@ module.exports = {
 						method: m[1], 
 						params: m[2] 
 					};
-					if ( result.params.indexOf(";") > -1 ) {
-						result.params = result.params.split(";");
-					}
+					result.params = result.params.split(";");
 					results.push(result);
 				}
 			} while (m);

@@ -505,43 +505,51 @@ module.exports = {
 				let date = new Date();
 				log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
 
-				this.paypalConfigure();
+				setTimeout(() => {
+					this.paypalConfigure();
 
-				return new Promise((resolve, reject) => {
-					paypal.notification.webhookEvent.getAndVerify(JSON.stringify(data), function (error, response) {
-						if (error) {
-							self.logger.error("payments.paypal1.mixin paypalWebhook error: ", error);
-							reject(error);
-						} else {
-							self.logger.info("payments.paypal1.mixin paypalWebhook result: ", response);
-							resolve(response);
-						}
-					});
-				})
-					.then(response => {
-						self.logger.info("payments.paypal1.mixin paypalWebhook response: ", JSON.stringify(response));
-						// cancel subscription in DB
-						if (response && response==true && ctx.params.data && 
-						ctx.params.data.event_type) {
-							switch (ctx.params.data.event_type) {
-							case "BILLING.SUBSCRIPTION.CANCELLED":
-								self.paypalWebhookBillingSubscriptionCancelled(ctx);
-								break;
-							case "PAYMENT.SALE.COMPLETED":
-								self.paypalWebhookPaymentSaleCompleted(ctx);
-								break;
-							default:
-								self.logger.info("payments.paypal1.mixin paypalWebhook - notification received:", JSON.stringify(data));
+					return new Promise((resolve, reject) => {
+						paypal.notification.webhookEvent.getAndVerify(JSON.stringify(data), function (error, response) {
+							if (error) {
+								self.logger.error("payments.paypal1.mixin paypalWebhook error: ", error);
+								reject(error);
+							} else {
+								self.logger.info("payments.paypal1.mixin paypalWebhook result: ", response);
+								resolve(response);
 							}
-						}
+						});
 					})
-					.catch(error => {
-						this.logger.error("payments.paypal1.mixin - paypalWebhook error2: ", JSON.stringify(error));
-						let log_file = fs.createWriteStream("./.temp/ipnlog.log", {flags : "a"});
-						let date = new Date();
-						log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
-						return null;
-					});
+						.then(response => {
+							self.logger.info("payments.paypal1.mixin paypalWebhook response: ", JSON.stringify(response));
+							// cancel subscription in DB
+							if (response && response==true && ctx.params.data && 
+							ctx.params.data.event_type) {
+								switch (ctx.params.data.event_type) {
+								case "BILLING.PLAN.CREATED":
+									self.logger.info("payments.paypal1.mixin paypalWebhook - BILLING.PLAN.CREATED notification received");
+									break;
+								case "BILLING.PLAN.UPDATED":
+									self.logger.info("payments.paypal1.mixin paypalWebhook - BILLING.PLAN.UPDATED notification received");
+									break;
+								case "BILLING.SUBSCRIPTION.CANCELLED":
+									self.paypalWebhookBillingSubscriptionCancelled(ctx);
+									break;
+								case "PAYMENT.SALE.COMPLETED":
+									self.paypalWebhookPaymentSaleCompleted(ctx);
+									break;
+								default:
+									self.logger.info("payments.paypal1.mixin paypalWebhook - notification received:", JSON.stringify(data));
+								}
+							}
+						})
+						.catch(error => {
+							this.logger.error("payments.paypal1.mixin - paypalWebhook error2: ", JSON.stringify(error));
+							let log_file = fs.createWriteStream("./.temp/ipnlog.log", {flags : "a"});
+							let date = new Date();
+							log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
+							return null;
+						});
+				}, 10000); // timeout end
 			}
 		},
 
@@ -833,7 +841,7 @@ module.exports = {
 				],
 				"type": (subscription.cycles>0) ? "FIXED" : "INFINITE"
 			};
-			self.logger.error("payments.paypal1.mixin billingPlanAttributes: ", billingPlanAttributes);
+			self.logger.error("payments.paypal1.mixin billingPlanAttributes: ", JSON.stringify(billingPlanAttributes) );
 
 			this.paypalConfigure();
 

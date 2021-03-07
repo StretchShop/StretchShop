@@ -75,8 +75,8 @@ module.exports = {
 					email: { type: "string", min: 8 }
 				} }
 			},
-			type: { type: "string", min: 3 },
-			subtype: { type: "string", min: 3, optional: true },
+			type: { type: "string", min: 3 }, // product, subscription
+			subtype: { type: "string", min: 3, optional: true }, // digital, physical
 			country: { type: "string", min: 2, optional: true },
 			name: { type: "object" },
 			descriptionShort: { type: "object", optional: true },
