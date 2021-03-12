@@ -58,7 +58,7 @@ module.exports = {
 		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
 
 		/** Public fields */
-		fields: ["_id", "username", "email", "type", "subtype", "bio", "image", "company", "addresses", "settings", "dates"],
+		fields: ["_id", "username", "email", "type", "subtype", "bio", "image", "company", "addresses", "settings", "dates", "superadmined"],
 
 		/** Validator schema for entity */
 		entityValidator: {
@@ -345,14 +345,18 @@ module.exports = {
 					email: { type: "email", min: 2 },
 					password: { type: "string", min: 2 }
 				}},
-				remember: { type: "boolean", optional: true }
+				remember: { type: "boolean", optional: true },
+				admin: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
 				const { email, password } = ctx.params.user;
 
-				return this.Promise.resolve()
-					.then(() => this.adapter.findOne({ email: email }))
+				return this.adapter.findOne({ email: email })
 					.then(user => {
+						if (ctx.meta.user && ctx.meta.user.type=="admin" && ctx.params.admin==true) {
+							return this.superloginJWT(user, ctx);
+						}
+
 						if (!user) {
 							return this.Promise.reject(new MoleculerClientError("Email or password is invalid!", 422, "", [{ field: "email", message: "wrong credentials"}]));
 						}
@@ -376,13 +380,67 @@ module.exports = {
 						});
 					})
 					// Transform user entity (remove password and all protected fields)
-					.then(doc => this.transformDocuments(ctx, {}, doc))
+					.then(doc => {
+						return this.transformDocuments(ctx, {}, doc);
+					})
 					.then(user => {
 						if ( ctx.meta.cart ) {
 							ctx.meta.cart.user = user._id;
 						}
+
 						return this.transformEntity(user, true, ctx);
 					});
+			}
+		},
+
+
+		/**
+		 * Login as some user
+		 *
+		 * @actions
+		 * @param {Object} email - User credentials
+		 *
+		 * @returns {Object} Logged in user with token
+		 */
+		loginAs: {
+			auth: "required",
+			params: {
+				email: { type: "email", min: 2 }
+			},
+			handler(ctx) {
+				if (ctx.meta.user.type=="admin") {
+					const email = ctx.params.email;
+
+					return this.Promise.resolve()
+						.then(() => this.adapter.findOne({ email: email }))
+						.then(user => {
+							if (!user) {
+								return this.Promise.reject(new MoleculerClientError("Email is invalid!", 422, "", [{ field: "email", message: "not exists"}]));
+							}
+							if ( !user.dates.dateActivated || user.dates.dateActivated.toString().trim()=="" || user.dates.dateActivated>new Date() ) {
+								return this.Promise.reject(new MoleculerClientError("User not activated", 422, "", [{ field: "email", message: "not activated"}]));
+							}
+							// save last date and ip of login
+							user.dates["dateLastLogin"] = new Date();
+							if (!user.ip) {
+								user.ip = {
+									ipRegistration: null,
+									ipLastLogin: null
+								};
+							}
+							user.ip["ipLastLogin"] = ctx.meta.remoteAddress+":"+ctx.meta.remotePort;
+							return this.adapter.updateById(user._id, this.prepareForUpdate(user));
+						})
+						// Transform user entity (remove password and all protected fields)
+						.then(doc => this.transformDocuments(ctx, {}, doc))
+						.then(user => {
+							if ( ctx.meta.cart ) {
+								ctx.meta.cart.user = user._id;
+							}
+							return this.transformEntity(user, true, ctx);
+						});
+				}
+				return this.Promise.reject(new MoleculerClientError("Not authorized!", 422, "", [{ field: "login", message: "unauthorized"}]));
 			}
 		},
 
@@ -1352,6 +1410,85 @@ module.exports = {
 			}
 
 			return generatedJwt;
+		},
+
+
+		/**
+		 * Generate a JWT token from user entity
+		 *
+		 * @param {Object} user
+		 */
+		superloginJWT(user, ctx) {
+			let superadmined = false;
+			let self = this;
+
+			// if user was not found
+			console.log("user:", user);
+			if (!user) {
+				return this.Promise.reject(new MoleculerClientError("Email is invalid!", 422, "", [{ field: "email", message: "not exists"}]));
+			}
+			// if user is not active
+			if ( !user.dates.dateActivated || user.dates.dateActivated.toString().trim()=="" || user.dates.dateActivated>new Date() ) {
+				return this.Promise.reject(new MoleculerClientError("User not activated", 422, "", [{ field: "email", message: "not activated"}]));
+			}
+
+			// TODO - save log about user was controlled by admin
+			const adminTokenOrig = ctx.meta.cookies["token"];
+			const decoded = jwt.decode(adminTokenOrig);
+
+			if (decoded && decoded.id) {
+				return this.adapter.findById(decoded.id)
+					.then(adminUser => {
+						const today = new Date();
+						const exp = new Date(today);
+						exp.setDate(today.getDate() + 60);
+
+						superadmined = true;
+			
+						const generatedJwt = jwt.sign({
+							id: adminUser._id,
+							username: adminUser.username,
+							exp: Math.floor(exp.getTime() / 1000)
+						}, self.settings.JWT_SECRET);
+			
+						if ( ctx.meta.cookies ) {
+							if (!ctx.meta.makeCookies) {
+								ctx.meta.makeCookies = {};
+							}
+							ctx.meta.makeCookies["supertoken"] = {
+								value: generatedJwt,
+								options: {
+									path: "/",
+									signed: true,
+									expires: exp,
+									secure: ((process.env.COOKIES_SECURE && process.env.COOKIES_SECURE==true) ? true : false),
+									httpOnly: true
+								}
+							};
+							if ( process.env.COOKIES_SAME_SITE ) {
+								ctx.meta.makeCookies["supertoken"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
+							}
+						}
+
+						return user;
+					})
+					.then(auser => this.transformDocuments(ctx, {}, auser))
+					.then(auser => {
+						if ( ctx.meta.cart ) {
+							ctx.meta.cart.user = auser._id;
+						}
+						return this.transformEntity(auser, false, ctx);
+					})
+					.then(auser => {
+						if (superadmined===true) {
+							auser.user.superadmined = true;
+						}
+						return auser.user;
+					});
+			}
+
+			return this.Promise.reject(new MoleculerClientError("No valid admin", 422, "", [{ field: "email", message: "not valid"}]));
+
 		},
 
 
