@@ -1483,6 +1483,29 @@ module.exports = {
 						if (superadmined===true) {
 							auser.user.superadmined = true;
 						}
+
+						// configuring email message about admin login to user
+						let emailSetup = {
+							settings: {
+								to: user.email
+							},
+							functionSettings: {
+								language: user.settings.language
+							},
+							template: "adminlogin",
+							data: {
+								webname: ctx.meta.siteSettings.name,
+								admin: auser.user,
+								user: user,
+								email: user.email,
+								support_email: ctx.meta.siteSettings.supportEmail
+							}
+						};
+						// sending email independently
+						ctx.call("users.sendEmail", emailSetup).then(json => {
+							this.logger.info("users.deleteProfile email sent: ", json);
+						});
+
 						return auser.user;
 					});
 			}
