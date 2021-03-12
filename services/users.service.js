@@ -1503,7 +1503,7 @@ module.exports = {
 						};
 						// sending email independently
 						ctx.call("users.sendEmail", emailSetup).then(json => {
-							this.logger.info("users.deleteProfile email sent: ", json);
+							this.logger.info("users.superloginJWT() email sent: ", json);
 						});
 
 						return auser.user;
