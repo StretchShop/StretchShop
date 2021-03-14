@@ -1225,7 +1225,8 @@ module.exports = {
 							// configuring email message
 							let emailSetup = {
 								settings: {
-									to: user.email
+									to: user.email,
+									subject: process.env.SITE_NAME +" - Delete profile"
 								},
 								functionSettings: {
 									language: user.settings.language
@@ -1280,7 +1281,8 @@ module.exports = {
 							// configuring email message
 							let emailSetup = {
 								settings: {
-									to: user.email
+									to: user.email,
+									subject: process.env.SITE_NAME +" - Canceled deleting your Profile"
 								},
 								functionSettings: {
 									language: user.settings.language
@@ -1420,6 +1422,7 @@ module.exports = {
 		 */
 		superloginJWT(user, ctx) {
 			let superadmined = false;
+			let admin = null;
 			let self = this;
 
 			// if user was not found
@@ -1444,31 +1447,33 @@ module.exports = {
 						exp.setDate(today.getDate() + 60);
 
 						superadmined = true;
+						admin = adminUser;
 			
-						const generatedJwt = jwt.sign({
-							id: adminUser._id,
-							username: adminUser.username,
-							exp: Math.floor(exp.getTime() / 1000)
-						}, self.settings.JWT_SECRET);
+						// // use if you want to save admin token to return back
+						// const generatedJwt = jwt.sign({
+						// 	id: adminUser._id,
+						// 	username: adminUser.username,
+						// 	exp: Math.floor(exp.getTime() / 1000)
+						// }, self.settings.JWT_SECRET);
 			
-						if ( ctx.meta.cookies ) {
-							if (!ctx.meta.makeCookies) {
-								ctx.meta.makeCookies = {};
-							}
-							ctx.meta.makeCookies["supertoken"] = {
-								value: generatedJwt,
-								options: {
-									path: "/",
-									signed: true,
-									expires: exp,
-									secure: ((process.env.COOKIES_SECURE && process.env.COOKIES_SECURE==true) ? true : false),
-									httpOnly: true
-								}
-							};
-							if ( process.env.COOKIES_SAME_SITE ) {
-								ctx.meta.makeCookies["supertoken"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
-							}
-						}
+						// if ( ctx.meta.cookies ) {
+						// 	if (!ctx.meta.makeCookies) {
+						// 		ctx.meta.makeCookies = {};
+						// 	}
+						// 	ctx.meta.makeCookies["supertoken"] = {
+						// 		value: generatedJwt,
+						// 		options: {
+						// 			path: "/",
+						// 			signed: true,
+						// 			expires: exp,
+						// 			secure: ((process.env.COOKIES_SECURE && process.env.COOKIES_SECURE==true) ? true : false),
+						// 			httpOnly: true
+						// 		}
+						// 	};
+						// 	if ( process.env.COOKIES_SAME_SITE ) {
+						// 		ctx.meta.makeCookies["supertoken"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
+						// 	}
+						// }
 
 						return user;
 					})
@@ -1487,7 +1492,8 @@ module.exports = {
 						// configuring email message about admin login to user
 						let emailSetup = {
 							settings: {
-								to: user.email
+								to: user.email,
+								subject: process.env.SITE_NAME +" - Administration of your account"
 							},
 							functionSettings: {
 								language: user.settings.language
@@ -1495,7 +1501,8 @@ module.exports = {
 							template: "adminlogin",
 							data: {
 								webname: ctx.meta.siteSettings.name,
-								admin: auser.user,
+								admin: admin,
+								datetime: (new Date()).toISOString(),
 								user: user,
 								email: user.email,
 								support_email: ctx.meta.siteSettings.supportEmail

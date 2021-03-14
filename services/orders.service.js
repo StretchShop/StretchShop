@@ -2569,7 +2569,8 @@ module.exports = {
 					to: [subscription.data.order.user.email, "support@stretchshop.app"]
 				},
 				functionSettings: {
-					language: subscription.data.order.user.settings.language
+					language: subscription.data.order.user.settings.language,
+					subject: process.env.SITE_NAME +" - Payment Received"
 				},
 				template: "order/payment/paymentreceived",
 				data: {
