@@ -877,7 +877,10 @@ module.exports = {
 
 						return emailSentResponse.then(result => {
 							return result;
-						});
+						})
+							.catch(err => {
+								this.logger.error("users.sendEmail - emailSentResponse error:", err);
+							});
 					})
 					.catch(err => {
 						this.logger.error("users.sendEmail - template error:", err);

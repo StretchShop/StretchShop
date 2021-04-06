@@ -1494,7 +1494,7 @@
               },
               {
                 "stringOrig": "",
-                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(1) \u003e div.control \u003e input.input.is-size-1.has-text-weight-semibold.has-text-centered",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(4) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(1) \u003e div.control \u003e input.input.is-size-1.has-text-weight-semibold.has-text-centered",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1504,7 +1504,7 @@
               },
               {
                 "stringOrig": "",
-                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(2) \u003e div.control \u003e input.input.is-size-5.has-text-weight-normal.has-text-centered",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(4) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(2) \u003e div.control \u003e input.input.is-size-5.has-text-weight-normal.has-text-centered",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1514,7 +1514,7 @@
               },
               {
                 "stringOrig": "",
-                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(3) \u003e div.control \u003e input.input.is-size-5.has-text-weight-normal.has-text-centered",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(4) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(3) \u003e div.control \u003e input.input.is-size-5.has-text-weight-normal.has-text-centered",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1739,7 +1739,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Aktivita začiatok"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
@@ -1803,7 +1808,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Aktivita koniec"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/products/CategoryNewEdit.vue",
@@ -2067,6 +2077,24 @@
                 ]
               }
             ]
+          },
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Click to upload",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-12 \u003e div.page-image-wrapper \u003e b-field.file.action.edit \u003e b-upload \u003e a.button.is-primary.is-info \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Click to upload"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -2110,6 +2138,24 @@
               {
                 "stringOrig": "Click to remove",
                 "selector": "#product-new-edit \u003e div.columns.reversed \u003e div.column.is-7 \u003e div.product-image-wrapper \u003e a.action.remove.button.is-danger.is-outlined \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Click to remove"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/pages/PageNewEdit.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Click to remove",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-12 \u003e div.page-image-wrapper \u003e a.action.remove.button.is-danger.is-outlined \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -2232,7 +2278,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Name",
-                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(1) \u003e label.label",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(4) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(1) \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -2301,7 +2347,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Description Short",
-                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(2) \u003e label.label",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(4) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(2) \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -2352,7 +2398,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Description Long",
-                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(3) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(3) \u003e label.label",
+                "selector": "html \u003e body \u003e template \u003e div.container.page-detail \u003e div.columns:nth-child(4) \u003e div.column.is-6 \u003e div.data-main \u003e div.field:nth-child(3) \u003e label.label",
                 "translations": [
                   {
                     "langCode": "en",
@@ -2909,7 +2955,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Obdobie predplatného"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
@@ -2937,7 +2988,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Trvanie predplatného"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
@@ -2965,7 +3021,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Počet platieb"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
@@ -3069,7 +3130,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Prepočítať cenové hladiny"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/products/ProductNewEdit.vue",
@@ -3508,6 +3574,105 @@
                   {
                     "langCode": "en",
                     "translation": "Add Property"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Login as (write email of user that is not admin)",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Prihlásiť sa ako (napísať email užívateľa, ktorí nie je admin)"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/MeAdmin.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Login as (write email of user that is not admin)",
+                "selector": "#profile-admin-loginas \u003e form \u003e div.field.loginas \u003e label.label \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Login as (write email of user that is not admin)"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Username does not exists",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Užívateľské meno neexistuje"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/MeAdmin.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Username does not exists",
+                "selector": "#profile-admin-loginas \u003e form \u003e div.field.loginas \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Username does not exists"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Login as",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Prihlásiť sa ako"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/MeAdmin.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Login as",
+                "selector": "#profile-admin-loginas \u003e form \u003e button.button.is-success \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Login as"
                   }
                 ]
               }
@@ -5231,6 +5396,39 @@
         ]
       },
       {
+        "phrase": "Administration",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Administrácia"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/Me.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Administration",
+                "selector": "html \u003e body \u003e template \u003e div.container.users-me \u003e div:nth-child(1) \u003e div.columns.is-variable.has-text-left \u003e div.column.is-3 \u003e nav.panel.user-settings-nav \u003e router-link.panel-block:nth-child(6)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Administration"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "Unauthorized",
         "language": {
           "code": "en",
@@ -5868,7 +6066,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Tvoje predplatné"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptions.vue",
@@ -6067,7 +6270,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Nemáš žiadne predplatné"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptions.vue",
@@ -6756,7 +6964,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Schválených predplatných"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrderDetail.vue",
@@ -6784,7 +6997,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Schváliť predplatné"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrderDetail.vue",
@@ -7597,7 +7815,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Tvoje objednávky"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrders.vue",
@@ -7790,7 +8013,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Predplatné"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -7836,7 +8064,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Predplatné"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -7874,7 +8107,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "História"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -7902,7 +8140,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Súvisiaca objednávka"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -7930,7 +8173,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Hlavné info"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -7958,7 +8206,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Cena a obdobie"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -7986,7 +8239,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Počet platieb"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8014,7 +8272,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Nekonečno"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8024,7 +8287,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Infinity",
-                "selector": "#userSubscriptionDetail \u003e div:nth-child(1) \u003e div.container.subscription-detail-data \u003e div.columns.is-variable.is-centered \u003e div.column.is-8 \u003e div.columns.is-variable.is-centered \u003e div.column.is-6:nth-child(2) \u003e div.info.info-settings \u003e ul \u003e li:nth-child(3) \u003e strong \u003e span:nth-child(1)",
+                "selector": "#subscriptionCyclesInfinity",
                 "translations": [
                   {
                     "langCode": "en",
@@ -8042,7 +8305,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Ďalšia platba"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8070,7 +8338,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Posledná platba"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8098,7 +8371,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Začiatok"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8126,7 +8404,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Pôvodná objednávka"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8154,7 +8437,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Dostupné akcie"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8182,7 +8470,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Znovu aktivovať"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8210,7 +8503,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Akcie administrátora"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8238,7 +8536,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Platba uhradená"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8266,7 +8569,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Označí nasledujúcu platbu ako uhradenú. Pre prípady, kedy platobný systém zlyhal, ale zákazník zaplatil iným spôsobom."
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8294,7 +8602,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Pozastaviť"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -8322,7 +8635,12 @@
           "code": "en",
           "lang": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Pozastaví predplatné a jeho platby. Keď bude predplatné pozastavené a súvisiace služby pozastavené, dostaneš email."
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserSubscriptionDetail.vue",
@@ -10155,6 +10473,105 @@
                   {
                     "langCode": "en",
                     "translation": "DELETE This Page"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "This site uses cookies to remember you and analyse visitors. For more information see our",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Táto stránka používa cookies aby si ťa pamatala a analyzovala návštevníkov. Pre viac informácií, pozri naše"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/global/Cookies.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "This site uses cookies to remember you and analyse visitors. For more information see our",
+                "selector": "#cookies-message",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This site uses cookies to remember you and analyse visitors. For more information see our"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Terms \u0026 conditions",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Podmienky používania"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/global/Cookies.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Terms \u0026 conditions",
+                "selector": "#cookies-terms",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Terms \u0026 conditions"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Agree",
+        "language": {
+          "code": "en",
+          "lang": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Súhlasím"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/global/Cookies.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Agree",
+                "selector": "#cookies-agree",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Agree"
                   }
                 ]
               }
