@@ -326,13 +326,15 @@ module.exports = {
 			handler(ctx) {
 				let promises = [];
 				let self = this;
-				const today = new Date();
+				let checkDate = new Date();
+				const daysTolerance = 2; // TODO outsource to settings
+				checkDate.setDate(checkDate.getDate() - daysTolerance);
 				
-				// get dateOrder for today and less
+				// get dateOrder for today (- days of tolerance) and less
 				return this.adapter.find({
 					query: {
-						"dates.dateOrderNext": { "$lte": today },
-						"dates.dateEnd": { "$gte": today },
+						"dates.dateOrderNext": { "$lte": checkDate },
+						"dates.dateEnd": { "$gte": checkDate },
 						status: "active"
 					}
 					
@@ -343,10 +345,13 @@ module.exports = {
 							subscriptions.forEach(s => {
 								promises.push( 
 									ctx.call("subscriptions.suspend", {
-										subscriptionId: s._id,
+										subscriptionId: s._id.toString(),
 										altUser: "checkSubscription CRON",
 										altMessage: "subscription suspended because no payment received"
 									})
+										.catch(err => {
+											this.logger.error("users.checkSubscriptions - subscriptions.suspend error:", err);
+										})
 										.then(result => {
 											// send email to customer
 											self.sendSubscriptionEmail(
@@ -364,6 +369,26 @@ module.exports = {
 						} else {
 							return "No results";
 						}
+					})
+					.then(suspendedSubs => {
+						// set status to finished to those, with dateEnd in past
+						return self.adapter.updateMany(
+							{
+								"dates.dateEnd": { "$lte": checkDate },
+								status: "active"
+							},
+							{
+								"$set": {
+									status: "finished"
+								}
+							}
+						)
+							.then(subscriptions => {
+								return {
+									suspended: suspendedSubs,
+									finished: subscriptions
+								};	
+							});
 					});
 			}
 		},
@@ -624,12 +649,14 @@ module.exports = {
 								})
 							);
 
-							// get agreement ID from history - also means it's paid
-							let agreementId = null;
-							if ( found.history && found.history.length>0 ) {
+							let agreementId = found.data.agreementId;
+							// get agreement ID from history
+							if ( (!agreementId || agreementId==null) 
+							&& found.history && found.history.length>0 ) {
 								found.history.some(record => {
-									if (record && record.action=="paid" && record.data && record.data.id) {
-										agreementId = record.data.id;
+									if (record && record.action=="agreed" && record.data && 
+									record.data.agreement && record.data.agreement.id) {
+										agreementId = record.data.agreement.id;
 										return true;
 									}
 								});
@@ -708,6 +735,10 @@ module.exports = {
 								return result;
 							}
 						}
+					})
+					.catch(error => {
+						this.logger.error("subscriptions.suspend - subscriptions.find error: ", error);
+						return null;
 					});
 			}
 		},
@@ -758,12 +789,14 @@ module.exports = {
 								})
 							);
 
+							let agreementId = found.data.agreementId;
 							// get agreement ID from history
-							let agreementId = null;
-							if ( found.history && found.history.length>0 ) {
+							if ( (!agreementId || agreementId==null) 
+							&& found.history && found.history.length>0 ) {
 								found.history.some(record => {
-									if (record && record.action=="paid" && record.data && record.data.id) {
-										agreementId = record.data.id;
+									if (record && record.action=="agreed" && record.data && 
+									record.data.agreement && record.data.agreement.id) {
+										agreementId = record.data.agreement.id;
 										return true;
 									}
 								});
@@ -840,21 +873,27 @@ module.exports = {
 			params: {
 				period: { type: "string" }, 
 				duration: { type: "number" }, 
-				dateStart: { type: "date" },
-				cycles: { type: "number" } 
+				dateStart: { type: "string" }, //type: "date" },
+				cycles: { type: "number" },
+				withDateEnd: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
+				ctx.params.withDateEnd = typeof withDateEnd === "undefined" ? true : ctx.params.withDateEnd;
+				ctx.params.dateStart = new Date(ctx.params.dateStart);
 				const dateOrderNext = this.calculateDateOrderNext(
 					ctx.params.period,
 					ctx.params.duration,
 					ctx.params.dateStart
 				);
-				const dateEnd = this.calculateDateEnd(
-					ctx.params.dateStart,
-					ctx.params.period,
-					ctx.params.duration,
-					ctx.params.cycles
-				);
+				let dateEnd = null;
+				if (ctx.params.withDateEnd) {
+					dateEnd = this.calculateDateEnd(
+						ctx.params.dateStart,
+						ctx.params.period,
+						ctx.params.duration,
+						ctx.params.cycles
+					);
+				}
 				return {
 					dateOrderNext: dateOrderNext,
 					dateEnd: dateEnd

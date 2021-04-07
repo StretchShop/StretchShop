@@ -521,8 +521,8 @@ module.exports = {
 					if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
 						filter.limit = ctx.params.limit;
 					}
-					if (filter.limit>20) {
-						filter.limit = 20;
+					if (filter.limit>10) {
+						filter.limit = 10;
 					}
 					// sort
 					filter.sort = "-dates.dateCreated";
@@ -539,6 +539,14 @@ module.exports = {
 					return ctx.call("orders.find", filter)
 						.then(found => {
 							if (found && found.constructor===Array) { // order found in datasource, return it
+								// remove html render of invoice if more than 1 result
+								if (found && found.length>1) {
+									for (let i=0; i<found.length; i++) {
+										if (found[i] && found[i].invoice && found[i].invoice.html) {
+											delete found[i].invoice.html;
+										}
+									}
+								}
 								return ctx.call("orders.count", filter)
 									.then(count => {
 										return {
@@ -551,6 +559,7 @@ module.exports = {
 										return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found"}]));
 									});
 							} else { // no order found in datasource
+								self.logger.error("orders.listOrders find error", found);
 								return Promise.reject(new MoleculerClientError("Orders not found!.", 400, "", [{ field: "orders", message: "not found"}]));
 							}
 						})
@@ -2434,9 +2443,9 @@ module.exports = {
 					return self.adapter.updateById(order._id, self.prepareForUpdate(order))
 						.then(orderUpdated => {
 							self.entityChanged("updated", orderUpdated, ctx);
-							self.logger.info("payments.paypal1.mixin - paypalExecuteSubscription - invoice generated, order updated", { success: true, response: "paid", redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() } );
+							self.logger.info("orders.afterSubscriptionPaidOrderActions() - invoice generated, order updated", { success: true, response: "paid", redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() } );
 							if ( order.prices.priceTotalToPay==0 && typeof self.afterPaidActions !== "undefined" ) {
-								self.afterPaidActions(order, ctx); // find it in orders.service
+								self.afterPaidActions(order, ctx); // custom actions
 							}
 							return self.updateSubscriptionAfterPaid(ctx, subscription)
 								.then(updatedSubscr => {
@@ -2466,11 +2475,17 @@ module.exports = {
 			if (!dateToStart || dateToStart===null) {
 				subscription.dates.dateStart;
 			}
+			// update date of subscription end only if it is not set yet
+			let withDateEnd = true;
+			if (subscription.dates.dateEnd && subscription.dates.dateEnd!==null) {
+				withDateEnd = false;
+			}
 			return ctx.call("subscriptions.calculateDates", {
 				period: subscription.period,
 				duration: subscription.duration,
 				dateStart: dateToStart,
 				cycles: subscription.cycles,
+				withDateEnd: withDateEnd
 			})
 				.then(resultDates => {
 					this.logger.info("payments.paypal1.mixin - updateSubscriptionAfterPaid resultDates", resultDates);
@@ -2488,7 +2503,9 @@ module.exports = {
 					subscription.status = "active";
 					subscription.id = subscription._id.toString();
 					subscription.dates.dateOrderNext = resultDates.dateOrderNext;
-					subscription.dates.dateEnd = resultDates.dateEnd;
+					if (resultDates.dateEnd && resultDates.dateEnd!==null) {
+						subscription.dates.dateEnd = resultDates.dateEnd;
+					}
 					delete subscription._id;
 
 					if (resultDates && resultDates.dateOrderNext && resultDates.dateEnd) {
@@ -2580,10 +2597,15 @@ module.exports = {
 					support_email: ctx.meta.siteSettings.supportEmail
 				}
 			};
+			this.logger.info("users.sendEmailPaymentReceivedSubscription() - preparing to send");
 			// sending email
-			ctx.call("users.sendEmail", emailSetup).then(json => {
-				this.logger.info("users.cancelDelete - email sent:", json);
-			});
+			ctx.call("users.sendEmail", emailSetup)
+				.then(json => {
+					this.logger.info("users.sendEmailPaymentReceivedSubscription() - email sent:", json);
+				})
+				.catch(error => {
+					this.logger.error("users.sendEmailPaymentReceivedSubscription() - error:", error);
+				});
 		}
 
 

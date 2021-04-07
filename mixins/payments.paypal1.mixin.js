@@ -1215,7 +1215,7 @@ module.exports = {
 				};
 				return ctx.call("subscriptions.find", filter)
 					.then(subscriptions => {
-						this.logger.info("subscriptions to webhook cancel found:", filter, subscriptions);
+						this.logger.info("orders payments.paypal1.mixin paypalWebhookPaymentSaleCompleted subscriptions found:", filter, subscriptions);
 						if (subscriptions && subscriptions[0]) {
 							let subscription = subscriptions[0];
 							// found, call subscription paid actions
