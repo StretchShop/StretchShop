@@ -43,9 +43,9 @@ module.exports = {
 
 		// Products
 		"GET /products/:category": "products.productsList",
+		"POST /products/:category": "products.productsList", // needed for category with filter url
 		"POST /products/filter": "products.findWithCount",
 		"POST /products/find": "products.find",
-		"POST /products/:category": "products.productsList", // needed for category with filter url
 		"GET /products/:category/detail/:product": "products.detail",
 		"PUT /products": "products.import",
 		"POST /products/count": "products.count",
@@ -95,6 +95,9 @@ module.exports = {
 		"GET /pages/tags": "pages.tags",
 		"GET /pages/feed": "pages.feed",
 		"POST /pages/upload/:slug/:type": function (req, res) {
+			this.processUpload(req, res);
+		},
+		"POST /pages/upload/:slug/": function (req, res) {
 			this.processUpload(req, res);
 		},
 

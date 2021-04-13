@@ -64,6 +64,8 @@ module.exports = {
 
 		/** Validator schema for entity */
 		entityValidator: {
+			type: { type: "string", min: 3 }, // product, subscription
+			subtype: { type: "string", min: 3, optional: true }, // digital, physical
 			externalId: { type: "string", min: 3 },
 			orderCode: {type: "string", optional: true, min: 3 },
 			variationGroupId: {type: "string", optional: true },
@@ -75,8 +77,6 @@ module.exports = {
 					email: { type: "string", min: 8 }
 				} }
 			},
-			type: { type: "string", min: 3 }, // product, subscription
-			subtype: { type: "string", min: 3, optional: true }, // digital, physical
 			country: { type: "string", min: 2, optional: true },
 			name: { type: "object" },
 			descriptionShort: { type: "object", optional: true },
