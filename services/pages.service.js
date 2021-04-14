@@ -173,7 +173,7 @@ module.exports = {
 							query["$and"].push({
 								"categories": { "$in": categoriesToListPagesIn }
 							});
-							query = this.filterOnlyActivePages(query, ctx.meta.user);
+							query = this.filterOnlyActivePages(query, ctx);
 							filter.query = query;
 
 							// set max of results
@@ -181,7 +181,7 @@ module.exports = {
 								filter.limit = 100;
 							}
 							if (typeof filter.sort === "undefined" || !filter.sort) {
-								filter.sort = "dates.dateUpdated";
+								filter.sort = "-dates.dateUpdated";
 							}
 
 							return ctx.call("pages.find", filter)
@@ -321,7 +321,7 @@ module.exports = {
 					}
 				}
 				
-				query = this.filterOnlyActivePages(query, ctx.meta.user);
+				query = this.filterOnlyActivePages(query, ctx);
 				filter.query = query;
 
 				// if categories sent, use them
@@ -347,7 +347,7 @@ module.exports = {
 					filter.limit = 100;
 				}
 				// sort
-				filter.sort = "dates.dateUpdated";
+				filter.sort = "-dates.dateUpdated";
 				if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
 					filter.sort = ctx.params.sort;
 				}
