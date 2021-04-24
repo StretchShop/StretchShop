@@ -71,7 +71,7 @@ module.exports = {
 		"POST /webhook/:service": "orders.paymentWebhook",
 		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
 		"GET /order/invoice/generate/:orderId": "orders.invoiceGenerate",
-		"GET /order/invoice/cancel/:orderId": "orders.orderCancel",
+		"GET /order/invoice/cancel/:orderId": "orders.cancel",
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",
 		"GET /subscription/suspend/:subscriptionId": "subscriptions.suspend",
