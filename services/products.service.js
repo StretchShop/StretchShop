@@ -232,7 +232,8 @@ module.exports = {
 		},
 
 		/**
-		 * Add item to user's cart
+		 * Gets page of products by filter 
+		 * with count of total that match filter
 		 *
 		 * @actions
 		 * @param {Object} user - User entity
@@ -753,6 +754,14 @@ module.exports = {
 			} // handler end
 		},
 
+
+		/**
+		 * After image for product was uploaded
+		 * @actions
+		 * 
+		 * @param {object} data
+		 * @param {object} params
+		 */
 		updateProductImage: {
 			auth: "required",
 			params: {
@@ -830,19 +839,22 @@ module.exports = {
 				id: { type: "string" }
 			},
 			handler(ctx) {
-				let ids = [];
-				ids.push(ctx.params.id);
-				return ctx.call("products.rebuildProducts", {
-					limit: 1,
-					ids: ids
-				})
-					.then(rebuildSuccess => {
-						// TODO - add user verification - admin or author
-						if (rebuildSuccess && rebuildSuccess.products && rebuildSuccess.products[0]) {
-							return rebuildSuccess.products[0];
-						}
-						return null;
-					});
+				if ( ctx.meta.user && ctx.meta.user.type=="admin" ) { // TODO - add user verification for author
+					let ids = [];
+					ids.push(ctx.params.id);
+					return ctx.call("products.rebuildProducts", {
+						limit: 1,
+						ids: ids
+					})
+						.then(rebuildSuccess => {
+							if (rebuildSuccess && rebuildSuccess.products && rebuildSuccess.products[0]) {
+								return rebuildSuccess.products[0];
+							}
+							return null;
+						});
+				} else {
+					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
+				}
 			}
 		},
 

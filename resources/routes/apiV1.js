@@ -68,7 +68,6 @@ module.exports = {
 		"GET /order/progress": "orders.progress",
 		"POST /order/progress": "orders.progress",
 		"POST /order/list": "orders.listOrders",
-		"POST /webhook/:service": "orders.paymentWebhook",
 		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
 		"GET /order/invoice/generate/:orderId": "orders.invoiceGenerate",
 		"GET /order/invoice/cancel/:orderId": "orders.orderCancel",
