@@ -163,7 +163,7 @@ module.exports = {
 				type: "object", props: {
 					deliveryData: { type: "object" },
 					paymentData: { type: "object" },
-					couponData: { type: "object" },
+					couponData: { type: "object", optional: true },
 					requirements: { type: "object", optional: true },
 					optional: { type: "object", optional: true }
 				}
@@ -209,7 +209,7 @@ module.exports = {
 		/**
 		 * Get current order progress according to cart
 		 *
-		 * @returns {Object} cart entity with items
+		 * @returns {Object} order entity of active user
 		 */
 		progress: {
 			// auth: "required",

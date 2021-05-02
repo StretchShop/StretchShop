@@ -43,9 +43,9 @@ module.exports = {
 
 		// Products
 		"GET /products/:category": "products.productsList",
+		"POST /products/:category": "products.productsList", // needed for category with filter url
 		"POST /products/filter": "products.findWithCount",
 		"POST /products/find": "products.find",
-		"POST /products/:category": "products.productsList", // needed for category with filter url
 		"GET /products/:category/detail/:product": "products.detail",
 		"PUT /products": "products.import",
 		"DELETE /products": "products.delete",
@@ -68,7 +68,6 @@ module.exports = {
 		"GET /order/progress": "orders.progress",
 		"POST /order/progress": "orders.progress",
 		"POST /order/list": "orders.listOrders",
-		"POST /webhook/:service": "orders.paymentWebhook",
 		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
 		"GET /order/invoice/generate/:orderId": "orders.invoiceGenerate",
 		"GET /order/invoice/cancel/:orderId": "orders.cancel",
@@ -93,6 +92,9 @@ module.exports = {
 		"DELETE /pages": "pages.delete",
 		"POST /pages/count": "pages.count",
 		"POST /pages/upload/:slug/:type": function (req, res) {
+			this.processUpload(req, res);
+		},
+		"POST /pages/upload/:slug/": function (req, res) {
 			this.processUpload(req, res);
 		},
 

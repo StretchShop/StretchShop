@@ -184,6 +184,14 @@ module.exports = {
 					footer: NavigationFooter
 				};
 
+				// get lang from translLang if set
+				if ( ctx.params.transLang && ctx.params.transLang!="" && coreData.langs ) {
+					// if valid language
+					if ( this.isValidTranslationLanguage(ctx.params.transLang, coreData.langs) ) {
+						coreData.lang = coreData.lang = this.getValueByCode(coreData.langs, ctx.params.transLang);
+					}
+				}
+
 				// get other details - user and translation
 				coreData.user = null;
 				coreData.translation = null;
@@ -200,41 +208,40 @@ module.exports = {
 						.then(user => {
 							if (user && user.user) {
 								coreData.user = user.user;
-							}
-							// get translation if language not default
-							if ( ctx.params.transLang && ctx.params.transLang!="" && coreData.langs ) {
-								// if valid language
-								if ( this.isValidTranslationLanguage(ctx.params.transLang, coreData.langs) ) {
-									return ctx.call("users.readTranslation", {
-										lang: ctx.params.transLang,
-										blockName: ctx.params.transBlockName
-									})
-										.then(translation => {
-											coreData.translation = translation;
-											return coreData;
-										});
+								// if no transLang use user.settings.lang
+								if ( (ctx.params.transLang || ctx.params.transLang.trim()=="") && 
+								coreData.user.settings && coreData.user.settings.lang && 
+								this.isValidTranslationLanguage(coreData.user.settings.lang, coreData.langs) ) {
+									coreData.lang = this.getValueByCode(coreData.langs, coreData.user.settings.lang);
 								}
 							}
-							return coreData;
+							return ctx.call("users.readTranslation", {
+								lang: coreData.lang.code,
+								blockName: ctx.params.transBlockName
+							})
+								.then(translation => {
+									coreData.translation = translation;
+									if (ctx.params.transLang!=coreData.lang.code) {
+										coreData.lang = this.getValueByCode(coreData.langs, ctx.params.transLang);
+									}
+									return coreData;
+								});
 						})
 						.catch(error => {
 							this.logger.error("users.getCoreData users.me error:", error);
 						});
 				} else { // no user
 					// get translation if language not default
-					if ( ctx.params.transLang && ctx.params.transLang!="" && coreData.langs ) {
-						// if valid language && not default
-						if ( this.isValidTranslationLanguage(ctx.params.transLang, coreData.langs) &&
-						ctx.params.transLang!=coreData.lang.code ) {
-							return ctx.call("users.readTranslation", {
-								lang: ctx.params.transLang,
-								blockName: ctx.params.transBlockName
-							})
-								.then(translation => {
-									coreData.translation = translation;
-									return coreData;
-								});
-						}
+					if ( coreData.lang.code && coreData.langs &&
+					this.isValidTranslationLanguage(coreData.lang.code, coreData.langs) ) {
+						return ctx.call("users.readTranslation", {
+							lang: coreData.lang.code,
+							blockName: ctx.params.transBlockName
+						})
+							.then(translation => {
+								coreData.translation = translation;
+								return coreData;
+							});
 					}
 					return coreData;
 				}

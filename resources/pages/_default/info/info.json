@@ -1,16 +1,16 @@
 {
   "name": {
     "sk": "test SK",
-    "en": "test EN"
+    "en": "StretchShop Info"
   },
   "descriptionShort": {
     "sk": "test SK",
-    "en": "test EN"
+    "en": "Basic information about StretchShop"
   },
   "descriptionLong": {
     "sk": "test SK",
-    "en": "test EN"
+    "en": "What is StretchShop and where can you find more information about it"
   },
-  "categories": ["pages-01"],
+  "categories": ["pages"],
   "pages": ["homepage", "test"]
 }

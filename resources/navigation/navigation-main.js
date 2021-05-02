@@ -43,19 +43,6 @@ module.exports = {
 						name: "Products",
 					}
 				}
-			}, 
-			{
-				codename: "services",
-				typeName: "servicesHome",
-				slugParams: "services",
-				langs: {
-					sk: {
-						name: "Služby"
-					}, 
-					en: {
-						name: "Services",
-					}
-				}
 			}
 		]
 	}
