@@ -48,8 +48,8 @@ module.exports = {
 		"POST /products/:category": "products.productsList", // needed for category with filter url
 		"GET /products/:category/detail/:product": "products.detail",
 		"PUT /products": "products.import",
-		"POST /products/count": "products.count",
 		"DELETE /products": "products.delete",
+		"POST /products/count": "products.count",
 		"GET /products/rebuildpl/:id": "products.rebuildProductPriceLevels",
 		"POST /products/upload/:orderCode/:type": function (req, res) {
 			this.processUpload(req, res);
@@ -84,16 +84,14 @@ module.exports = {
 
 		// Pages
 		"GET /pages/:category": "pages.pagesList",
+		"POST /pages/:category": "pages.pagesList", // needed for category with filter url
 		"POST /pages/find": "pages.findWithCount",
 		"POST /pages/filter": "pages.findWithCount",
 		"POST /pages/listTemplates/:page": "pages.listTemplates",
-		"POST /pages/:category": "pages.pagesList", // needed for category with filter url
 		"GET /pages/:category/detail/:page": "pages.detail",
 		"PUT /pages": "pages.import",
-		"POST /pages/count": "pages.count",
 		"DELETE /pages": "pages.delete",
-		"GET /pages/tags": "pages.tags",
-		"GET /pages/feed": "pages.feed",
+		"POST /pages/count": "pages.count",
 		"POST /pages/upload/:slug/:type": function (req, res) {
 			this.processUpload(req, res);
 		},
