@@ -444,19 +444,22 @@ module.exports = {
 						if (order.data["canceledUserId"]) { order.dates["canceledUserId"] = null; }
 						order.data.canceledUserId = ctx.meta.user._id.toString();
 						
-						let orderId = order.id;
+						let orderId = order._id.toString();
 						delete order.id;
 						delete order._id;
+						order.invoice = {};
 						const update = {
 							"$set": order
 						};
 
 						return self.adapter.updateById(orderId, update)
-							.then(doc => this.transformDocuments(ctx, {}, doc))
+							.then(doc => {
+								return this.transformDocuments(ctx, {}, doc);
+							})
 							.then(json => {
 								return this.entityChanged("updated", json, ctx)
 									.then(() => {
-										self.logger.error("order.cancel - cancel success: ");
+										self.logger.info("order.cancel - cancel success: ");
 										result.success = true;
 										result.order = json;
 										return result;
