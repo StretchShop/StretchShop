@@ -2,7 +2,7 @@
 
 require("dotenv").config();
 const { MoleculerClientError } = require("moleculer").Errors;
-const Cron = require("moleculer-cron");
+const Cron = require("@stretchshop/moleculer-cron");
 
 const passGenerator = require("generate-password");
 const fetch 		= require("node-fetch");
@@ -2222,6 +2222,7 @@ module.exports = {
 		/**
 		 * 
 		 * @param {*} order 
+		 * @param {*} includingProcessed
 		 */
 		countOrderItemTypes(order, includingProcessed) {
 			includingProcessed = (typeof includingProcessed !== "undefined") ? includingProcessed : false;

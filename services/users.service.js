@@ -1,7 +1,7 @@
 "use strict";
 
 const { MoleculerClientError } = require("moleculer").Errors;
-const Cron = require("moleculer-cron");
+const Cron = require("@stretchshop/moleculer-cron");
 
 require("dotenv").config();
 const bcrypt 		= require("bcryptjs");
