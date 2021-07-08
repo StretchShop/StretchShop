@@ -101,11 +101,31 @@ module.exports = {
 					"price": 0
 				}
 			]
+		},
+		{ // show if cart has any subtype of products
+			codename: "online_stripe",
+			name: {
+				"en": "Pay online with Stripe (Card, PayPal)",
+				"sk": "Zaplatiť online cez Stripe (Karta, PayPal)",
+			},
+			prices: [
+				{
+					"range": {"from": 0, "to": 500},
+					"price": 2,
+					"tax": 0.2
+				},
+				{
+					"range": {"from": 500, "to": 1000000},
+					"price": 0
+				}
+			]
 		}
 	],
 	availablePaymentActions: [
 		"paypalOrderGeturl",
 		"paypalResult",
-		"paypalWebhook"
+		"paypalWebhook",
+		"stripeOrderPaymentintent",
+		"stripeWebhook"
 	]
 };

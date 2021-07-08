@@ -62,6 +62,21 @@ module.exports = {
 		port: process.env.PORT || 3000,
 
 		routes: [
+			{
+				path: "/api/v1/order/payment-raw",// You should disable body parsers
+				bodyParsers: {
+					json: false,
+					urlencoded: false,
+					raw: {
+						type: "*/*"
+					}
+				},
+				mappingPolicy: "restrict",
+				mergeParams: false,
+				aliases: {
+					"POST /webhook/:supplier": "orders.paymentWebhookRaw",
+				}
+			},
 			// get routes from external file - merged with subproject if applicable
 			sppf.subprojectMergeRoutes(apiV1, path.resolve(resourcesDirectory+"/routes/apiV1") ),
 			{
@@ -87,18 +102,14 @@ module.exports = {
 			},
 			{
 				path: "/",
-
 				use: [
 					// handle fallback for HTML5 history API
 					require("connect-history-api-fallback")(),
 				],
-
 				// Action aliases
 				aliases: {
 				},
-
 				mappingPolicy: "restrict",
-
 			}
 		],
 
@@ -128,6 +139,8 @@ module.exports = {
 			// Return with the error as JSON object
 			res.setHeader("Content-type", "application/json; charset=utf-8");
 			res.writeHead(err.code || 500);
+
+			this.logger.error("api onError:", err);
 
 			if (err.code == 422) {
 				let o = {};
@@ -196,6 +209,9 @@ module.exports = {
 		 * @returns {Promise}
 		 */
 		authorize(ctx, route, req, res) {
+			process.env["test"] = "mrkva";
+			this.logger.error("process.env.test: ", process.env.test);
+
 			this.logger.info("api.authorize() visitor IP: ", req.connection.remoteAddress);
 			ctx.meta.remoteAddress = req.connection.remoteAddress;
 			ctx.meta.remotePort = req.connection.remotePort;

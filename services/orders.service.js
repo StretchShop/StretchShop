@@ -19,6 +19,7 @@ const HelpersMixin = require("../mixins/helpers.mixin");
 const priceLevels = require("../mixins/price.levels.mixin");
 const pathResolve = require("path").resolve;
 const paymentsPaypal = require("../mixins/payments.paypal1.mixin");
+const paymentsStripe = require("../mixins/payments.stripe.mixin");
 const FileHelpers = require("../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 
@@ -45,6 +46,7 @@ module.exports = {
 		priceLevels,
 		FileHelpers,
 		paymentsPaypal,
+		paymentsStripe,
 		CacheCleanerMixin([
 			"cache.clean.orders"
 		]),
@@ -661,6 +663,13 @@ module.exports = {
 		},
 
 
+		/**
+		 * Webhook endpoint for payment providers, that DON'T need raw body
+		 * 
+		 * @param {String} - name of supplier
+		 * 
+		 * @returns {Object} specific response required by provider
+		 */
 		paymentWebhook: {
 			params: {
 				supplier: { type: "string", min: 3 }
@@ -676,6 +685,45 @@ module.exports = {
 				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
 					return ctx.call("orders."+actionName, {
 						data: ctx.params
+					})
+						.then(result => {
+							return result;
+						});
+				}
+			}
+		},
+
+
+		/**
+		 * Webhook endpoint for payment providers, that NEED raw body
+		 * 
+		 * @param {String} - name of supplier
+		 * 
+		 * @returns {Object} specific response required by provider
+		 */
+		paymentWebhookRaw: {
+			handler(ctx) {
+				this.logger.info("orders.paymentWebhook service params.params.supplier:", ctx.params );
+				if (!ctx.params) { ctx.params = { params: {} }; }
+				if (!ctx.params.params) { ctx.params.params = { supplier: "stripe" }; }
+				ctx.params.params["supplier"] = "stripe";
+
+				if (!ctx.params.body) {
+					return Promise.reject(new MoleculerClientError("Webhook error", 400, "", [{ field: "request body", message: "not found"}]));
+				}
+				
+				this.logger.info("orders.paymentWebhook service params:", ctx.params );
+				
+				let supplier = ctx.params.params.supplier.toLowerCase();
+				let actionName = supplier+"Webhook";
+
+				this.logger.info("action name & call", actionName, "orders."+actionName);
+
+				// using resources/settings/orders.js check if final payment action can be called
+				if ( this.settings.order.availablePaymentActions &&
+				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
+					return ctx.call("orders."+actionName, {
+						data: ctx.params.body.toString()
 					})
 						.then(result => {
 							return result;

@@ -1218,8 +1218,22 @@ module.exports = {
 						this.logger.info("orders payments.paypal1.mixin paypalWebhookPaymentSaleCompleted subscriptions found:", filter, subscriptions);
 						if (subscriptions && subscriptions[0]) {
 							let subscription = subscriptions[0];
-							// found, call subscription paid actions
-							return this.subscriptionPaymentReceived(ctx, subscription); // in orders.service
+							// PayPal sometimes sends information about payment
+							// multiple times. Therefore we need to use subscription history 
+							// to find out if it's not duplicate.
+							let isDuplicate = false;
+							subscription.history.some(h => {
+								if (ctx.params.data.resource.create_time == h.data.message.resource.create_time) {
+									isDuplicate = true;
+									return true;
+								}
+							});
+							if (isDuplicate === false) {
+								// no duplicate found, call subscription paid actions
+								return this.subscriptionPaymentReceived(ctx, subscription); // in orders.service
+							} else {
+								return { success: true, response: "duplicate notification", redirect: null };
+							}
 						}
 					});
 			}

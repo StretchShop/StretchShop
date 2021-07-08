@@ -360,7 +360,7 @@ module.exports = {
 					.then( results => {
 						if (results && results.length>0) {
 							results.forEach(result => {
-								result = this.priceByUser(result, ctx.meta.user);
+								result = self.priceByUser(result, ctx.meta.user);
 								result = self.getProductTaxData(result, businessSettings.taxData);
 							});
 						}
