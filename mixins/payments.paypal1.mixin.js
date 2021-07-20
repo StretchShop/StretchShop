@@ -546,7 +546,7 @@ module.exports = {
 							this.logger.error("payments.paypal1.mixin - paypalWebhook error2: ", JSON.stringify(error));
 							let log_file = fs.createWriteStream("./.temp/ipnlog.log", {flags : "a"});
 							let date = new Date();
-							log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
+							log_file.write( "\n\n" + date.toISOString() + " ERROR #1:\n"+ JSON.stringify(ctx.params)+"\n");
 							return null;
 						});
 				}, 10000); // timeout end
@@ -1182,7 +1182,14 @@ module.exports = {
 							})
 								.then(updated => {
 									this.logger.info("subscriptions to webhook cancel - subscriptions.save:", updated);
-									result.data.subscription = updated;
+									let result = { 
+										success: false, 
+										url: null, 
+										message: "subscription canceled", 
+										data: {
+											subscription: updated
+										}
+									};
 									delete result.data.subscription.history;
 									return result;
 								})
@@ -1223,7 +1230,11 @@ module.exports = {
 							// to find out if it's not duplicate.
 							let isDuplicate = false;
 							subscription.history.some(h => {
-								if (ctx.params.data.resource.create_time == h.data.message.resource.create_time) {
+								if (
+									ctx && ctx.params && ctx.params.data && ctx.params.data.resource && ctx.params.data.resource.create_time &&
+									h && h.data && h.data.message && h.data.message.resource && h.data.message.resource.create_time &&
+									ctx.params.data.resource.create_time == h.data.message.resource.create_time
+								) {
 									isDuplicate = true;
 									return true;
 								}
