@@ -488,7 +488,7 @@ module.exports = {
 
 		
 		/**
-		 * Reactivate Billing Agreement
+		 * Webhook to catch Paypal events
 		 * 
 		 * @actions
 		 * 

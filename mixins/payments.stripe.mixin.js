@@ -9,7 +9,7 @@ const priceLevels = require("./price.levels.mixin");
 const fetch 		= require("node-fetch");
 
 // This is a sample test API key. Sign in to see examples pre-filled with your key.
-const stripe = require("stripe")("sk_test_51HRMprJrB6Q7Qa3ptZH61e9Ki3c5RTaqJ0wbG6Umoij9oIQPQU6rtYGrrFZ9JYkjSi03Ow2msGCIWcZ1w6I4y6EL00K5ncXwto");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const pathResolve = require("path").resolve;
 
@@ -40,7 +40,7 @@ module.exports = {
 	actions: {
 
 		/**
-		 * Endpoint for Stripe paymentIntent API
+		 * Endpoint for Stripe paymentIntent API (AKA Checkout for common products = no subscriptions)
 		 *
 		 * @actions
 		 * 
@@ -112,7 +112,7 @@ module.exports = {
 								url = "http://localhost:3000";
 							}
 
-							priceTotalNoSubscriptions = (order.prices.priceTotal - priceSubscriptions) * 100;
+							priceTotalNoSubscriptions = parseInt((order.prices.priceTotal - priceSubscriptions) * 100);
 
 							let payment = {
 								"intent": "sale",
@@ -148,6 +148,53 @@ module.exports = {
 									};
 								});
 						} // if order
+					});
+			}
+		},
+
+
+
+
+		/**
+		 * Endpoint for Stripe subscription API
+		 *
+		 * @actions
+		 * 
+     * @param {String} orderId - id of order to pay
+     * @param {Object} data - data specific for payment
+		 * 
+		 * @returns {Object} Result from PayPal order checkout
+		 */
+		stripeOrderSubscribtion: {
+			cache: false,
+			auth: "required",
+			params: {
+				orderId: { type: "string", min: 3 },
+				data: { type: "object", optional: true }
+			},
+			handler(ctx) {
+				let result = { success: false, url: null, message: "error" };
+				let self = this;
+
+				// get order data
+				return this.adapter.findById(ctx.params.orderId)
+					.then(order => {
+						if ( order && order.data && order.data.subscription && 
+						order.data.subscription.ids && 
+						order.data.subscription.ids.length > 0 ) {
+							// let paymentType = order.data.paymentData.codename.replace("online_stripe_","");
+							let ids = [];
+							// get subscription IDs - product & subscription
+							order.data.subscription.ids.forEach(id => {
+								ids.push(id);
+							});
+							return this.getOrderSubscriptionProducts(ctx, ids);
+						}
+					})
+					.then(products => {
+						// if product doesn't have stripe ID
+						// create stripe record
+						self.createProduct(products);
 					});
 			}
 		},
@@ -259,6 +306,90 @@ module.exports = {
 
 	methods: {
 
+		getOrderSubscriptionProducts(ctx, ids) {
+			let self = this;
+			let filter = { query: {} };
+			// add ids
+			if (ids) { 
+				let idsObjs = [];
+				ids.forEach(id => {
+					idsObjs.push(self.fixStringToId(id.product));
+				});
+				filter.query = {
+					_id: { "$in": idsObjs }
+				};
+			}
+
+			return ctx.call("products.find", filter)
+				.then(subscriptionProducts => {
+					return subscriptionProducts;
+				});
+		},
+
+
+		// #1
+		createProduct(product, withPrice) {
+			withPrice = (typeof withPrice !== "undefined") ? withPrice : true;
+			// check if product does exist
+			return stripe.products.create({
+				name: product._id + " - " + product.name["en"] // TODO
+			})
+				.then(stripeProduct => {
+					if (stripeProduct && stripeProduct.id && withPrice) {
+						return this.createPrice(stripeProduct);
+					}
+					return stripeProduct;
+				});
+		},
+
+
+		// #2
+		createPrice(stripeProduct, withCustomer) {
+			withCustomer = (typeof withPrice !== "undefined") ? withCustomer : true;
+			return stripe.prices.create({
+				unit_amount: 1000, // TODO
+				currency: "usd", // TODO
+				recurring: {interval: "month", interval_count: 1}, // TODO
+				product: stripeProduct._id,
+			})
+				.then(stripePrice => {
+					if (stripePrice && stripePrice.id && withCustomer) {
+						return this.createCustomer(stripePrice);
+					}
+					return stripePrice;
+				});
+		},
+
+
+		// #3
+		createCustomer(customer, withSubscription) {
+			withSubscription = (typeof withPrice !== "undefined") ? withSubscription : true;
+			return stripe.customers.create({
+				email: customer.email,
+			})
+				.then(stripeCustomer => {
+					if (stripeCustomer && stripeCustomer.id && withSubscription) {
+						return this.createSubscription(stripeCustomer);
+					}
+					return stripeCustomer;
+				});
+		},
+
+
+		// #4
+		createSubscription(subscription) {
+			return stripe.subscriptions.create({
+				customer: subscription.data.stripe.customer.id, // TODO - result of createCustomer()
+				items: [{
+					price: subscription.data.stripe.price.id, // TODO - result of createPrice()
+				}],
+				payment_behavior: "default_incomplete", 
+				expand: ["latest_invoice.payment_intent"], 
+			})
+				.then(stripeSubscription => {
+					return stripeSubscription;
+				});
+		}
 		
 	}
 };

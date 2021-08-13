@@ -1686,6 +1686,12 @@ module.exports = {
 				this.settings.orderTemp.settings = {};
 			}
 			this.settings.orderTemp.settings.paymentMethods = this.settings.order.paymentMethods;
+			if (this.settings.orderTemp.data && this.settings.orderTemp.data.paymentData && 
+				this.settings.orderTemp.data.paymentData.codename && 
+				this.settings.orderTemp.data.paymentData.codename.indexOf("online_stripe") > -1
+			) {
+				this.settings.orderTemp.settings.stripeKey = process.env.STRIPE_PUBLISHABLE_KEY;
+			}
 		},
 
 
@@ -2535,7 +2541,7 @@ module.exports = {
 			return ctx.call("subscriptions.calculateDates", {
 				period: subscription.period,
 				duration: subscription.duration,
-				dateStart: dateToStart,
+				dateStart: dateToStart.toISOString(),
 				cycles: subscription.cycles,
 				withDateEnd: withDateEnd
 			})
