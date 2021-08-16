@@ -2243,7 +2243,6 @@ module.exports = {
 		 */
 		updatePaidOrderSubscriptionData(order, response) {
 			order.dates.datePaid = new Date();
-			order.status = "paid";
 			order.data.paymentData.lastStatus = response.state;
 			order.data.paymentData.lastDate = new Date();
 			order.data.paymentData.paidAmountTotal = 0;
@@ -2255,12 +2254,13 @@ module.exports = {
 			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
 				if (order.data.paymentData.lastResponseResult[i].state && 
 					order.data.paymentData.lastResponseResult[i].state == "Active" && 
-					order.data.paymentData.lastResponseResult[i].payment_definitions) {
-					for (let j=0; j<order.data.paymentData.lastResponseResult[i].payment_definitions.length; j++) {
-						if (order.data.paymentData.lastResponseResult[i].payment_definitions[j].amount && 
-							order.data.paymentData.lastResponseResult[i].payment_definitions[j].amount.value) {
+					order.data.paymentData.lastResponseResult[i].plan.payment_definitions && 
+					order.data.paymentData.lastResponseResult[i].plan.payment_definitions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].plan.payment_definitions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].plan.payment_definitions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].plan.payment_definitions[j].amount.value) {
 							order.data.paymentData.paidAmountTotal += parseFloat(
-								order.data.paymentData.lastResponseResult[i].payment_definitions[j].amount.value
+								order.data.paymentData.lastResponseResult[i].plan.payment_definitions[j].amount.value
 							);
 						}
 					}
@@ -2268,6 +2268,13 @@ module.exports = {
 			}
 			// calculate how much to pay
 			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+
+			// decide if set PAID status
+			if (order.prices.priceTotalToPay <= 0) {
+				order.status = "paid";
+			}
+
+			this.logger.info("orders.updatePaidOrderSubscriptionData() - status, dates & paidAmountTotal:", order.status, order.dates, order.data.paymentData.paidAmountTotal );
 
 			return order;
 		},
@@ -2386,18 +2393,6 @@ module.exports = {
 				type = ctx.params.data.type;
 			}
 
-			// add message into history
-			let historyRecord = {
-				action: "payment",
-				type: type,
-				date: new Date(),
-				data: {
-					message: ctx.params.data,
-					relatedOrder: null
-				}
-			};
-			subscription.history.push(historyRecord);
-
 			if (subscription.data && subscription.data.agreement) {
 				agreement = subscription.data.agreement;
 			}
@@ -2423,15 +2418,35 @@ module.exports = {
 						 * 2nd & later payment of this subsc - create new
 						 * */
 						let paymentCount = 0;
+						self.logger.info("orders.subscriptionPaymentReceived() - subscription.history", subscription.history );
 						if (subscription.history && subscription.history.length>0) {
 							subscription.history.forEach(h => {
+								self.logger.info("orders.subscriptionPaymentReceived() - h.action", h.action );
 								if (h && h.action=="payment") {
 									paymentCount++;
+									self.logger.info("orders.subscriptionPaymentReceived() - paymentCount++" );
 								}
 							});
 						}
-						if (paymentCount==0) {
+
+						// add message into history
+						let historyRecord = {
+							action: "payment",
+							type: type,
+							date: new Date(),
+							data: {
+								message: ctx.params.data,
+								relatedOrder: null
+							}
+						};
+						subscription.history.push(historyRecord);
+
+						// DECISION MAKING - if first payment for this subscription
+						// update original order, else create new one
+						self.logger.info("orders.subscriptionPaymentReceived() - paymentCount", paymentCount );
+						if (paymentCount<=0) { 
 							// original order - recalculated based on paid amount
+							self.logger.info("orders.subscriptionPaymentReceived() - original order" );
 							order = self.updatePaidOrderSubscriptionData(order, agreement);
 							return this.afterSubscriptionPaidOrderActions(
 								ctx, 
@@ -2442,6 +2457,7 @@ module.exports = {
 							// create order for >1st subscription
 							return ctx.call("subscriptions.createPaidSubscriptionOrder", {subscription: subscription} )
 								.then(result => {
+									self.logger.info("orders.subscriptionPaymentReceived() - new order" );
 									return this.afterSubscriptionPaidOrderActions(
 										ctx, 
 										result.order, 

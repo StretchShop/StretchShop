@@ -1181,6 +1181,7 @@ module.exports = {
 				.then(orderResult => {
 					this.logger.info("subscriptions.service createPaidSubscriptionOrder orderResult: ", JSON.stringify(orderResult));
 					let dateEnd = new Date(subscription.dates.dateEnd);
+					orderResult.dates.datePaid = today;
 					if ( dateEnd > today ) {
 						// set new value for dateOrderNext
 						subscription.dates.dateOrderNext = this.calculateDateOrderNext(
