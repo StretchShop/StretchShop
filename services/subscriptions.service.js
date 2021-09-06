@@ -304,7 +304,9 @@ module.exports = {
 					})
 						.then(order => {
 							// save IDs
-							return savedSubscriptions;
+							if (order) {
+								return savedSubscriptions;
+							}
 						});
 				});
 			}

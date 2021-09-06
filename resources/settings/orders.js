@@ -126,6 +126,7 @@ module.exports = {
 		"paypalResult",
 		"paypalWebhook",
 		"stripeOrderPaymentintent",
+		"stripeOrderSubscription",
 		"stripeWebhook"
 	]
 };

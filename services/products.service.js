@@ -572,9 +572,11 @@ module.exports = {
 										if (found) { // product found, update it
 											if ( entity ) {
 												if ( entity.dates ) {
+													// transform strings into dates
 													Object.keys(entity.dates).forEach(function(key) {
 														let date = entity.dates[key];
-														if ( date && date!=null && date.trim()!="" ) {
+														if ( date && date!=null && typeof date == "string" && 
+														typeof date.trim !== "undefined" && date.trim()!="" ) {
 															entity.dates[key] = new Date(entity.dates[key]);
 														}
 													});
@@ -582,7 +584,8 @@ module.exports = {
 												if ( entity.activity ) {
 													Object.keys(entity.activity).forEach(function(key) {
 														let date = entity.activity[key];
-														if ( date && date!=null && date.trim()!="" ) {
+														if ( date && date!=null && typeof date == "string" && 
+														typeof date.trim !== "undefined" && date.trim()!="" ) {
 															entity.activity[key] = new Date(entity.activity[key]);
 														}
 													});

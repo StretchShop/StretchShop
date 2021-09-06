@@ -606,7 +606,10 @@ module.exports = {
 					.then(() => {
 						// if user type is not set in /resources/settings/business.js
 						if (newData.type && 
-							( !priceLevels || priceLevels.isValidUsertype(newData.type) )
+							( 
+								!priceLevels || 
+								(typeof priceLevels.isValidUsertype !== "undefined" && priceLevels.isValidUsertype(newData.type) )
+							)
 						) {
 							return Promise.reject(new MoleculerClientError("Invalid user type!", 422, "", [{ field: "type", message: "invalid"}]));
 						}
