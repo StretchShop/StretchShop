@@ -3,8 +3,8 @@
 const { result } = require("lodash");
 const url = require("url");
 const paypal = require("paypal-rest-sdk");
-const HelpersMixin = require("../mixins/helpers.mixin");
-const priceLevels = require("../mixins/price.levels.mixin");
+const HelpersMixin = require("../../../mixins/helpers.mixin");
+const priceLevels = require("../../../mixins/price.levels.mixin");
 const fetch 		= require("cross-fetch");
 
 const pathResolve = require("path").resolve;

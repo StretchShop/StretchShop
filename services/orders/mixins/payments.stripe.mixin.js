@@ -3,9 +3,9 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 const { result } = require("lodash");
 const url = require("url");
-const HelpersMixin = require("./helpers.mixin");
-const priceLevels = require("./price.levels.mixin");
-const DbService = require("./db.mixin");
+const HelpersMixin = require("../../../mixins/helpers.mixin");
+const priceLevels = require("../../../mixins/price.levels.mixin");
+const DbService = require("../../../mixins/db.mixin");
 
 const fetch 		= require("cross-fetch");
 
