@@ -5,7 +5,7 @@ const { MoleculerClientError } = require("moleculer").Errors;
 const Cron = require("@stretchshop/moleculer-cron");
 
 const passGenerator = require("generate-password");
-const fetch 		= require("node-fetch");
+const fetch		= require("cross-fetch");
 const jwt	= require("jsonwebtoken");
 const paypal = require("paypal-rest-sdk");
 // const payments = paypal.payments;
@@ -664,6 +664,7 @@ module.exports = {
 
 
 		/**
+		 * SUBSCRIPTION FLOW - 3.1 (API->BE)
 		 * Webhook endpoint for payment providers, that DON'T need raw body
 		 * 
 		 * @param {String} - name of supplier
@@ -703,7 +704,7 @@ module.exports = {
 		 */
 		paymentWebhookRaw: {
 			handler(ctx) {
-				this.logger.info("orders.paymentWebhook service params.params.supplier:", ctx.params );
+				this.logger.info("orders.paymentWebhook service ctx.params:", typeof ctx.params.body, ctx.params );
 				if (!ctx.params) { ctx.params = { params: {} }; }
 				if (!ctx.params.params) { ctx.params.params = { supplier: "stripe" }; }
 				ctx.params.params["supplier"] = "stripe";
@@ -723,7 +724,7 @@ module.exports = {
 				if ( this.settings.order.availablePaymentActions &&
 				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
 					return ctx.call("orders."+actionName, {
-						data: ctx.params.body.toString()
+						data: ctx.meta.rawbody
 					})
 						.then(result => {
 							return result;
@@ -832,29 +833,46 @@ module.exports = {
 		}, 
 
 
+		/**
+		 * SUBSCRIPTION FLOW - 2.1 (BE->API)
+		 * Call API related to payment type supplier
+		 * 
+		 * @actions
+		 * 
+		 * @param {String} supplier - supplier codename (eg. paypal, stripe)
+		 * @param {String} relatedId - id related to subscription (like API object id)
+		 * @param {String} subscription - related subscription object
+		 * 
+		 * @returns {Object} response from service
+		 * 
+		 */
 		paymentSuspend: {
 			cache: false,
 			auth: "required",
 			params: {
-				billingAgreementId: { type: "string", min: 3 },
-				supplier: { type: "string", min: 3 }
+				supplier: { type: "string", min: 3 },
+				relatedId: { type: "string", min: 3 },
+				subscription: { type: "object" }
 			},
 			handler(ctx) {
 				let supplier = (ctx.params.supplier) ? ctx.params.supplier : "paypal";
+				
+				this.logger.info("orders.paymentSuspend params: ", ctx.params);
 
-				// only admin can generate invoices
+				// get name of action to call for this supplier
 				return ctx.call("orders."+supplier+"SuspendBillingAgreement", {
-					billingAgreementId: ctx.params.agreementId
+					billingRelatedId: ctx.params.relatedId
 				} )
 					.then(suspendResult => {
+						this.logger.info("orders.paymentSuspend supplier call response: ", suspendResult);
 						return suspendResult;
 					})
 					.catch(error => {
-						this.logger.error("order.paymentSuspend - error: ", JSON.stringify(error));
+						this.logger.error("order.paymentSuspend - error: ", error, JSON.stringify(error));
 						return null;
 					});
 			}
-		}, 
+		} 
 
 
 	},
@@ -2241,31 +2259,29 @@ module.exports = {
 		 * 
 		 * @returns {Object} order updated
 		 */
-		updatePaidOrderSubscriptionData(order, response) {
+		updatePaidOrderSubscriptionData(order, response) { // RESPONSE
 			order.dates.datePaid = new Date();
-			order.data.paymentData.lastStatus = response.state;
+			if ( order.data.paymentData.codename && 
+			order.data.paymentData.codename.indexOf("online_stripe") > -1 ) {
+				order.data.paymentData.lastStatus = response.status;
+			} else {
+				order.data.paymentData.lastStatus = response.state;
+			}
 			order.data.paymentData.lastDate = new Date();
 			order.data.paymentData.paidAmountTotal = 0;
 			if ( !order.data.paymentData.lastResponseResult ) {
 				order.data.paymentData.lastResponseResult = [];
 			}
+			// add response (= data from webhook) to payment history
 			order.data.paymentData.lastResponseResult.push(response);
-			// calculate total amount paid
-			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
-				if (order.data.paymentData.lastResponseResult[i].state && 
-					order.data.paymentData.lastResponseResult[i].state == "Active" && 
-					order.data.paymentData.lastResponseResult[i].plan.payment_definitions && 
-					order.data.paymentData.lastResponseResult[i].plan.payment_definitions) {
-					for (let j=0; j<order.data.paymentData.lastResponseResult[i].plan.payment_definitions.length; j++) {
-						if (order.data.paymentData.lastResponseResult[i].plan.payment_definitions[j].amount && 
-							order.data.paymentData.lastResponseResult[i].plan.payment_definitions[j].amount.value) {
-							order.data.paymentData.paidAmountTotal += parseFloat(
-								order.data.paymentData.lastResponseResult[i].plan.payment_definitions[j].amount.value
-							);
-						}
-					}
-				}
+			// count total paid from order payment data by reference
+			if ( order.data.paymentData.codename && 
+			order.data.paymentData.codename.indexOf("online_stripe") > -1 ) {
+				this.getPaidTotalStripe(order.data.paymentData);
+			} else {
+				this.getPaidTotalPaypal(order.data.paymentData);
 			}
+			
 			// calculate how much to pay
 			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
 
@@ -2278,6 +2294,9 @@ module.exports = {
 
 			return order;
 		},
+
+
+		
 
 
 		/**
@@ -2379,6 +2398,56 @@ module.exports = {
 
 
 		/**
+		 * SUBSCRIPTION FLOW - 3.3 (API->BE)
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} subscription - related subscription object 
+		 * 
+		 * @returns {Object} updated subscription
+		 */
+		subscriptionCancelled(ctx, subscription) {
+			subscription.status = "canceled";
+			subscription.dates["dateStopped"] = new Date();
+			subscription.history.push(
+				{
+					action: "canceled",
+					type: "user",
+					date: new Date(),
+					data: {
+						webhookResponse: JSON.stringify(ctx.params.data),
+						relatedOrder: null
+					}
+				}
+			);
+
+			subscription.id = subscription._id.toString();
+			delete subscription._id;
+
+			return ctx.call("subscriptions.save", {
+				entity: subscription
+			})
+				.then(updated => {
+					this.logger.info("subscriptions to webhook cancel - subscriptions.save:", updated);
+					let result = { 
+						success: false, 
+						url: null, 
+						message: "subscription canceled", 
+						data: {
+							subscription: updated
+						}
+					};
+					delete result.data.subscription.history;
+					return result;
+				})
+				.catch(error => {
+					this.logger.error("subscriptions to webhook cancel - subscriptions.save error: ", error);
+					return null;
+				});
+		},
+
+
+
+		/**
 		 * Webhook logic - step #2.2
 		 * Perform actions after subscription payment received
 		 * 
@@ -2391,10 +2460,6 @@ module.exports = {
 			let type = "webhook";
 			if (ctx.params.data && ctx.params.data.type) {
 				type = ctx.params.data.type;
-			}
-
-			if (subscription.data && subscription.data.agreement) {
-				agreement = subscription.data.agreement;
 			}
 			
 			// get related original order
@@ -2411,6 +2476,15 @@ module.exports = {
 				.then(orders => {
 					if ( orders && orders.length>0 && orders[0] ) {
 						let order = orders[0];
+
+						// TODO - if stripe, fill with stripe data
+						if ( order.data.paymentData.codename && 
+						order.data.paymentData.codename.indexOf("online_stripe") > -1 ) {
+							agreement = subscription.data.order.data.paymentData.lastResponseResult;
+							agreement[agreement.length - 1];
+						} else if ( subscription.data && subscription.data.agreement && subscription.data.agreement != null ) {
+							agreement = subscription.data.agreement;
+						}
 
 						/**
 						 * check out what payment or this subscription it is:

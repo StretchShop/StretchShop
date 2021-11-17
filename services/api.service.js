@@ -63,7 +63,7 @@ module.exports = {
 
 		routes: [
 			{
-				path: "/api/v1/order/payment-raw",// You should disable body parsers
+				path: "/api/v1/order/payment-raw",// If you need to disable body parsers
 				bodyParsers: {
 					json: false,
 					urlencoded: false,
@@ -75,7 +75,12 @@ module.exports = {
 				mergeParams: false,
 				aliases: {
 					"POST /webhook/:supplier": "orders.paymentWebhookRaw",
-				}
+				},
+				onBeforeCall(ctx, route, req, res) {
+					// Set request headers to context meta
+					ctx.meta.rawbody = req.body.toString();
+					ctx.meta.headers = req.headers;
+				},
 			},
 			// get routes from external file - merged with subproject if applicable
 			sppf.subprojectMergeRoutes(apiV1, path.resolve(resourcesDirectory+"/routes/apiV1") ),
@@ -221,6 +226,8 @@ module.exports = {
 			ctx.meta.siteSettings = this.settings.siteSettings;
 			ctx.meta.siteSettings.translation = this.settings.translation;
 			ctx.meta.siteSettings.assets = this.settings.assets;
+			ctx.meta.headers = req.headers;
+			this.logger.info("api req.headers -------> ctx.meta.headers:", ctx.meta.headers);
 			this.cookiesManagement(ctx, route, req, res);
 
 			let token = "";

@@ -2,7 +2,7 @@
 
 const paypal = require("paypal-rest-sdk");
 const payments = paypal.v1.payments;
-const fetch 		= require("node-fetch");
+const fetch 		= require("cross-fetch");
 let base64 = require("base-64");
 
 module.exports = {

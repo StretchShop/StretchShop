@@ -3,10 +3,11 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 const { result } = require("lodash");
 const url = require("url");
-const paypal = require("paypal-rest-sdk");
 const HelpersMixin = require("./helpers.mixin");
 const priceLevels = require("./price.levels.mixin");
-const fetch 		= require("node-fetch");
+const DbService = require("./db.mixin");
+
+const fetch 		= require("cross-fetch");
 
 // This is a sample test API key. Sign in to see examples pre-filled with your key.
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -32,12 +33,14 @@ module.exports = {
 
 
 	mixins: [
+		DbService("orders"),
 		HelpersMixin, 
 		priceLevels
 	],
 
 
 	actions: {
+		
 
 		/**
 		 * Endpoint for Stripe paymentIntent API (AKA Checkout for common products = no subscriptions)
@@ -47,7 +50,7 @@ module.exports = {
      * @param {String} orderId - id of order to pay
      * @param {Object} data - data specific for payment
 		 * 
-		 * @returns {Object} Result from PayPal order checkout
+		 * @returns {Object} Result from Stripe order checkout
 		 */
 		stripeOrderPaymentintent: {
 			cache: false,
@@ -120,8 +123,8 @@ module.exports = {
 									"payment_method": paymentType
 								},
 								"redirect_urls": {
-									"cancel_url": url +"/backdirect/order/paypal/cancel",
-									"return_url": url +"/backdirect/order/paypal/return"
+									"cancel_url": url +"/backdirect/order/stripe/cancel",
+									"return_url": url +"/backdirect/order/stripe/return"
 								},
 								"transactions": [{
 									"item_list": {
@@ -135,7 +138,7 @@ module.exports = {
 									"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
 								}]
 							};
-							this.logger.info("payments.stripe.mixin paypalOrderCheckout payment / items / amount:", payment, payment.transactions[0].item_list.items, payment.transactions[0].amount);
+							this.logger.info("payments.stripe.mixin stripeOrderCheckout payment / items / amount:", payment, payment.transactions[0].item_list.items, payment.transactions[0].amount);
 
 							return stripe.paymentIntents.create({
 								amount: priceTotalNoSubscriptions,
@@ -164,7 +167,7 @@ module.exports = {
      * @param {String} orderId - id of order to pay
      * @param {Object} data - data specific for payment
 		 * 
-		 * @returns {Object} Result from PayPal order checkout
+		 * @returns {Object} Result from Stripe order checkout
 		 */
 		stripeOrderSubscription: {
 			cache: false,
@@ -208,7 +211,7 @@ module.exports = {
 					// get related subscriptions
 					.then(related => {
 						this.logger.info("payments.stripe.mixin stripeOrderSubscribtion related 1:", related);
-						return this.getOrderSubscriptions(ctx, related.ids)
+						return this.getOrderSubscriptions(ctx, related)
 							.then(subscriptions => {
 								related.subscription = subscriptions[0];
 								return related;
@@ -217,7 +220,7 @@ module.exports = {
 					// get related products
 					.then(related => {
 						this.logger.info("payments.stripe.mixin stripeOrderSubscribtion related 2:", related);
-						return this.getOrderSubscriptionProducts(ctx, related.ids)
+						return this.getOrderSubscriptionProducts(ctx, related)
 							.then(products => {
 								related.product = products[0];
 								return related;
@@ -240,9 +243,47 @@ module.exports = {
 		},
 
 
+
+		/**
+		 * Suspend Billing Agreement AKA Stripe Subscription
+		 * 
+		 * @actions
+		 * 
+		 * @param {String} billingRelatedId - id of subscription
+		 *
+		 * @returns {Object} response from service
+		 */
+		stripeSuspendBillingAgreement: {
+			cache: false,
+			params: {
+				billingRelatedId: { type: "string" }
+			},
+			handler(ctx) {
+				let self = this;
+				let suspendNote = { note: "User canceled from StretchShop" };
+
+				// this.stripeConfigure();
+				self.logger.info("payments.stripe1.mixin stripeSuspendBillingAgreement ctx.params.billingRelatedId: ", ctx.params.billingRelatedId);
+
+
+				return stripe.subscriptions.del(
+					ctx.params.billingRelatedId
+				)
+					.then(response => {
+						self.logger.info("payments.stripe1.mixin stripeSuspendBillingAgreement response: ", response);
+						return response;
+					})
+					.catch(error => {
+						this.logger.error("payments.paypal1.mixin - paypalSuspendBillingAgreement error: ", JSON.stringify(error));
+						return null;
+					});
+			}
+		},
+
+
 		
 		/**
-		 * Reactivate Billing Agreement
+		 * Stripe webhook to listen to Stripe actions
 		 * 
 		 * @actions
 		 * 
@@ -250,16 +291,21 @@ module.exports = {
 		stripeWebhook: {
 			cache: false,
 			handler(ctx) {
-				console.log("params", ctx.params);
 				let data = ctx.params.data;
 				if ( data.supplier ) { delete data.supplier; }
 
-				let stripeSignature = ctx.options.parentCtx.options.parentCtx.params.req.headers["stripe-signature"];
-				this.logger.info("stripeWebhook ----- stripeSignature :", stripeSignature);
+				let stripeSignature = ctx.meta.headers["stripe-signature"];
+				this.logger.info("stripeWebhook ----- data :", typeof data, data);
+				this.logger.info("stripeWebhook ----- stripeSignature :", typeof stripeSignature, stripeSignature);
+				this.logger.info("stripeWebhook ----- process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET :", typeof process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET, process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET);
 
 				let event;
 				try {
-					event = stripe.webhooks.constructEvent(data, stripeSignature, process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET);
+					event = stripe.webhooks.constructEvent(
+						data, 
+						stripeSignature, 
+						process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET
+					);
 				} catch (err) {
 					this.logger.error("Webhook error:", err);
 					return Promise.reject(new MoleculerClientError("Webhook error", 400, "", [{ field: "webhook event", message: "failed"}]));
@@ -276,85 +322,127 @@ module.exports = {
 				 * event.data.object.lines.data[?]
 				 */
 
-				let productId = event.data.object.lines.data[0].plan.product;
-				let priceId = event.data.object.lines.data[0].plan.product;
-				let amount = event.data.object.lines.data[0].plan.amount; // price = amount / 100
+				let productId = null;
+				let priceId = null;
+				let amount = null; // price = amount / 100
+				let subscriptionStripeId = null; // price = amount / 100
+
+				if (event && event.data && event.data.object && event.data.object.lines && 
+				event.data.object.lines.data && event.data.object.lines.data.prototype === Array) {
+					productId = event.data.object.lines.data[0].plan.product;
+					priceId = event.data.object.lines.data[0].plan.product;
+					amount = event.data.object.lines.data[0].plan.amount; // price = amount / 100
+					subscriptionStripeId = event.data.object.lines.data[0].subscription; // price = amount / 100
+				}
+				
 
 				// Handle the event
 				switch (event.type) {
-				case "payment_intent.succeeded": { // payment received
+
+				case "invoice.payment_succeeded": {
+					// ----- SET DEFAULT PAYMENT METHOD for future payments
 					const paymentIntent = event.data.object;
-					console.log("PaymentIntent was successful!", paymentIntent);
+					this.logger.info("WEBHOOK invoice.payment_succeeded: "+ event.type +" ---------- PaymentIntent was successful!", paymentIntent);
+					// get subscription object by its stripeId
+					let subscriptionStripeId = null;
+					if (paymentIntent && paymentIntent.subscription && paymentIntent.subscription.trim() != "") {
+						subscriptionStripeId = paymentIntent.subscription.trim();
+					}
+					let paymentIntentId = null;
+					if (paymentIntent && paymentIntent.payment_intent && paymentIntent.payment_intent.trim() != "") {
+						paymentIntentId = paymentIntent.payment_intent.trim();
+					}
+					this.logger.info("WEBHOOK invoice.payment_succeeded - subscriptionStripeId:", subscriptionStripeId);
+					if (paymentIntentId && paymentIntentId!=null) {
+						stripe.paymentIntents.retrieve(paymentIntentId)
+							.then( paymentIntentResult => {
+								stripe.subscriptions.update( subscriptionStripeId, {
+									default_payment_method: paymentIntentResult.payment_method
+								})
+									.then(defaultPaymentMethodUpdate => {
+										this.logger.info("WEBHOOK invoice.payment_succeeded - defaultPaymentMethodUpdate:", defaultPaymentMethodUpdate);
+										// update subscription 
+										ctx.call("subscriptions.find", {
+											query: {
+												"data.stripe.id": subscriptionStripeId
+											},
+											limit: 1
+										})
+											.then(subscriptions => {
+												this.logger.info("WEBHOOK invoice.paid - subscriptions found:", subscriptions);
+												if (subscriptions && subscriptions[0]) {
+													if (subscriptions[0].data.order.data.paymentData.lastResponseResult) {
+														subscriptions[0].data.order.data.paymentData.lastResponseResult.push(paymentIntent);
+													}
+													this.subscriptionPaymentReceived(ctx, subscriptions[0]); // find in orders.service
+												}
+											});
+									})
+									.catch(error => {
+										this.logger.error("WEBHOOK invoice.payment_succeeded error: ", JSON.stringify(error));
+										return null;
+									});
+							})
+							.catch(error => {
+								this.logger.error("WEBHOOK invoice.payment_succeeded error: ", JSON.stringify(error));
+								return null;
+							});
+					}
 					break;
 				}
+
+				case "invoice.paid": { // payment received // previously payment_intent.succeeded
+					// const paymentIntent = event.data.object;
+					this.logger.info("WEBHOOK : "+ event.type +" ---------- DISABLED because of double action");
+					break;
+				}
+
 				case "payment_method.attached": {
 					const paymentMethod = event.data.object;
-					console.log("PaymentMethod was attached to a Customer!", paymentMethod);
+					this.logger.info("WEBHOOK : payment_method.attached ---------- PaymentMethod was attached to a Customer!", paymentMethod);
 					break;
 				}
+
 				case "customer.subscription.created": {
 					const paymentMethod = event.data.object;
-					console.log("Subscription has been created for Customer!", paymentMethod);
+					this.logger.info("WEBHOOK : customer.subscription.created ---------- Subscription has been created for Customer!", paymentMethod);
+					break;
+				}
+				case "invoice.payment_failed": {
+					const paymentMethod = event.data.object;
+					this.logger.info("WEBHOOK : invoice.payment_failed ---------- Payment failed or the customer does not have a valid payment method!", paymentMethod);
 					break;
 				}
 				case "customer.subscription.deleted": {
 					const paymentMethod = event.data.object;
-					console.log("Subscription has been deleted for Customer!", paymentMethod);
+					this.logger.info("WEBHOOK : customer.subscription.deleted local ---------- Subscription has been deleted for Customer!", paymentMethod);
+					// get subscription object by its stripeId
+					if (paymentMethod && paymentMethod.id && paymentMethod.id.trim() != "") {
+						subscriptionStripeId = paymentMethod.id.trim();
+					}
+					this.logger.info("WEBHOOK customer.subscription.deleted - subscriptionStripeId:", subscriptionStripeId);
+					if (subscriptionStripeId && subscriptionStripeId!=null) {
+						ctx.call("subscriptions.find", {
+							query: {
+								"data.stripe.id": subscriptionStripeId
+							},
+							limit: 1
+						})
+							.then(subscriptions => {
+								this.logger.info("WEBHOOK customer.subscription.deleted - subscriptions found:", subscriptions);
+								if (subscriptions && subscriptions[0]) {
+									this.subscriptionCancelled(ctx, subscriptions[0]); // find in orders.service
+								}
+							});
+					}
 					break;
 				}
 				// ... handle other event types
 				default: {
-					console.log(`Unhandled event type ${event.type}`);
+					this.logger.info(`WEBHOOK : other event type ---------- Unhandled event type ${event.type}`, event);
+					break;
 				}
 				}
-
-
-				/*
-				setTimeout(() => {
-
-					return new Promise((resolve, reject) => {
-						paypal.notification.webhookEvent.getAndVerify(JSON.stringify(data), function (error, response) {
-							if (error) {
-								self.logger.error("payments.paypal1.mixin paypalWebhook error: ", error);
-								reject(error);
-							} else {
-								self.logger.info("payments.paypal1.mixin paypalWebhook result: ", response);
-								resolve(response);
-							}
-						});
-					})
-						.then(response => {
-							self.logger.info("payments.paypal1.mixin paypalWebhook response: ", JSON.stringify(response));
-							// cancel subscription in DB
-							if (response && response==true && ctx.params.data && 
-							ctx.params.data.event_type) {
-								switch (ctx.params.data.event_type) {
-								case "BILLING.PLAN.CREATED":
-									self.logger.info("payments.paypal1.mixin paypalWebhook - BILLING.PLAN.CREATED notification received");
-									break;
-								case "BILLING.PLAN.UPDATED":
-									self.logger.info("payments.paypal1.mixin paypalWebhook - BILLING.PLAN.UPDATED notification received");
-									break;
-								case "BILLING.SUBSCRIPTION.CANCELLED":
-									self.paypalWebhookBillingSubscriptionCancelled(ctx);
-									break;
-								case "PAYMENT.SALE.COMPLETED":
-									self.paypalWebhookPaymentSaleCompleted(ctx);
-									break;
-								default:
-									self.logger.info("payments.paypal1.mixin paypalWebhook - notification received:", JSON.stringify(data));
-								}
-							}
-						})
-						.catch(error => {
-							this.logger.error("payments.paypal1.mixin - paypalWebhook error2: ", JSON.stringify(error));
-							let log_file = fs.createWriteStream("./.temp/ipnlog.log", {flags : "a"});
-							let date = new Date();
-							log_file.write( "\n\n" + date.toISOString() + " #1:\n"+ JSON.stringify(ctx.params)+"\n");
-							return null;
-						});
-				}, 10000); // timeout end
-				*/
 			}
 		},
 
@@ -367,24 +455,29 @@ module.exports = {
 	methods: {
 
 		
-		getOrderSubscriptions(ctx, ids) {
+		getOrderSubscriptions(ctx, related) {
 			let self = this;
-			let filter = { query: {} };
-			this.logger.info("payments.stripe.mixin getOrderSubscriptions() ids:", ids);
+			let filter = { query: {}, limit: 1 };
+			this.logger.info("payments.stripe.mixin getOrderSubscriptions() related.order:", related.order);
 
 			// add ids of subscriptions that are not agreed
-			if (ids) { 
+			this.logger.info("payments.stripe.mixin getOrderSubscriptions() DEBUG1:", related.ids , related.order );
+			this.logger.info("payments.stripe.mixin getOrderSubscriptions() DEBUG2:", related.order.data.subscription);
+			this.logger.info("payments.stripe.mixin getOrderSubscriptions() DEBUG3:", related.order.data.subscription.ids);
+			if (related.ids && related.order && related.order.data && 
+			related.order.data.subscription && related.order.data.subscription.ids) { 
 				let idsObjs = [];
-				ids.forEach(id => {
-					// check if subscription is agreed, if not, add its product
+				related.order.data.subscription.ids.forEach(id => {
+					// check if subscription is agreed, if - add its product
 					if (!id.agreed || id.agreed.toString().trim()=="") {
 						idsObjs.push(self.fixStringToId(id.subscription));
 					}
 				});
-				filter.query = {
-					_id: { "$in": idsObjs }
-				};
-				filter.limit = 1;
+				if (idsObjs.length > 0) {
+					filter.query = {
+						_id: { "$in": idsObjs }
+					};
+				}
 			}
 			this.logger.info("payments.stripe.mixin getOrderSubscriptions() filter:", filter, filter.query);
 
@@ -392,7 +485,6 @@ module.exports = {
 			return ctx.call("subscriptions.find", filter)
 				.then(subscriptions => {
 					this.logger.error("payments.stripe.mixin getOrderSubscriptions() subscriptions:", subscriptions);
-					// TODO - filter only those with stripe ID
 					return subscriptions;
 				})
 				.catch(err => {
@@ -402,33 +494,28 @@ module.exports = {
 		},
 
 
-		getOrderSubscriptionProducts(ctx, ids) {
+		getOrderSubscriptionProducts(ctx, related) {
 			let self = this;
-			let filter = { query: {} };
-			this.logger.info("payments.stripe.mixin getOrderSubscriptionProducts() ids:", ids);
+			let filter = { query: {}, limit: 1 };
+			this.logger.info("payments.stripe.mixin getOrderSubscriptionProducts() related:", related);
 
 			// add ids of subscriptions that are not agreed
-			if (ids) { 
-				let idsObjs = [];
-				ids.forEach(id => {
-					// check if subscription is agreed, if not, add its product
-					if (!id.agreed || id.agreed.toString().trim()=="") {
-						idsObjs.push(self.fixStringToId(id.product));
-					}
-				});
+			if (related.ids && related.subscription && related.subscription.data &&
+				related.subscription.data.product && related.subscription.data.product._id ) { 
 				filter.query = {
-					_id: { "$in": idsObjs }
+					_id: related.subscription.data.product._id
 				};
-				filter.limit = 1;
+			}
+
+			if ( Object.keys(filter.query).length < 1 ) {
+				return null;
 			}
 			this.logger.info("payments.stripe.mixin getOrderSubscriptionProducts() filter:", filter, filter.query);
 
-
-			// get products to that don't have stripe IDs (productId, defaultPriceId)
+			// get product to that don't have stripe IDs (productId, defaultPriceId)
 			return ctx.call("products.find", filter)
 				.then(subscriptionProducts => {
 					this.logger.error("payments.stripe.mixin getOrderSubscriptionProducts() subscriptionProducts:", subscriptionProducts);
-					// TODO - filter only those with stripe ID
 					return subscriptionProducts;
 				})
 				.catch(err => {
@@ -445,17 +532,21 @@ module.exports = {
 		 */
 		prepareStripeSubscription(ctx, related) {
 			let user = ctx.meta.user;
+			this.logger.info("payments.stripe.mixin pSS() #0:");
 			
 			return this.checkProduct(ctx, related)
 				.then(stripeProduct => {
 					related.product = stripeProduct;
+					this.logger.info("payments.stripe.mixin pSS() #1.X related.product:", related.product);
 					return this.checkPrice(ctx, related);
 				})
 				.then(stripeProductPrice => {
 					related.product = stripeProductPrice;
+					this.logger.info("payments.stripe.mixin pSS() #2.X related.product:", related.product);
 					return this.checkCustomer(ctx, related);
 				})
 				.then(customer => {
+					this.logger.info("payments.stripe.mixin pSS() #3.X customer:", customer);
 					return this.stripeCreateSubscription(ctx, related);
 				})
 				.catch(err => {
@@ -475,20 +566,25 @@ module.exports = {
 			let lang = this.getOrderLang(related.order);
 			
 			return new Promise((resolve, reject) => {
+				this.logger.info("payments.stripe.mixin pSS() #1:", related.product);
 				if ( related.product && related.product.stripe && related.product.stripe.productId &&  
-					related.product.stripe.productId.toString().trim()!="" ) {
+				related.product.stripe.productId.toString().trim()!="" ) {
+					this.logger.info("payments.stripe.mixin pSS() #1.1 true");
 					resolve(true);
 				}
+				this.logger.info("payments.stripe.mixin pSS() #1.1 false");
 				resolve(false);
 			})
 				.then(hasId => {
 					if (hasId) {
-						return {
+						const result = {
 							id: related.product.stripe.productId,
 							object: "product",
 							name: related.product.name[lang] + " - " + related.product._id,
 							description: related.product.descriptionShort[lang]
 						};
+						this.logger.info("payments.stripe.mixin pSS() #1.2 result:", result);
+						return result;
 					}
 					return self.stripeCreateProduct(ctx, related);
 				});
@@ -503,6 +599,7 @@ module.exports = {
 		 */
 		stripeCreateProduct(ctx, related) {
 			let lang = this.getOrderLang(related.order);
+			this.logger.info("payments.stripe.mixin pSS() #1.3 related.product:", related.product);
 
 			// check if product does exist
 			return stripe.products.create({
@@ -510,6 +607,7 @@ module.exports = {
 				description: related.product.descriptionShort[lang]
 			})
 				.then(stripeProduct => {
+					this.logger.info("payments.stripe.mixin pSS() #1.3.1 stripeProduct:", stripeProduct);
 					let updateProduct = Object.assign({}, related.product);
 					if (!updateProduct.data.stripe) { updateProduct.data["stripe"] = {}; }
 					updateProduct.data.stripe["productId"] = stripeProduct.id;
@@ -517,9 +615,11 @@ module.exports = {
 						updateProduct.id = updateProduct._id;
 						delete updateProduct._id;
 					}
+					this.logger.info("payments.stripe.mixin pSS() #1.3.2 updateProduct:", updateProduct);
 					return ctx.call("products.import", { products: [updateProduct] })
 						.then(updatedProducts => {
 							if (updatedProducts[0]) {
+								this.logger.info("payments.stripe.mixin pSS() #1.3.3 updatedProducts[0]:", updatedProducts[0]);
 								return updatedProducts[0];
 							}
 							return updateProduct;
@@ -542,18 +642,23 @@ module.exports = {
 			let self = this;
 			
 			return new Promise((resolve, reject) => {
+				this.logger.info("payments.stripe.mixin pSS() #2:", related.product);
 				if ( related.product.stripe && related.product.stripe.defaultPriceId &&  
-					related.product.stripe.defaultPriceId.toString().trim()=="" ) {
+				related.product.stripe.defaultPriceId.toString().trim()=="" ) {
+					this.logger.info("payments.stripe.mixin pSS() #2.1 true");
 					resolve(true);
 				}
+				this.logger.info("payments.stripe.mixin pSS() #2.1 false");
 				resolve(false);
 			})
 				.then(hasId => {
 					if (hasId) {
-						return {
+						const result = {
 							id: related.product.stripe.defaultPriceId,
 							object: "price",
 						};
+						this.logger.info("payments.stripe.mixin pSS() #2.2 result:", result);
+						return result;
 					}
 					return self.stripeCreatePrice(ctx, related);
 				});
@@ -564,8 +669,9 @@ module.exports = {
 		stripeCreatePrice(ctx, related) {
 			let self = this;
 			let product = self.priceByUser(related.product, ctx.meta.user);
+			this.logger.info("payments.stripe.mixin pSS() #2.3 related.product:", related.product);
 
-			this.logger.info("payments.stripe.mixin stripeCreatePrice() stripeRequestObject:", 
+			this.logger.info("payments.stripe.mixin pSS() #2.3.1 stripeRequestObject:", 
 				product.price, 
 				{
 					unit_amount: product.price * 100, // price as positive integer in cents
@@ -588,6 +694,7 @@ module.exports = {
 				product: related.product.data.stripe.productId,
 			})
 				.then(stripePrice => {
+					this.logger.info("payments.stripe.mixin pSS() #2.3.2 stripePrice:", stripePrice);
 					let updateProduct = Object.assign({}, related.product);
 					if (!updateProduct.data.stripe) { updateProduct.data["stripe"] = {}; }
 					updateProduct.data.stripe["defaultPriceId"] = stripePrice.id;
@@ -595,9 +702,11 @@ module.exports = {
 						updateProduct.id = updateProduct._id;
 						delete updateProduct._id;
 					}
+					this.logger.info("payments.stripe.mixin pSS() #2.3.3 updateProduct:", updateProduct);
 					return ctx.call("products.import", { products: [updateProduct] })
 						.then(updatedProducts => {
 							if (updatedProducts[0]) {
+								this.logger.info("payments.stripe.mixin pSS() #2.3.4 updatedProducts[0]:", updatedProducts[0]);
 								return updatedProducts[0];
 							}
 							return updateProduct;
@@ -621,11 +730,14 @@ module.exports = {
 			
 			// check if we have customer ID
 			return new Promise((resolve, reject) => {
+				this.logger.info("payments.stripe.mixin pSS() #3:", ctx.meta.user.data);
 				if ( ctx.meta && ctx.meta.user && ctx.meta.user.data && ctx.meta.user.data.stripe && 
 				ctx.meta.user.data.stripe.id && 
 				ctx.meta.user.data.stripe.id.toString().trim()=="" ) {
+					this.logger.info("payments.stripe.mixin pSS() #3.1 true");
 					resolve(true);
 				}
+				this.logger.info("payments.stripe.mixin pSS() #3.1 false");
 				resolve(false);
 			})
 				.then(hasId => {
@@ -638,21 +750,25 @@ module.exports = {
 							}
 						});
 					}
+					this.logger.info("payments.stripe.mixin pSS() #3.2 name:", name);
 					if (hasId) {
 						// if customer already has stripe ID, return them
-						return {
+						const result = {
 							id: ctx.meta.user.data.stripe.id,
 							data: ctx.meta.user.data,
 							email: ctx.meta.user.email,
 							description: ctx.meta.user.bio,
 							name: name
 						};
+						this.logger.info("payments.stripe.mixin pSS() #3.3 name:", result);
+						return result;
 					}
 					related["customer"] = {
 						email: ctx.meta.user.email,
 						description: ctx.meta.user.bio,
 						name: name
 					};
+					this.logger.info("payments.stripe.mixin pSS() #3.4 related.customer:", related.customer);
 					return self.stripeCreateCustomer(ctx, related);
 				});
 		},
@@ -660,8 +776,10 @@ module.exports = {
 
 		// #3
 		stripeCreateCustomer(ctx, related) {
+			this.logger.info("payments.stripe.mixin pSS() #3.5 related.customer:", related.customer);
 			return stripe.customers.create(related.customer)
 				.then(stripeCustomer => {
+					this.logger.info("payments.stripe.mixin pSS() #3.6 related.customer:", stripeCustomer);
 					// use response to fill data for related customer
 					related.customer["id"] = stripeCustomer.id;
 					related.customer["data"] = stripeCustomer;
@@ -669,8 +787,10 @@ module.exports = {
 					if (!ctx.meta.user.data) { ctx.meta.user["data"] = {}; }
 					if (!ctx.meta.user.data.stripe) { ctx.meta.user.data["stripe"] = {}; }
 					ctx.meta.user.data.stripe = stripeCustomer;
+					this.logger.info("payments.stripe.mixin pSS() #3.7 updateProduct:", ctx.meta.user.data.stripe);
 					return ctx.call("users.updateUser", { user: ctx.meta.user } )
 						.then(updatedUser => {
+							this.logger.info("payments.stripe.mixin pSS() #3.8 updatedUser & related.customer:", updatedUser, related.customer);
 							return related.customer;
 						});
 				});
@@ -680,6 +800,16 @@ module.exports = {
 		// #4
 		stripeCreateSubscription(ctx, related) {
 			let self = this;
+			this.logger.info("payments.stripe.mixin pSS() #4");
+
+			this.logger.info("payments.stripe.mixin pSS() #4.1 stripeRequestObject:", {
+				customer: related.customer.id,
+				items: [{
+					price: related.product.data.stripe.defaultPriceId, // result of createPrice()
+				}],
+				payment_behavior: "default_incomplete", 
+				expand: ["latest_invoice.payment_intent"], 
+			});
 
 			return stripe.subscriptions.create({
 				customer: related.customer.id,
@@ -690,7 +820,7 @@ module.exports = {
 				expand: ["latest_invoice.payment_intent"], 
 			})
 				.then(stripeSubscription => {
-					self.logger.info("payments.stripe.mixin stripeCreateSubscription() stripeSubscription:", stripeSubscription);
+					this.logger.info("payments.stripe.mixin pSS() #4.2 stripeSubscription:", stripeSubscription);
 					let updateSubscription = Object.assign({}, related.subscription);
 					if (!updateSubscription.data.stripe) { updateSubscription.data["stripe"] = {}; }
 					updateSubscription.data.stripe = stripeSubscription;
@@ -698,25 +828,29 @@ module.exports = {
 						updateSubscription.id = updateSubscription._id;
 						delete updateSubscription._id;
 					}
+					this.logger.info("payments.stripe.mixin pSS() #4.2 updateSubscription:", updateSubscription);
 					return ctx.call("subscriptions.save", { entity: updateSubscription })
 						.then(updatedSubscription => {
-							self.logger.info("payments.stripe.mixin stripeCreateSubscription() updatedSubscription:", updatedSubscription);
+							this.logger.info("payments.stripe.mixin pSS() #4.3 updatedSubscription:", updatedSubscription);
 							// update order
 							let updateOrder = Object.assign({}, related.order);
 							updateOrder.data.subscription.ids.some((id, i) => {
 								if (id.subscription == updatedSubscription._id.toString()) {
-									updateOrder.data.subscription.ids[i]["agreed"] = new Date();
+									updateOrder.data.subscription.ids[i]["created"] = new Date();
 									// TODO - check if order is paid (with related products & subscriptions)
 									return true;
 								}
 							});
+							this.logger.info("payments.stripe.mixin pSS() #4.4 updateOrder:", updateOrder);
 							return ctx.call("orders.update", { order: updateOrder })
 								.then(updatedOrder => {
-									self.logger.info("payments.stripe.mixin stripeCreateSubscription() updatedOrder:", updatedOrder);
-									return {
+									this.logger.info("payments.stripe.mixin pSS() #4.5 updateOrder:", updatedOrder);
+									const result = {
 										id: stripeSubscription.id,
 										clientSecret: stripeSubscription.latest_invoice.payment_intent.client_secret
 									};
+									this.logger.info("payments.stripe.mixin pSS() #4.6 result:", result);
+									return result;
 								});
 						})
 						.catch(err => {
@@ -789,7 +923,27 @@ module.exports = {
 			}
 
 			return lang;
-		}
+		},
+
+
+
+		/**
+		 * Count amount paid total for Stripe payments
+		 * 
+		 * @param {Object} paymentData - by reference
+		 */
+		getPaidTotalStripe(paymentData) {
+			// calculate total amount paid for Stripe
+			for ( let i=0; i<paymentData.lastResponseResult.length; i++ ) {
+				if (paymentData.lastResponseResult[i].status && 
+				paymentData.lastResponseResult[i].status == "paid" && 
+				paymentData.lastResponseResult[i].amount_paid) {
+					paymentData.paidAmountTotal += parseFloat(
+						paymentData.lastResponseResult[i].amount_paid
+					);
+				}
+			}
+		},
 		
 	}
 };

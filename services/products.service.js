@@ -3,14 +3,13 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 const slug = require("slug");
 
+const DbService = require("../mixins/db.mixin");
+const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
 const HelpersMixin = require("../mixins/helpers.mixin");
 const priceLevels = require("../mixins/price.levels.mixin");
 
-const DbService = require("../mixins/db.mixin");
-const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
-
 const sppf = require("../mixins/subproject.helper");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
+const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
 const businessSettings = require( resourcesDirectory+"/settings/business");
 
 
@@ -34,11 +33,11 @@ module.exports = {
 	name: "products",
 	mixins: [
 		DbService("products"),
-		HelpersMixin,
-		priceLevels,
 		CacheCleanerMixin([
 			"cache.clean.products"
-		])
+		]),
+		HelpersMixin,
+		priceLevels
 	],
 
 	/**
@@ -127,9 +126,46 @@ module.exports = {
 		/**
 		 * disable cache for find action
 		 */
-		find: {
-			cache: false
+		// find: {
+		// 	cache: false
+		// },
+
+
+
+		find: { // with price & tax 
+			params: {
+				populate: { type: "array", items: { type: "string"}, optional: true },
+				fields: { type: "array", items: { type: "string"}, optional: true },
+				offset: { type: "number", optional: true },
+				limit: { type: "number", optional: true },
+				sort: { type: "string", optional: true },
+				search: { type: "string", optional: true },
+				searchFields: { type: "string", optional: true },
+				query: { type: "object" }
+			},
+			cache: false,
+			handler(ctx) {
+				let filter = ctx.params;
+				this.logger.info("products.find filter:", filter);
+				let self = this;
+				this.fixRequestIds(filter);
+				return this.adapter.find(filter)
+					.then( results => {
+						if (results && results.length>0) {
+							results.forEach(result => {
+								result = self.priceByUser(result, ctx.meta.user);
+								result = self.getProductTaxData(result, businessSettings.taxData);
+							});
+						}
+						this.logger.info("products.find results after:", results);
+						return results;
+					})
+					.catch(e => {
+						this.logger.error("products.find error:", e);
+					});
+			}
 		},
+
 
 		/**
 		 * List products in category

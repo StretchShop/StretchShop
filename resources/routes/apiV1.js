@@ -99,7 +99,7 @@ module.exports = {
 		},
 
 		// Helpers
-		"POST /helpers/recaptcha": "users.recaptcha",
+		"POST /helpers/recaptcha": "users.recaptcha"
 	},
 
 

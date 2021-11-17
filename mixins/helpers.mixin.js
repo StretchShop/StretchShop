@@ -293,18 +293,14 @@ module.exports = {
 				for (let i=1; i<arguments.length; i++) {
 					for (let prop in arguments[i]) {
 						let val = arguments[i][prop];
-						if (prop=="agreement") {
-							console.log(" _________ ssxxs:", val, (typeof val === "object" && val !== null && val.constructor !== Array), typeof val === "object" , val !== null , val.constructor !== Array );
-						}
 						if (typeof val === "object" && val !== null && val.constructor !== Array) {
 							this.updateObject(original[prop], val);
 						} else {
 							try {
-								// console.log("\n\n------------------", original, prop);
 								original[prop] = val;
 							} catch (e) {
-								console.log("\n\n------------------", original, prop);
-								console.log("\n\n ---!!! ---!!! ---!!! ---!!! ERROR ---!!! ---!!! ---!!! ---!!!\n"+ e +"\n\n");
+								console.error("\n\n------------------", original, prop);
+								console.error("\n\n ---!!! ---!!! ---!!! ---!!! ERROR ---!!! ---!!! ---!!! ---!!!\n"+ e +"\n\n");
 							}
 						}
 					}

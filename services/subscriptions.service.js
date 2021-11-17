@@ -316,7 +316,9 @@ module.exports = {
 		/**
 		 * CRON action (see crons.cronTime setting for time to process):
 		 *  1. find all subscriptions that need to processed
-		 *  2. check if all payments in subscription have been received
+		 *  2. check if:
+		 *     2.1. all payments in subscription have been received
+		 *     2.2. stripe paid subscriptions were suspended 
 		 *  3. if not, make them inactive
 		 * 
 		 * to debug you can use - mol $ call subscriptions.checkSubscriptions
@@ -575,7 +577,7 @@ module.exports = {
 							// add history record if set
 							if (ctx.params.historyRecordToAdd) {
 								updatedOriginal.history.push(
-									JSON.parse(JSON.stringify(this.params.historyRecordToAdd))
+									JSON.parse(JSON.stringify(ctx.params.historyRecordToAdd))
 								);
 							}
 
@@ -602,6 +604,7 @@ module.exports = {
 
 
 		/**
+		 * SUBSCRIPTION FLOW - 1.1 (FE->BE)
 		 * Suspend (pause) active subscription
 		 * 
 		 * @actions
@@ -637,11 +640,13 @@ module.exports = {
 					filter.query["user.id"] = ctx.meta.user._id.toString();
 				}
 
+				// find subscription
 				return ctx.call("subscriptions.find", filter)
 					.then(found => {
 						this.logger.info("subscriptions.suspend found:", filter, found);
 						if (found && found[0]) {
 							found = found[0];
+							// set status to "suspend request"
 							found.status = "suspend request";
 							found.dates["dateStopped"] = new Date();
 							found.history.push(
@@ -651,21 +656,27 @@ module.exports = {
 								})
 							);
 
-							let agreementId = found.data.agreementId;
+							let relatedId = found.data.agreementId;
 							// get agreement ID from history
-							if ( (!agreementId || agreementId==null) 
-							&& found.history && found.history.length>0 ) {
-								found.history.some(record => {
-									if (record && record.action=="agreed" && record.data && 
-									record.data.agreement && record.data.agreement.id) {
-										agreementId = record.data.agreement.id;
-										return true;
-									}
-								});
-							}
-							this.logger.info("subscriptions.suspend agreementId:", agreementId);
+							this.logger.info("subscriptions.suspend stripe.id:", found.data.stripe, found.data.stripe.id, (found.data.stripe && found.data.stripe.id), ( !relatedId || relatedId==null ));
 
-							if (agreementId && agreementId!=null) {
+							if ( !relatedId || relatedId==null ) {
+								if (found.data.stripe && found.data.stripe.id) {
+									relatedId = found.data.stripe.id;
+								} else if (found.history && found.history.length>0) {
+									found.history.some(record => {
+										if (record && record.action=="agreed" && record.data && 
+										record.data.agreement && record.data.agreement.id) {
+											relatedId = record.data.agreement.id;
+											return true;
+										}
+									});
+								}
+							}
+							this.logger.info("subscriptions.suspend relatedId:", relatedId);
+
+							// FIX - NO relatedId with Stripe 
+							if (relatedId && relatedId!=null) {
 								// update agreement
 								let paymentType = "online_paypal_paypal";
 								if (found.data && found.data.order && found.data.order.data && 
@@ -676,12 +687,14 @@ module.exports = {
 								// using suspendPayment to be more universal call
 								// TODO - need to setup rules for creating payment names
 								let supplier = "paypal";
-								if (paymentType=="online_paypal_paypal") {
-									supplier = "paypal";
+								if (paymentType=="online_stripe") {
+									supplier = "stripe";
 								}
+								// call suspend action that calls related API
 								return ctx.call("orders.paymentSuspend", {
 									supplier: supplier,
-									billingAgreementId: agreementId
+									relatedId: relatedId,
+									subscription: found
 								})
 									.then(suspendResult => {
 										// return suspendResult
@@ -694,14 +707,14 @@ module.exports = {
 										);
 
 										result.success = true;
-										result.message = "suspended";
+										result.message = "suspend sent";
 										result.data = {
 											subscription: found,
 											agreement: suspendResult
 										};
 
 										found.id = found._id.toString();
-										found.status = "suspended";
+										found.status = "suspend sent";
 										delete found._id;
 										
 										return ctx.call("subscriptions.save", {
@@ -729,7 +742,7 @@ module.exports = {
 										return result;
 									});
 							} else {
-								result.error = "agreementId not found";
+								result.error = "relatedId not found";
 								this.logger.error("subscriptions.suspend - " + result.error);
 								self.addToHistory(ctx, found._id, self.newHistoryRecord("error", "user", { 
 									errorMsg: result.error+" error"
@@ -791,22 +804,23 @@ module.exports = {
 								})
 							);
 
-							let agreementId = found.data.agreementId;
+							let relatedId = found.data.agreementId;
 							// get agreement ID from history
-							if ( (!agreementId || agreementId==null) 
+							if ( (!relatedId || relatedId==null) 
 							&& found.history && found.history.length>0 ) {
 								found.history.some(record => {
 									if (record && record.action=="agreed" && record.data && 
 									record.data.agreement && record.data.agreement.id) {
-										agreementId = record.data.agreement.id;
+										relatedId = record.data.agreement.id;
 										return true;
 									}
 								});
 							}
 
-							if (agreementId && agreementId!=null) {
+							if (relatedId && relatedId!=null) {
 								// update agreement
-								return ctx.call("orders.paypalReactivateBillingAgreement", {billingAgreementId: agreementId} )
+								return ctx.call("orders.paypalReactivateBillingAgreement", 
+									{billingRelatedId: relatedId} )
 									.then(suspendResult => {
 										// return suspendResult
 
@@ -852,7 +866,7 @@ module.exports = {
 										return result;
 									});
 							} else {
-								result.error = "agreementId not found";
+								result.error = "relatedId not found";
 								this.logger.error("subscriptions.reactivate - " + result.error);
 								self.addToHistory(ctx, found._id, self.newHistoryRecord("error", "user", { errorMsg: result.error}));
 								return result;

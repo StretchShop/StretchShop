@@ -14,3 +14,4 @@ coverage/
 _backup/
 sonar-project.properties
 .github
+.temp

@@ -5,7 +5,7 @@ const url = require("url");
 const paypal = require("paypal-rest-sdk");
 const HelpersMixin = require("../mixins/helpers.mixin");
 const priceLevels = require("../mixins/price.levels.mixin");
-const fetch 		= require("node-fetch");
+const fetch 		= require("cross-fetch");
 
 const pathResolve = require("path").resolve;
 
@@ -396,34 +396,36 @@ module.exports = {
 
 
 		/**
+		 * SUBSCRIPTION FLOW - 2.2.paypal (BE->API)
 		 * Suspend Billing Agreement
 		 * 
 		 * @actions
 		 * 
-		 * @param {String} billingAgreementId - id of agreement
+		 * @param {String} billingRelatedId - id of agreement
 		 *
 		 * @returns {Object} response from service
 		 */
 		paypalSuspendBillingAgreement: {
 			cache: false,
 			params: {
-				billingAgreementId: { type: "string" }
+				billingRelatedId: { type: "string" }
 			},
 			handler(ctx) {
 				let self = this;
 				let suspendNote = { note: "User canceled from StretchShop" };
 
 				this.paypalConfigure();
-				self.logger.info("payments.paypal1.mixin paypalSuspendBillingAgreement ctx.params.billingAgreementId: ", ctx.params.billingAgreementId);
+				self.logger.info("payments.paypal1.mixin paypalSuspendBillingAgreement ctx.params.billingRelatedId: ", ctx.params.billingRelatedId);
 
 
 				return new Promise((resolve, reject) => {
 					paypal.billingAgreement.suspend(
-						ctx.params.billingAgreementId, 
+						ctx.params.billingRelatedId, 
 						suspendNote, 
 						function(error, payment) {
 							if (error) {
 								self.logger.error("payments.paypal1.mixin paypalSuspendBillingAgreement error: ", error);
+								// TODO - ERROR subscriptions.suspend - paypalSuspendBillingAgreement error:  {"code":422,"type":"VALIDATION_ERROR","data":[{"type":"required","message":"The 'relatedId' field is required.","field":"relatedId","nodeID":"orders","action":"orders.paymentSuspend"}],"retryable":false}
 								reject(error);
 							} else {
 								self.logger.info("payments.paypal1.mixin paypalSuspendBillingAgreement result: ", payment);
@@ -435,59 +437,16 @@ module.exports = {
 						return response;
 					})
 					.catch(error => {
-						this.logger.error("payments.paypal1.mixin - paypalSuspendBillingAgreement error: ", JSON.stringify(error));
+						this.logger.error("payments.paypal1.mixin - paypalSuspendBillingAgreement error catch: ", JSON.stringify(error));
 						return null;
 					});
 			}
 		},
 
-
-		/**
-		 * Reactivate Billing Agreement
-		 * 
-		 * @actions
-		 * 
-		 * @param {String} billingAgreementId - id of agreement
-		 *
-		 * @returns {Object} response from service
-		 */
-		paypalReactivateBillingAgreement: {
-			cache: false,
-			params: {
-				billingAgreementId: { type: "string" }
-			},
-			handler(ctx) {
-				let self = this;
-				let reactivateNote = { note: "User reactivated from StretchShop" };
-
-				this.paypalConfigure();
-
-				return new Promise((resolve, reject) => {
-					paypal.billingAgreement.reactivate(
-						ctx.params.billingAgreementId, 
-						reactivateNote, 
-						function(error, payment) {
-							if (error) {
-								self.logger.error("payments.paypal1.mixin paypalReactivateBillingAgreement error: ", error);
-								reject(error);
-							} else {
-								self.logger.info("payments.paypal1.mixin paypalReactivateBillingAgreement result: ", payment);
-								resolve(payment);
-							}
-						});
-				})
-					.then(response => {
-						return response;
-					})
-					.catch(error => {
-						this.logger.error("payments.paypal1.mixin - paypalReactivateBillingAgreement error: ", JSON.stringify(error));
-						return null;
-					});
-			}
-		},
 
 		
 		/**
+		 * SUBSCRIPTION FLOW - 3.2.paypal.1 (API->BE)
 		 * Webhook to catch Paypal events
 		 * 
 		 * @actions
@@ -530,6 +489,9 @@ module.exports = {
 									break;
 								case "BILLING.PLAN.UPDATED":
 									self.logger.info("payments.paypal1.mixin paypalWebhook - BILLING.PLAN.UPDATED notification received");
+									break;
+								case "BILLING.SUBSCRIPTION.SUSPENDED":
+									self.paypalWebhookBillingSubscriptionCancelled(ctx);
 									break;
 								case "BILLING.SUBSCRIPTION.CANCELLED":
 									self.paypalWebhookBillingSubscriptionCancelled(ctx);
@@ -1108,6 +1070,7 @@ module.exports = {
 
 
 		/**
+		 * Different Order update after product paid (= not webhook event)
 		 * 
 		 * @param {Object} order 
 		 * @param {Object} response 
@@ -1146,7 +1109,15 @@ module.exports = {
 		},
 
 
+		/**
+		 * SUBSCRIPTION FLOW - 3.2.paypal.2 (API->BE)
+		 * 
+		 * @param {Object} ctx 
+		 * 
+		 * @returns {Object} updated subscription
+		 */
 		paypalWebhookBillingSubscriptionCancelled(ctx) {
+			let self = this;
 			if (ctx.params.data && 
 			ctx.params.data.resource && ctx.params.data.resource.id) {
 				let filter = { 
@@ -1160,43 +1131,7 @@ module.exports = {
 						this.logger.info("subscriptions to webhook cancel found:", filter, found);
 						if (found && found[0]) {
 							found = found[0];
-							found.status = "canceled";
-							found.dates["dateStopped"] = new Date();
-							found.history.push(
-								{
-									action: "canceled",
-									type: "user",
-									date: new Date(),
-									data: {
-										webhookResponse: JSON.stringify(ctx.params.data),
-										relatedOrder: null
-									}
-								}
-							);
-
-							found.id = found._id.toString();
-							delete found._id;
-
-							return ctx.call("subscriptions.save", {
-								entity: found
-							})
-								.then(updated => {
-									this.logger.info("subscriptions to webhook cancel - subscriptions.save:", updated);
-									let result = { 
-										success: false, 
-										url: null, 
-										message: "subscription canceled", 
-										data: {
-											subscription: updated
-										}
-									};
-									delete result.data.subscription.history;
-									return result;
-								})
-								.catch(error => {
-									this.logger.error("subscriptions to webhook cancel - subscriptions.save error: ", error);
-									return null;
-								});
+							return self.subscriptionCancelled(ctx, found);
 						}
 					});
 			} // response & .resource.is END if
@@ -1248,8 +1183,34 @@ module.exports = {
 						}
 					});
 			}
+		}, 
 
-		}
+
+
+		/**
+		 * Count amount paid total for PayPal payments on subscription
+		 * (products use paypalUpdatePaidOrderData because of different response)
+		 * 
+		 * @param {Object} order - by reference
+		 */
+		getPaidTotalPaypal(order) {
+			// calculate total amount paid for PayPal
+			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
+				if (order.data.paymentData.lastResponseResult[i].state && 
+					order.data.paymentData.lastResponseResult[i].state == "Active" && 
+					order.data.paymentData.lastResponseResult[i].plan.payment_definitions && 
+					order.data.paymentData.lastResponseResult[i].plan.payment_definitions) {
+					for (let j=0; j<order.data.paymentData.lastResponseResult[i].plan.payment_definitions.length; j++) {
+						if (order.data.paymentData.lastResponseResult[i].plan.payment_definitions[j].amount && 
+							order.data.paymentData.lastResponseResult[i].plan.payment_definitions[j].amount.value) {
+							order.data.paymentData.paidAmountTotal += parseFloat(
+								order.data.paymentData.lastResponseResult[i].plan.payment_definitions[j].amount.value
+							);
+						}
+					}
+				}
+			}
+		},
 
 		
 	}

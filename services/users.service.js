@@ -8,7 +8,7 @@ const bcrypt 		= require("bcryptjs");
 const jwt 			= require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const fs = require("fs");
-const fetch 		= require("node-fetch");
+const fetch 		= require("cross-fetch");
 
 const DbService = require("../mixins/db.mixin");
 const CacheCleanerMixin = require("../mixins/cache.cleaner.mixin");
@@ -1439,7 +1439,6 @@ module.exports = {
 			let self = this;
 
 			// if user was not found
-			console.log("user:", user);
 			if (!user) {
 				return this.Promise.reject(new MoleculerClientError("Email is invalid!", 422, "", [{ field: "email", message: "not exists"}]));
 			}

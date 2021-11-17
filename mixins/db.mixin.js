@@ -21,6 +21,43 @@ module.exports = function(collection) {
 						return this.adapter.stringToObjectID(idString);
 					}
 					return idString;
+				},
+
+				fixRequestIds(request, idAnalysis) {
+					let self = this;
+					const regex = /^[a-fA-F0-9]{24}$/; // MongoDb ObjectId.toString() has 24 characters
+					idAnalysis = (typeof idAnalysis !== "undefined") ?  idAnalysis : false;
+				
+					if (request) {
+						// if request is array, for values and fix any _id
+						if ( request.constructor === Array && request.length > 0) {
+							request.forEach( (v, i) => {
+								if (v.constructor === String && regex.test(v)) {
+									request[i] = self.fixStringToId(v);
+								} else if (request[i].constructor === Array || request[i].constructor === Object ) {
+									request[i] = self.fixRequestIds(request[i], idAnalysis);
+								}
+							});
+						} else 
+						// if request is object, look keys and fix any for _id
+						if ( request.constructor === Object && Object.keys(request).length > 0) {
+							Object.keys(request).forEach(k => {
+								if (idAnalysis && request[k].constructor === String && regex.test(request[k])) {
+									request[k] = self.fixStringToId(request[k]);
+								} else if (k === "_id") {
+									request[k] = self.fixRequestIds(request[k], true);
+								} else if (request[k].constructor === Array || request[k].constructor === Object ) {
+									request[k] = self.fixRequestIds(request[k], idAnalysis);
+								}
+							});
+						} else 
+						// string
+						if (request.constructor === String && regex.test(request)) {
+							request = self.fixStringToId(request);
+						}
+					}
+					
+					return request;
 				}
 			}
 		};

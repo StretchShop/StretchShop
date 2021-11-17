@@ -19,4 +19,5 @@ resources/pages/
 copyToDemoData.sh
 .github
 *.log
+.temp/
 .temp/ipnlog.log
