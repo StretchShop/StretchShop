@@ -9,7 +9,7 @@ COPY package.json .
 
 RUN npm install npm@latest
 
-RUN npm install --silent --progress=false --production
+RUN npm install --silent --progress=false --production --ignore-scripts
 
 COPY . .
 
