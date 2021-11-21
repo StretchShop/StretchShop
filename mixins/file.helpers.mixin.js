@@ -95,7 +95,7 @@ module.exports = {
 			return new Promise(function(resolve, reject) {
 				fs.access(path, fs.constants.F_OK | fs.constants.R_OK, (err) => {
 					if (err) {
-						this.logger.error("mixins file.helpers - fileExists ("+path+") error:", err);
+						console.error("mixins file.helpers - fileExists ("+path+") error:", err);
 						reject(false);
 					}
 					resolve(true);
@@ -112,7 +112,7 @@ module.exports = {
 				let filepath = pathResolve(path);
 				fs.readFile(filepath, "utf8", (err, data) => {
 					if (err) { 
-						this.logger.error("mixins file.helpers - readFile ("+path+") error:", err);
+						console.error("mixins file.helpers - readFile ("+path+") error:", err);
 						reject(err);
 					}
 					resolve(data);

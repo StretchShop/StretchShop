@@ -76,7 +76,7 @@ module.exports = {
 				aliases: {
 					"POST /webhook/:supplier": "orders.paymentWebhookRaw",
 				},
-				onBeforeCall(ctx, route, req, res) {
+				onBeforeCall(ctx, route, req) {
 					// Set request headers to context meta
 					ctx.meta.rawbody = req.body.toString();
 					ctx.meta.headers = req.headers;

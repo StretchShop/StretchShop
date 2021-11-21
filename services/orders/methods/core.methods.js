@@ -91,6 +91,105 @@ module.exports = {
 		},
 
 
+
+		/**
+		 * Entrance action to get progress of active user order
+		 * 
+		 * @param {Object} ctx 
+		 * @param {Object} cart 
+		 * @param {Object} order 
+		 * @returns 
+		 */
+		getOrderProgressAction(ctx, cart, order) {
+			let updateResult = this.settings.emptyUpdateResult;
+
+			if ( order && order.status=="cart" ) {
+				// update order items
+				if ( cart.items ) {
+					order.items = cart.items;
+				}
+				// manage user if not exists
+				this.settings.orderErrors.userErrors = [];
+				this.logger.info("order.progress - ctx.params.orderParams: ", ctx.params.orderParams);
+				return this.manageUser(ctx)
+					.then(ctx => {  // promise for user
+						// run processOrder(orderParams) to proces user input and
+						// update order data according to it
+						this.settings.orderTemp = order;
+						updateResult = this.processOrder(ctx);
+						this.getAvailableOrderSettings();
+						this.logger.info("order.progress - cart order found updated (COFU):", updateResult, "\n\n");
+						// if no params (eg. only refreshed), return original order
+						if ( !ctx.params.orderParams || Object.keys(ctx.params.orderParams).length<1 ) {
+							let orderProcessedResult = {};
+							orderProcessedResult.order = order;
+							orderProcessedResult.result = updateResult;
+							if ( !updateResult.success ) {
+								orderProcessedResult.errors = this.settings.orderErrors;
+							}
+							return orderProcessedResult;
+						}
+						// if order check returns success, order can be saved
+						// otherwise remains in cart status
+						if ( updateResult.success ) {
+							this.settings.orderTemp.status = "saved";
+						}
+						// order ready to save and send - update order data in related variables
+						order = this.settings.orderTemp;
+						cart.order = order._id;
+						return ctx.call("cart.updateCartItemAmount", {cartId: cart._id, cart: cart})
+							.then(() => { //(cart2)
+								return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+									.then(orderUpdated => {
+										this.entityChanged("updated", orderUpdated, ctx);
+										// if order was processed with errors, add them to result for frontend
+										let orderProcessedResult = {};
+										orderProcessedResult.order = orderUpdated;
+										orderProcessedResult.result = updateResult;
+										if ( !updateResult.success ) {
+											orderProcessedResult.errors = this.settings.orderErrors;
+										} else {
+											// order was processed without errors, run afterSaveActions
+											orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
+										}
+										return orderProcessedResult;
+									});
+							});
+						// order updated
+					})
+					.catch(ctxWithUserError => {
+						this.logger.error("user error: ", ctxWithUserError);
+						return null;
+					});
+
+			} else { 
+				// cart has order id, but order with 'cart' status not found
+				this.logger.info("order.progress - orderId from cart not found");
+
+				if (
+					(
+						!this.settings.orderTemp.user ||
+						(typeof this.settings.orderTemp.user.id==="undefined" || this.settings.orderTemp.user.id===null || this.settings.orderTemp.user.id=="")
+					) &&
+					(ctx.params.orderParams.addresses && ctx.params.orderParams.addresses.invoiceAddress && ctx.params.orderParams.addresses.invoiceAddress.email)
+				) {
+					// create user if not found and return him in ctx
+					return this.manageUser(ctx)
+						.then(ctxWithUser => {  // promise #2
+							return this.createOrderAction(cart, ctxWithUser, this.adapter);
+						})
+						.catch(ctxWithUserError => {
+							this.logger.error("user error: ", ctxWithUserError);
+							return null;
+						});
+				} else { // default option, creates new order if none found
+					return this.createOrderAction(cart, ctx, this.adapter);
+				}
+			}
+		},
+
+
+
 		createOrderAction(cart, ctx, adapter){
 			let updateResult = this.settings.emptyUpdateResult;
 			let order = this.createEmptyOrder(ctx);
