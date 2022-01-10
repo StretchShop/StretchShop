@@ -328,24 +328,45 @@ module.exports = {
 				withDateEnd: withDateEnd
 			})
 				.then(resultDates => {
-					this.logger.info("payments.paypal1.mixin - updateSubscriptionAfterPaid resultDates", resultDates);
-					let historyRecord = {
-						action: "calculateDateOrderNext",
-						type: "user",
-						date: new Date(),
-						data: {
-							relatedOrder: null,
-							relatedData: resultDates
-						}
-					};
-					subscription.history.push(historyRecord);
+					this.logger.info("payments.paypal1.mixin - updateSubscriptionAfterPaid resultDates & payment codename && cycles", resultDates, subscription.data.order.data.paymentData.codename, subscription.cycles);
+					// if stripe subscription
+					if ( 
+						subscription.data.order.data.paymentData.codename === "online_stripe" && 
+						this.countSubscriptionPaidCycles(subscription.history).counter >= subscription.cycles
+					) {
+						let historyRecord = {
+							action: "stopped",
+							type: "system",
+							date: new Date(),
+							data: {
+								relatedOrder: null,
+								relatedData: null
+							}
+						};
+						subscription.history.push(historyRecord);
 
-					subscription.status = "active";
-					subscription.id = subscription._id.toString();
-					subscription.dates.dateOrderNext = resultDates.dateOrderNext;
-					if (resultDates.dateEnd && resultDates.dateEnd!==null) {
-						subscription.dates.dateEnd = resultDates.dateEnd;
+						subscription.status = "stopped";
+						subscription.dates.dateEnd = new Date();
+					} else {
+						let historyRecord = {
+							action: "calculateDateOrderNext",
+							type: "user",
+							date: new Date(),
+							data: {
+								relatedOrder: null,
+								relatedData: resultDates
+							}
+						};
+						subscription.history.push(historyRecord);
+	
+						subscription.status = "active";
+						subscription.dates.dateOrderNext = resultDates.dateOrderNext;
+						if (resultDates.dateEnd && resultDates.dateEnd!==null) {
+							subscription.dates.dateEnd = resultDates.dateEnd;
+						}
 					}
+					subscription.id = subscription._id.toString();
+					
 					delete subscription._id;
 
 					if (resultDates && resultDates.dateOrderNext && resultDates.dateEnd) {
@@ -396,16 +417,48 @@ module.exports = {
 					support_email: ctx.meta.siteSettings.supportEmail
 				}
 			};
-			this.logger.info("users.sendEmailPaymentReceivedSubscription() - preparing to send");
+			this.logger.info("subscription.methods sendEmailPaymentReceivedSubscription() - preparing to send");
 			// sending email
 			ctx.call("users.sendEmail", emailSetup)
 				.then(json => {
-					this.logger.info("users.sendEmailPaymentReceivedSubscription() - email sent:", json);
+					this.logger.info("subscription.methods sendEmailPaymentReceivedSubscription() - email sent:", json);
 				})
 				.catch(error => {
-					this.logger.error("users.sendEmailPaymentReceivedSubscription() - error:", error);
+					this.logger.error("subscription.methods sendEmailPaymentReceivedSubscription() - error:", error);
 				});
-		}
+		}, 
+
+
+		/**
+		 * 
+		 * @param {Array} history - array of history records
+		 * @returns 
+		 */
+		countSubscriptionPaidCycles(history) {
+			let paymentsCounter = 0;
+			let paymentsTotal = 0;
+			if (history && history.length > 0) {
+				history.forEach(h => {
+					if (h.action && h.action === "payment" && h.data.message) {
+						let paymentData = JSON.parse(h.data.message);
+						paymentsCounter++;
+						if (paymentData && paymentData.data.object && paymentData.data.object.total) {
+							paymentsTotal += paymentData.data.object.total;
+						}
+					}
+				});
+			}
+
+			this.logger.info("subscription.methods countSubscriptionPaidCycles() result:", {
+				counter: paymentsCounter,
+				total: paymentsTotal
+			});
+
+			return {
+				counter: paymentsCounter,
+				total: paymentsTotal
+			};
+		},
 
 
 

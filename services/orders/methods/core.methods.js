@@ -504,7 +504,7 @@ module.exports = {
 				self.logger.info("orders.manageUser() #1");
 				return new Promise(function(resolve) {
 					self.settings.orderTemp.user = ctx.meta.user;
-					ctx.params.orderParams.user = ctx.meta.user;
+					ctx.params.orderParams["user"] = ctx.meta.user;
 					resolve(ctx);
 				})
 					.then( (oldCtx) => {

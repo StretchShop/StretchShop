@@ -18,16 +18,20 @@ const businessSettings = require( resourcesDirectory+"/settings/business");
 
 
 /**
- * Product represents one product as definition with properties.
- * That means not as page, defined by url, that can group multiple products with
- * different properties, but as item, that has different properties than any
- * other product available. eg.:
- * Product #1 - T-shirt Jam - url: /t-shirt-jam-m-red - size M, color Red
- * Product #2 - T-shirt Jam - url: /t-shirt-jam-m-blue - size M, color Blue
- * Product #3 - T-shirt Jam - url: /t-shirt-jam-l-red - size L, color Red
- *
- * When loading url of detail product /t-shirt-jam all these three products will be loaded and
- * used for creating available options for ordering in front-end app.
+ * Product si represented by price and stock model.
+ * That means NOT as page defined by url.
+ * 
+ * It's up to business and stock model, if every property would have 
+ * its product and business keeps stock information about every variation:
+ * Product #1 - T-shirt Jam - url: /t-shirt-jam-m-red - size M, color Red (24 pcs in stock)
+ * Product #2 - T-shirt Jam - url: /t-shirt-jam-m-blue - size M, color Blue (12 pcs in stock)
+ * Product #3 - T-shirt Jam - url: /t-shirt-jam-l-red - size L, color Red (2 pcs in stock)
+ * 
+ * or if business doesn't keep track of available stock amount
+ * (in total or for specific variation)
+ * you can set one page for all product variations:
+ *  * Product #1 - T-shirt Jam - url: /t-shirt-jam - all sizes and colors
+ * In that case you should set properties for specific sizes and colors.
  * 
  * Product types can be: product, subscription, ...
  * Product subtypes can be: physical, digital, ... 
@@ -153,11 +157,13 @@ module.exports = {
 			cache: false,
 			handler(ctx) {
 				let filter = ctx.params;
-				this.logger.info("products.find filter:", filter);
 				let self = this;
+				this.logger.info("products.find filter before FRI:", JSON.stringify(filter));
 				this.fixRequestIds(filter);
+				this.logger.info("products.find filter after FRI:", JSON.stringify(filter));
 				return this.adapter.find(filter)
 					.then( results => {
+						this.logger.info("products.find results before:", results);
 						if (results && results.length>0) {
 							results.forEach(result => {
 								result = self.priceByUser(result, ctx.meta.user);

@@ -217,15 +217,6 @@ module.exports = {
 			process.env["test"] = "mrkva";
 			this.logger.error("process.env.test: ", process.env.test);
 
-			this.logger.info("api.authorize() visitor IP: ", req.connection.remoteAddress);
-			ctx.meta.remoteAddress = req.connection.remoteAddress;
-			ctx.meta.remotePort = req.connection.remotePort;
-			// update localsDefault according to cookie value if possible
-			ctx.meta.localsDefault = this.settings.localsDefault;
-			ctx.meta.mailSettings = this.settings.mailSettings;
-			ctx.meta.siteSettings = this.settings.siteSettings;
-			ctx.meta.siteSettings.translation = this.settings.translation;
-			ctx.meta.siteSettings.assets = this.settings.assets;
 			ctx.meta.headers = req.headers;
 			this.logger.info("api req.headers -------> ctx.meta.headers:", ctx.meta.headers);
 			this.cookiesManagement(ctx, route, req, res);

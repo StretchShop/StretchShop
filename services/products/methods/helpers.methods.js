@@ -36,7 +36,7 @@ module.exports = {
 				"$or": [ 
 					{ "activity.end": { "$exists": false } },
 					{ "activity.end": null },
-					{ "activity.end": { "$gte": new Date()} }
+					{ "activity.end": { "$gte": new Date() } }
 				]
 			});
 			query["$and"].push({

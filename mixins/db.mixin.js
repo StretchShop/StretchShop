@@ -42,12 +42,16 @@ module.exports = function(collection) {
 						// if request is object, look keys and fix any for _id
 						if ( request.constructor === Object && Object.keys(request).length > 0) {
 							Object.keys(request).forEach(k => {
-								if (idAnalysis && request[k].constructor === String && regex.test(request[k])) {
-									request[k] = self.fixStringToId(request[k]);
-								} else if (k === "_id") {
-									request[k] = self.fixRequestIds(request[k], true);
-								} else if (request[k].constructor === Array || request[k].constructor === Object ) {
-									request[k] = self.fixRequestIds(request[k], idAnalysis);
+								if (typeof request[k] !== "undefined" && request[k] !== null) {
+									if (idAnalysis && request[k].constructor === String && regex.test(request[k])) {
+										request[k] = self.fixStringToId(request[k]);
+									} else if (k === "_id") {
+										request[k] = self.fixRequestIds(request[k], true);
+									} else if (request[k].constructor === Array || request[k].constructor === Object ) {
+										request[k] = self.fixRequestIds(request[k], idAnalysis);
+									}
+								} else {
+									// delete request[k]; // if value is null
 								}
 							});
 						} else 

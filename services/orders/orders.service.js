@@ -218,6 +218,9 @@ module.exports = {
 				orderParams: { type: "object", optional: true },
 			},
 			handler(ctx) {
+				this.logger.info("order.progress - ctx.params: ", ctx.params);
+				ctx.params.orderParams = (typeof ctx.params.orderParams === "undefined" || !ctx.params.orderParams) ? {} : ctx.params.orderParams;
+				this.logger.info("order.progress - ctx.params.orderParams: ", ctx.params.orderParams);
 				// this.logger.info("orders.progress - ctx.meta: ", ctx.meta);
 				return ctx.call("cart.me")
 					.then(cart => {
@@ -226,7 +229,7 @@ module.exports = {
 							return this.adapter.findById(cart.order)
 								.then(order => {
 									this.logger.info("order.progress - Order Result:", order);
-									this.getOrderProgressAction(ctx, cart, order);
+									return this.getOrderProgressAction(ctx, cart, order);
 								}); // order found in db END
 
 						} else { // order does not exist, create it
