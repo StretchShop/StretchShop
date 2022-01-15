@@ -45,7 +45,7 @@ module.exports = {
 		 */
 		paymentWebhookRaw: {
 			handler(ctx) {
-				this.logger.info("orders.paymentWebhook service ctx.params:", typeof ctx.params.body, ctx.params );
+				// this.logger.info("orders.paymentWebhook service ctx.params:", typeof ctx.params.body, ctx.params );
 				if (!ctx.params) { ctx.params = { params: {} }; }
 				if (!ctx.params.params) { ctx.params.params = { supplier: "stripe" }; }
 				ctx.params.params["supplier"] = "stripe";
@@ -54,7 +54,7 @@ module.exports = {
 					return Promise.reject(new MoleculerClientError("Webhook error", 400, "", [{ field: "request body", message: "not found"}]));
 				}
 				
-				this.logger.info("orders.paymentWebhook service params:", ctx.params );
+				// this.logger.info("orders.paymentWebhook service params:", ctx.params );
 				
 				let supplier = ctx.params.params.supplier.toLowerCase();
 				let actionName = supplier+"Webhook";

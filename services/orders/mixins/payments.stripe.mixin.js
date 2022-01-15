@@ -66,7 +66,8 @@ module.exports = {
 				// get order data
 				return this.adapter.findById(ctx.params.orderId)
 					.then(order => {
-						if ( order ) {
+						if ( order && order.data && order.data.paymentData && 
+						typeof order.data.paymentData.paymentRequestId === "undefined" ) {
 							let paymentType = order.data.paymentData.codename.replace("online_stripe_","");
 
 							let items = [];
@@ -135,19 +136,41 @@ module.exports = {
 										"total": priceTotalNoSubscriptions
 									},
 									// "note_to_payer": "Order ID "+order._id,
-									"soft_descriptor": process.env.SITE_NAME.substr(0,22) // maximum length of accepted string
+									"soft_descriptor": process.env.SITE_NAME.substring(0,22) // maximum length of accepted string
 								}]
 							};
 							this.logger.info("payments.stripe.mixin stripeOrderCheckout payment / items / amount:", payment, payment.transactions[0].item_list.items, payment.transactions[0].amount);
 
 							return stripe.paymentIntents.create({
 								amount: priceTotalNoSubscriptions,
-								currency: order.prices.currency.code.toString().toLowerCase()
+								currency: order.prices.currency.code.toString().toLowerCase(),
+								payment_method_types: ["card"]
+								// automatic_payment_methods: {
+								// 	enabled: true,
+								// },
 							})
 								.then(pi => {
 									this.logger.info("payments.stripe.mixin stripeOrderPaymentintent pi:", pi);
+									if (pi && pi.id && pi.id.trim() !== "") {
+										order.data.paymentData["paymentRequestId"] = pi.id;
+										// define order.id for update action
+										order.id = order._id;
+										delete order._id;
+										return ctx.call("orders.update", { order: order })
+											.then(updatedOrder => {
+												this.logger.info("payments.stripe.mixin stripeOrderPaymentintent order.update:", updatedOrder);
+												return {
+													clientSecret: pi.client_secret
+												};
+											});
+									}
+								});
+						} else if ( order.data.paymentData.paymentRequestId ) { // else order 
+							return stripe.paymentIntents.retrieve(order.data.paymentData.paymentRequestId)
+								.then(pi => {
 									return {
-										clientSecret: pi.client_secret
+										clientSecret: pi.client_secret,
+										existing: true
 									};
 								});
 						} // if order
@@ -294,6 +317,8 @@ module.exports = {
 				let data = ctx.params.data;
 				if ( data.supplier ) { delete data.supplier; }
 
+				const self = this;
+
 				let stripeSignature = ctx.meta.headers["stripe-signature"];
 				this.logger.info("stripeWebhook ----- data :", typeof data, data);
 				this.logger.info("stripeWebhook ----- stripeSignature :", typeof stripeSignature, stripeSignature);
@@ -391,9 +416,60 @@ module.exports = {
 					break;
 				}
 
-				case "invoice.paid": { // payment received // previously payment_intent.succeeded
+				case "invoice.paid": { // subscription payment received
 					// const paymentIntent = event.data.object;
 					this.logger.info("WEBHOOK : "+ event.type +" ---------- DISABLED because of double action");
+					break;
+				}
+
+				case "payment_intent.succeeded": { // product payment received
+					const paymentIntent = event.data.object;
+					this.logger.info("WEBHOOK invoice.payment_succeeded: ", paymentIntent);
+					if ( paymentIntent && paymentIntent.id && paymentIntent.id.trim() !== "" ) {
+						return ctx.call("orders.find", {
+							"query": {
+								"data.paymentData.paymentRequestId": paymentIntent.id
+							}
+						})
+							.then(orders => {
+								if ( orders && orders.length>0 && orders[0] ) {
+									let order = orders[0];
+									if (order) {
+										// process payment data 
+										// and make order paid
+										// --
+										order.data.paymentData.lastDate = new Date();
+										// get amount paid in this payment
+										if (!order.data.paymentData.lastResponseResult) { 
+											order.data.paymentData["lastResponseResult"] = []; 
+										}
+										if (!order.data.paymentData.paidAmountTotal) { 
+											order.data.paymentData["paidAmountTotal"] = 0; 
+										}
+										order.data.paymentData.paidAmountTotal = paymentIntent.amount;
+										// add new payment record
+										order.data.paymentData.lastResponseResult.push(paymentIntent);
+										// get total amount paid
+										self.getPaidTotalStripe(order.data.paymentData);
+										
+										// calculate how much to pay
+										order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
+
+										// decide if set PAID status
+										if (order.prices.priceTotalToPay <= 0) {
+											order.status = "paid";
+											order.dates.datePaid = new Date();
+										}
+										self.logger.info("orders.stripeWebhook (payments.stripe.mixin) payment_intent.succeeded (PRODUCT PAID) - status, dates & paidAmountTotal:", order.status, order.dates, order.data.paymentData.paidAmountTotal );
+										// 
+										self.orderPaymentReceived(ctx, order, "online_stripe");
+									}
+								}
+							})
+							.catch((error) => {
+								self.logger.error("payments.stripe.mixin - stripeWebhook - find order error: ", error);
+							});
+					}
 					break;
 				}
 
@@ -928,18 +1004,28 @@ module.exports = {
 
 
 		/**
-		 * Count amount paid total for Stripe payments
+		 * Count amount paid total for Stripe subscription payments
 		 * 
 		 * @param {Object} paymentData - by reference
 		 */
 		getPaidTotalStripe(paymentData) {
 			// calculate total amount paid for Stripe
 			for ( let i=0; i<paymentData.lastResponseResult.length; i++ ) {
-				if (paymentData.lastResponseResult[i].status && 
-				paymentData.lastResponseResult[i].status == "paid" && 
-				paymentData.lastResponseResult[i].amount_paid) {
+				if ( // subscription (regular payments)
+					paymentData.lastResponseResult[i].status && 
+					paymentData.lastResponseResult[i].status == "paid" && 
+					paymentData.lastResponseResult[i].amount_paid
+				) {
 					paymentData.paidAmountTotal += parseFloat(
-						paymentData.lastResponseResult[i].amount_paid
+						paymentData.lastResponseResult[i].amount_paid / 100
+					);
+				} else if ( // paymentIntent (product)
+					paymentData.lastResponseResult[i].status && 
+					paymentData.lastResponseResult[i].status == "succeeded" && 
+					paymentData.lastResponseResult[i].amount_received
+				) {
+					paymentData.paidAmountTotal += parseFloat(
+						paymentData.lastResponseResult[i].amount_received / 100
 					);
 				}
 			}

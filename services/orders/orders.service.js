@@ -221,6 +221,13 @@ module.exports = {
 				this.logger.info("order.progress - ctx.params: ", ctx.params);
 				ctx.params.orderParams = (typeof ctx.params.orderParams === "undefined" || !ctx.params.orderParams) ? {} : ctx.params.orderParams;
 				this.logger.info("order.progress - ctx.params.orderParams: ", ctx.params.orderParams);
+				// remove stripeKey if forgotten
+				if (
+					ctx.params.orderParams && ctx.params.orderParams.settings && 
+					ctx.params.orderParams.settings.stripeKey
+				) {
+					delete ctx.params.orderParams.settings.stripeKey;
+				}
 				// this.logger.info("orders.progress - ctx.meta: ", ctx.meta);
 				return ctx.call("cart.me")
 					.then(cart => {
@@ -643,7 +650,7 @@ module.exports = {
 		}, 
 
 
-		invoiceGenerate: {
+		paid: {
 			cache: false,
 			auth: "required",
 			params: {
@@ -655,25 +662,21 @@ module.exports = {
 					if ( ctx.params.orderId.trim() != "" ) {
 						return this.adapter.findById(ctx.params.orderId)
 							.then(order => {
-								return this.generateInvoice(order, ctx)
-									.then(invoice => {
-										order.invoice["html"] = invoice.html;
-										order.invoice["path"] = invoice.path;
-										order.status = "paid";
-										order.dates.datePaid = new Date();
-										if (!order.data.paymentData.paidAmountTotal) { order.data.paymentData["paidAmountTotal"] = 0; }
-										order.data.paymentData.paidAmountTotal = order.prices.priceTotal;
-										if (!order.data.paymentData.lastResponseResult) { order.data.paymentData["lastResponseResult"] = []; }
-										order.data.paymentData.lastResponseResult.push({
-											description: "Marked as Paid by Admin by Generating Invoice",
-											date: new Date(),
-											userId: ctx.meta.user._id.toString()
-										});
-										return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-											.then(orderUpdated => {
-												this.entityChanged("updated", orderUpdated, ctx);
-												return orderUpdated.invoice;
-											});
+								// specific for admin
+								order.status = "paid";
+								order.dates.datePaid = new Date();
+								if (!order.data.paymentData.paidAmountTotal) { order.data.paymentData["paidAmountTotal"] = 0; }
+								order.data.paymentData.paidAmountTotal = order.prices.priceTotal;
+								if (!order.data.paymentData.lastResponseResult) { order.data.paymentData["lastResponseResult"] = []; }
+								order.data.paymentData.lastResponseResult.push({
+									description: "Marked as Paid by Admin by Generating Invoice",
+									date: new Date(),
+									userId: ctx.meta.user._id.toString()
+								});
+								// do actions that happen after payment
+								return this.orderPaymentReceived(ctx, order, "admin")
+									.then(result => {
+										return result;
 									});
 							});
 					}

@@ -69,7 +69,7 @@ module.exports = {
 		"POST /order/progress": "orders.progress",
 		"POST /order/list": "orders.listOrders",
 		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
-		"GET /order/invoice/generate/:orderId": "orders.invoiceGenerate",
+		"GET /order/invoice/pay/:orderId": "orders.paid",
 		"GET /order/invoice/cancel/:orderId": "orders.cancel",
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",

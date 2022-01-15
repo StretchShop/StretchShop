@@ -1453,6 +1453,21 @@ module.exports = {
 		},
 
 
+		orderPaymentReceived(ctx, order, paymentType) {
+			// order should already have updated amount paid in 
+			return this.generateInvoice(order, ctx)
+				.then(invoice => {
+					order.invoice["html"] = invoice.html;
+					order.invoice["path"] = invoice.path;
+					return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+						.then(orderUpdated => {
+							this.entityChanged("updated", orderUpdated, ctx);
+							return orderUpdated.invoice;
+						});
+				});
+		},
+
+
 		/**
 		 * 
 		 * @param {Object} order 
