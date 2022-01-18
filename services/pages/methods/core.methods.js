@@ -285,6 +285,11 @@ module.exports = {
 							"<!-- {{editor_WYSIWYG}} //-->",
 							"<div data-editable data-name=\"content\">"+page.data.blocks[0][ctx.params.lang]+"</div>"
 						);
+					} else {
+						result.body = result.body.replace(
+							"<!-- {{editor_WYSIWYG}} //-->",
+							""
+						);
 					}
 					// set page data into result
 					result.data = page;

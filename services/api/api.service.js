@@ -3,7 +3,7 @@
 require("dotenv").config();
 const _ = require("lodash");
 const ApiGateway = require("moleculer-web");
-const HelpersMixin = require("../mixins/helpers.mixin");
+const HelpersMixin = require("../../mixins/helpers.mixin");
 const Cookies = require("cookies");
 const crypto = require("crypto");
 const { UnAuthorizedError } = ApiGateway.Errors;
@@ -13,11 +13,11 @@ const path = require("path");
 const formidable = require("formidable");
 const util = require("util");
 
-const sppf = require("../mixins/subproject.helper");
-const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
+const sppf = require("../../mixins/subproject.helper");
+const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../resources");
 const localsDefault = require(resourcesDirectory+"/settings/locals-default");
 
-const apiV1 = require("../resources/routes/apiV1");
+const apiV1 = require("../../resources/routes/apiV1");
 
 module.exports = {
 	name: "api",
