@@ -98,6 +98,9 @@ module.exports = {
 			this.processUpload(req, res);
 		},
 
+		// Global
+		"POST /find": "api.globalSearch",
+
 		// Helpers
 		"POST /helpers/recaptcha": "users.recaptcha"
 	},

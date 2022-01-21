@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.5.7",
+  "version": "0.5.9",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "repository": {
@@ -56,7 +56,7 @@
     "moleculer-web": "^0.10.2",
     "nats": "^1.0.0",
     "ncp": "^2.0.0",
-    "node-fetch": ">=2.6.1",
+    "node-fetch": ">=2.6.7",
     "nodemailer": "^6.6.2",
     "paypal-rest-sdk": "^1.8.1",
     "pdfmake": "^0.2.0",

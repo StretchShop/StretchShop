@@ -14,7 +14,7 @@ const FileHelpers = require("../../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../../mixins/cache.cleaner.mixin");
 
 // methods
-const OrdersMethodsBasic = require("./methods/core.methods");
+const OrdersMethodsCore = require("./methods/core.methods");
 const OrdersMethodsHelpers = require("./methods/helpers.methods");
 const OrdersMethodsSubscription = require("./methods/subscription.methods");
 // service specific mixins
@@ -37,7 +37,7 @@ module.exports = {
 		priceLevels,
 		FileHelpers,
 		// methods
-		OrdersMethodsBasic,
+		OrdersMethodsCore,
 		OrdersMethodsHelpers,
 		OrdersMethodsSubscription,
 		// mixins
