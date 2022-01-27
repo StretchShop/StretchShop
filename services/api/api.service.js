@@ -183,7 +183,6 @@ module.exports = {
 				langs: { type: "array", items: "string", optional: true }
 			},
 			handler(ctx) {
-				console.log( "globalSearch: ", ctx.params, ctx.meta.localsDefault );
 				let promises = [];
 
 				let langs = [];
@@ -196,30 +195,23 @@ module.exports = {
 					langs = ctx.params.langs;
 				}
 
-				const query = this.buildGlobalSearchQuery(ctx.params.query, langs);
-
-				// return query;
+				const filter = this.buildGlobalSearchQuery(ctx.params.query, langs);
+				console.log("api.service - global search - filter:", filter);
 				
 				promises.push(
-					ctx.call("products.find", {
-						"query": query
-					})
+					ctx.call("products.find", filter)
 						.then((products) => {
 							return { products };
 						})
 				);
 				promises.push(
-					ctx.call("pages.find", {
-						"query": query
-					})
+					ctx.call("pages.find", filter)
 						.then((pages) => {
 							return { pages };
 						})
 				);
 				promises.push(
-					ctx.call("categories.find", {
-						"query": query
-					})
+					ctx.call("categories.find", filter)
 						.then((categories) => {
 							return { categories };
 						})
@@ -227,8 +219,17 @@ module.exports = {
 
 				return Promise.all(promises)
 					.then((values) => {
-						console.log("api.service - global search - values:", values);
-						return values;
+						let results = {};
+						if (values) {
+							values.forEach(v => {
+								if (v && v !== null && typeof v === "object") {
+									Object.keys(v).forEach(k => {
+										results[k] = v[k];
+									});
+								}
+							});
+						}
+						return results;
 					});
 			}
 		}

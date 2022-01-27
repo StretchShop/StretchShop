@@ -212,7 +212,6 @@ module.exports = {
 
 
 		buildGlobalSearchQuery(query, langs) {
-			console.log('buildGlobalSearchQuery:', query, langs);
 			let fields = [ "name", "descriptionShort", "descriptionLong" ];
 			let orArray = [];
 
@@ -226,7 +225,10 @@ module.exports = {
 				});
 			}
 
-			return { "$or": orArray };
+			return {
+				query: { "$or": orArray },
+				limit: 10
+			};
 		}
 
 
