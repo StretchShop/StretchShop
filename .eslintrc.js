@@ -3,7 +3,7 @@ module.exports = {
 	"env": {
 		"node": true,
 		"commonjs": true,
-		"es6": true,
+		"es8": true,
 		"jquery": false,
 		"jest": true,
 		"jasmine": true

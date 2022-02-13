@@ -75,7 +75,8 @@ module.exports = {
 					url: process.env.ASSETS_URL
 				},
 				business: businessSettings.invoiceData.company,
-				taxData: businessSettings.taxData.global
+				taxData: businessSettings.taxData.global,
+				editableSettings: (typeof businessSettings.editableSettings !== "undefined" && businessSettings.editableSettings === true) ? true : false
 			};
 
 			return coreData;

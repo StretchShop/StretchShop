@@ -25,10 +25,9 @@ describe("Test 'subscription' service", () => {
 	// Test Update Cart - eg. after getting order id
 	describe("Test 'orders.progress' action", () => {
 
-		it("should return Array of save Orders", async () => {
+		it("should return Object of saved Orders", async () => {
 			const res = await broker.call("orders.progress", {
-				itemId: "5c8183d176feb5cd4f7573ff",
-				amount: 1
+				// cart state
 			})
 			.then(cart => {
 				cart.order = "ORDR1234567";
