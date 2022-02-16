@@ -1,8 +1,6 @@
 "use strict";
 
-const sppf = require("../mixins/subproject.helper");
-const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
-const businessSettings = require( resourcesDirectory+"/settings/business");
+const SettingsMixin = require("../mixins/settings.mixin");
 
 module.exports = {
 	methods: {
@@ -16,11 +14,8 @@ module.exports = {
 		 * @returns {Boolean} if usertype is valid
 		 */
 		isValidUsertype(usertype) {
-			if (businessSettings && businessSettings.priceLevels && 
-				businessSettings.priceLevels.validTypes && 
-				businessSettings.priceLevels.validTypes.userTypes && 
-				businessSettings.priceLevels.validTypes.userTypes.indexOf(usertype)>-1 
-			) {
+			const business = SettingsMixin.getSiteSettings('business')
+			if ( business?.priceLevels?.validTypes?.userTypes?.indexOf(usertype)>-1 ) {
 				return true;
 			}
 			return false;

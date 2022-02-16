@@ -34,7 +34,8 @@ module.exports = {
 	taxData: {
 		global: {
 			taxDecimal: 0.2, // 
-			taxType: "VAT" // VAT - tax included in price, IT - tax not included
+			taxType: "VAT",
+			taxTypes: ["VAT", "IT"] // VAT - tax included in price, IT - tax not included
 		}
 	},
 	priceLevels: {
@@ -60,5 +61,6 @@ module.exports = {
 		products: {
 			default: "price"
 		}
-	}
+	},
+	editableSettings: true
 };

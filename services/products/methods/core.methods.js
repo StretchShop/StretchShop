@@ -4,10 +4,7 @@ const { MoleculerClientError } = require("moleculer").Errors;
 const slug = require("slug");
 
 const priceLevels = require("../../../mixins/price.levels.mixin");
-
-const sppf = require("../../../mixins/subproject.helper");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../../resources");
-const businessSettings = require( resourcesDirectory+"/settings/business");
+const SettingsMixin = require("../../../mixins/settings.mixin");
 
 
 module.exports = {
@@ -217,7 +214,7 @@ module.exports = {
 					found = this.priceByUser(found, ctx.meta.user, edit);
 					// get taxData for product
 					if (!found["taxData"]) {
-						found["taxData"] = businessSettings.taxData.global;
+						found["taxData"] = SettingsMixin.getSiteSettings('business')?.taxData?.global;
 					}
 					// categories
 					if (found.categories.length>0) {

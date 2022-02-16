@@ -12,6 +12,7 @@ const HelpersMixin = require("../../mixins/helpers.mixin");
 const priceLevels = require("../../mixins/price.levels.mixin");
 const FileHelpers = require("../../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../../mixins/cache.cleaner.mixin");
+const SettingsMixin = require("../../mixins/settings.mixin");
 
 // methods
 const OrdersMethodsCore = require("./methods/core.methods");
@@ -25,7 +26,6 @@ const paymentsStripe = require("./mixins/payments.stripe.mixin");
 // settings
 const sppf = require("../../mixins/subproject.helper");
 let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../resources");
-const orderSettings = require(resourcesDirectory+"/settings/orders");
 
 
 
@@ -183,7 +183,7 @@ module.exports = {
 			tax: 0.2
 		},
 
-		order: orderSettings,
+		order: SettingsMixin.getSiteSettings('orders'),
 
 		orderTemp: {},
 		orderErrors: {

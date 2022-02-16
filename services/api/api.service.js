@@ -9,15 +9,16 @@ const path = require("path");
 
 // global mixins
 const HelpersMixin = require("../../mixins/helpers.mixin");
+const SettingsMixin = require("../../mixins/settings.mixin");
 
 // methods
 const ApiMethodsCore = require("./methods/core.methods");
 const ApiMethodsHelpers = require("./methods/helpers.methods");
+const ApiMethodsSettings = require("./methods/settings.methods");
 
 // settings
 const sppf = require("../../mixins/subproject.helper");
 const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../resources");
-const localsDefault = require(resourcesDirectory+"/settings/locals-default");
 // API routes
 const apiV1 = require("../../resources/routes/apiV1");
 
@@ -27,9 +28,11 @@ module.exports = {
 	mixins: [
 		ApiGateway, 
 		HelpersMixin,
+		SettingsMixin,
 		// methods
 		ApiMethodsCore,
-		ApiMethodsHelpers
+		ApiMethodsHelpers,
+		ApiMethodsSettings
 	],
 
 	settings: {
@@ -131,7 +134,7 @@ module.exports = {
 			folder: process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public")
 		},
 
-		localsDefault: localsDefault,
+		localsDefault: SettingsMixin.getSiteSettings('locals'),
 
 		translation: {
 			type: "jamlin",
@@ -186,7 +189,7 @@ module.exports = {
 				let promises = [];
 
 				let langs = [];
-				ctx.meta.localsDefault.langs.forEach(l => {
+				ctx.meta.localsDefault?.langs?.forEach(l => {
 					if (l.code) {
 						langs.push(l.code);
 					}
@@ -231,6 +234,33 @@ module.exports = {
 						}
 						return results;
 					});
+			}
+		},
+
+
+		settings: {
+			cache: false,
+			auth: "required",
+			params: {
+				type: { type: "string", min: 3 },
+				data: { type: "object", optional: true }
+			},
+			handler(ctx) {
+				// if user is admin and settings are editable
+				const business = SettingsMixin.getSiteSettings('business', true);
+				this.logger.info('settings: ', business,  ctx.meta.user.type=="admin", 
+				business.editableSettings !== "undefined", 
+				business.editableSettings === true);
+				if ( ctx.meta.user.type=="admin" && 
+				business.editableSettings !== "undefined" && 
+				business.editableSettings === true ) {
+					// if data is set, update and return
+					if (typeof ctx.params.data !== "undefined" && ctx.params.data.constructor === Object) {
+
+					} else { // if data not set, just return setting
+						return SettingsMixin.getSiteSettings(ctx.params.type);
+					}
+				}
 			}
 		}
 

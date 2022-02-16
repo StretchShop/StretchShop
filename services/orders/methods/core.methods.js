@@ -18,10 +18,7 @@ let { window } = new JSDOM("");
 
 const pathResolve = require("path").resolve;
 
-
-const sppf = require("../../../mixins/subproject.helper");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../../resources");
-const businessSettings = require( resourcesDirectory+"/settings/business");
+const SettingsMixin = require("../../../mixins/settings.mixin");
 
 
 module.exports = {
@@ -66,7 +63,7 @@ module.exports = {
 				},
 				"prices": {
 					"currency": this.getValueByCode(ctx.meta.localsDefault.currencies, ctx.meta.localsDefault.currency),
-					"taxData": businessSettings.taxData.global,
+					"taxData": SettingsMixin.getSiteSettings('business')?.taxData?.global,
 					"priceTotal": null,
 					"priceTotalNoTax": null,
 					"priceItems": null,
@@ -598,6 +595,7 @@ module.exports = {
 		checkOrderData() {
 			this.settings.orderErrors.orderErrors = [];
 			let self = this;
+			const businessSettings = SettingsMixin.getSiteSettings('business');
 
 			// get order item types and subtypes - itemsTypology
 			let itemsTypology = { types: [], subtypes: [] };
@@ -791,6 +789,8 @@ module.exports = {
 			let calcTypes = ["all", "items", "totals"];
 			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
 			specification = typeof specification !== "undefined" ?  specification : null;
+
+			const businessSettings = SettingsMixin.getSiteSettings('business');
 			
 			let orderFromParam = true;
 			if ( typeof order == "undefined" ) {
@@ -1260,7 +1260,7 @@ module.exports = {
 						}
 						let data = {
 							order: order, 
-							business: businessSettings
+							business: SettingsMixin.getSiteSettings('business')
 						};
 						data = this.prepareDataForTemplate(data);
 						html = template(data);
@@ -1342,7 +1342,7 @@ module.exports = {
 		 * @param {*} date 
 		 */
 		generateInvoiceNumber(newInvoiceNum, date) {
-			let eshopNumberCode = businessSettings.invoiceData.eshop.numberCodePrefix;
+			let eshopNumberCode = SettingsMixin.getSiteSettings('business')?.invoiceData?.eshop?.numberCodePrefix;
 			let newInvoiceNumBase = date.getFullYear()*100 + (date.getMonth()+1); // 4 + 2 chars
 			let zerosAppend = 9 - newInvoiceNumBase.toString().length;
 			let zeros = "";

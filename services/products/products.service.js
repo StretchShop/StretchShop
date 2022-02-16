@@ -7,14 +7,12 @@ const DbService = require("../../mixins/db.mixin");
 const CacheCleanerMixin = require("../../mixins/cache.cleaner.mixin");
 const HelpersMixin = require("../../mixins/helpers.mixin");
 const priceLevels = require("../../mixins/price.levels.mixin");
+const SettingsMixin = require("../../mixins/settings.mixin");
 
 // methods
 const ProductsMethodsCore = require("./methods/core.methods");
 const ProductsMethodsHelpers = require("./methods/helpers.methods");
 
-const sppf = require("../../mixins/subproject.helper");
-const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../resources");
-const businessSettings = require( resourcesDirectory+"/settings/business");
 
 
 /**
@@ -167,7 +165,10 @@ module.exports = {
 						if (results && results.length>0) {
 							results.forEach(result => {
 								result = self.priceByUser(result, ctx.meta.user);
-								result = self.getProductTaxData(result, businessSettings.taxData);
+								result = self.getProductTaxData(
+									result, 
+									SettingsMixin.getSiteSettings('business')?.taxData
+								);
 							});
 						}
 						this.logger.info("products.find results after:", results);
@@ -213,7 +214,7 @@ module.exports = {
 							if ( categoriesToListProductsIn.length<1 ) {
 								categoriesToListProductsIn = [categoriesToListProductsIn];
 							}
-							category["taxData"] = businessSettings.taxData.global;
+							category["taxData"] = SettingsMixin.getSiteSettings('business')?.taxData?.global;
 
 							// fix filter if needed
 							let filter = { query: {}, limit: 100};
@@ -410,7 +411,10 @@ module.exports = {
 						if (results && results.length>0) {
 							results.forEach(result => {
 								result = self.priceByUser(result, ctx.meta.user);
-								result = self.getProductTaxData(result, businessSettings.taxData);
+								result = self.getProductTaxData(
+									result, 
+									SettingsMixin.getSiteSettings('business')?.taxData
+								);
 							});
 						}
 						return results;

@@ -6,11 +6,7 @@ const bcrypt 		= require("bcryptjs");
 const jwt 			= require("jsonwebtoken");
 
 // settings
-const sppf = require("../../../mixins/subproject.helper");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../../resources");
-const NavigationMain = require(resourcesDirectory+"/navigation/navigation-main");
-const NavigationFooter = require(resourcesDirectory+"/navigation/navigation-footer");
-const businessSettings = require( resourcesDirectory+"/settings/business");
+const SettingsMixin = require("../../../mixins/settings.mixin");
 
 
 module.exports = {
@@ -23,6 +19,8 @@ module.exports = {
 
 		getCoreDataBase(ctx) {
 			let coreData = ctx.meta.localsDefault;
+			const businessSettings = SettingsMixin.getSiteSettings('business');
+
 			// set full lang
 			if ( coreData.lang && coreData.langs ) {
 				for (let i = 0; i<coreData.langs.length; i++) {
@@ -55,8 +53,8 @@ module.exports = {
 			}
 
 			coreData.navigation = { 
-				main: NavigationMain,
-				footer: NavigationFooter
+				main: SettingsMixin.getSiteSettings('navigation-main'),
+				footer: SettingsMixin.getSiteSettings('navigation-footer')
 			};
 
 			// get lang from translLang if set

@@ -1,9 +1,6 @@
 "use strict";
 
 const fs = require("fs-extra");
-// const sppf = require("../../../mixins/subproject.helper");
-// let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../../resources");
-// const businessSettings = require( resourcesDirectory+"/settings/business");
 
 
 module.exports = {

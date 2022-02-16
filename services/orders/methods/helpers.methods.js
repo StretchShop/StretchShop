@@ -2,9 +2,7 @@
 
 const jwt	= require("jsonwebtoken");
 
-const sppf = require("../../../mixins/subproject.helper");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../../resources");
-const businessSettings = require( resourcesDirectory+"/settings/business");
+const SettingsMixin = require("../../../mixins/settings.mixin");
 
 
 module.exports = {
@@ -63,7 +61,7 @@ module.exports = {
 			for(let i=0; i<data.order.items.length; i++) {
 				data.order.items[i] = this.getProductTaxData(
 					data.order.items[i], 
-					businessSettings.taxData.global
+					SettingsMixin.getSiteSettings('business')?.taxData?.global
 				);
 				data.order.items[i].nameReady = data.order.items[i].name[lang];
 				data.order.items[i].itemTotal = data.order.items[i].taxData.priceWithTax * data.order.items[i].amount;

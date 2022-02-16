@@ -1,9 +1,6 @@
 "use strict";
 
-
-const sppf = require("../../../mixins/subproject.helper");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../../resources");
-const businessSettings = require( resourcesDirectory+"/settings/business");
+const SettingsMixin = require("../../../mixins/settings.mixin");
 
 
 module.exports = {
@@ -57,7 +54,7 @@ module.exports = {
 		 * @returns {*} filter
 		 */
 		getFilterSort(filter, ctx) {
-			filter.sort = businessSettings.sorting.products.default; // default
+			filter.sort = SettingsMixin.getSiteSettings('business')?.sorting?.products?.default; // default
 			if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
 				// if applicable, get sort from request
 				filter.sort = ctx.params.sort;

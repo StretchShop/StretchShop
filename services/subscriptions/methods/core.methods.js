@@ -2,10 +2,6 @@
 
 const { MoleculerClientError } = require("moleculer").Errors;
 
-const sppf = require("../../../mixins/subproject.helper");
-let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../../resources");
-const businessSettings = require( resourcesDirectory+"/settings/business");
-
 
 module.exports = {
 
