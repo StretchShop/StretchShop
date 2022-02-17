@@ -19,10 +19,76 @@ const validSettingTypes = [
   'navigation-footer'
 ];
 
+let settings = {
+  orders: null,
+  locals: null,
+  business: null
+};
+let navigation = {
+  main: null,
+  footer: null
+}
+
 
 module.exports = {
   getSiteSettings(type, internal) {
     internal = (typeof internal !== "undefined" && internal === true) ? internal : false;
+    if (validSettingTypes.indexOf(type) > -1) {
+      let result = {};
+
+      switch (type) {
+        case 'orders':
+          result = this.getLatestData(type, 'settings');
+          break;
+        case 'locals':
+          result = this.getLatestData(type, 'settings');
+          break;
+        case 'navigation-main':
+          result = this.getLatestData(type, 'navigation');
+          break;
+        case 'navigation-footer':
+          result = this.getLatestData(type, 'navigation');
+          break;
+        default: // aka 'business'
+          result = this.getLatestData(type, 'settings');
+          result = {...result};
+          if (!internal) { 
+            delete result.editableSettings;
+          }
+          break;
+      }
+
+      return result;
+    }
+    
+    return null;
+  },
+
+
+
+  getLatestData(type, group) {
+    let result = null;
+
+    let settingsTemp = settings;
+    if (group === "navigation") {
+      settingsTemp = navigation;
+    }
+
+    if ( typeof settingsTemp[type] !== "undefined" && settingsTemp[type] !== null) {
+      console.log(" -----> loading CACHED settings");
+      result = {...settingsTemp[type]};
+    } else {
+      console.log(" -----> loading ORIG settings");
+      settingsTemp[type] = this.getOriginalSiteSettings(type);
+      result = settingsTemp[type];
+    }
+
+    return result;
+  },
+
+
+
+  getOriginalSiteSettings(type) {
     if (validSettingTypes.indexOf(type) > -1) {
       let result = {};
 
@@ -41,9 +107,6 @@ module.exports = {
           break;
         default: // aka 'business'
           result = {...settingsBusiness};
-          if (!internal) { 
-            delete result.editableSettings;
-          }
           break;
       }
 
