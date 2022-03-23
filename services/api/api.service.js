@@ -242,6 +242,27 @@ module.exports = {
 			cache: false,
 			auth: "required",
 			params: {
+				type: { type: "string", min: 3 }
+			},
+			handler(ctx) {
+				// if user is admin and settings are editable
+				const business = SettingsMixin.getSiteSettings('business', true);
+				this.logger.info('settings: ', business,  ctx.meta.user.type=="admin", 
+				business.editableSettings !== "undefined", 
+				business.editableSettings === true, ctx);
+				if ( ctx.meta.user.type=="admin" && 
+				business.editableSettings !== "undefined" && 
+				business.editableSettings === true ) {
+					return SettingsMixin.getSiteSettings(ctx.params.type);
+				}
+			}
+		},
+
+
+		settingsUpdate: {
+			cache: false,
+			auth: "required",
+			params: {
 				type: { type: "string", min: 3 },
 				data: { type: "object", optional: true }
 			},
@@ -250,13 +271,13 @@ module.exports = {
 				const business = SettingsMixin.getSiteSettings('business', true);
 				this.logger.info('settings: ', business,  ctx.meta.user.type=="admin", 
 				business.editableSettings !== "undefined", 
-				business.editableSettings === true);
+				business.editableSettings === true, ctx);
 				if ( ctx.meta.user.type=="admin" && 
 				business.editableSettings !== "undefined" && 
 				business.editableSettings === true ) {
 					// if data is set, update and return
 					if (typeof ctx.params.data !== "undefined" && ctx.params.data.constructor === Object) {
-
+						return SettingsMixin.setSiteSettings(ctx.params.type, ctx.params.data);
 					} else { // if data not set, just return setting
 						return SettingsMixin.getSiteSettings(ctx.params.type);
 					}

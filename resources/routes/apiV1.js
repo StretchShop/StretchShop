@@ -101,6 +101,7 @@ module.exports = {
 		// Global
 		"POST /find": "api.globalSearch",
 		"POST /settings": "api.settings",
+		"PUT /settings": "api.settingsUpdate",
 
 		// Helpers
 		"POST /helpers/recaptcha": "users.recaptcha"
