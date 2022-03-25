@@ -131,7 +131,7 @@
 				"code":"us"
 		 }
 	],
-	"currency":"EUR", // currency codes only in internationaly accepted format, that is accepted by PayPal
+	"currency":"EUR",
 	"currencies":[
 		 {
 				"code":"EUR",

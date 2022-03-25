@@ -27,7 +27,7 @@
      "global":{
         "taxDecimal":0.2,
         "taxType":"VAT",
-        "taxTypes":[ // VAT - tax included in price, IT - tax not included
+        "taxTypes":[
            "VAT",
            "IT"
         ]
@@ -42,12 +42,12 @@
         ]
      },
      "discounts":{
-        "user.partner":{ // defined as usertype.usersubtype
-           "type":"percent", // percent / amount with +/-
+        "user.partner":{
+           "type":"percent",
            "value":-5
         },
-        "admin.partner":{ // defined as usertype.usersubtype
-           "type":"percent", // percent / amount with +/-
+        "admin.partner":{
+           "type":"percent",
            "value":-10
         }
      }

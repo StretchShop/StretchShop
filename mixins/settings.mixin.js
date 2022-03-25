@@ -55,7 +55,7 @@ module.exports = {
     return result;
   },
 
-  
+
   /**
    * 
    * @param {String} type 
@@ -111,10 +111,10 @@ module.exports = {
     }
 
     if ( typeof settingsTemp[type] !== "undefined" && settingsTemp[type] !== null) {
-      console.log(" -----> loading CACHED settings");
+      this.logger.info(" -----> loading CACHED settings");
       result = {...settingsTemp[type]};
     } else {
-      console.log(" -----> loading ORIG settings");
+      this.logger.info(" -----> loading ORIG settings");
       settingsTemp[type] = this.getOriginalSiteSettings(type);
       result = settingsTemp[type];
     }
@@ -129,10 +129,9 @@ module.exports = {
    * @returns {Promise}
    */
   readSettingFileSync(type) {
-    const path = resourcesDirectory + "/" + this.getTypeGroup(type) + "/" + type + ".jsonc"
+    const path = resourcesDirectory + "/" + this.getTypeGroup(type) + "/" + type + ".json"
 
     try {
-      console.log('xxxxxx ->>>:', path);
       // read json file into string
       let data = fs.readFileSync(path).toString();
       // replace comments
@@ -141,7 +140,7 @@ module.exports = {
       data = JSON.parse(data);
       return data;
     } catch (err) {
-      console.error("readSettingFileSync: ", err);
+      this.logger.error("settings.mixin readSettingFileSync readFileSync error: ", err);
     }
     
   },
@@ -173,7 +172,7 @@ module.exports = {
       try {
         data = JSON.stringify(JSON.parse(data));
       } catch (e) {
-        console.error('settings.mixin setSiteSettings JSON error: ', e);
+        this.logger.error('settings.mixin setSiteSettings JSON error: ', e);
       }
 
       return this.updateSettings(type, this.getTypeGroup(type), data);
@@ -198,47 +197,60 @@ module.exports = {
 
 
   updateSettingsFile(type, group, data) {
-    let dataStringified = JSON.stringify(data, null, 2);
-    /* remove double quotes (") from parameters (have colon : after)
-    but only if name of parameter doesn't contain dot (.) */
-    const dataReady = dataStringified.replace(/"([^".]+)":/g, '$1:');
-    const path = resourcesDirectory + "/" + group + "/" + type + ".jsonc"
-    console.log("_____ path:", path);
+    data = this.removeDynamicData(type, data);
+    const newContent = JSON.stringify(data, null, 2);
+    const path = resourcesDirectory + "/" + group + "/" + type + ".json"
+    this.logger.info("_____ path:", path);
 
-    fs.readFile(path)
-    .then(file => {
-      file = file.toString();
-      console.log("_____ file:", file);
-      if (file && file.indexOf("module.exports") > -1) {
-        let fileSplit = file.split("module.exports");
-        if (fileSplit && fileSplit[0]) {
-          return [
-            fileSplit[0] + "module.exports = ",
-            "",
-            ";\n"
-          ]
-        }
-      }
-      return null;
-    })
-    .then(readed => {
-      if (readed.constructor === Array && readed.length === 3) {
-        readed[1] = dataReady;
-        const newContent = readed.join("");
-        return fs.writeFile(path, newContent)
-        .then(result => {
-          return result;
-        })
-        .catch(err => {
-          this.logger.error('settings.mixin updateSettingsFile write error: ', error);
-        });
-      } else {
-
-      }
+    return fs.writeFile(path, newContent)
+    .then(result => {
+      return result;
     })
     .catch(err => {
-      console.error("settings.mixin updateSettingsFile error:", err);
+      this.logger.error('settings.mixin updateSettingsFile write error: ', error);
     });
-    
+  },
+
+
+  /**
+   * Add dynamic data to selected setting types
+   * 
+   * @param {String} type 
+   * @param {Object} data 
+   * @returns {Object}
+   */
+  addDynamicData(type, data) {
+    if (type === 'orders') {
+      if (data.sendingOrder) {
+        data.sendingOrder = {
+          "url": process.env.SENDING_ORDER_URL,
+          "port": process.env.SENDING_ORDER_PORT,
+          "login": process.env.SENDING_ORDER_LOGIN,
+          "password": process.env.SENDING_ORDER_PWD
+        }
+      }
+    }
+    return data;
+  },
+  /**
+   * Remove dynamic data from selected setting types
+   * 
+   * @param {String} type 
+   * @param {Object} data 
+   * @returns {Object}
+   */
+  removeDynamicData(type, data) {
+    if (type === 'orders') {
+      if (data.sendingOrder) {
+        data.sendingOrder = {
+          "url": null,
+          "port": null,
+          "login": null,
+          "password": null
+        }
+      }
+    }
+    return data;
   }
+
 }

@@ -8,7 +8,7 @@
 	"deliveryMethods":[
 		 {
 				"codename":"personaly",
-				"type":"physical", // use if cart has ALSO physical product
+				"type":"physical",
 				"name":{
 					 "en":"Personaly on Branch",
 					 "sk":"Osobne na Pobočke"
@@ -26,7 +26,7 @@
 		 },
 		 {
 				"codename":"courier",
-				"type":"physical", // use if cart has ALSO physical product
+				"type":"physical",
 				"name":{
 					 "en":"Courier",
 					 "sk":"Kuriér"
@@ -51,7 +51,7 @@
 		 },
 		 {
 				"codename":"download",
-				"type":"digital", // use if cart has ALSO digital product
+				"type":"digital",
 				"name":{
 					 "en":"Download",
 					 "sk":"Stiahnuť"
@@ -78,7 +78,7 @@
 	"paymentMethods":[
 		 {
 				"codename":"cod",
-				"type":"physical", // show if cart has ONLY the physical products
+				"type":"physical",
 				"name":{
 					 "en":"Cash On Delivery",
 					 "sk":"Platba Pri Doručení"
@@ -102,7 +102,7 @@
 					 }
 				]
 		 },
-		 {  // show if cart has any subtype of products
+		 { 
 				"codename":"online_paypal_paypal",
 				"name":{
 					 "en":"Pay online with Paypal (Card, PayPal)",
@@ -126,7 +126,7 @@
 					 }
 				]
 		 },
-		 {  // show if cart has any subtype of products
+		 { 
 				"codename":"online_stripe",
 				"name":{
 					 "en":"Pay online with Stripe (Card, PayPal)",

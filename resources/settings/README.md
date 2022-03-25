@@ -1,0 +1,1 @@
+Check https://github.com/StretchShop/StretchShop/wiki/Settings for more information about settings
