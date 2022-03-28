@@ -45,7 +45,7 @@ module.exports = function(emailTemplateName, inputData, requiredFormats){
 					return result;
 				})
 				.catch(error => {
-					this.logger.error("email.mixin - email template ERROR:", error);
+					console.error("email.mixin - email template ERROR:", error);
 				})); // push with findOne end
 	});
 

@@ -111,10 +111,10 @@ module.exports = {
     }
 
     if ( typeof settingsTemp[type] !== "undefined" && settingsTemp[type] !== null) {
-      this.logger.info(" -----> loading CACHED settings");
+      console.log(" -----> loading CACHED settings");
       result = {...settingsTemp[type]};
     } else {
-      this.logger.info(" -----> loading ORIG settings");
+      console.log(" -----> loading ORIG settings");
       settingsTemp[type] = this.getOriginalSiteSettings(type);
       result = settingsTemp[type];
     }
@@ -140,7 +140,7 @@ module.exports = {
       data = JSON.parse(data);
       return data;
     } catch (err) {
-      this.logger.error("settings.mixin readSettingFileSync readFileSync error: ", err);
+      console.error("settings.mixin readSettingFileSync readFileSync error: ", err);
     }
     
   },
@@ -168,11 +168,10 @@ module.exports = {
    */
   setSiteSettings(type, data) {
     if (validSettingTypes.indexOf(type) > -1) {
-      let result = false;
       try {
-        data = JSON.stringify(JSON.parse(data));
+        data = JSON.parse(JSON.stringify(data));
       } catch (e) {
-        this.logger.error('settings.mixin setSiteSettings JSON error: ', e);
+        console.error('settings.mixin setSiteSettings JSON error: ', e);
       }
 
       return this.updateSettings(type, this.getTypeGroup(type), data);
@@ -184,30 +183,24 @@ module.exports = {
 
 
   updateSettings(type, group, data) {
-    if (group === 'settings' && settings[type]) {
-      // update variable
-      settings[type] = {...settings[type], ...data};
-      return this.updateSettingsFile(type, group, settings[type]);
-    } else if (group === 'navigation' && navigation[type]) {
-      // update variable
-      settings[type] = {...settings[type], ...data};
-      return this.updateSettingsFile(type, group, settings[type]);
-    }
+    // update variable
+    settings[type] = {...settings[type], ...data};
+    return this.updateSettingsFile(type, group, settings[type]);
   },
+
 
 
   updateSettingsFile(type, group, data) {
     data = this.removeDynamicData(type, data);
-    const newContent = JSON.stringify(data, null, 2);
     const path = resourcesDirectory + "/" + group + "/" + type + ".json"
-    this.logger.info("_____ path:", path);
+    console.log("settings.mixin updateSettingsFile path:", path);
 
-    return fs.writeFile(path, newContent)
-    .then(result => {
-      return result;
+    return fs.writeJson(path, data, { spaces: 2 })
+    .then(() => {
+      return data;
     })
     .catch(err => {
-      this.logger.error('settings.mixin updateSettingsFile write error: ', error);
+      console.error('settings.mixin updateSettingsFile write error: ', err);
     });
   },
 
