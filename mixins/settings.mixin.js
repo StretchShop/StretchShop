@@ -89,6 +89,8 @@ module.exports = {
           break;
       }
 
+      result = this.removeDynamicData(type, result);
+
       return result;
     }
     
@@ -181,7 +183,14 @@ module.exports = {
   },
 
 
-
+  /**
+   * Update variables and file with new data
+   * 
+   * @param {String} type 
+   * @param {String} group 
+   * @param {Object} data 
+   * @returns {Promise}
+   */
   updateSettings(type, group, data) {
     // update variable
     settings[type] = {...settings[type], ...data};
@@ -189,15 +198,22 @@ module.exports = {
   },
 
 
-
+  /**
+   * Update file with new data
+   * 
+   * @param {String} type 
+   * @param {String} group 
+   * @param {Object} data 
+   * @returns {Promise}
+   */
   updateSettingsFile(type, group, data) {
-    data = this.removeDynamicData(type, data);
+    data = this.addDynamicData(type, data);
     const path = resourcesDirectory + "/" + group + "/" + type + ".json"
     console.log("settings.mixin updateSettingsFile path:", path);
 
     return fs.writeJson(path, data, { spaces: 2 })
     .then(() => {
-      return data;
+      return this.removeDynamicData(type, data);
     })
     .catch(err => {
       console.error('settings.mixin updateSettingsFile write error: ', err);
@@ -214,14 +230,20 @@ module.exports = {
    */
   addDynamicData(type, data) {
     if (type === 'orders') {
-      if (data.sendingOrder) {
-        data.sendingOrder = {
-          "url": process.env.SENDING_ORDER_URL,
-          "port": process.env.SENDING_ORDER_PORT,
-          "login": process.env.SENDING_ORDER_LOGIN,
-          "password": process.env.SENDING_ORDER_PWD
-        }
-      }
+      data.sendingOrder = {
+        "url": process.env.SENDING_ORDER_URL,
+        "port": process.env.SENDING_ORDER_PORT,
+        "login": process.env.SENDING_ORDER_LOGIN,
+        "password": process.env.SENDING_ORDER_PWD
+      };
+      data.availablePaymentActions = [
+        "paypalOrderGeturl",
+        "paypalResult",
+        "paypalWebhook",
+        "stripeOrderPaymentintent",
+        "stripeOrderSubscription",
+        "stripeWebhook"
+      ];
     }
     return data;
   },
@@ -235,12 +257,10 @@ module.exports = {
   removeDynamicData(type, data) {
     if (type === 'orders') {
       if (data.sendingOrder) {
-        data.sendingOrder = {
-          "url": null,
-          "port": null,
-          "login": null,
-          "password": null
-        }
+        delete data.sendingOrder;
+      }
+      if (data.availablePaymentActions) {
+        delete data.availablePaymentActions;
       }
     }
     return data;
