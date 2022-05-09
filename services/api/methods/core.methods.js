@@ -56,9 +56,6 @@ module.exports = {
 		 * @returns {Promise}
 		 */
 		authorize(ctx, route, req, res) {
-			process.env["test"] = "mrkva";
-			this.logger.error("process.env.test: ", process.env.test);
-
 			ctx.meta.headers = req.headers;
 			this.logger.info("api req.headers -------> ctx.meta.headers:", ctx.meta.headers);
 			this.cookiesManagement(ctx, route, req, res);

@@ -193,6 +193,10 @@ module.exports = {
    */
   updateSettings(type, group, data) {
     // update variable
+    if (group === 'navigation') {
+      navigation[type] = {...navigation[type], ...data};
+      return this.updateSettingsFile(type, group, navigation[type]);
+    }
     settings[type] = {...settings[type], ...data};
     return this.updateSettingsFile(type, group, settings[type]);
   },
@@ -210,6 +214,7 @@ module.exports = {
     data = this.addDynamicData(type, data);
     const path = resourcesDirectory + "/" + group + "/" + type + ".json"
     console.log("settings.mixin updateSettingsFile path:", path);
+    console.log("settings.mixin updateSettingsFile data:", data);
 
     return fs.writeJson(path, data, { spaces: 2 })
     .then(() => {
