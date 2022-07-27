@@ -121,13 +121,13 @@ module.exports = {
 
 
 		/**
-		 * Add to db query options to return only active products
+		 * Add to db query options to return only active pages
 		 * @param {array} query 
 		 * 
 		 * @returns {*} updated query
 		 */
 		filterOnlyActivePages(query, ctx) {
-			// display only active products (admin can see all)
+			// display only active pages (admin can see all)
 			if (ctx.meta && ctx.meta.user && ctx.meta.user.type=="admin") {
 				return query;
 			}

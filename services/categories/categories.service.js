@@ -343,13 +343,13 @@ module.exports = {
 
 				if (ctx.meta.user.type=="admin") {
 					if ( categories && categories.length>0 ) {
-						// loop products to import
+						// loop categories to import
 						categories.forEach(function(entity) {
 							promises.push(
-								// add product results into result variable
+								// add category results into result variable
 								self.adapter.findById(entity.id)
 									.then(found => {
-										if (found) { // product found, update it
+										if (found) { // category found, update it
 											if ( entity ) {
 												entity = self.fixEntityDates(entity);
 											}
@@ -361,6 +361,7 @@ module.exports = {
 													}
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
+													
 													self.logger.info("categories.import found - update entity:", entity);
 													let entityId = entity.id;
 													delete entity.id;
@@ -382,7 +383,7 @@ module.exports = {
 														.then(doc => self.transformDocuments(ctx, {}, doc))
 														.then(json => self.entityChanged("updated", json, ctx).then(() => json));
 												});
-										} else { // no product found, create one
+										} else { // no category found, create one
 											return self.validateEntity(entity)
 												.then(() => {
 													// set generic variables
@@ -512,6 +513,53 @@ module.exports = {
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
 				}
+			}
+		},
+
+
+
+		// check page authorship
+		checkAuthor: {
+			auth: "required",
+			params: {
+				data: { type: "object" }
+			},
+			handler(ctx) {
+				if (ctx.params.data && ctx.params.data.slug && ctx.params.data.publisher) {
+					return this.adapter.find({
+						"query": {
+							"slug": ctx.params.data.slug,
+							"publisher": ctx.params.data.publisher
+						}
+					})
+						.then(pages => {
+							if (pages && pages.length>0 && pages[0].slug==ctx.params.data.slug) {
+								return true;
+							}
+						})
+						.catch(err => {
+							this.logger.error("pages.checkAuthor() - error: ", err);
+							return false;
+						});
+				}
+				return false;
+			}
+		},
+
+
+
+		updateCategoryImage: {
+			auth: "required",
+			params: {
+				data: { type: "object" },
+				params: { type: "object" }
+			},
+			handler(ctx) {
+				if (ctx.params.params && ctx.params.params.slug) {
+					this.logger.info("page.updateCategoryImage - has slug: ", ctx.params.params.slug);
+					return;
+				}
+				return;
 			}
 		},
 

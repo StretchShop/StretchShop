@@ -667,8 +667,13 @@ module.exports = {
 											.then(orderUpdated => {
 												self.entityChanged("updated", orderUpdated, ctx);
 												self.logger.info("payments.paypal1.mixin - paypalExecutePayment - invoice generated", { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id } );
-												if ( order.prices.priceTotalToPay==0 && typeof self.afterPaidActions !== "undefined" ) {
-													self.afterPaidActions(order, ctx); // find it in orders.service
+												if ( order.prices.priceTotalToPay<=0 ) {
+													if ( typeof self.afterPaidUserUpdates !== "undefined" ) {
+														self.afterPaidUserUpdates(order, ctx);
+													}
+													if ( typeof self.afterPaidActions !== "undefined" ) {
+														self.afterPaidActions(order, ctx); // find it in orders.service
+													}
 												}
 												return { success: true, response: response, redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id };
 											});

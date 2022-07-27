@@ -43,12 +43,14 @@ module.exports = {
 					}
 				}
 				// update existing page from entity
+				entity.data.blocks = this.unJsString(entity.data.blocks);
 				return self.importPageActionUpdateFound(ctx, entity);
 
 			} else { // no page found, create one
 				return self.validateEntity(entity)
 					.then(() => {
 						// create new page from entity
+						entity.data.blocks = this.unJsString(entity.data.blocks);
 						return self.importPageActionCreateNew(ctx, entity);
 					})
 					.catch(err => {
@@ -208,6 +210,24 @@ module.exports = {
 								return this.processPageWysiwygContent(ctx, result);
 							}
 
+							// check if page requires user to have some product
+							if ( 
+								!(ctx.meta && ctx.meta.user && ctx.meta.user.type === "admin") && 
+								result && result.staticData?.data?.requirements?.userdata?.products?.length > 0 
+							) {
+								// if we have user, check his contentDependencies
+								if ( ctx.meta.user && ctx.meta.user.data?.contentDependencies?.list?.length > 0 ) {
+									// get intersection of user and page contentDependencies 
+									const filteredArray = result.staticData.data.requirements.userdata.products.filter(value => ctx.meta.user.data.contentDependencies.list.includes(value));
+									if ( filteredArray.length <= 0 ) {
+										return Promise.reject(new MoleculerClientError("Page not found!", 403, "", [{ field: "page", message: "forbidden", data: { orderCodes: filteredArray } }]));
+									}
+								} else {
+									// no user, page cannot be displayed
+									return Promise.reject(new MoleculerClientError("Page not found!", 401, "", [{ field: "page", message: "unauthorized", data: { orderCodes: result.staticData?.data?.requirements?.userdata?.products } }]));
+								}
+							}
+
 							// no WYSIWYG in template, just try to use most you can
 							if ( result && result.staticData && result.staticData.pages && result.staticData.pages.length>0 ) {
 								// get related pages
@@ -256,6 +276,26 @@ module.exports = {
 						page = page[0];
 					}
 
+					// check if page requires user to have some product
+					if ( 
+						!(ctx.meta && ctx.meta.user && ctx.meta.user.type === "admin") && 
+						page.data?.requirements?.userdata?.products?.length > 0 
+					) {
+						// if we have user, check his contentDependencies
+						this.logger.info("pages core processPageWysiwygContent() user:", ctx.meta.user);
+						if ( ctx.meta.user && ctx.meta.user.data?.contentDependencies?.list?.length > 0 ) {
+							// get intersection of user and page contentDependencies 
+							const filteredArray = page.data.requirements.userdata.products.filter(value => ctx.meta.user.data.contentDependencies.list.includes(value));
+							this.logger.info("pages core processPageWysiwygContent() filteredArray:", filteredArray);
+							if ( filteredArray.length <= 0 ) {
+								return Promise.reject(new MoleculerClientError("Page not found!", 403, "", [{ field: "page", message: "forbidden", data: { orderCodes: filteredArray } }]));
+							}
+						} else {
+							// no user, page cannot be displayed
+							return Promise.reject(new MoleculerClientError("Page not found!", 401, "", [{ field: "page", message: "unauthorized", data: { orderCodes: page.data?.requirements?.userdata?.products } }]));
+						}
+					}
+
 					// check dates
 					if ( ctx.meta.user && ctx.meta.user.type!="admin" && 
 						ctx.meta.user.email!=page.publisher && page.activity && 
@@ -294,6 +334,10 @@ module.exports = {
 					// set page data into result
 					result.data = page;
 					return result;
+				})
+				.catch(err => {
+					this.logger.error('xxxxx ERR:', err);
+					return err;
 				})
 				.then( result => {
 					return this.processPageDetailResult(ctx, result);
@@ -336,6 +380,9 @@ module.exports = {
 			if ( hasCategories ) {
 				category = result.data.categories[0];
 			} 
+			if (typeof result.global === "undefined") {
+				result.global = {};
+			}
 			result.global.usedCategories = hasStaticCategories ? "static" : "dynamic";
 			result.global.parentCategorySlug = category;
 			//

@@ -459,6 +459,12 @@ module.exports = {
 										if (order.prices.priceTotalToPay <= 0) {
 											order.status = "paid";
 											order.dates.datePaid = new Date();
+											if ( typeof self.afterPaidUserUpdates !== "undefined" ) {
+												self.afterPaidUserUpdates(order, ctx);
+											}
+											if ( typeof self.afterPaidActions !== "undefined" ) {
+												self.afterPaidActions(order, ctx); // custom actions
+											}
 										}
 										self.logger.info("orders.stripeWebhook (payments.stripe.mixin) payment_intent.succeeded (PRODUCT PAID) - status, dates & paidAmountTotal:", order.status, order.dates, order.data.paymentData.paidAmountTotal );
 										// 

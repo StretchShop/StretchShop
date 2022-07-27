@@ -245,6 +245,20 @@ module.exports = {
 			return { user };
 		},
 
+
+		removePrivateData(user) {
+			if (user.data && user.data.constructor === Object) {
+				const FEvalidData = ["contentDependencies"];
+				Object.keys(user.data).forEach(k => {
+					if (FEvalidData.indexOf(k) === -1) {
+						delete user.data[k];
+					}
+				});
+			}
+			return user;
+		},
+
+
 		/**
 		 * Transform returned user entity as profile.
 		 *

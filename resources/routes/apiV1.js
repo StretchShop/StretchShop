@@ -60,6 +60,9 @@ module.exports = {
 		"PUT /categories": "categories.import",
 		"POST /categories/find": "categories.findWithContent",
 		"DELETE /categories": "categories.delete",
+		"POST /categories/upload/:slug/:type": function (req, res) {
+			this.processUpload(req, res);
+		},
 		"POST /categories/upload/:slug": function (req, res) {
 			this.processUpload(req, res);
 		},

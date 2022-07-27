@@ -59,7 +59,7 @@ module.exports = {
 		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
 
 		/** Public fields */
-		fields: ["_id", "username", "email", "type", "subtype", "bio", "image", "company", "addresses", "settings", "dates", "superadmined"],
+		fields: ["_id", "username", "email", "type", "subtype", "bio", "image", "company", "addresses", "settings", "data", "dates", "superadmined"],
 
 		/** Validator schema for entity */
 		entityValidator: {
@@ -158,6 +158,7 @@ module.exports = {
 					return ctx.call("users.me")
 						.then(user => {
 							if (user && user.user) {
+								user.user = this.removePrivateData(user.user);
 								coreData.user = user.user;
 								// if no transLang use user.settings.lang
 								if ( (ctx.params.transLang || ctx.params.transLang.trim()=="") && 
@@ -281,6 +282,8 @@ module.exports = {
 								};
 								this.sendVerificationEmail(emailData, ctx);
 
+								entity = this.removePrivateData(entity);
+
 								// return user data
 								return entity;
 							});
@@ -345,6 +348,8 @@ module.exports = {
 						if ( ctx.meta.cart ) {
 							ctx.meta.cart.user = user._id;
 						}
+
+						user = this.removePrivateData(user)
 
 						return this.transformEntity(user, true, ctx);
 					});
@@ -1268,7 +1273,85 @@ module.exports = {
 						return recaptchaResponse.success;
 					});
 			}
+		},
+
+
+
+		/**
+		 * update specific product codes in user contentDependencies settings
+		 * 
+		 * @actions
+		 * 
+		 * @param {String} userId - user ID
+		 * @param {Array} productCodes - strings array of product codes to remove
+		 * 
+		 */
+		updateContentDependencies: {
+			params: {
+				userId: { type: "string" },
+				productCodes: { type: "array", items: { type: "string" } }
+			},
+			handler(ctx) {
+				let self = this;
+
+				return this.adapter.findOne({ id: self.fixStringToId(ctx.params.userId) })
+					.then((foundUser) => {
+						if ( !foundUser.data ) { foundUser.data = { contentDependencies: { list: [] } } };
+						if ( !foundUser.data.contentDependencies ) { foundUser.data.contentDependencies = { list: [] } };
+						if ( !foundUser.data.contentDependencies.list ) { foundUser.data.contentDependencies.list = [] };
+						if ( foundUser && productCodes.length > 0 ) {
+							foundUser.data.contentDependencies.list = productCodes.filter((item, index, array) => array.indexOf(item) == index)
+						}
+						return foundUser;
+					})
+					.catch(err => {
+						this.logger.error("users.updateContentDependencies error:", err);
+					})
+					.then((updatedUser) => {
+						return this.adapter.updateById(updatedUser._id, this.prepareForUpdate(updatedUser));
+					});
+			}
+		},
+
+		/**
+		 * remove specific product codes from user contentDependencies settings
+		 * 
+		 * @actions
+		 * 
+		 * @param {String} userId - user ID
+		 * @param {Array} productCodes - strings array of product codes to remove
+		 * 
+		 */
+		removeContentDependencies: {
+			params: {
+				userId: { type: "string" },
+				productCodes: { type: "array", items: { type: "string" } }
+			},
+			handler(ctx) {
+				let self = this;
+
+				return this.adapter.findOne({ id: self.fixStringToId(ctx.params.userId) })
+					.then((foundUser) => {
+						if ( foundUser && productCodes.length > 0 ) {
+							productCodes.forEach(code => {
+								const foundIndex = foundUser.data.contentDependencies.list.indexOf(code);
+								if ( foundIndex > -1 ) {
+									foundUser.data.contentDependencies.list.splice(foundIndex, 1);
+								}
+							});
+						}
+						return foundUser;
+					})
+					.catch(err => {
+						this.logger.error("users.removeContentDependencies error:", err);
+					})
+					.then((updatedUser) => {
+						return this.adapter.updateById(updatedUser._id, this.prepareForUpdate(updatedUser));
+					});
+			}
 		}
+
+
 
 	},
 

@@ -53,9 +53,9 @@ module.exports = {
 	 * Default settings
 	 */
 	settings: {
-		/** Public fields */
 		idField: "_id",
 
+		/** Public fields */
 		fields: [
 			"_id", "externalId", "orderCode", "variationGroupId", "slug",
 			"publisher", "sellers", // selers = object

@@ -440,7 +440,11 @@ module.exports = {
 
 				const tv = this.getTemplateVars(lang, ctx.params.page);
 				
-				return this.getPageDetail(ctx, tv);
+				return this.getPageDetail(ctx, tv)
+				.catch(err => {
+					this.logger.error('pages.detail error:', err);
+					return err;
+				});
 			}
 		},
 

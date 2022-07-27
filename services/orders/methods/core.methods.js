@@ -1507,5 +1507,15 @@ module.exports = {
 		},
 
 
+
+
+		
+		afterPaidUserUpdates() {
+			// replace this action with your own
+			this.logger.info("afterPaidUserUpdates default");
+		},
+
+
+
 	},
 };

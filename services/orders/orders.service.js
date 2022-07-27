@@ -738,9 +738,62 @@ module.exports = {
 		/**
 		 * Update this function as you need after project created using npm install
 		 */
-		afterPaidActions() {
+		/**
+		 * After order was paid, perform actions that help to deliver digital goods
+		 * @param {*} order 
+		 * @param {*} ctx 
+		 */
+		afterPaidActions(order, ctx) {
 			// replace this action with your own
 			this.logger.info("afterPaidActions default");
+		},
+
+
+		/**
+		 * After order was paid, update user.data.contentDependencies
+		 * @param {*} order 
+		 * @param {*} ctx 
+		 */
+		afterPaidUserUpdates(order, ctx) {
+			// 1. get order products with data.contentDependency:true (if any)
+			this.logger.info("afterPaidUserUpdates default");
+			let cdProductCodes = [];
+			if (order && order.items && order.items.length > 0) {
+				order.items.forEach(oi => {
+					if (oi && oi.contentDependency && oi.contentDependency === true && oi.orderCode) {
+						cdProductCodes.push(oi.orderCode);
+					}
+				});
+			}
+			// 2. then update active user data.contentDependencies in ctx & DB
+			// update meta
+			let cdProductCodesUniq = cdProductCodes;
+			if (ctx.meta.user) {
+				if (!ctx.meta.user.data) {
+					// if data not set already, set it now
+					ctx.meta.user.data = { contentDependencies: { list: cdProductCodes } };
+				}
+				if (!ctx.meta.user.data.contentDependencies) {
+					// if data.contentDependencies not set already, set it now
+					ctx.meta.user.data.contentDependencies = { list: cdProductCodes };
+				}
+				// get array with unique values
+				cdProductCodesUniq = ctx.meta.user.data.contentDependencies.concat(cdProductCodes);
+				cdProductCodesUniq = cdProductCodesUniq.filter((item, index, array) => array.indexOf(item) == index)
+				ctx.meta.user.data.contentDependencies.list = cdProductCodesUniq;
+			}
+			// update in DB
+			return ctx.call('user.updateContentDependencies', { 
+				userId: order.user.id,
+				productCodes: cdProductCodesUniq
+			})
+				.catch(err => {
+					this.logger.error("order.afterPaidUserUpdates() error:", err);
+				})
+				.then(result => {
+					this.logger.info("user contentDependencies updated:", result);
+					return { user: result, order };
+				});
 		},
 
 	},

@@ -309,7 +309,45 @@ module.exports = {
 			} else {
 				return;
 			}
+		},
+
+		
+		/**
+		 * 
+		 * @param {String} source 
+		 * @returns String
+		 */
+		removeJavascriptTag(source) {
+			let pattern = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gi;
+			return source.replaceAll(pattern, "");
+		},
+
+
+		unJsString(source) {
+			if ( source) {
+				if ( source.constructor === Object) {
+					Object.keys(source).forEach(k => {
+						if (source[k].constructor === String) {
+							source[k] = this.removeJavascriptTag(source[k]);
+						} else if ( source.constructor === Object || source.constructor === Array ) {
+							source[k] = this.unJsString(source[k]);
+						}
+					});
+				} else if ( source.constructor === Array) {
+					source.forEach((v, k) => {
+						if (v.constructor === String) {
+							source[k] = this.removeJavascriptTag(source[k]);
+						} else if ( source.constructor === Object || source.constructor === Array ) {
+							source[k] = this.unJsString(source[k]);
+						}
+					});
+				} else if ( source.constructor === String) {
+					source = this.removeJavascriptTag(source);
+				}
+			}
+			return source;
 		}
+
 
 	}
 };

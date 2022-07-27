@@ -754,6 +754,15 @@ module.exports = {
 											.catch(error => {
 												this.logger.error("subscriptions.suspend - subscriptions.save error: ", error);
 												return null;
+											})
+											.then(subResult => {
+												if (subResult) {
+													return ctx.call("users.removeContentDependencies")
+														.then(updatedUser => {
+															this.logger.info("subscriptions.suspend - users.removeContentDependencies updatedUser:", updatedUser);
+															return subResult;
+														})
+												}
 											});
 
 									})

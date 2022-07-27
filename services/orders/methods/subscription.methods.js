@@ -1,5 +1,7 @@
 "use strict";
 
+const { createInbox } = require("nats");
+
 
 module.exports = {
 	methods: {
@@ -42,6 +44,7 @@ module.exports = {
 			// decide if set PAID status
 			if (order.prices.priceTotalToPay <= 0) {
 				order.status = "paid";
+				order.dates.datePaid = new Date();
 			}
 
 			this.logger.info("orders.updatePaidOrderSubscriptionData() - status, dates & paidAmountTotal:", order.status, order.dates, order.data.paymentData.paidAmountTotal );
@@ -134,6 +137,15 @@ module.exports = {
 				.catch(error => {
 					this.logger.error("subscriptions to webhook cancel - subscriptions.save error: ", error);
 					return null;
+				})
+				.then(subResult => {
+					if (subResult) {
+						return ctx.call("users.removeContentDependencies")
+							.then(updatedUser => {
+								this.logger.info("subscriptions to webhook cancel - users.removeContentDependencies updatedUser:", updatedUser);
+								return subResult;
+							})
+					}
 				});
 		},
 
@@ -284,8 +296,13 @@ module.exports = {
 						.then(orderUpdated => {
 							self.entityChanged("updated", orderUpdated, ctx);
 							self.logger.info("orders.afterSubscriptionPaidOrderActions() - invoice generated, order updated", { success: true, response: "paid", redirect: urlPathPrefix+order.lang.code+"/user/orders/"+order._id.toString() } );
-							if ( order.prices.priceTotalToPay==0 && typeof self.afterPaidActions !== "undefined" ) {
-								self.afterPaidActions(order, ctx); // custom actions
+							if ( order.prices.priceTotalToPay<=0 ) {
+								if ( typeof self.afterPaidUserUpdates !== "undefined" ) {
+									self.afterPaidUserUpdates(order, ctx);
+								}
+								if ( typeof self.afterPaidActions !== "undefined" ) {
+									self.afterPaidActions(order, ctx); // custom actions
+								}
 							}
 							return self.updateSubscriptionAfterPaid(ctx, subscription)
 								.then(updatedSubscr => {

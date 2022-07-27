@@ -50,6 +50,7 @@ module.exports = {
 							}
 						});
 					}
+					entity.descriptionLong = this.unJsString(entity.descriptionLong);
 				}
 				// update existing product from entity
 				return self.importProductActionUpdateFound(ctx, entity);
@@ -58,6 +59,7 @@ module.exports = {
 				return self.validateEntity(entity)
 					.then(() => {
 						// crete new product from entity
+						entity.descriptionLong = this.unJsString(entity.descriptionLong);
 						return self.importProductActionCreateNew(ctx, entity);
 					})
 					.catch(err => {

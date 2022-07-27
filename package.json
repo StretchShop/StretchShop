@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.5.13",
+  "version": "0.5.14",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "repository": {
@@ -66,7 +66,7 @@
     "stripe": "^8.222.0"
   },
   "engines": {
-    "node": ">= 10.x.x"
+    "node": ">= 12.x.x"
   },
   "jest": {
     "testEnvironment": "node",

@@ -74,6 +74,8 @@ module.exports = {
 		getProductFileNameByType(params) {
 			if ( params.type && params.type=="gallery" ) {
 				return ["p:number"];
+			} else if ( params.type && params.type=="editor" ) {
+				return ["----WYSIWYGEDITOR----"];
 			} else {
 				return [":orderCode", "default"];
 			}
@@ -147,6 +149,20 @@ module.exports = {
 					stringToChunk: req.$params.slug ? req.$params.slug : "",
 					chunkSize: 0,
 					postAction: "categories.updateCategoryImage",
+				},
+				{
+					url: "/categories/upload/:slug/:type",
+					destination: "categories",
+					fileName: this.getProductFileNameByType(req.$params),
+					validUserTypes: ["author", "admin"],
+					checkAuthorAction: "categories.checkAuthor",
+					checkAuthorActionParams: {
+						"slug": req.$params.slug,
+						"publisher": req.$ctx.meta.user.email
+					},
+					stringToChunk: req.$params.slug ? req.$params.slug : "",
+					chunkSize: 0, // do not chunk, use the whole string
+					postAction: "categories.updateCategoryImage",
 				}
 			];
 
@@ -173,7 +189,7 @@ module.exports = {
 		 */
 		prepareFilePathNameData(req, activePath, fields, files, property) {
 			this.logger.info("api.parseUploadedFile() files-"+property+": ", files[property]);
-			let fileFrom = files[property].path;
+			let fileFrom = files[property].filepath;
 			let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let urlBaseDir = process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let targetDir = activePath.stringToChunk;
@@ -182,11 +198,13 @@ module.exports = {
 			}
 			// set new filename
 			let re = /(?:\.([^.]+))?$/;
-			let fileExt = re.exec(files[property].name);
+			let fileExt = re.exec(files[property].originalFilename);
 			let fileNameReplaced = this.arrayReplaceParams( activePath.fileName, req.$params );
 			fileNameReplaced = this.arrayReplaceParams( fileNameReplaced, fields );
-			let resultFileName = files[property].name;
-			if ( fileNameReplaced.join("-") !== "----ORIGINAL----" ) { // if not set to keep original name - only for WYSIWYG editor
+			let resultFileName = files[property].originalFilename;
+			if (fileNameReplaced.join("-") === "----WYSIWYGEDITOR----") {
+				targetDir = targetDir + "/editor";
+			} else if ( fileNameReplaced.join("-") !== "----ORIGINAL----" ) { // if not set to keep original name - only for WYSIWYG editor
 				resultFileName = fileNameReplaced.join("-")+"."+fileExt[1];
 			}
 			let resultFullPath = targetDir+"/"+resultFileName;
