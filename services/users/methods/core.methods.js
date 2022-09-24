@@ -20,6 +20,7 @@ module.exports = {
 		getCoreDataBase(ctx) {
 			let coreData = ctx.meta.localsDefault;
 			const businessSettings = SettingsMixin.getSiteSettings('business');
+			const bsi = SettingsMixin.getSiteSettings('business', true);
 
 			// set full lang
 			if ( coreData.lang && coreData.langs ) {
@@ -74,7 +75,7 @@ module.exports = {
 				},
 				business: businessSettings.invoiceData.company,
 				taxData: businessSettings.taxData.global,
-				editableSettings: (typeof businessSettings.editableSettings !== "undefined" && businessSettings.editableSettings === true) ? true : false
+				editableSettings: bsi?.editableSettings?.core === true ? bsi.editableSettings : false
 			};
 
 			return coreData;

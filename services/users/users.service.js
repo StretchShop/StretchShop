@@ -7,7 +7,7 @@ require("dotenv").config();
 const bcrypt 		= require("bcryptjs");
 const jwt 			= require("jsonwebtoken");
 const nodemailer = require("nodemailer");
-const fs = require("fs");
+const fs = require("fs-extra");
 const fetch 		= require("cross-fetch");
 
 // global mixins
@@ -940,9 +940,11 @@ module.exports = {
 		readTranslation: {
 			params: {
 				lang: { type: "string", optional: true },
-				blockName: { type: "string", optional: true }
+				blockName: { type: "string", optional: true },
+				full: { type: "string", optional: true }
 			},
 			handler(ctx) {
+				this.logger.info("users.readTranslation ctx.params:",  ctx.params);
 				let translation = null;
 				return new Promise(function(resolve, reject) {
 					fs.readFile(ctx.meta.siteSettings.translation.dictionaryPath, "utf8", (err, data) => {
@@ -955,10 +957,36 @@ module.exports = {
 					.then( (result) => {
 						let transFileResult = JSON.parse(result);
 						if (transFileResult) {
-							translation = this.extractTranslation(transFileResult, ctx.params.lang, ctx.params.blockName);
+							this.logger.info("users.readTranslation ctx.params.full:",  ctx.params.full);
+							if (ctx.params.full &&  ctx.params.full === "true") {
+								translation = transFileResult;
+							} else {
+								translation = this.extractTranslation(transFileResult, ctx.params.lang, ctx.params.blockName);
+							}
 						}
 						return translation;
 					});
+			}
+		},
+
+
+		updateDictionary: {
+			auth: "required",
+			params: {
+				dictionary: { type: "object" }
+			},
+			handler(ctx) {
+				return fs.writeJson(
+					ctx.meta.siteSettings.translation.dictionaryPath, 
+					ctx.params.dictionary, 
+					{ spaces: 2 }
+				).then(() => {
+					return { success: true };
+				})
+				.catch(err => {
+					console.error('settings.mixin updateSettingsFile write error: ', err);
+					return { success: false, error: err };
+				});
 			}
 		},
 
@@ -1348,6 +1376,24 @@ module.exports = {
 					.then((updatedUser) => {
 						return this.adapter.updateById(updatedUser._id, this.prepareForUpdate(updatedUser));
 					});
+			}
+		},
+
+
+
+		list: {
+			auth: "required",
+			handler(ctx) {
+				let self = this;
+				this.logger.info("user.list INCOMING");
+			}
+		},
+
+		manage: {
+			auth: "required",
+			handler(ctx) {
+				let self = this;
+				this.logger.info("user.manage INCOMING");
 			}
 		}
 

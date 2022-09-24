@@ -89,7 +89,9 @@ module.exports = {
           break;
       }
 
-      result = this.removeDynamicData(type, result);
+      if (!internal) {
+        result = this.removeDynamicData(type, result);
+      }
 
       return result;
     }

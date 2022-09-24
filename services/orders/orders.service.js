@@ -25,6 +25,7 @@ const paymentsStripe = require("./mixins/payments.stripe.mixin");
 
 // settings
 const sppf = require("../../mixins/subproject.helper");
+const { ReadStream } = require("fs");
 let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../resources");
 
 
@@ -183,7 +184,7 @@ module.exports = {
 			tax: 0.2
 		},
 
-		order: SettingsMixin.getSiteSettings('orders'),
+		order: SettingsMixin.getSiteSettings("orders", true),
 
 		orderTemp: {},
 		orderErrors: {
@@ -441,7 +442,7 @@ module.exports = {
 					} else {
 						filter.query["user.id"] = ctx.meta.user._id.toString();
 					}
-					filter.query["$or"] = [{"status":"sent"}, {"status":"paid"}];
+					filter.query["$or"] = [{"status":"sent"}, {"status":"paid"}, {"status":"expeded"}];
 					// set offset
 					if (ctx.params.offset && ctx.params.offset>0) {
 						filter.offset = ctx.params.offset;
@@ -524,15 +525,16 @@ module.exports = {
 			},
 			handler(ctx) {
 				// get action to call - get its name from supplier & action params
-				let supplier = ctx.params.supplier.toLowerCase();
+				const supplier = ctx.params.supplier.toLowerCase();
 				let action = ctx.params.action.charAt(0).toUpperCase();
 				action += ctx.params.action.slice(1);
-				let actionName = supplier+"Order"+action;
+				const actionName = supplier+"Order"+action;
+				const availablePaymentActions = SettingsMixin.getOriginalSiteSettings("orders")["availablePaymentActions"];
 
 				// using resources/settings/orders.js check if final payment action can be called
-				this.logger.info("order.payment - calling payment: ", actionName, this.settings.order.availablePaymentActions.indexOf(actionName)>-1);
-				if ( this.settings.order.availablePaymentActions &&
-				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
+				this.logger.info("order.payment - calling payment: ", actionName);
+				this.logger.info("order.payment - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
+				if ( availablePaymentActions && availablePaymentActions.indexOf(actionName)>-1 ) {
 					return ctx.call("orders."+actionName, {
 						orderId: ctx.params.orderId,
 						data: ctx.params.data
@@ -550,7 +552,16 @@ module.exports = {
 
 
 		/**
-		 * process result after user paid or agreed and returned to website
+		 * Process result after user paid or agreed and returned to website
+		 * 
+		 * @actions
+		 * 
+     * @param {String} supplier - supplier name (eg. paypal)
+     * @param {String} result - result string
+     * @param {String} PayerID - id of payer
+     * @param {Object} paymentId - id of paymnet
+		 * 
+		 * @returns {Object} Unified result from related action
 		 */
 		paymentResult: {
 			params: {
@@ -621,7 +632,15 @@ module.exports = {
 			}
 		}, 
 
-		
+		/**
+		 * Download invoice PDF
+		 * 
+		 * @actions
+		 * 
+     * @param {String} invoice - id of invoice
+		 * 
+		 * @returns {ReadStream} Stream of invoice PDF file
+		 */
 		invoiceDownload: {
 			cache: false,
 			auth: "required",
@@ -647,9 +666,19 @@ module.exports = {
 					}
 				}
 			}
-		}, 
+		},
 
 
+		/**
+		 * Admin only action
+		 * Change order state to paid
+		 * 
+		 * @actions
+		 * 
+     * @param {String} orderId - id of order to pay
+		 * 
+		 * @returns {Object} Unified result from related action
+		 */
 		paid: {
 			cache: false,
 			auth: "required",
@@ -678,6 +707,77 @@ module.exports = {
 									.then(result => {
 										return result;
 									});
+							});
+					}
+				}
+			}
+		}, 
+
+		/**
+		 * Admin only action
+		 * Change order state to expeded
+		 * 
+		 * @actions
+		 * 
+     * @param {String} orderId - id of order to expede
+		 * 
+		 * @returns {Object} Unified result from related action
+		 */
+		expede: {
+			cache: false,
+			auth: "required",
+			params: {
+				orderId: { type: "string", min: 3 }
+			},
+			handler(ctx) {
+				let result = { success: false, order: null, message: null };
+				const self = this;
+				// only admin can mark order as expeded
+				if ( ctx.meta.user.type=="admin" ) {
+					if ( ctx.params.orderId.trim() != "" ) {
+						return this.adapter.findById(ctx.params.orderId)
+							.then(order => {
+								// specific for admin
+								order.status = "expeded";
+								order.dates.dateChanged = new Date();
+								order.dates.dateExpeded = new Date();
+								order.data.paymentData.lastResponseResult.push({
+									description: "Marked as Expeded by Admin",
+									date: new Date(),
+									userId: ctx.meta.user._id.toString()
+								});
+
+								let orderId = order._id.toString();
+								delete order.id;
+								delete order._id;
+								const update = {
+									"$set": order
+								};
+
+								// update order document
+								return self.adapter.updateById(orderId, update)
+									.then(doc => {
+										return this.transformDocuments(ctx, {}, doc);
+									})
+									.then(json => {
+										return this.entityChanged("updated", json, ctx)
+											.then(() => {
+												self.logger.info("order.expede - expede success: ");
+												result.success = true;
+												result.order = json;
+												return result;
+											});
+									})
+									.catch(error => {
+										self.logger.error("order.expede - update error: ", error);
+										result.message = "error: " + JSON.stringify(error);
+										return result;
+									});
+							})
+							.catch(error => {
+								self.logger.error("order.expede - not found: ", error);
+								result.message = "error: " + JSON.stringify(error);
+								return result;
 							});
 					}
 				}
@@ -783,7 +883,7 @@ module.exports = {
 				ctx.meta.user.data.contentDependencies.list = cdProductCodesUniq;
 			}
 			// update in DB
-			return ctx.call('user.updateContentDependencies', { 
+			return ctx.call("user.updateContentDependencies", { 
 				userId: order.user.id,
 				productCodes: cdProductCodesUniq
 			})

@@ -249,10 +249,10 @@ module.exports = {
 				const business = SettingsMixin.getSiteSettings('business', true);
 				this.logger.info('settings: ', business,  ctx.meta.user.type=="admin", 
 				business.editableSettings !== "undefined", 
-				business.editableSettings === true, ctx);
+				business.editableSettings.core === true, ctx);
 				if ( ctx.meta.user.type=="admin" && 
 				business.editableSettings !== "undefined" && 
-				business.editableSettings === true ) {
+				business.editableSettings.core === true ) {
 					return SettingsMixin.getSiteSettings(ctx.params.type);
 				}
 			}

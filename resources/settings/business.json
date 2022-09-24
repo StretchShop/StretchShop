@@ -57,5 +57,9 @@
       "default": "price"
     }
   },
-  "editableSettings": true
+  "editableSettings": {
+    "core": true,
+    "translates": true,
+    "users": true
+  }
 }

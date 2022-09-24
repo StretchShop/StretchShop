@@ -11,6 +11,7 @@ module.exports = {
 		// core data
 		"GET /coredata": "users.getCoreData",
 		"GET /coredata/translation": "users.readTranslation",
+		"PUT /coredata/translation": "users.updateDictionary",
 
 		// Users
 		"POST /users/login": "users.login", // Login
@@ -22,9 +23,9 @@ module.exports = {
 
 		// Current user
 		"GET /user": "users.me",
+		"PUT /user": "users.updateUser",
 		"POST /user/verify": "users.verifyHash",
 		"POST /user/reset": "users.resetPassword",
-		"PUT /user": "users.updateUser",
 		"POST /user/image": function (req, res) {
 			this.processUpload(req, res);
 		},
@@ -35,14 +36,14 @@ module.exports = {
 		// Cart
 		"GET /cart": "cart.me",
 		"POST /cart": "cart.updateCartItemAmount",
-		"POST /cart/find": "cart.find",
 		"PUT /cart": "cart.add",
 		"DELETE /cart": "cart.delete",
+		"POST /cart/find": "cart.find",
 		"DELETE /cart/:itemId": "cart.delete",
 		"DELETE /cart/:itemId/:amount": "cart.delete",
 
 		// Products
-		"GET /products/:category": "products.productsList",
+		"GET /products/:category": "products.productsListGet",
 		"POST /products/:category": "products.productsList", // needed for category with filter url
 		"POST /products/filter": "products.findWithCount",
 		"POST /products/find": "products.find",
@@ -74,6 +75,7 @@ module.exports = {
 		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
 		"GET /order/invoice/pay/:orderId": "orders.paid",
 		"GET /order/invoice/cancel/:orderId": "orders.cancel",
+		"GET /order/invoice/expeded/:orderId": "orders.expede",
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",
 		"GET /subscription/suspend/:subscriptionId": "subscriptions.suspend",
@@ -103,8 +105,12 @@ module.exports = {
 
 		// Global
 		"POST /find": "api.globalSearch",
+
+		// Settings
 		"POST /settings": "api.settings",
 		"PUT /settings": "api.settingsUpdate",
+		"POST /settings/users": "users.list",
+		"PUT /settings/users": "users.manage",
 
 		// Helpers
 		"POST /helpers/recaptcha": "users.recaptcha"

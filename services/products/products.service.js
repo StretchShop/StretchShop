@@ -181,6 +181,27 @@ module.exports = {
 		},
 
 
+		productsListGet: {
+			cache: false,
+			params: {
+				category: { type: "string", min: 2 },
+				limit: { type: "string", optional: true }
+			},
+			handler(ctx) {
+				let params = { 
+					category: ctx.params.category, 
+					filter: {}
+				};
+				if (ctx.params.limit && parseInt(ctx.params.limit) > 0) {
+					params.filter = {
+						limit: ctx.params.limit
+					}
+				}
+				return ctx.call('products.productsList', params);
+			}
+		},
+
+
 		/**
 		 * List products in category
 		 *
@@ -217,7 +238,7 @@ module.exports = {
 							category["taxData"] = SettingsMixin.getSiteSettings('business')?.taxData?.global;
 
 							// fix filter if needed
-							let filter = { query: {}, limit: 100};
+							let filter = { query: {}, limit: 30};
 							if (typeof ctx.params.filter !== "undefined" && ctx.params.filter) {
 								filter = ctx.params.filter;
 							}

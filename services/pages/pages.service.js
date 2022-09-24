@@ -155,7 +155,7 @@ module.exports = {
 
 
 							// fix filter if needed
-							let filter = { query: {}, limit: 100};
+							let filter = { query: {}, limit: 30};
 							if (typeof ctx.params.filter !== "undefined" && ctx.params.filter) {
 								filter = ctx.params.filter;
 								if (typeof filter.query === "undefined" || !filter.query) {

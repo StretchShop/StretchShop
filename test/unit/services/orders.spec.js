@@ -3,14 +3,16 @@
 const { ServiceBroker, Context } = require("moleculer");
 const { ValidationError } = require("moleculer").Errors;
 const Datastore	= require("nedb");
-const OrdersService = require("../../../services/orders.service");
-const ProductsService = require("../../../services/products.service");
+const OrdersService = require("../../../services/orders/orders.service");
+const ProductsService = require("../../../services/products/products.service");
+const CartService = require("../../../services/cart/cart.service");
 
 
-describe("Test 'subscription' service", () => {
+describe("Test 'orders' service", () => {
 	let broker = new ServiceBroker();
 	const serviceOrders = broker.createService(OrdersService, {});
 	const serviceProducts = broker.createService(ProductsService, {});
+	const serviceCart = broker.createService(CartService, {});
 
 	beforeAll(async () => {
 		await broker.start();
@@ -26,6 +28,11 @@ describe("Test 'subscription' service", () => {
 	describe("Test 'orders.progress' action", () => {
 
 		it("should return Object of saved Orders", async () => {
+			const cart = await broker.call("cart.add", {
+				itemId: "5c8183d176feb5cd4f7573ff",
+				amount: 1
+			});
+
 			const res = await broker.call("orders.progress", {
 				// cart state
 			})
