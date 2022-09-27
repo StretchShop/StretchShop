@@ -59,8 +59,8 @@ module.exports = {
 		// Categories
 		"GET /category/:categoryPath": "categories.detail",
 		"PUT /categories": "categories.import",
-		"POST /categories/find": "categories.findWithContent",
 		"DELETE /categories": "categories.delete",
+		"POST /categories/find": "categories.findWithContent",
 		"POST /categories/upload/:slug/:type": function (req, res) {
 			this.processUpload(req, res);
 		},
@@ -89,8 +89,8 @@ module.exports = {
 		// Pages
 		"GET /pages/:category": "pages.pagesList",
 		"POST /pages/:category": "pages.pagesList", // needed for category with filter url
-		"POST /pages/find": "pages.findWithCount",
 		"POST /pages/filter": "pages.findWithCount",
+		"POST /pages/find": "pages.findWithCount",
 		"POST /pages/listTemplates/:page": "pages.listTemplates",
 		"GET /pages/:category/detail/:page": "pages.detail",
 		"PUT /pages": "pages.import",
@@ -109,8 +109,8 @@ module.exports = {
 		// Settings
 		"POST /settings": "api.settings",
 		"PUT /settings": "api.settingsUpdate",
-		"POST /settings/users": "users.list",
-		"PUT /settings/users": "users.manage",
+		// "POST /settings/users": "users.list",
+		// "PUT /settings/users": "users.manage",
 
 		// Helpers
 		"POST /helpers/recaptcha": "users.recaptcha"

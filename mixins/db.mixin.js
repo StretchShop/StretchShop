@@ -3,8 +3,8 @@
 const path = require("path");
 const mkdir = require("mkdirp").sync;
 
-// const DbService	= require("moleculer-db");
-const DbService	= require("@stretchshop/moleculer-db");
+const DbService	= require("moleculer-db");
+// const DbService	= require("@stretchshop/moleculer-db");
 
 module.exports = function(collection) {
 	if (process.env.MONGO_URI) {
