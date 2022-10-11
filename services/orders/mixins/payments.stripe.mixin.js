@@ -154,9 +154,11 @@ module.exports = {
 									if (pi && pi.id && pi.id.trim() !== "") {
 										order.data.paymentData["paymentRequestId"] = pi.id;
 										// define order.id for update action
-										order.id = order._id;
-										delete order._id;
-										return ctx.call("orders.update", { order: order })
+										this.logger.info("payments.stripe.mixin stripeOrderPaymentintent order1:", order);
+										order["id"] = order._id;
+										// delete order._id;
+										this.logger.info("payments.stripe.mixin stripeOrderPaymentintent order2:", order);
+										return ctx.call("orders.updateOrder", { order: order })
 											.then(updatedOrder => {
 												this.logger.info("payments.stripe.mixin stripeOrderPaymentintent order.update:", updatedOrder);
 												return {
@@ -924,7 +926,7 @@ module.exports = {
 								}
 							});
 							this.logger.info("payments.stripe.mixin pSS() #4.4 updateOrder:", updateOrder);
-							return ctx.call("orders.update", { order: updateOrder })
+							return ctx.call("orders.updateOrder", { order: updateOrder })
 								.then(updatedOrder => {
 									this.logger.info("payments.stripe.mixin pSS() #4.5 updateOrder:", updatedOrder);
 									const result = {
@@ -966,7 +968,7 @@ module.exports = {
 								}
 							});
 							// update order
-							return ctx.call("orders.update", { order: updateOrder })
+							return ctx.call("orders.updateOrder", { order: updateOrder })
 								.then(updatedOrder => {
 									self.logger.info("payments.stripe.mixin agreeOrderSubscription() updatedOrder:", updatedOrder);
 									// update subscription to agreed status

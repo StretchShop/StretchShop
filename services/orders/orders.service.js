@@ -207,6 +207,7 @@ module.exports = {
 	 * Actions
 	 */
 	actions: {
+		
 		/**
 		 * Get current order progress according to cart
 		 *
@@ -294,7 +295,7 @@ module.exports = {
 		 * 
 		 * @returns {Object} saved order
 		 */
-		update: {
+		updateOrder: {
 			params: {
 				order: { type: "object" },
 				params: { type: "object", optional: true }

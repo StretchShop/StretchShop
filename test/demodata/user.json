@@ -1,0 +1,28 @@
+{
+"username": "TesterFester",
+"email": "tester@fester.com",
+"image": null,
+"type": "user",
+"subtype": "partner",
+"addresses": [
+  {
+    "type": "invoice",
+    "email": "tester@fester.com",
+    "nameFirst": "Tester",
+    "nameLast": "Fester",
+    "street": "Teststreet 321",
+    "street2": "",
+    "zip": "98765",
+    "city": "Testcity",
+    "country": "sk",
+    "phone": "+421987654321"
+  }
+  ],
+  "settings": {
+    "language": "en",
+    "currency": "XXX"
+  },
+  "data": {},
+  "id": "7771669dcc3e55c92cf7e4ce",
+  "_id": "7771669dcc3e55c92cf7e4ce"
+}

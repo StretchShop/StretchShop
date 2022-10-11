@@ -1,18 +1,15 @@
-expect.extend({
-  toBeOneOf(received, argument) {
-    const validValues = Array.isArray(argument) ? argument : [argument];
-    const pass = validValues.includes(received);
-    if (pass) {
-      return {
-        message: () => (
-          `expected ${received} not to be one of [${validValues.join(', ')}]`
-        ),
-        pass: true,
-      };
-    }
+// https://stackoverflow.com/questions/62080726/jest-allow-multi-types-for-object-structure-match
+module.exports = function toBeOneOf(received, constructors = [String, Date]) {
+  const pass = !!constructors.find(c => received.constructor === c);
+  if (pass) {
     return {
-      message: () => (`expected ${received} to be one of [${validValues.join(', ')}]`),
+      message: () => `looks good`,
+      pass: true,
+    };
+  } else {
+    return {
+      message: () => `not so good...`,
       pass: false,
     };
-  },
-});
+  }
+};

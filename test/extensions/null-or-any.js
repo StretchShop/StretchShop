@@ -1,60 +1,19 @@
-expect.extend({
-  nullOrAny(received, expected) {
-    if (received === null) {
+module.exports = function nullOrAny(received, classTypeOrNull) {
+  try {
+      expect(received).toEqual(expect.any(classTypeOrNull));
       return {
-        pass: true,
-        message: () => `expected null or instance of ${this.utils.printExpected(expected) }, but received ${ this.utils.printReceived(received) }`
-      };
-    }
-
-    if (expected == String) {
-      return {
-        pass: typeof received == 'string' || received instanceof String,
-        message: () => `expected null or instance of ${this.utils.printExpected(expected) }, but received ${ this.utils.printReceived(received) }`
-      };
-    }
-
-    if (expected == Number) {
-      return {
-        pass: typeof received == 'number' || received instanceof Number,
-        message: () => `expected null or instance of ${this.utils.printExpected(expected)}, but received ${this.utils.printReceived(received)}`
-      };
-    }
-
-    if (expected == Function) {
-      return {
-        pass: typeof received == 'function' || received instanceof Function,
-        message: () => `expected null or instance of ${this.utils.printExpected(expected)}, but received ${this.utils.printReceived(received)}`
-      };
-    }
-
-    if (expected == Object) {
-      return {
-        pass: received !== null && typeof received == 'object',
-        message: () => `expected null or instance of ${this.utils.printExpected(expected)}, but received ${this.utils.printReceived(received)}`
-      };
-    }
-
-    if (expected == Boolean) {
-      return {
-        pass: typeof received == 'boolean',
-        message: () => `expected null or instance of ${this.utils.printExpected(expected)}, but received ${this.utils.printReceived(received)}`
-      };
-    }
-
-    /* jshint -W122 */
-    /* global Symbol */
-    if (typeof Symbol != 'undefined' && this.expectedObject == Symbol) {
-      return {
-        pass: typeof received == 'symbol',
-        message: () => `expected null or instance of ${this.utils.printExpected(expected)}, but received ${this.utils.printReceived(received)}`
-      };
-    }
-    /* jshint +W122 */
-
-    return {
-      pass: received instanceof expected,
-      message: () => `expected null or instance of ${this.utils.printExpected(expected)}, but received ${this.utils.printReceived(received)}`
-    };
+          message: () => `Ok`,
+          pass: true
+        };
+  } catch (error) {
+      return received === null 
+        ? {
+              message: () => `Ok`,
+              pass: true
+          }
+        : {
+              message: () => `expected ${received} to be ${classTypeOrNull} type or null`,
+              pass: false
+        };
   }
-});
+};

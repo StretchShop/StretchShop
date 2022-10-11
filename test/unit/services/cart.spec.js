@@ -1,24 +1,33 @@
 "use strict";
 
+const toBeOneOf = require("../../extensions/to-be-one-of");
+const nullOrAny = require("../../extensions/null-or-any");
+
 const { ServiceBroker, Context } = require("moleculer");
 const { ValidationError } = require("moleculer").Errors;
-const Datastore	= require("nedb");
-const CartService = require("../../../services/cart.service");
-const ProductsService = require("../../../services/products.service");
+const DbService = require("../../../mixins/db.mixin");
+const ApiService = require("../../../services/api/api.service");
+const CartService = require("../../../services/cart/cart.service");
+const ProductsService = require("../../../services/products/products.service");
 
 
 describe("Test 'cart' service", () => {
-	let broker = new ServiceBroker();
+	let broker = new ServiceBroker({ logger: false });
+	const serviceApi = broker.createService(ApiService, {});
 	const serviceCart = broker.createService(CartService, {});
 	const serviceProducts = broker.createService(ProductsService, {});
 
+	// add extensions
+	expect.extend({toBeOneOf});
+	expect.extend({nullOrAny});
+
+	
 	beforeAll(async () => {
 		await broker.start();
-		let adapter = new Datastore({ filename: `../../../data/cart.db`, autoload: true });
-		await adapter.remove({}, { multi: true });
+		const res = await broker.call("cart.delete");
 	});
 	afterAll(async () => {
-		await broker.stop()
+		await broker.stop();
 	});
 
 
@@ -30,12 +39,11 @@ describe("Test 'cart' service", () => {
 			.then(res => {
 				expect(res).toMatchObject({
 		      _id: expect.any(String),
-		      dateCreated: expect.any(String),
-		      dateUpdated: expect.any(String),
+		      dateCreated: expect.toBeOneOf([String, Date]),
+		      dateUpdated: expect.toBeOneOf([String, Date]),
 		      hash: expect.nullOrAny(String),
 		      ip: expect.nullOrAny(String),
 		      items: expect.nullOrAny(Array),
-		      order: expect.nullOrAny(String),
 		      user: expect.nullOrAny(String)
 		    });
 			});
@@ -48,16 +56,16 @@ describe("Test 'cart' service", () => {
 	// Test Add to cart
 	describe("Test 'cart.add' action", () => {
 
-		it("should return Cart with some Item object", async () => {
+		it("should return Cart with one Item object", async () => {
 			const res = await broker.call("cart.add", {
 				itemId: "5c8183d176feb5cd4f7573ff",
 				amount: 1
 			});
 
-			expect(res).toEqual({
+			expect(res).toMatchObject({
 	      _id: expect.any(String),
-	      dateCreated: expect.any(String),
-	      dateUpdated: expect.any(String),
+	      dateCreated: expect.toBeOneOf([String, Date]),
+	      dateUpdated: expect.toBeOneOf([String, Date]),
 	      hash: expect.nullOrAny(String),
 	      ip: expect.nullOrAny(String),
 	      items: expect.arrayContaining([
@@ -68,7 +76,6 @@ describe("Test 'cart' service", () => {
 						amount: 1
 					})
 				]),
-	      order: expect.nullOrAny(String),
 	      user: expect.nullOrAny(String)
 			});
 		});
@@ -85,10 +92,10 @@ describe("Test 'cart' service", () => {
 				amount: 2
 			});
 
-			expect(res).toEqual({
+			expect(res).toMatchObject({
 	      _id: expect.any(String),
-	      dateCreated: expect.any(String),
-	      dateUpdated: expect.any(String),
+	      dateCreated: expect.toBeOneOf([String, Date]),
+	      dateUpdated: expect.toBeOneOf([String, Date]),
 	      hash: expect.nullOrAny(String),
 	      ip: expect.nullOrAny(String),
 	      items: expect.arrayContaining([
@@ -99,7 +106,6 @@ describe("Test 'cart' service", () => {
 						amount: 2
 					})
 				]),
-	      order: expect.nullOrAny(String),
 	      user: expect.nullOrAny(String)
 			});
 		});
@@ -117,10 +123,10 @@ describe("Test 'cart' service", () => {
 				return broker.call("cart.updateMyCart", {cartNew: cart});
 			});
 
-			expect(res).toEqual({
+			expect(res).toMatchObject({
 	      _id: expect.any(String),
-	      dateCreated: expect.any(String),
-	      dateUpdated: expect.any(String),
+	      dateCreated: expect.toBeOneOf([String, Date]),
+	      dateUpdated: expect.toBeOneOf([String, Date]),
 	      hash: expect.nullOrAny(String),
 	      ip: expect.nullOrAny(String),
 	      items: expect.arrayContaining([
@@ -148,10 +154,10 @@ describe("Test 'cart' service", () => {
 				amount: 1
 			});
 
-			expect(res).toEqual({
+			expect(res).toMatchObject({
 	      _id: expect.any(String),
-	      dateCreated: expect.any(String),
-	      dateUpdated: expect.any(String),
+	      dateCreated: expect.toBeOneOf([String, Date]),
+	      dateUpdated: expect.toBeOneOf([String, Date]),
 	      hash: expect.nullOrAny(String),
 	      ip: expect.nullOrAny(String),
 	      items: expect.arrayContaining([
@@ -167,15 +173,16 @@ describe("Test 'cart' service", () => {
 			});
 		});
 
+
 		it("should return Cart with empty array of items", async () => {
 			const res = await broker.call("cart.delete", {
 				itemId: "5c8183d176feb5cd4f7573ff"
 			});
 
-			expect(res).toEqual({
+			expect(res).toMatchObject({
 	      _id: expect.any(String),
-	      dateCreated: expect.any(String),
-	      dateUpdated: expect.any(String),
+	      dateCreated: expect.toBeOneOf([String, Date]),
+	      dateUpdated: expect.toBeOneOf([String, Date]),
 	      hash: expect.nullOrAny(String),
 	      ip: expect.nullOrAny(String),
 	      items: [],

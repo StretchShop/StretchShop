@@ -339,7 +339,7 @@ module.exports = {
 		 */
 		checkUserData(ctx) {
 			let user = null;
-			this.logger.info("orders.checkUserData() - user inputs: ", { orderUser: this.settings.orderTemp.user, loggetUser: ctx.meta.user });
+			this.logger.info("orders.checkUserData() - user inputs: ", { orderUser: this.settings.orderTemp.user, loggedUser: ctx.meta.user });
 
 			if ( this.settings.orderTemp.user && ctx.meta.user && ctx.meta.user._id && 
 				ctx.meta.user._id!=null && this.settings.orderTemp.user.id != ctx.meta.user._id ) {
@@ -350,7 +350,8 @@ module.exports = {
 					id: (ctx.meta.user._id) ? ctx.meta.user._id : null,
 					externalId: (ctx.meta.user.externalId) ? ctx.meta.user.externalId : null,
 					username: (ctx.meta.user.username) ? ctx.meta.user.username : null,
-					email: (ctx.meta.user.email) ? ctx.meta.user.email : null
+					email: (ctx.meta.user.email) ? ctx.meta.user.email : null,
+					addresses: (ctx.meta.user.addresses) ? ctx.meta.user.addresses : null
 				};
 
 			} else if ( this.settings.orderTemp.user && ctx.meta.userNew===true ) {
@@ -495,6 +496,10 @@ module.exports = {
 		manageUser(ctx) {
 			let self = this;
 			self.logger.info("order.manageUser() #0 - ctx.meta.user:", ctx.meta.user);
+
+			if ( ctx.meta?.user && typeof ctx.meta.user._id === "undefined" && typeof ctx.meta.user.id !== "undefined" ) {
+				ctx.meta.user._id = ctx.meta.user.id;
+			}
 
 			if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!="" ) {
 				// user logged in

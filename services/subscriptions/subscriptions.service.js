@@ -305,7 +305,7 @@ module.exports = {
 					// add ID parameter
 					ctx.params.order.id = ctx.params.order._id;
 					// saving ids into related order
-					return ctx.call("orders.update", {
+					return ctx.call("orders.updateOrder", {
 						order: Object.assign({}, ctx.params.order)
 					})
 						.then(order => {

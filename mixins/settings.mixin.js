@@ -115,10 +115,10 @@ module.exports = {
     }
 
     if ( typeof settingsTemp[type] !== "undefined" && settingsTemp[type] !== null) {
-      console.log(" -----> loading CACHED settings");
+      // console.log(" -----> loading CACHED settings");
       result = {...settingsTemp[type]};
     } else {
-      console.log(" -----> loading ORIG settings");
+      // console.log(" -----> loading ORIG settings");
       settingsTemp[type] = this.getOriginalSiteSettings(type);
       result = settingsTemp[type];
     }

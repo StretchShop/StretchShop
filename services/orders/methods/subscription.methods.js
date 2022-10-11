@@ -1,8 +1,5 @@
 "use strict";
 
-const { createInbox } = require("nats");
-
-
 module.exports = {
 	methods: {
 
