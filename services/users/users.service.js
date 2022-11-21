@@ -210,6 +210,7 @@ module.exports = {
 		 * @returns {Object} Created entity & token
 		 */
 		create: {
+			tokenize: "required",
 			params: {
 				user: { type: "object", props: {
 					username: { type: "string" },
@@ -301,6 +302,7 @@ module.exports = {
 		 * @returns {Object} Logged in user with token
 		 */
 		login: {
+			tokenize: "required",
 			params: {
 				user: { type: "object", props: {
 					email: { type: "email", min: 2 },
@@ -692,6 +694,7 @@ module.exports = {
 
 
 		checkIfEmailExists: {
+			tokenize: "required",
 			params: {
 				email: { type: "email" }
 			},
@@ -884,6 +887,7 @@ module.exports = {
 		 *
 		 */
 		resetPassword: {
+			tokenize: "required",
 			params: {
 				email: { type: "string" }
 			},
@@ -1134,6 +1138,7 @@ module.exports = {
 		 * set profile to be removed in 14 days
 		 */
 		deleteProfile: {
+			tokenize: "required",
 			auth: "required",
 			handler(ctx) {
 				this.logger.info("users.deleteProfile ctx.params:", {

@@ -6,8 +6,11 @@ const ApiGateway = require("moleculer-web");
 const fs = require("fs-extra");
 // const fs = require("fs");
 const formidable = require("formidable");
+const jwt = require("jsonwebtoken");
 const util = require("util");
 const _ = require("lodash");
+
+const SettingsMixin = require("../../../mixins/settings.mixin");
 
 const { UnAuthorizedError } = ApiGateway.Errors;
 
@@ -20,27 +23,58 @@ module.exports = {
 	
 	methods: {
 		/**
-		 * Manage user independent application cookies - eg. cart
+		 * Manage user independent application cookies - eg. cart, csrf
+		 * 
+		 * @param {Object} ctx 
+		 * @param {String} route 
+		 * @param {Object} req 
+		 * @param {Object} res 
 		 */
 		cookiesManagement(ctx, route, req, res) {
 			if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
 				// req.connection.encrypted = true;
 			}
+			const bsKeys = SettingsMixin.getSiteSettings("business", true);
 
 			res.cookies = new Cookies(req, res, { keys: ["Lvj1MalbaTe6k"] });
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;
+			// CART cookie
 			if ( !cookies.cart ) {
 				const name = "cart";
 				const hash = crypto.createHash("sha256");
 				const userCookieString = ctx.meta.remoteAddress + "--" + new Date().toISOString();
 				hash.update(userCookieString);
 				const value = hash.digest("hex");
+				//--
 				res.cookies.set(name, value, { 
 					signed: true,
 					secure: ((process.env.HTTPS_KEY && process.env.HTTPS_CERT) ? true : false),
 					httpOnly: true
+				});
+				ctx.meta.cookies[name] = value;
+			}
+
+			// CSRF cookie
+			if ( !cookies.session ) {
+				const csrfDate = new Date();
+				const name = "session";
+				const hash = crypto.createHash("sha256");
+				const sessionCookieString = ctx.meta.remoteAddress + "--" + csrfDate.getTime() + "--" + bsKeys.invoiceData?.company?.name + "--" + crypto.randomBytes(20).toString('hex');
+				hash.update(sessionCookieString);
+				const hashValue = hash.digest("hex");
+				const value = jwt.sign({
+					ip: ctx.meta.remoteAddress,
+					issued: csrfDate.getTime(),
+					token: hashValue
+				}, this.settings.JWT_SECRET);
+				//--
+				res.cookies.set(name, value, { 
+					signed: true,
+					secure: ((process.env.HTTPS_KEY && process.env.HTTPS_CERT) ? true : false),
+					sameSite: true,
+					httpOnly: false
 				});
 				ctx.meta.cookies[name] = value;
 			}
@@ -55,9 +89,48 @@ module.exports = {
 		 * @param {IncomingRequest} req
 		 * @returns {Promise}
 		 */
+		tokenizer(ctx, req) {
+			if (req.$action.tokenize === "required" && ctx.meta.headers?.authorization) {
+				this.logger.info("Using tokenizer");
+				const cookies = this.parseCookies(req.headers.cookie)
+				const token = ctx.meta.headers.authorization.split("Token ");
+				// check if token was set in header and verify its integrity
+				if (token[1] && cookies.session) {
+					const cookieData = jwt.decode(cookies.session);
+					const verifyKey = ctx.meta.remoteAddress + "--" + cookieData.issued;
+					try {
+						const decoded = jwt.verify(token[1].trim(), verifyKey);
+						if (decoded) {
+							// compare if token from cookie is same as token from header
+							if (decoded.token === cookieData.token) {
+								this.logger.warn("Token valid");
+							} else {
+								this.logger.error("Token INVALID");
+								return this.Promise.reject(new UnAuthorizedError());
+							}
+						}
+					} catch (e) {
+						this.logger.error("Token INVALID: ", e);
+						return this.Promise.reject(new UnAuthorizedError());
+					}
+				}
+			}
+		},
+
+
+
+		/**
+		 * Authorize the request
+		 *
+		 * @param {Context} ctx
+		 * @param {Object} route
+		 * @param {IncomingRequest} req
+		 * @returns {Promise}
+		 */
 		authorize(ctx, route, req, res) {
 			ctx.meta.headers = req.headers;
-			this.logger.info("api req.headers -------> ctx.meta.headers:", ctx.meta.headers);
+			this.tokenizer(ctx, req);
+			// this.logger.info("api req.headers -------> ctx.meta.headers:", ctx.meta.headers);
 			this.cookiesManagement(ctx, route, req, res);
 
 			let token = "";

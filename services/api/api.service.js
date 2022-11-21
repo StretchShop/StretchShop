@@ -41,6 +41,8 @@ module.exports = {
 			key: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_KEY)),
 			cert: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_CERT))
 		} : null,
+		
+		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
 
 		// Global CORS settings for all routes
 		cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev") ? {

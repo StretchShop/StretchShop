@@ -72,14 +72,14 @@ module.exports = {
 		"GET /order/progress": "orders.progress",
 		"POST /order/progress": "orders.progress",
 		"POST /order/list": "orders.listOrders",
-		"GET /order/invoice/download/:invoice": "orders.invoiceDownload",
-		"GET /order/invoice/pay/:orderId": "orders.paid",
-		"GET /order/invoice/cancel/:orderId": "orders.cancel",
-		"GET /order/invoice/expeded/:orderId": "orders.expede",
+		"POST /order/invoice/download/:invoice": "orders.invoiceDownload",
+		"POST /order/invoice/pay/:orderId": "orders.paid",
+		"POST /order/invoice/cancel/:orderId": "orders.cancel",
+		"POST /order/invoice/expeded/:orderId": "orders.expede",
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",
-		"GET /subscription/suspend/:subscriptionId": "subscriptions.suspend",
-		"GET /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
+		"POST /subscription/suspend/:subscriptionId": "subscriptions.suspend",
+		"POST /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
 		// Payment
 		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/paypal/geturl
 		"GET /order/payment/:supplier/:result": "orders.paymentResult",
