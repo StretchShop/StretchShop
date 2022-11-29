@@ -90,7 +90,7 @@ module.exports = {
 		 * @returns {Promise}
 		 */
 		tokenizer(ctx, req) {
-			if (req.$action.tokenize === "required" && ctx.meta.headers?.authorization) {
+			if (req.$action?.tokenize === "required" && ctx.meta.headers?.authorization) {
 				this.logger.info("Using tokenizer");
 				const cookies = this.parseCookies(req.headers.cookie)
 				const token = ctx.meta.headers.authorization.split("Token ");
@@ -184,11 +184,12 @@ module.exports = {
 		 * supports ONLY JPG files for now
 		 */
 		parseUploadedFile(req, res, activePath) {
-			let self = this;
+			const self = this;
 			this.logger.info("api.parseUploadedFile() #1");
-			let form = new formidable.IncomingForm();
-			this.logger.info("api.parseUploadedFile() #2");
-			return form.parse(req, function(err, fields, files) {
+			const form = formidable({ multiples: true });;
+			this.logger.info("api.parseUploadedFile() #2", form);
+			return form.parse(req, (err, fields, files) => {
+				self.logger.info("api.parseUploadedFile() #2.5", err, fields, files);
 				let promises = [];
 				self.logger.info("api.parseUploadedFile() #3", files, fields);
 				if ( err ) {

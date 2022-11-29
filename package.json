@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "repository": {
@@ -32,7 +32,6 @@
   },
   "dependencies": {
     "@stretchshop/moleculer-cron": "^0.0.3",
-    "moleculer-db": "^0.8.20",
     "base-64": "^1.0.0",
     "bcryptjs": "^2.4.3",
     "connect-history-api-fallback": "^2.0.0",
@@ -51,6 +50,7 @@
     "lodash": "^4.17.21",
     "mkdirp": "^1.0.4",
     "moleculer": "^0.14.26",
+    "moleculer-db": "^0.8.20",
     "moleculer-db-adapter-mongo": "^0.4.15",
     "moleculer-repl": "^0.7.3",
     "moleculer-web": "^0.10.4",
