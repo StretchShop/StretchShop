@@ -86,6 +86,7 @@ module.exports = {
 		makeProductPriceLevels(product, recalculate) {
 			recalculate = (typeof recalculate !== "undefined") ?  recalculate : false;
 			let newPriceLevels = {};
+			const businessSettings = SettingsMixin.getSiteSettings('business');
 
 			if (businessSettings && businessSettings.priceLevels && 
 				businessSettings.priceLevels.validTypes.userTypes && 
@@ -152,6 +153,8 @@ module.exports = {
 		 * @param {*} usertype 
 		 */
 		calculatePriceForUsertype(price, usertype) {
+			const businessSettings = SettingsMixin.getSiteSettings('business');
+			
 			if (this.isValidUsertype(usertype) && businessSettings && 
 			businessSettings.priceLevels && businessSettings.priceLevels.discounts &&
 			businessSettings.priceLevels.discounts[usertype]) {

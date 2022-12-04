@@ -327,7 +327,7 @@ module.exports = {
 			if ( source) {
 				if ( source.constructor === Object) {
 					Object.keys(source).forEach(k => {
-						if (source[k].constructor === String) {
+						if (source[k]?.constructor === String) {
 							source[k] = this.removeJavascriptTag(source[k]);
 						} else if ( source.constructor === Object || source.constructor === Array ) {
 							source[k] = this.unJsString(source[k]);
