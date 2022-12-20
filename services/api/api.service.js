@@ -22,6 +22,14 @@ const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(
 // API routes
 const apiV1 = require("../../resources/routes/apiV1");
 
+let pathModif = null;
+// optional imports
+try {
+	pathModif = require(resourcesDirectory + "/routes/path.modificator");
+} catch (err) {
+	console.warn("api pathModif import error: ", err);
+}
+
 
 module.exports = {
 	name: "api",
@@ -123,10 +131,50 @@ module.exports = {
 				path: "/",
 				use: [
 					// handle fallback for HTML5 history API
-					require("connect-history-api-fallback")(),
+					require("connect-history-api-fallback")({ 
+						index: "index.html",
+						rewrites: [
+							{ 
+								from: /^[^.]*$/, // only requests without dot (.) in url
+								to: function(context) {
+									let path = "";
+									// if available, update path as required by business
+									if (pathModif && typeof pathModif.updatePath === 'function') {
+										path = pathModif.updatePath(path, context.request);
+									}
+									return path + "/index.html";
+								}
+							}
+						]
+					}),
 				],
 				// Action aliases
 				aliases: {
+					"/": function (req, res) {
+						let publicPath = process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public");
+
+						// if available, update path as required by business
+						let publicPathReady = publicPath;
+						if (pathModif && typeof pathModif.updatePath === 'function') {
+							publicPathReady = pathModif.updatePath(publicPath, req);
+						}
+
+						let indexPath = publicPathReady + "/index.html";
+						if ( !fs.existsSync(indexPath) ) {
+							indexPath = publicPath + "/index.html";
+						}
+						// read index file
+						fs.readFile(indexPath)
+							.then( index => {
+								res.end(index);
+							})
+							.catch( (error) => {
+								console.error("Router / error: ", error);
+								res.set('Content-Type', 'text/plain')
+									.status(404)
+									.send({ message: "Page index.html not found" });
+							})
+					},
 				},
 				mappingPolicy: "restrict",
 			}

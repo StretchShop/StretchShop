@@ -13,7 +13,10 @@ module.exports = function(collection) {
 
 		return {
 			mixins: [DbService],
-			adapter: new MongoAdapter(process.env.MONGO_URI, { useNewUrlParser: true }),
+			adapter: new MongoAdapter(process.env.MONGO_URI, { 
+				useNewUrlParser: true,
+				useUnifiedTopology: true
+			}),
 			collection,
 			methods: {
 				fixStringToId(idString) {

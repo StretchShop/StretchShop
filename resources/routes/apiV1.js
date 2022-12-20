@@ -1,6 +1,8 @@
 "use strict";
 
 let cookie = require("cookie");
+const SettingsMixin = require("./../../mixins/settings.mixin");
+
 
 module.exports = {
 	path: "/api/v1",
@@ -117,6 +119,7 @@ module.exports = {
 	},
 
 	onBeforeCall(ctx, route, req) {
+		ctx.meta.host = req.headers.host;
 		this.logger.info("api.authorize() visitor IP: ", req.connection.remoteAddress);
 		ctx.meta.remoteAddress = req.connection.remoteAddress;
 		ctx.meta.remotePort = req.connection.remotePort;
@@ -126,6 +129,7 @@ module.exports = {
 		ctx.meta.siteSettings = this.settings.siteSettings;
 		ctx.meta.siteSettings.translation = this.settings.translation;
 		ctx.meta.siteSettings.assets = this.settings.assets;
+		SettingsMixin.setContext(ctx);
 	},
 
 

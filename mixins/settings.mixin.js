@@ -7,11 +7,11 @@ const sppf = require("../mixins/subproject.helper");
 const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
 
 const validSettingTypes = [
-  'business', 
-  'orders', 
-  'locals',
-  'navigation-main', 
-  'navigation-footer'
+  "business", 
+  "orders", 
+  "locals",
+  "navigation-main", 
+  "navigation-footer"
 ];
 
 let settings = {
@@ -23,9 +23,14 @@ let navigation = {
   main: null,
   footer: null
 }
+let settCtx = null;
 
 
 module.exports = {
+
+  setContext(ctx) {
+    settCtx = ctx;
+  },
   
   /**
    * Defines and returns group for passed type
@@ -34,22 +39,22 @@ module.exports = {
    * @returns {String}
    */
    getTypeGroup(type) {
-    let result = 'settings'; // aka 'business'
+    let result = "settings"; // aka "business"
     switch (type) {
-      case 'orders':
-        result = 'settings';
+      case "orders":
+        result = "settings";
         break;
-      case 'locals':
-        result = 'settings';
+      case "locals":
+        result = "settings";
         break;
-      case 'navigation-main':
-        result = 'navigation';
+      case "navigation-main":
+        result = "navigation";
         break;
-      case 'navigation-footer':
-        result = 'navigation';
+      case "navigation-footer":
+        result = "navigation";
         break;
       default: 
-        result = 'settings';
+        result = "settings";
         break;
     }
     return result;
@@ -60,28 +65,30 @@ module.exports = {
    * 
    * @param {String} type 
    * @param {Boolean} internal 
+   * @param {String} extraPath
    * @returns {Object|null}
    */
-  getSiteSettings(type, internal) {
+  getSiteSettings(type, internal, extraPath) {
     internal = (typeof internal !== "undefined" && internal === true) ? internal : false;
+    extraPath = (typeof internal !== "undefined" && extraPath !== "") ? extraPath : "";
     if (validSettingTypes.indexOf(type) > -1) {
       let result = {};
 
       switch (type) {
-        case 'orders':
-          result = this.getLatestData(type, 'settings');
+        case "orders":
+          result = this.getLatestData(type, "settings", extraPath);
           break;
-        case 'locals':
-          result = this.getLatestData(type, 'settings');
+        case "locals":
+          result = this.getLatestData(type, "settings", extraPath);
           break;
-        case 'navigation-main':
-          result = this.getLatestData(type, 'navigation');
+        case "navigation-main":
+          result = this.getLatestData(type, "navigation", extraPath);
           break;
-        case 'navigation-footer':
-          result = this.getLatestData(type, 'navigation');
+        case "navigation-footer":
+          result = this.getLatestData(type, "navigation", extraPath);
           break;
-        default: // aka 'business'
-          result = this.getLatestData(type, 'settings');
+        default: // aka "business"
+          result = this.getLatestData(type, "settings", extraPath);
           result = {...result};
           if (!internal) { 
             delete result.editableSettings;
@@ -104,9 +111,10 @@ module.exports = {
    * 
    * @param {String} type 
    * @param {String} group 
+   * @param {String} extraPath
    * @returns {Object}
    */
-  getLatestData(type, group) {
+  getLatestData(type, group, extraPath) {
     let result = null;
 
     let settingsTemp = settings;
@@ -119,7 +127,7 @@ module.exports = {
       result = {...settingsTemp[type]};
     } else {
       // console.log(" -----> loading ORIG settings");
-      settingsTemp[type] = this.getOriginalSiteSettings(type);
+      settingsTemp[type] = this.getOriginalSiteSettings(type, extraPath);
       result = settingsTemp[type];
     }
 
@@ -130,10 +138,13 @@ module.exports = {
   /**
    * 
    * @param {String} type 
+   * @param {String} extraPath
    * @returns {Promise}
    */
-  readSettingFileSync(type) {
-    const path = resourcesDirectory + "/" + this.getTypeGroup(type) + "/" + type + ".json"
+  readSettingFileSync(type, extraPath) {
+    extraPath = (typeof internal !== "undefined" && extraPath !== "") ? extraPath + "/" : "";
+
+    const path = resourcesDirectory + "/" + extraPath + this.getTypeGroup(type) + "/" + type + ".json"
 
     try {
       // read json file into string
@@ -175,7 +186,7 @@ module.exports = {
       try {
         data = JSON.parse(JSON.stringify(data));
       } catch (e) {
-        console.error('settings.mixin setSiteSettings JSON error: ', e);
+        console.error("settings.mixin setSiteSettings JSON error: ", e);
       }
 
       return this.updateSettings(type, this.getTypeGroup(type), data);
@@ -195,7 +206,7 @@ module.exports = {
    */
   updateSettings(type, group, data) {
     // update variable
-    if (group === 'navigation') {
+    if (group === "navigation") {
       navigation[type] = {...navigation[type], ...data};
       return this.updateSettingsFile(type, group, navigation[type]);
     }
@@ -223,7 +234,7 @@ module.exports = {
       return this.removeDynamicData(type, data);
     })
     .catch(err => {
-      console.error('settings.mixin updateSettingsFile write error: ', err);
+      console.error("settings.mixin updateSettingsFile write error: ", err);
     });
   },
 
@@ -236,7 +247,7 @@ module.exports = {
    * @returns {Object}
    */
   addDynamicData(type, data) {
-    if (type === 'orders') {
+    if (type === "orders") {
       data.sendingOrder = {
         "url": process.env.SENDING_ORDER_URL,
         "port": process.env.SENDING_ORDER_PORT,
@@ -262,7 +273,7 @@ module.exports = {
    * @returns {Object}
    */
   removeDynamicData(type, data) {
-    if (type === 'orders') {
+    if (type === "orders") {
       if (data.sendingOrder) {
         delete data.sendingOrder;
       }
