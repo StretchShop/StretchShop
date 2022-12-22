@@ -46,7 +46,7 @@
     "html-to-pdfmake": "^2.4.9",
     "ioredis": "^5.2.4",
     "jsdom": "^20.0.3",
-    "jsonwebtoken": "8.5.1",
+    "jsonwebtoken": "9.0.0",
     "lodash": "^4.17.21",
     "mkdirp": "^1.0.4",
     "moleculer": "^0.14.26",
