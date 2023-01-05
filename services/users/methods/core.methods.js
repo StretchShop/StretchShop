@@ -66,6 +66,12 @@ module.exports = {
 				}
 			}
 
+			let additional = {};
+			// get additional settings eg. from 3rd parties like google
+			if (process.env.GOOGLE_TAG) {
+				additional.googleTag = process.env.GOOGLE_TAG.trim();
+			}
+
 			// get other details - user and translation
 			coreData.user = null;
 			coreData.translation = null;
@@ -75,7 +81,8 @@ module.exports = {
 				},
 				business: businessSettings.invoiceData.company,
 				taxData: businessSettings.taxData.global,
-				editableSettings: bsi?.editableSettings?.core === true ? bsi.editableSettings : false
+				editableSettings: bsi?.editableSettings?.core === true ? bsi.editableSettings : false,
+				additional: additional
 			};
 
 			return coreData;
