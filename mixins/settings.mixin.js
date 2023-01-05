@@ -23,13 +23,25 @@ let navigation = {
   main: null,
   footer: null
 }
-let settCtx = null;
+let settingsMixinContext = null;
 
 
 module.exports = {
 
   setContext(ctx) {
-    settCtx = ctx;
+    settingsMixinContext = ctx;
+  },
+
+  clearCachedSettings() {
+    settings = {
+      orders: null,
+      locals: null,
+      business: null
+    };
+    navigation = {
+      main: null,
+      footer: null
+    };
   },
   
   /**
@@ -70,7 +82,10 @@ module.exports = {
    */
   getSiteSettings(type, internal, extraPath) {
     internal = (typeof internal !== "undefined" && internal === true) ? internal : false;
-    extraPath = (typeof internal !== "undefined" && extraPath !== "") ? extraPath : "";
+    extraPath = (typeof extraPath !== "undefined" && extraPath !== "") ? extraPath : "";
+    if (extraPath === "" && settingsMixinContext?.meta?.extraPath !== "") {
+      extraPath = settingsMixinContext?.meta?.extraPath;
+    }
     if (validSettingTypes.indexOf(type) > -1) {
       let result = {};
 
