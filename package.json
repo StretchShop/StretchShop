@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.6.10",
+  "version": "0.6.11",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "repository": {
@@ -45,11 +45,11 @@
     "handlebars": "^4.7.7",
     "html-to-pdfmake": "^2.4.11",
     "ioredis": "^5.2.4",
-    "jsdom": "^20.0.3",
+    "jsdom": "^21.0.0",
     "jsonwebtoken": "9.0.0",
     "lodash": "^4.17.21",
     "mkdirp": "^1.0.4",
-    "moleculer": "^0.14.27",
+    "moleculer": "^0.14.28",
     "moleculer-db": "^0.8.21",
     "moleculer-db-adapter-mongo": "^0.4.16",
     "moleculer-repl": "^0.7.3",
@@ -63,7 +63,7 @@
     "promise-each": "^2.2.0",
     "saslprep": "^1.0.3",
     "slug": "^8.2.2",
-    "stripe": "^11.5.0"
+    "stripe": "^11.6.0"
   },
   "engines": {
     "node": ">= 12.x.x"

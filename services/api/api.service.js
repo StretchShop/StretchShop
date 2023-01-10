@@ -283,6 +283,10 @@ module.exports = {
 							});
 						}
 						return results;
+					})
+					.catch(err => {
+						console.error('api.globalSearch error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Global search error", 422, "", []));
 					});
 			}
 		},

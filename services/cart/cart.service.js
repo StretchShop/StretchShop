@@ -201,6 +201,10 @@ module.exports = {
 
 						// manage cart
 						return this.addToCart(ctx, productAvailable);
+					})
+					.catch(err => {
+						console.error('cart.add error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Can't add to cart", 422, "", []));
 					});
 			}
 		},
@@ -263,8 +267,17 @@ module.exports = {
 							ctx.meta.cart = cart;
 							return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
 								.then(doc => this.transformDocuments(ctx, {}, doc))
-								.then(json => this.entityChanged("removed", json, ctx).then(() => json));
+								.then(json => this.entityChanged("removed", json, ctx)
+								.then(() => json))
+								.catch(err => {
+									console.error('cart.delete update error: ', err);
+									return this.Promise.reject(new MoleculerClientError("Can't update cart", 422, "", []));
+								});
 						}
+					})
+					.catch(err => {
+						console.error('cart.delete error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Can't delete cart item", 422, "", []));
 					});
 			}
 		},
@@ -326,8 +339,17 @@ module.exports = {
 							ctx.meta.cart = cart;
 							return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
 								.then(doc => this.transformDocuments(ctx, {}, doc))
-								.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+								.then(json => this.entityChanged("updated", json, ctx)
+								.then(() => json))
+								.catch(err => {
+									console.error('cart.updateCartItemAmount update error: ', err);
+									return this.Promise.reject(new MoleculerClientError("Can't update cart", 422, "", []));
+								});
 						}
+					})
+					.catch(err => {
+						console.error('cart.updateCartItemAmount error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Can't update cart item amount", 422, "", []));
 					});
 			}
 		},
@@ -369,7 +391,12 @@ module.exports = {
 						this.logger.info("cart.updateMyCart - newCart: ", cart);
 						return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
 							.then(doc => this.transformDocuments(ctx, {}, doc))
-							.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+							.then(json => this.entityChanged("updated", json, ctx)
+							.then(() => json))
+							.catch(err => {
+								console.error('cart.updateMyCart update error: ', err);
+								return this.Promise.reject(new MoleculerClientError("Can't update cart", 422, "", []));
+							});
 					});
 			}
 		}, 
