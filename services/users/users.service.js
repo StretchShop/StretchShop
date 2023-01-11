@@ -47,7 +47,11 @@ module.exports = {
 				.actions.cleanUsers()
 				.then((data) => {
 					this.logger.info("users.crons - Users Cleaned up", data);
-				});
+				})
+				.catch(err => {
+					console.error('crons.clearUsers error: ', err);
+					return this.Promise.reject(new MoleculerClientError("Cron clean users failed", 422, "", []));
+				});;
 		}
 	}],
 
@@ -1323,23 +1327,28 @@ module.exports = {
 					}
 				})
 					.then(found => {
-						found.forEach(user => {
-							promises.push( 
-								ctx.call("users.remove", {id: user._id} )
-									.then(removed => {
-										return "Removed users: " +JSON.stringify(removed);
-									})
-							);
-						});
-						// return all delete results
-						return Promise.all(promises)
-							.then((result) => {
-								return result;
-							})
-							.catch(err => {
-								console.error('users.clearUsers user error: ', user, err);
-								return this.Promise.reject(new MoleculerClientError("Can't erase user", 422, "", []));
+						console.log("cleanUsers found results: ", found);
+						if (found && found.length > 0) {
+							found.forEach(user => {
+								promises.push( 
+									ctx.call("users.remove", {id: user._id} )
+										.then(removed => {
+											return "Removed users: " +JSON.stringify(removed);
+										})
+								);
 							});
+							// return all delete results
+							return Promise.all(promises)
+								.then((result) => {
+									return result;
+								})
+								.catch(err => {
+									console.error('users.clearUsers user error: ', user, err);
+									return this.Promise.reject(new MoleculerClientError("Can't erase user", 422, "", []));
+								});
+						} else {
+							return Promise.resolve([]);
+						}
 					})
 					.catch(err => {
 						console.error('users.clearUsers error: ', err);

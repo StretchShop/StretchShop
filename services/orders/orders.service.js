@@ -245,6 +245,10 @@ module.exports = {
 							this.logger.info("order.progress - no order found, CREATE order");
 							return this.createOrderAction(cart, ctx, this.adapter);
 						}
+					})
+					.catch(err => {
+						console.error('orders.progress cart.me error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Order cart error", 422, "", []));
 					}); // cart end
 			}
 		},
@@ -337,6 +341,10 @@ module.exports = {
 									});
 							}
 						}
+					})
+					.catch(err => {
+						console.error('order.create find error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Order create error", 422, "", []));
 					});
 
 			}
@@ -593,6 +601,10 @@ module.exports = {
 					return ctx.call("orders."+actionName, params)
 						.then(result => {
 							return result;
+						})
+						.catch(err => {
+							console.error('order.paymentResult *action error: ', err);
+							return this.Promise.reject(new MoleculerClientError("Order payment error", 422, "", []));
 						});
 				}
 			}
@@ -623,12 +635,24 @@ module.exports = {
 									.then(removed => {
 										return "Removed orders: " +JSON.stringify(removed);
 									})
+									.catch(err => {
+										console.error('order.cleanOrders remove error: ', err);
+										return this.Promise.reject(new MoleculerClientError("Order clean remove error", 422, "", []));
+									})
 							);
 						});
 						// return all delete results
 						return Promise.all(promises).then((result) => {
 							return result;
+						})
+						.catch(err => {
+							console.error('order.cleanOrders promises error: ', err);
+							return this.Promise.reject(new MoleculerClientError("Orders clean error", 422, "", []));
 						});
+					})
+					.catch(err => {
+						console.error('order.cleanOrders find error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Order clean find error", 422, "", []));
 					});
 			}
 		}, 
@@ -707,13 +731,22 @@ module.exports = {
 								return this.orderPaymentReceived(ctx, order, "admin")
 									.then(result => {
 										return result;
+									})
+									.catch(err => {
+										console.error('order.paid paymentReceived error: ', err);
+										return this.Promise.reject(new MoleculerClientError("Order payR error", 422, "", []));
 									});
+							})
+							.catch(err => {
+								console.error('order.paid find error: ', err);
+								return this.Promise.reject(new MoleculerClientError("Order pay find error", 422, "", []));
 							});
 					}
 				}
 			}
 		}, 
 
+		
 		/**
 		 * Admin only action
 		 * Change order state to expeded

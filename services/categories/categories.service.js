@@ -121,6 +121,10 @@ module.exports = {
 										categoryProducts[i] = this.priceByUser(product, ctx.meta.user);
 									});
 									return categoryProducts;
+								})
+								.catch(err => {
+									console.error('categories.categoriesList error: ', err);
+									return this.Promise.reject(new MoleculerClientError("Categories error", 422, "", []));
 								});
 						}
 					});
@@ -179,6 +183,7 @@ module.exports = {
 					})
 					.catch(err => {
 						this.logger.error("categories findActive error: ", err);
+						return this.Promise.reject(new MoleculerClientError("Categories findA error", 422, "", []));
 					});
 			}
 		},
@@ -212,9 +217,16 @@ module.exports = {
 								};
 							})
 							.then(result => {
-
 								return result;
+							})
+							.catch(err => {
+								console.error('categories.findWithContent pages.detail error: ', err);
+								return this.Promise.reject(new MoleculerClientError("Category page error", 422, "", []));
 							});
+					})
+					.catch(err => {
+						console.error('categories.categoriesList error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Categories error", 422, "", []));
 					});
 			}
 		},
@@ -307,13 +319,29 @@ module.exports = {
 													}
 													found["minMaxPrice"] = minMaxPrice;
 													return found;
+												})
+												.catch(err => {
+													console.error('categories.detail - products.getMinMaxPrice error: ', err);
+													return this.Promise.reject(new MoleculerClientError("Category detail error", 422, "", []));
 												});
 											}
+										})
+										.catch(err => {
+											console.error('categories.detail - items count error: ', err);
+											return this.Promise.reject(new MoleculerClientError("Category items count error", 422, "", []));
 										});
+								})
+								.catch(err => {
+									console.error('categories.detail - subcategories error: ', err);
+									return this.Promise.reject(new MoleculerClientError("Category subcategories error", 422, "", []));
 								});
 						} else { // no category found
-							return null; // do not return category, just null
+							return Promise.reject(new MoleculerClientError("Category not found", 403, "", null)); // do not return category, just null
 						}
+					})
+					.catch(err => {
+						console.error('categories.detail - categories.find error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Category detail error", 422, "", []));
 					});
 			}
 		},
@@ -381,7 +409,16 @@ module.exports = {
 
 													return self.adapter.updateById(entityId, update)
 														.then(doc => self.transformDocuments(ctx, {}, doc))
-														.then(json => self.entityChanged("updated", json, ctx).then(() => json));
+														.then(json => self.entityChanged("updated", json, ctx)
+														.then(() => json))
+														.catch(err => {
+															console.error('categories.import update error: ', err);
+															return this.Promise.reject(new MoleculerClientError("Category import update error", 422, "", []));
+														});
+												})
+												.catch(err => {
+													console.error('categories.import update validation error: ', err);
+													return this.Promise.reject(new MoleculerClientError("Category import update validation error", 422, "", []));
 												});
 										} else { // no category found, create one
 											return self.validateEntity(entity)
@@ -434,17 +471,38 @@ module.exports = {
 
 															return self.adapter.insert(entity)
 																.then(doc => self.transformDocuments(ctx, {}, doc))
-																.then(json => self.entityChanged("created", json, ctx).then(() => json));
+																.then(json => self.entityChanged("created", json, ctx)
+																.then(() => json))
+																.catch(err => {
+																	console.error('categories.import insert error: ', err);
+																	return this.Promise.reject(new MoleculerClientError("Category import insert error", 422, "", []));
+																});
+														})
+														.catch(err => {
+															console.error('categories.import insert slug-check error: ', err);
+															return this.Promise.reject(new MoleculerClientError("Category import insert slug-check error", 422, "", []));
 														});
+												})
+												.catch(err => {
+													console.error('categories.import insert validation error: ', err);
+													return this.Promise.reject(new MoleculerClientError("Category import insert validation error", 422, "", []));
 												});
 										} // else end
+									})
+									.catch(err => {
+										console.error('categories.import findById error: ', err);
+										return this.Promise.reject(new MoleculerClientError("Category import find error", 422, "", []));
 									})); // push with find end
-						});
+						}); // categories foreach loop end
 					}
 
 					// return multiple promises results
 					return Promise.all(promises).then(prom => {
 						return prom;
+					})
+					.catch(err => {
+						console.error('categories.import promises error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Category import all error", 422, "", []));
 					});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
@@ -497,10 +555,18 @@ module.exports = {
 
 													self.logger.info("categories.delete - deleted category Count: ", deletedCount);
 													return deletedCount;
-												}); // returns number of removed items
+												}) // returns number of removed items
+												.catch(err => {
+													console.error('categories.delete remove error: ', err);
+													return this.Promise.reject(new MoleculerClientError("Category delete error", 422, "", []));
+												}); 
 										} else {
 											self.logger.error("categories.delete - entity.id "+entity.id+" not found");
 										}
+									})
+									.catch(err => {
+										console.error('categories.delete find error: ', err);
+										return this.Promise.reject(new MoleculerClientError("Category delete find error", 422, "", []));
 									})
 							); // push with find end
 						});
@@ -509,6 +575,10 @@ module.exports = {
 					// return multiple promises results
 					return Promise.all(promises).then(() => {
 						return promises;
+					})
+					.catch(err => {
+						console.error('categories.delete promises error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Category delete all error", 422, "", []));
 					});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));

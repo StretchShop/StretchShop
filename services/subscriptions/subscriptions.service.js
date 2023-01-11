@@ -102,8 +102,13 @@ module.exports = {
 		 * Get currently active user's subscriptions
 		 *
 		 * @actions
+		 * @param {Object} query - Main query
+		 * @param {Number} limit - Limit
+		 * @param {Number} offset - Offset
+		 * @param {String} sort - Sorting string
+		 * @param {Boolean} fullData - Return data for all users
 		 *
-		 * @returns {Object} User entity
+		 * @returns {Object} - with results and count
 		 */
 		listSubscriptions: {
 			cache: false,
@@ -272,49 +277,62 @@ module.exports = {
 								.then((saved) => {
 									this.logger.info("subscriptions.orderToSubscription - added subscription["+i+"]: ", saved);
 									return saved;
+								})
+								.catch(err => {
+									this.logger.error("subscriptions.orderToSubscription subscriptions.save error:", err);
+									return this.Promise.reject(new MoleculerClientError("Subscriptions Ssave error", 422, "", []));
 								})); // push with save end
 					}
 				}
 
 				// return multiple promises results
-				return Promise.all(promises).then(savedSubscriptions => {
-					this.logger.info("subscriptions.orderToSubscription Promise.all(promises):", promises);
-					// save IDs into related order
-					let subscrIds = [];
-					let productSubscriptions = {};
-					savedSubscriptions.forEach(function(sasu){
-						// get ID or subscription and related product
-						subscrIds.push({
-							subscription: sasu._id.toString(),
-							product: sasu.data.product._id.toString()
+				return Promise.all(promises)
+					.then(savedSubscriptions => {
+						this.logger.info("subscriptions.orderToSubscription Promise.all(promises):", promises);
+						// save IDs into related order
+						let subscrIds = [];
+						let productSubscriptions = {};
+						savedSubscriptions.forEach(function(sasu){
+							// get ID or subscription and related product
+							subscrIds.push({
+								subscription: sasu._id.toString(),
+								product: sasu.data.product._id.toString()
+							});
+							productSubscriptions[sasu.data.product._id.toString()] = sasu._id.toString();
 						});
-						productSubscriptions[sasu.data.product._id.toString()] = sasu._id.toString();
-					});
-					if ( !ctx.params.order.data.subscription ) {
-						ctx.params.order.data["subscription"] = {
-							created: new Date(),
-							ids: []
-						};
-					}
-					ctx.params.order.data.subscription.ids = subscrIds;
-					// add subscription ID also into product in order list
-					for (let i=0; i<ctx.params.order.items.length; i++) {
-						ctx.params.order.items[i].subscriptionId = productSubscriptions[ctx.params.order.items[i]._id.toString()];
-					}
-					this.logger.info("subscriptions.orderToSubscription Promise.all(promises) subscrIds:", subscrIds);
-					// add ID parameter
-					ctx.params.order.id = ctx.params.order._id;
-					// saving ids into related order
-					return ctx.call("orders.updateOrder", {
-						order: Object.assign({}, ctx.params.order)
+						if ( !ctx.params.order.data.subscription ) {
+							ctx.params.order.data["subscription"] = {
+								created: new Date(),
+								ids: []
+							};
+						}
+						ctx.params.order.data.subscription.ids = subscrIds;
+						// add subscription ID also into product in order list
+						for (let i=0; i<ctx.params.order.items.length; i++) {
+							ctx.params.order.items[i].subscriptionId = productSubscriptions[ctx.params.order.items[i]._id.toString()];
+						}
+						this.logger.info("subscriptions.orderToSubscription Promise.all(promises) subscrIds:", subscrIds);
+						// add ID parameter
+						ctx.params.order.id = ctx.params.order._id;
+						// saving ids into related order
+						return ctx.call("orders.updateOrder", {
+							order: Object.assign({}, ctx.params.order)
+						})
+							.then(order => {
+								// save IDs
+								if (order) {
+									return savedSubscriptions;
+								}
+							})
+							.catch(err => {
+								this.logger.error("subscriptions.orderToSubscription orders.updateOrder error:", err);
+								return this.Promise.reject(new MoleculerClientError("Subscriptions updateO error", 422, "", []));
+							});
 					})
-						.then(order => {
-							// save IDs
-							if (order) {
-								return savedSubscriptions;
-							}
-						});
-				});
+					.catch(err => {
+						this.logger.error("subscriptions.orderToSubscription promises error:", err);
+						return this.Promise.reject(new MoleculerClientError("Subscriptions o2s all error", 422, "", []));
+					});
 			}
 		},
 
@@ -392,9 +410,14 @@ module.exports = {
 								);
 							});
 							// return all runned subscriptions
-							return Promise.all(promises).then((result) => {
-								return result;
-							});
+							return Promise.all(promises)
+								.then((result) => {
+									return result;
+								})
+								.catch(err => {
+									this.logger.error("subscriptions.checkSubscriptions all error:", err);
+									return this.Promise.reject(new MoleculerClientError("Subscriptions checkS all error", 422, "", []));
+								});
 						} else {
 							return "No results";
 						}
@@ -417,7 +440,15 @@ module.exports = {
 									suspended: suspendedSubs,
 									finished: subscriptions
 								};	
+							})
+							.catch(err => {
+								this.logger.error("subscriptions.checkSubscriptions updateMany error:", err);
+								return this.Promise.reject(new MoleculerClientError("Subscriptions checkS updateM error", 422, "", []));
 							});
+					})
+					.catch(err => {
+						this.logger.error("subscriptions.checkSubscriptions find error:", err);
+						return this.Promise.reject(new MoleculerClientError("Subscriptions checkS find error", 422, "", []));
 					});
 			}
 		},
@@ -452,14 +483,23 @@ module.exports = {
 							promises.push(
 								// add subscription results into result variable
 								ctx.call("subscriptions.save", {entity})
+								.catch(err => {
+									this.logger.error("subscriptions.import subscriptions.save error:", err);
+									return this.Promise.reject(new MoleculerClientError("Subscriptions import saveS error", 422, "", []));
+								})
 							); // push with find end
 						});
 					}
 
 					// return multiple promises results
-					return Promise.all(promises).then(prom => {
-						return prom;
-					});
+					return Promise.all(promises)
+						.then(prom => {
+							return prom;
+						})
+						.catch(err => {
+							this.logger.error("subscriptions.import all error:", err);
+							return this.Promise.reject(new MoleculerClientError("Subscriptions import all error", 422, "", []));
+						});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
 				}	
@@ -520,10 +560,16 @@ module.exports = {
 
 									return self.adapter.updateById(entityId, update)
 										.then(doc => self.transformDocuments(ctx, {}, doc))
-										.then(json => self.entityChanged("updated", json, ctx).then(() => json));
+										.then(json => self.entityChanged("updated", json, ctx)
+										.then(() => json))
+										.catch(err => {
+											self.logger.error("subscriptions.save update error: ", err);
+											return this.Promise.reject(new MoleculerClientError("Subscriptions save update error", 422, "", []));
+										});
 								})
 								.catch(error => {
 									self.logger.error("subscriptions.save update validation error: ", error);
+									return this.Promise.reject(new MoleculerClientError("Subscriptions save update validation error", 422, "", []));
 								});
 						} else { // no product found, create one
 							return self.validateEntity(entity)
@@ -556,16 +602,27 @@ module.exports = {
 
 											return self.adapter.insert(entity)
 												.then(doc => self.transformDocuments(ctx, {}, doc))
-												.then(json => self.entityChanged("created", json, ctx).then(() => json));
+												.then(json => self.entityChanged("created", json, ctx)
+												.then(() => json))
+												.catch(err => {
+													self.logger.error("subscriptions.save insert error: ", err);
+													return this.Promise.reject(new MoleculerClientError("Subscriptions save insert error", 422, "", []));
+												});
+										})
+										.catch(err => {
+											self.logger.error("subscriptions.save insert find error: ", err);
+											return this.Promise.reject(new MoleculerClientError("Subscriptions save insert find error", 422, "", []));
 										});
 								})
 								.catch(err => {
 									self.logger.error("subscriptions.save insert validation error: ", err);
+									return this.Promise.reject(new MoleculerClientError("Subscriptions save insert validation error", 422, "", []));
 								});
 						} // else end
 					})
 					.catch(err => {
 						self.logger.error("subscriptions.save findById error: ", err);
+						return this.Promise.reject(new MoleculerClientError("Subscriptions save findI error", 422, "", []));
 					});
 			}
 		},

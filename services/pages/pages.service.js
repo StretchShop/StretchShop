@@ -126,12 +126,13 @@ module.exports = {
 	 */
 	actions: {
 		/**
-		 * Add item to user's cart
+		 * List pages
 		 *
 		 * @actions
-		 * @param {Object} user - User entity
+		 * @param {String} category - Path of category to list pages for
+		 * @param {Object} filter - Pages filter object
 		 *
-		 * @returns {Object} Created entity & token
+		 * @returns {Object} Filtered pages, category detail
 		 */
 		pagesList: {
 			// auth: "",
@@ -210,18 +211,43 @@ module.exports = {
 													.then(filteredPagesCount => {
 														result["filteredPagesCount"] = filteredPagesCount;
 														return result;
+													})
+													.catch(err => {
+														console.error('pages.pagesList count error: ', err);
+														return this.Promise.reject(new MoleculerClientError("Pages count error", 422, "", []));
 													});
 											}
 											return result;
+										})
+										.catch(err => {
+											console.error('pages.pagesList findActive error: ', err);
+											return this.Promise.reject(new MoleculerClientError("Pages findA error", 422, "", []));
 										});
+								})
+								.catch(err => {
+									console.error('pages.pagesList find error: ', err);
+									return this.Promise.reject(new MoleculerClientError("Pages find error", 422, "", []));
 								});
 						}
+					})
+					.catch(err => {
+						console.error('pages.pagesList category error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Pages category error", 422, "", []));
 					});
 			}
 		},
 
+
 		/**
-		 * list templates
+		 * List templates
+		 *
+		 * @actions
+		 * @param {String} page - Page to get template for
+		 * @param {Object} query - Query to filter pages
+		 * @param {String} group - Template group
+		 * @param {Boolean} withPages - Return result with pages
+		 *
+		 * @returns {Object} Filtered pages, category detail
 		 */
 		listTemplates: {
 			auth: "required",
@@ -282,8 +308,16 @@ module.exports = {
 										});
 									}
 									return results;
+								})
+								.catch(err => {
+									console.error('pages.listTemplates categories.find error: ', err);
+									return this.Promise.reject(new MoleculerClientError("Pages templates cats error", 422, "", []));
 								});
 							//return results;
+						})
+						.catch(err => {
+							console.error('pages.listTemplates find error: ', err);
+							return this.Promise.reject(new MoleculerClientError("Pages templates find error", 422, "", []));
 						});
 				} else {
 					return dirs;
@@ -291,13 +325,18 @@ module.exports = {
 			}
 		},
 
+
 		/**
-		 * Add item to user's cart
+		 * Find pages with count
 		 *
 		 * @actions
-		 * @param {Object} user - User entity
+		 * @param {Object} query - Main query
+		 * @param {Number} limit - Limit
+		 * @param {Number} offset - Offset
+		 * @param {String} sort - Sorting string
+		 * @param {Boolean} minimalData - Return only minimal data without count
 		 *
-		 * @returns {Object} Created entity & token
+		 * @returns {Object} Object with results and total count
 		 */
 		findWithCount: {
 			// auth: "",
@@ -377,9 +416,16 @@ module.exports = {
 								.then(pagesCount => {
 									result["filteredPagesCount"] = pagesCount;
 									return result;
+								})
+								.catch(err => {
+									console.error('pages.findWithCount count error: ', err);
+									return this.Promise.reject(new MoleculerClientError("Pages findC count error", 422, "", []));
 								});
 						}
-
+					})
+					.catch(err => {
+						console.error('pages.findWithCount find error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Pages findC error", 422, "", []));
 					});
 
 			}
@@ -410,7 +456,11 @@ module.exports = {
 				});
 				return this.adapter.find({
 					"query": queryObject
-				});
+				})
+					.catch(err => {
+						console.error('pages.findWithId find error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Pages findI error", 422, "", []));
+					});
 			}
 		},
 
@@ -419,6 +469,9 @@ module.exports = {
 		 * Get detail of page.
 		 *
 		 * @actions
+		 * @param {String} page - 
+		 * @param {String} category - 
+		 * @param {String} lang - 
 		 *
 		 * @returns {Object} Page entity
 		 */
@@ -477,8 +530,9 @@ module.exports = {
 		 *  - pages - with categories
 		 *
 		 * @actions
+		 * @param {Array} pages - pages objects to import
 		 *
-		 * @returns {Object} Page entity
+		 * @returns {Object} Array of imported pages results
 		 */
 		import: {
 			auth: "required",
@@ -501,6 +555,10 @@ module.exports = {
 								self.adapter.findById(entity.id)
 									.then(found => {
 										return self.importPageAction(ctx, entity, found);
+									})
+									.catch(err => {
+										console.error('pages.import find error: ', err);
+										return this.Promise.reject(new MoleculerClientError("Pages import find error", 422, "", []));
 									})); // push with find end
 						});
 					}
@@ -508,6 +566,10 @@ module.exports = {
 					// return multiple promises results
 					return Promise.all(promises).then(prom => {
 						return prom;
+					})
+					.catch(err => {
+						console.error('pages.import promises error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Pages import all error", 422, "", []));
 					});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
@@ -520,6 +582,7 @@ module.exports = {
 		 * Delete page data by id
 		 *
 		 * @actions
+		 * @param {Array} pages - pages objects to delete
 		 *
 		 * @returns {Object} Page entity
 		 */
@@ -560,10 +623,18 @@ module.exports = {
 
 													self.logger.info("pages.delete - deleted page Count: ", deletedCount);
 													return deletedCount;
+												})
+												.catch(err => {
+													console.error('pages.delete remove error: ', err);
+													return this.Promise.reject(new MoleculerClientError("Pages deleteR error", 422, "", []));
 												}); // returns number of removed items
 										} else {
 											self.logger.error("pages.delete - entity.id "+entity.id+" not found");
 										}
+									})
+									.catch(err => {
+										console.error('pages.delete find error: ', err);
+										return this.Promise.reject(new MoleculerClientError("Pages delete find error", 422, "", []));
 									})); // push with find end
 						});
 					}
@@ -571,6 +642,10 @@ module.exports = {
 					// return multiple promises results
 					return Promise.all(promises).then(() => {
 						return promises;
+					})
+					.catch(err => {
+						console.error('pages.delete promises error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Pages delete all error", 422, "", []));
 					});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));

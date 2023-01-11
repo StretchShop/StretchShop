@@ -141,6 +141,22 @@ module.exports = {
 
 
 
+		/**
+		 * Find products
+		 * 
+		 * @actions
+		 * 
+		 * @param {Array} populate - 
+		 * @param {Array} fields - 
+		 * @param {Number} limit - Limit
+		 * @param {Number} offset - Offset
+		 * @param {String} sort - Sorting string
+		 * @param {String} search - 
+		 * @param {String} searchFields - 
+		 * @param {Object} query - Main query
+		 * 
+		 * @returns {Array.<Object>} List of products with additional data
+		 */
 		find: { // with price & tax 
 			params: {
 				populate: { type: "array", items: { type: "string"}, optional: true },
@@ -174,13 +190,23 @@ module.exports = {
 						this.logger.info("products.find results after:", results);
 						return results;
 					})
-					.catch(e => {
-						this.logger.error("products.find error:", e);
+					.catch(err => {
+						this.logger.error("products.find error:", err);
+						return this.Promise.reject(new MoleculerClientError("Products find error", 422, "", []));
 					});
 			}
 		},
 
 
+		/**
+		 * List products in GET with minimal params
+		 *
+		 * @actions
+		 * @param {String} category - category name
+		 * @param {Object} filter - filter object
+		 *
+		 * @returns {Array.<Object>} List of products with additional data
+		 */
 		productsListGet: {
 			cache: false,
 			params: {
@@ -197,7 +223,11 @@ module.exports = {
 						limit: ctx.params.limit
 					}
 				}
-				return ctx.call('products.productsList', params);
+				return ctx.call('products.productsList', params)
+				.catch(err => {
+					this.logger.error("products.productsListGet error:", err);
+					return this.Promise.reject(new MoleculerClientError("Products findG error", 422, "", []));
+				});
 			}
 		},
 
@@ -292,24 +322,45 @@ module.exports = {
 													.then(filteredProductsCount => {
 														result["filteredProductsCount"] = filteredProductsCount;
 														return result;
+													})
+													.catch(err => {
+														this.logger.error("products.productsList count error:", err);
+														return this.Promise.reject(new MoleculerClientError("Products findL count error", 422, "", []));
 													});
 											}
 											return result;
+										})
+										.catch(err => {
+											this.logger.error("products.productsList categories.findActive error:", err);
+											return this.Promise.reject(new MoleculerClientError("Products findL cat findA error", 422, "", []));
 										});
+								})
+								.catch(err => {
+									this.logger.error("products.productsList find error:", err);
+									return this.Promise.reject(new MoleculerClientError("Products findL error", 422, "", []));
 								});
 						}
+					})
+					.catch(err => {
+						this.logger.error("products.productsList error:", err);
+						return this.Promise.reject(new MoleculerClientError("Products findL catD error", 422, "", []));
 					});
 			}
 		},
+
 
 		/**
 		 * Gets page of products by filter 
 		 * with count of total that match filter
 		 *
 		 * @actions
-		 * @param {Object} user - User entity
+		 * @param {Object} query - Main query
+		 * @param {Number} limit - Limit
+		 * @param {Number} offset - Offset
+		 * @param {String} sort - Sorting string
+		 * @param {Boolean} minimalData - Return only minimal data without count
 		 *
-		 * @returns {Object} Created entity & token
+		 * @returns {Object} Object with results and total count
 		 */
 		findWithCount: {
 			// auth: "",
@@ -376,27 +427,39 @@ module.exports = {
 						} else {
 							return ctx.call("products.getMinMaxPrice", {
 								categories: categories
-							}).then(minMaxPrice => {
-								if ( minMaxPrice.length>0 ) {
-									minMaxPrice = minMaxPrice[0];
-									if ( typeof minMaxPrice._id !== "undefined" ) {
-										delete minMaxPrice._id;
+							})
+								.then(minMaxPrice => {
+									if ( minMaxPrice.length>0 ) {
+										minMaxPrice = minMaxPrice[0];
+										if ( typeof minMaxPrice._id !== "undefined" ) {
+											delete minMaxPrice._id;
+										}
 									}
-								}
-								result["filter"] = {
-									"minMaxPrice": minMaxPrice
-								};
-								// count products inside this category and its subcategories
-								return ctx.call("products.count", {
-									"query": filter.query
+									result["filter"] = {
+										"minMaxPrice": minMaxPrice
+									};
+									// count products inside this category and its subcategories
+									return ctx.call("products.count", {
+										"query": filter.query
+									})
+										.then(productsCount => {
+											result["filteredProductsCount"] = productsCount;
+											return result;
+										})
+										.catch(err => {
+											this.logger.error("products.findWithCount count error:", err);
+											return this.Promise.reject(new MoleculerClientError("Products findC count error", 422, "", []));
+										});
 								})
-									.then(productsCount => {
-										result["filteredProductsCount"] = productsCount;
-										return result;
-									});
-							});
+								.catch(err => {
+									this.logger.error("products.findWithCount getMinMaxPrice error:", err);
+									return this.Promise.reject(new MoleculerClientError("Products findC minmax error", 422, "", []));
+								});
 						}
-
+					})
+					.catch(err => {
+						this.logger.error("products.findWithCount error:", err);
+						return this.Promise.reject(new MoleculerClientError("Products findC error", 422, "", []));
 					});
 
 			}
@@ -439,6 +502,10 @@ module.exports = {
 							});
 						}
 						return results;
+					})
+					.catch(err => {
+						this.logger.error("products.findWithId find error:", err);
+						return this.Promise.reject(new MoleculerClientError("Products findI error", 422, "", []));
 					});
 			}
 		},
@@ -448,6 +515,7 @@ module.exports = {
 		 * Get detail of product.
 		 *
 		 * @actions
+		 * @param {String} product - product ID
 		 *
 		 * @returns {Object} Product entity
 		 */
@@ -474,7 +542,8 @@ module.exports = {
 						}
 					})
 					.catch(err => {
-						this.logger.error("products.detail - found error", err);
+						this.logger.error("products.detail - found error:", err);
+						return this.Promise.reject(new MoleculerClientError("Products detail error", 422, "", []));
 					})
 					.then(found => {
 						// optional data
@@ -495,11 +564,18 @@ module.exports = {
 		},
 
 
-
+		/**
+		 * Get min&max price for category
+		 * 
+		 * @actions
+		 * @param {Array.<String>} categories - categories ID
+		 *
+		 * @returns {Object} Product entity
+		 */
 		getMinMaxPrice: {
 			// auth: "",
 			params: {
-				categories: { type: "array" }
+				categories: { type: "array", items: "string" }
 			},
 			// cache: {
 			// 	keys: ["#cartID"]
@@ -518,6 +594,10 @@ module.exports = {
 				]).toArray()
 					.then(minMaxPrice => {
 						return minMaxPrice;
+					})
+					.catch(err => {
+						this.logger.error("products.getMinMaxPrice error:", err);
+						return this.Promise.reject(new MoleculerClientError("Products minmax error", 422, "", []));
 					});
 			}
 		},
@@ -529,8 +609,9 @@ module.exports = {
 		 *  - products - with categories
 		 *
 		 * @actions
+		 * @param {Array.<Object>} products - Array of product objects to import
 		 *
-		 * @returns {Object} Product entity
+		 * @returns {Array} Import results
 		 */
 		import: {
 			auth: "required",
@@ -552,14 +633,23 @@ module.exports = {
 								self.adapter.findById(entity.id)
 									.then(found => {
 										return self.importProductAction(ctx, entity, found);
+									})
+									.catch(err => {
+										this.logger.error("products.import find error:", err);
+										return this.Promise.reject(new MoleculerClientError("Products import find error", 422, "", []));
 									})); // push with find end
 						});
 					}
 
 					// return multiple promises results
-					return Promise.all(promises).then(prom => {
-						return prom;
-					});
+					return Promise.all(promises)
+						.then(prom => {
+							return prom;
+						})
+						.catch(err => {
+							this.logger.error("products.import promises error:", err);
+							return this.Promise.reject(new MoleculerClientError("Products import all error", 422, "", []));
+						});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
 				}
@@ -571,8 +661,9 @@ module.exports = {
 		 * Delete product data by id
 		 *
 		 * @actions
+		 * @param {Array.<Object>} products - Array of product objects to delete
 		 *
-		 * @returns {Object} Product entity
+		 * @returns {Array} Delete results
 		 */
 		delete: {
 			auth: "required",
@@ -612,18 +703,31 @@ module.exports = {
 
 													self.logger.info("products.delete - deleted product Count: ", deletedCount);
 													return deletedCount;
+												})
+												.catch(err => {
+													this.logger.error("products.delete products.remove error:", err);
+													return this.Promise.reject(new MoleculerClientError("Products delete remove error", 422, "", []));
 												}); // returns number of removed items
 										} else {
 											self.logger.error("products.delete - entity.id "+entity.id+" not found");
 										}
+									})
+									.catch(err => {
+										this.logger.error("products.delete find error:", err);
+										return this.Promise.reject(new MoleculerClientError("Products delete find error", 422, "", []));
 									})); // push with find end
 						});
 					}
 
 					// return multiple promises results
-					return Promise.all(promises).then(() => {
-						return promises;
-					});
+					return Promise.all(promises)
+						.then(() => {
+							return promises;
+						})
+						.catch(err => {
+							this.logger.error("products.delete promises error:", err);
+							return this.Promise.reject(new MoleculerClientError("Products delete all error", 422, "", []));
+						});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
 				}
@@ -637,6 +741,8 @@ module.exports = {
 		 * 
 		 * @param {object} data
 		 * @param {object} params
+		 * 
+		 * @returns none
 		 */
 		updateProductImage: {
 			auth: "required",
@@ -668,6 +774,9 @@ module.exports = {
 								//  }
 								// });
 								}
+							})
+							.catch(err => {
+								this.logger.error("products.updateProductImage error:", err);
 							});
 					}
 				}
@@ -675,7 +784,15 @@ module.exports = {
 			}
 		},
 
-		// check product authorship
+
+		/**
+		 * Check product authorship
+		 * 
+		 * @actions
+		 * @param {Object} data - product data to check
+		 * 
+		 * @returns {Boolean}
+		 */ 
 		checkAuthor: {
 			auth: "required",
 			params: {
@@ -708,6 +825,8 @@ module.exports = {
 		 * External product price level rebuild
 		 * @actions
 		 * @param {string} id - product id
+		 * 
+		 * @returns {Object} - rebuilded product with new price levels
 		 */
 		rebuildProductPriceLevels: {
 			auth: "required",
@@ -727,6 +846,10 @@ module.exports = {
 								return rebuildSuccess.products[0];
 							}
 							return null;
+						})
+						.catch(err => {
+							this.logger.error("products.rebuildProductPriceLevels products.rebuildProducts error:", err);
+							return this.Promise.reject(new MoleculerClientError("Products levels rebuild error", 422, "", []));
 						});
 				} else {
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
@@ -745,6 +868,8 @@ module.exports = {
 		 * @param {number} limit - maximum number of records to work with (paging)
 		 * @param {number} from - offset to read records from
 		 * @param {array} ids - array of record ids {string(s)}
+		 * 
+		 * @returns {Object} - rebuilded products with count
 		 */
 		rebuildProducts: {
 			params: {
@@ -800,14 +925,27 @@ module.exports = {
 									.then(products => {
 										return this.rebuildProductChunks(products);
 									})
+									.catch(err => {
+										this.logger.error("products.rebuildProducts products.find error:", err);
+										return this.Promise.reject(new MoleculerClientError("Products rebuild findP error", 422, "", []));
+									})
 							);
 						}
-						return Promise.all(promisesChunks).then(chunks => {
-							for (let i=0; i<chunks.length; i++) {
-								result.products = result.products.concat(chunks[i]);
-							}
-							return result;
-						});
+						return Promise.all(promisesChunks)
+							.then(chunks => {
+								for (let i=0; i<chunks.length; i++) {
+									result.products = result.products.concat(chunks[i]);
+								}
+								return result;
+							})
+							.catch(err => {
+								this.logger.error("products.rebuildProducts promises error:", err);
+								return this.Promise.reject(new MoleculerClientError("Products rebuild all error", 422, "", []));
+							});
+					})
+					.catch(err => {
+						this.logger.error("products.rebuildProducts count error:", err);
+						return this.Promise.reject(new MoleculerClientError("Products rebuild count error", 422, "", []));
 					});
 				
 			}
