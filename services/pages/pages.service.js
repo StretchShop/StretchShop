@@ -1,7 +1,7 @@
 "use strict";
 
 const { MoleculerClientError } = require("moleculer").Errors;
-const { readdirSync, statSync } = require("fs");
+const { readdirSync, statSync, rmSync } = require("fs");
 
 // global mixins
 const DbService = require("../../mixins/db.mixin");
@@ -103,8 +103,6 @@ module.exports = {
 				dateCreated: { type: "date", optional: true },
 				dateUpdated: { type: "date", optional: true },
 				dateSynced: { type: "date", optional: true },
-				datePublish: { type: "date", optional: true },
-				dateHide: { type: "date", optional: true },
 			}},
 			note: { type: "string", optional: true },
 			activity: { type: "object", optional: true, props: {
@@ -116,8 +114,9 @@ module.exports = {
 		// ------------- PAGES VARIABLES AND SETTINGS -------------
 
 		paths: {
-			resources: process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../resources")
-		}
+			resources: process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../resources"),
+			assets: process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public")
+		},
 	},
 
 
@@ -609,9 +608,20 @@ module.exports = {
 								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // page found, delete it
+											let slug = found?.slug?.toString().trim();
 											self.logger.info("pages.delete - DELETING page: ", found);
 											return ctx.call("pages.remove", {id: found._id} )
 												.then((deletedCount) => {
+
+													const pageBaseDir = self.settings.paths.assets +"/"+ process.env.ASSETS_PATH +"pages/";
+													self.logger.info("pages.delete - deleted page - before assets deleted for page slug: ", slug);
+													if (slug) {
+														const coverDir = pageBaseDir +"cover/"+ slug;
+														rmSync(coverDir, { recursive: true, force: true });
+														const editorDir = pageBaseDir +"editor/"+ slug;
+														rmSync(editorDir, { recursive: true, force: true });
+													}
+
 													// after call action
 													ctx.meta.afterCallAction = {
 														name: "page delete",
@@ -625,7 +635,7 @@ module.exports = {
 													return deletedCount;
 												})
 												.catch(err => {
-													console.error('pages.delete remove error: ', err);
+													self.logger.error('pages.delete remove error: ', err);
 													return this.Promise.reject(new MoleculerClientError("Pages deleteR error", 422, "", []));
 												}); // returns number of removed items
 										} else {
@@ -633,7 +643,7 @@ module.exports = {
 										}
 									})
 									.catch(err => {
-										console.error('pages.delete find error: ', err);
+										self.logger.error('pages.delete find error: ', err);
 										return this.Promise.reject(new MoleculerClientError("Pages delete find error", 422, "", []));
 									})); // push with find end
 						});
