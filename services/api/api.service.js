@@ -81,6 +81,8 @@ module.exports = {
 			maxAge: 3600
 		} : null,
 
+		ip: process.env.IP || 'localhost',
+
 		port: process.env.PORT || 3000,
 
 		routes: [
