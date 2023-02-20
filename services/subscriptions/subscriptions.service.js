@@ -448,7 +448,7 @@ module.exports = {
 					})
 					.catch(err => {
 						this.logger.error("subscriptions.checkSubscriptions find error:", err);
-						return this.Promise.reject(new MoleculerClientError("Subscriptions checkS find error", 422, "", []));
+						// return this.Promise.reject(new MoleculerClientError("Subscriptions checkS find error", 422, "", []));
 					});
 			}
 		},

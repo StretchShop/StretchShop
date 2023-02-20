@@ -1,6 +1,7 @@
 "use strict";
 
 const { MoleculerClientError } = require("moleculer").Errors;
+const { rmSync } = require("fs");
 
 // global mixins
 const DbService = require("../../mixins/db.mixin");
@@ -8,6 +9,7 @@ const CacheCleanerMixin = require("../../mixins/cache.cleaner.mixin");
 const HelpersMixin = require("../../mixins/helpers.mixin");
 const priceLevels = require("../../mixins/price.levels.mixin");
 const SettingsMixin = require("../../mixins/settings.mixin");
+const sppf = require("../../mixins/subproject.helper");
 
 // methods
 const ProductsMethodsCore = require("./methods/core.methods");
@@ -123,7 +125,14 @@ module.exports = {
 				start: { type: "date", optional: true },
 				end: { type: "date", optional: true }
 			}},
-		}
+		}, 
+
+		// ------------- PRODUCTS VARIABLES AND SETTINGS -------------
+
+		paths: {
+			resources: process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../resources"),
+			assets: process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public")
+		},
 	},
 
 
@@ -177,7 +186,7 @@ module.exports = {
 				this.logger.info("products.find filter after FRI:", JSON.stringify(filter));
 				return this.adapter.find(filter)
 					.then( results => {
-						this.logger.info("products.find results before:", results);
+						// this.logger.info("products.find results before:", results);
 						if (results && results.length>0) {
 							results.forEach(result => {
 								result = self.priceByUser(result, ctx.meta.user);
@@ -187,7 +196,7 @@ module.exports = {
 								);
 							});
 						}
-						this.logger.info("products.find results after:", results);
+						// this.logger.info("products.find results after:", results);
 						return results;
 					})
 					.catch(err => {
@@ -296,7 +305,9 @@ module.exports = {
 								filter.limit = 100;
 							}
 							// sort
+							console.log("productList ctx.params.sort: ", ctx.params.sort);
 							filter = this.getFilterSort(filter, ctx);
+							console.log("productList filter: ", filter);
 
 							return ctx.call("products.find", filter)
 								.then(categoryProducts => {
@@ -688,9 +699,19 @@ module.exports = {
 								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, delete it
+											const orderCode = found?.orderCode?.toString().trim();
 											self.logger.info("products.delete - DELETING product: ", found);
 											return ctx.call("products.remove", {id: found._id} )
 												.then((deletedCount) => {
+
+													// delete product assets
+													const pageBaseDir = self.settings.paths.assets +"/"+ process.env.ASSETS_PATH +"pages/";
+													self.logger.info("product.delete - deleted product - before assets deleted for product slug: ", orderCode);
+													if (orderCode) {
+														const chunkedCode = self.stringChunk(orderCode, process.env.CHUNKSIZE_PRODUCT || 3);
+														const productDir = pageBaseDir + chunkedCode;
+														rmSync(productDir, { recursive: true, force: true });
+													}
 
 													// after call action
 													ctx.meta.afterCallAction = {
@@ -705,7 +726,7 @@ module.exports = {
 													return deletedCount;
 												})
 												.catch(err => {
-													this.logger.error("products.delete products.remove error:", err);
+													self.logger.error("products.delete products.remove error:", err);
 													return this.Promise.reject(new MoleculerClientError("Products delete remove error", 422, "", []));
 												}); // returns number of removed items
 										} else {

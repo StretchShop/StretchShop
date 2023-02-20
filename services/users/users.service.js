@@ -1093,7 +1093,7 @@ module.exports = {
 										deleteProductImage = true;
 									}
 									if (deleteProductImage===true) {
-										let productCodePath = self.stringChunk(products[0].orderCode, 3);
+										let productCodePath = self.stringChunk(products[0].orderCode, process.env.CHUNKSIZE_USER || 6);
 										let path = ctx.meta.siteSettings.assets.folder +"/"+ process.env.ASSETS_PATH + ctx.params.type +"/"+ productCodePath +"/"+ ctx.params.image;
 										return new Promise((resolve, reject) => {
 											fs.unlink(path, (err) => {

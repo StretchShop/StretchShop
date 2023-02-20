@@ -91,7 +91,7 @@ module.exports = {
 					fileName: ["profile"],
 					validUserTypes: ["user", "admin"],
 					stringToChunk: (req.$ctx.meta.user && req.$ctx.meta.user._id) ? req.$ctx.meta.user._id.toString() : "",
-					chunkSize: 6,
+					chunkSize: process.env.CHUNKSIZE_USER || 6,
 					postAction: "users.updateMyProfileImage"
 				},
 				{
@@ -105,7 +105,7 @@ module.exports = {
 						"publisher": req.$ctx.meta.user.email
 					},
 					stringToChunk: req.$params.orderCode ? req.$params.orderCode : "",
-					chunkSize: 3,
+					chunkSize: process.env.CHUNKSIZE_PRODUCT || 3,
 					postAction: "products.updateProductImage",
 				},
 				{

@@ -7,7 +7,7 @@ module.exports = {
 		 * simple function to split string into
 		 */
 		stringChunk(str, chunkSize, separator) {
-			chunkSize = (typeof chunkSize === "undefined") ? 2 : chunkSize;
+			chunkSize = (typeof chunkSize === "undefined") ? 2 : parseInt(chunkSize);
 			separator = (typeof separator === "undefined") ? "/" : separator;
 			let resultString = "";
 
@@ -30,6 +30,7 @@ module.exports = {
 			return resultString;
 		},
 
+
 		/**
 		 * replace parameters marked as ":param" in string with request params object
 		 */
@@ -44,6 +45,7 @@ module.exports = {
 			}
 			return resultString;
 		},
+
 
 		/**
 		 * replace parameters in array marked as ":param" in string with request params array
@@ -95,6 +97,7 @@ module.exports = {
 			return num;
 		},
 
+
 		/**
 		 * price to numeral format acceptable by payment gate
 		 * 
@@ -103,6 +106,7 @@ module.exports = {
 		formatPrice(number) {
 			return parseFloat(this.roundNumber(number).toFixed(2));
 		},
+
 
 		/**
 		 * Loop array of objects with parameter "code" and retur

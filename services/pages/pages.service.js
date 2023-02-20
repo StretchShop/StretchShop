@@ -613,6 +613,7 @@ module.exports = {
 											return ctx.call("pages.remove", {id: found._id} )
 												.then((deletedCount) => {
 
+													// delete page assets
 													const pageBaseDir = self.settings.paths.assets +"/"+ process.env.ASSETS_PATH +"pages/";
 													self.logger.info("pages.delete - deleted page - before assets deleted for page slug: ", slug);
 													if (slug) {

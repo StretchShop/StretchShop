@@ -80,6 +80,7 @@ module.exports = {
 					url: process.env.ASSETS_URL
 				},
 				business: businessSettings.invoiceData.company,
+				priceLevels: businessSettings.priceLevels.validTypes.userTypes,
 				taxData: businessSettings.taxData.global,
 				editableSettings: bsi?.editableSettings?.core === true ? bsi.editableSettings : false,
 				additional: additional
