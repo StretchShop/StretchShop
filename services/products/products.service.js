@@ -142,16 +142,8 @@ module.exports = {
 	actions: {
 
 		/**
-		 * disable cache for find action
-		 */
-		// find: {
-		// 	cache: false
-		// },
-
-
-
-		/**
-		 * Find products
+		 * Find products - endpoint NOT for listing but only to find products
+		 * mostly for autocomplete menus
 		 * 
 		 * @actions
 		 * 
@@ -179,6 +171,10 @@ module.exports = {
 			},
 			cache: false,
 			handler(ctx) {
+				if (!ctx.params) { ctx.params = { limit: 10 } }
+				if (!ctx.params?.limit || ctx.params?.limit > 10) {
+					ctx.params.limit = 10;
+				}
 				let filter = ctx.params;
 				let self = this;
 				this.logger.info("products.find filter before FRI:", JSON.stringify(filter));
@@ -233,10 +229,10 @@ module.exports = {
 					}
 				}
 				return ctx.call('products.productsList', params)
-				.catch(err => {
-					this.logger.error("products.productsListGet error:", err);
-					return this.Promise.reject(new MoleculerClientError("Products findG error", 422, "", []));
-				});
+					.catch(err => {
+						this.logger.error("products.productsListGet error:", err);
+						return this.Promise.reject(new MoleculerClientError("Products findG error", 422, "", []));
+					});
 			}
 		},
 
@@ -305,9 +301,7 @@ module.exports = {
 								filter.limit = 100;
 							}
 							// sort
-							console.log("productList ctx.params.sort: ", ctx.params.sort);
 							filter = this.getFilterSort(filter, ctx);
-							console.log("productList filter: ", filter);
 
 							return ctx.call("products.find", filter)
 								.then(categoryProducts => {
@@ -349,6 +343,15 @@ module.exports = {
 								.catch(err => {
 									this.logger.error("products.productsList find error:", err);
 									return this.Promise.reject(new MoleculerClientError("Products findL error", 422, "", []));
+								})
+								.then(productsResult => {
+									return ctx.call("products.getCategoryProductsProperties", {
+										categories: categoriesToListProductsIn
+									})
+										.then(properties => {
+											productsResult["filterProperties"] = properties;
+											return productsResult;
+										})
 								});
 						}
 					})
@@ -588,11 +591,11 @@ module.exports = {
 			params: {
 				categories: { type: "array", items: "string" }
 			},
-			// cache: {
-			// 	keys: ["#cartID"]
-			// },
+			cache: {
+				keys: ["categories"]
+			},
 			handler(ctx) {
-				let categories = ctx.params.categories;
+				const categories = ctx.params.categories;
 				return this.adapter.collection.aggregate([
 					{ "$match": {
 						"categories": {"$in": categories}
@@ -609,6 +612,46 @@ module.exports = {
 					.catch(err => {
 						this.logger.error("products.getMinMaxPrice error:", err);
 						return this.Promise.reject(new MoleculerClientError("Products minmax error", 422, "", []));
+					});
+			}
+		},
+
+
+		/**
+		 * Get properties for products of selected category/ries
+		 * 
+		 * @actions
+		 * @param {Array.<String>} categories - categories ID
+		 *
+		 * @returns {Object} Product entity
+		 */
+		getCategoryProductsProperties: {
+			// auth: "",
+			params: {
+				categories: { type: "array", items: "string" }
+			},
+			cache: {
+				keys: ["categories"]
+			},
+			handler(ctx) {
+				let categories = ctx.params.categories;
+				this.logger.debug("product.getCategoryProductsProperties categories: ", categories);
+				return this.adapter.collection.aggregate([
+					{ "$match": {
+						"categories": {"$in": categories}
+					}},
+					{ "$group": {
+						"_id": null,
+						"properties": { "$addToSet": "$properties" },
+					}}
+				]).toArray()
+					.then(carProps => {
+						this.logger.info("products.getCategoryProductsProperties carProps: ", carProps[0].properties);
+						return this.processCategoryProductsProperties(carProps[0].properties);
+					})
+					.catch(err => {
+						this.logger.error("products.getCategoryProductsProperties error:", err);
+						return this.Promise.reject(new MoleculerClientError("Products getCategoryProductsProperties error", 422, "", []));
 					});
 			}
 		},
