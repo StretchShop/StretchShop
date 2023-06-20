@@ -113,25 +113,42 @@ module.exports = {
 		processCategoryProductsProperties(propertyGroup) {
 			let result = {};
 			if (propertyGroup && propertyGroup.length) {
-				// loop all groups
-				propertyGroup.forEach(properties => {
-					// loop all properties
-					Object.keys(properties).forEach(key => {
-						this.logger.debug("processCategoryProductsProperties --- KEY: ", key);
-						if (properties[key]) {
-							// if property does not exists, add it
-							if (!result[key]) {
-								this.logger.debug("processCategoryProductsProperties --- NO result 4: ", key);
-								result[key] = properties[key];
-							// if property exists, merge new one into it
-							} else {
-								this.logger.debug("processCategoryProductsProperties --- HAS result 4: ", key);
-								result[key] = this.mergeProductProperties(result[key], properties[key]);
+				if (propertyGroup.length > 500) {
+					result["__TOO_MANY_PROPERTIES__"] = true;
+					for (let i = 0; i < 50; i++) {
+						// loop all properties
+						for (let key of Object.keys(propertyGroup[i])) {
+							if (propertyGroup[i][key]) {
+								// if property does not exists, add it
+								if (!result[key]) {
+									this.logger.debug("processCategoryProductsProperties --- NO result 1: ", key);
+									result[key] = propertyGroup[i][key];
+								// if property exists, merge new one into it
+								} else {
+									result[key] = this.mergeProductProperties(result[key], propertyGroup[i][key]);
+								}
 							}
 						}
-					});
-
-				});
+					}
+					this.logger.warn('processCategoryProductsProperties --- TOO MANY PROPERTIES: ', propertyGroup.length, result);
+				} else {
+					// loop all groups
+					for (let properties of propertyGroup) {
+						// loop all properties
+						for (let key of Object.keys(properties)) {
+							if (properties[key]) {
+								// if property does not exists, add it
+								if (!result[key]) {
+									this.logger.debug("processCategoryProductsProperties --- NO result 4: ", key);
+									result[key] = properties[key];
+								// if property exists, merge new one into it
+								} else {
+									result[key] = this.mergeProductProperties(result[key], properties[key]);
+								}
+							}
+						}
+					}
+				}
 			}
 			return result;
 		},

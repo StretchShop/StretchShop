@@ -643,11 +643,11 @@ module.exports = {
 					{ "$group": {
 						"_id": null,
 						"properties": { "$addToSet": "$properties" },
-					}}
+					}},
+					{ "$limit": 600 }
 				]).toArray()
-					.then(carProps => {
-						this.logger.info("products.getCategoryProductsProperties carProps: ", carProps[0].properties);
-						return this.processCategoryProductsProperties(carProps[0].properties);
+					.then(catProps => {
+						return this.processCategoryProductsProperties(catProps[0].properties);
 					})
 					.catch(err => {
 						this.logger.error("products.getCategoryProductsProperties error:", err);
