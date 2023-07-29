@@ -172,9 +172,9 @@ module.exports = {
 		} else {
 			if (ctx.meta.token === null) {
 				// delete token cookie if not set in ctx.meta - erased on logout
-				res.cookies.set("token", null, null);
+				res.cookies?.set("token", null, null);
 			}
-			res.cookies.set("order_no_verif", null, null);
+			res.cookies?.set("order_no_verif", null, null);
 		}
 
 		if (ctx.meta.afterCallAction) {

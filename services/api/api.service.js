@@ -251,7 +251,7 @@ module.exports = {
 				}
 
 				const filter = this.buildGlobalSearchQuery(ctx.params.query, langs);
-				console.log("api.service - global search - filter:", filter);
+				this.logger.info("api.service - global search - filter:", filter);
 				
 				promises.push(
 					ctx.call("products.find", filter)

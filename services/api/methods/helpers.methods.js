@@ -188,8 +188,8 @@ module.exports = {
 		 * @returns Object
 		 */
 		prepareFilePathNameData(req, activePath, fields, files, property) {
-			this.logger.info("api.parseUploadedFile() files-"+property+": ", files[property]);
-			let fileFrom = files[property].filepath;
+			this.logger.info("api.parseUploadedFile() files-"+property+": ", files[property], files[property][0]);
+			let fileFrom = files[property][0].filepath;
 			let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let urlBaseDir = process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let targetDir = activePath.stringToChunk;

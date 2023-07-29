@@ -12,7 +12,8 @@ const _ = require("lodash");
 
 const SettingsMixin = require("../../../mixins/settings.mixin");
 
-const { UnAuthorizedError } = ApiGateway.Errors;
+const E = require("moleculer-web").Errors;
+
 
 
 module.exports = {
@@ -82,45 +83,50 @@ module.exports = {
 
 
 		/**
-		 * Authorize the request
+		 * Check if CSRF token is valid
 		 *
 		 * @param {Context} ctx
 		 * @param {Object} route
 		 * @param {IncomingRequest} req
-		 * @returns {Promise}
+		 * @returns {Boolean}
 		 */
-		tokenizer(ctx, req) {
-			if (req.$action?.tokenize === "required" && ctx.meta.headers?.authorization) {
-				this.logger.info("Using tokenizer");
-				const cookies = this.parseCookies(req.headers.cookie)
+		checkCsrfToken(ctx, req) {
+			console.log("checkCsrfToken() #1 ctx.meta?.headers?.authorization: ", ctx.meta?.headers?.authorization);
+			if (ctx.meta.headers?.authorization) {
+				const cookies = this.parseCookies(req.headers.cookie);
 				const token = ctx.meta.headers.authorization.split("Token ");
 				// check if token was set in header and verify its integrity
+				console.log("checkCsrfToken() #2 token: ", token, cookies.session);
 				if (token[1] && cookies.session) {
 					const cookieData = jwt.decode(cookies.session);
-					const verifyKey = ctx.meta.remoteAddress + "--" + cookieData.issued;
+					const verifyKey = ctx.meta.remoteAddress + "--" + cookieData?.issued;
 					try {
 						const decoded = jwt.verify(token[1].trim(), verifyKey);
 						if (decoded) {
 							// compare if token from cookie is same as token from header
-							if (decoded.token === cookieData.token) {
-								this.logger.warn("Token valid");
+							if (decoded.token === cookieData?.token) {
+								this.logger.info("Token valid");
+								return true;
 							} else {
 								this.logger.error("Token INVALID");
-								return this.Promise.reject(new UnAuthorizedError());
+								return false;
 							}
 						}
 					} catch (e) {
 						this.logger.error("Token INVALID: ", e);
-						return this.Promise.reject(new UnAuthorizedError());
+						return false;
 					}
 				}
 			}
+			return false;
 		},
 
 
 
 		/**
-		 * Authorize the request
+		 * Authorize the request:
+		 *  - if csrfOnly, check only csrf token
+		 *  - if auth is required, check the access token
 		 *
 		 * @param {Context} ctx
 		 * @param {Object} route
@@ -129,52 +135,85 @@ module.exports = {
 		 */
 		authorize(ctx, route, req, res) {
 			ctx.meta.headers = req.headers;
-			this.tokenizer(ctx, req);
-			// this.logger.info("api req.headers -------> ctx.meta.headers:", ctx.meta.headers);
+			let csrfResult = false;
+
+			// check csrf token
+			try {
+				// if csrfOnly, check only csrf token and return result
+				if ( req?.$action?.authType === "csrfOnly" ) {
+					if ( !this.checkCsrfToken(ctx, req) ) {
+						return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
+					}
+					return this.Promise.resolve();
+				}
+				// if auth is required, get also csrf token result
+				csrfResult = this.checkCsrfToken(ctx, req);
+				this.logger.info("before csfrResult csrfResult #2: ", csrfResult);
+			} catch (e) {
+				this.logger.error("Csrf Token error: ", e);
+			}
+			this.logger.info("before csfrResult csrfResult #3 route: ");
 			this.cookiesManagement(ctx, route, req, res);
 
+			// skip if no authorization required
+			if (!req.$action?.auth && !req.$action?.authType) {
+				return this.Promise.resolve(true);
+			}
+
+			// get user token from cookie
 			let token = "";
 			ctx.meta.token = null;
 			if (ctx.meta.cookies && ctx.meta.cookies.token) {
 				ctx.meta.token = ctx.meta.cookies.token;
 				token = ctx.meta.token;
 			}
-
-			// if (req.headers.authorization) {
-			// 	let type = req.headers.authorization.split(" ")[0];
-			// 	if (type === "Token" || type === "Bearer")
-			// 		token = req.headers.authorization.split(" ")[1];
-			// }
+			this.logger.info("before csfrResult check: ");
+			// no user action without csrf token
+			if (!csrfResult && req.$action?.auth !== "optional") {
+				return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
+			}
+			this.logger.info("before csfrResult after: ");
 
 			// authorization core
 			return this.Promise.resolve(token)
 				.then(token => {
+					this.logger.info("token #1: ", token);
 					if (token && token.toString().trim()!=="") {
 						// Verify JWT token
+						this.logger.info("token #2: ", token);
 						return ctx.call("users.resolveToken", { token: token })
 							.then(user => {
-								this.logger.info("api.authorize() user: ", user);
+								this.logger.info("token #3: ", user);
 								if ( typeof user !== "undefined" && user && user.length>0 ) {
 									user = user[0];
 								}
+								this.logger.info("token #4: ", user);
 								if (user) {
 									this.logger.info("api.authorize() username: ", user.username);
 									// Reduce user fields (it will be transferred to other nodes)
 									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "subtype", "addresses", "settings", "data", "dates"]);
 									ctx.meta.token = token;
 									ctx.meta.userID = user._id;
+									// --
+									req.$ctx.meta.user = ctx.meta.user;
+									req.$ctx.meta.token = ctx.meta.token;
+									req.$ctx.meta.userID = ctx.meta.userID;
 								}
 								return user;
 							})
 							.catch(() => {
-								// Ignored because we continue processing if user is not exist
-								return null;
+								throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
 							});
 					}
 				})
 				.then(user => {
-					if (req.$action && req.$action.auth == "required" && !user)
-						return this.Promise.reject(new UnAuthorizedError());
+					if (req.$action && req.$action.auth == "required" && !user) {
+						throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
+					}
+				})
+				.catch(err => {
+					console.error("api.authorize() ERROR: ", err);
+					throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
 				});
 		},
 
@@ -185,8 +224,8 @@ module.exports = {
 		 */
 		parseUploadedFile(req, res, activePath) {
 			const self = this;
-			this.logger.info("api.parseUploadedFile() #1");
-			const form = formidable({ multiples: true });;
+			this.logger.info("api.parseUploadedFile() #1", typeof formidable);
+			const form = formidable.formidable({ multiples: true });;
 			this.logger.info("api.parseUploadedFile() #2", form);
 			return form.parse(req, (err, fields, files) => {
 				self.logger.info("api.parseUploadedFile() #2.5", err, fields, files);
@@ -272,45 +311,50 @@ module.exports = {
 		 * @param {*} res 
 		 */
 		processUpload(req, res) {
-			// get active path with variables
-			let self = this;
-			let activePath = this.getActiveUploadPath(req);
+			req["$action"] = {
+				auth: "required"	
+			};
+			this.authorize(req.$ctx, req.$route, req, res)
+				.then((x) => {
+					// get active path with variables
+					let self = this;
+					let activePath = this.getActiveUploadPath(req);
 
-			this.logger.info("api.processUpload() activePath-vars", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author")>-1, activePath.checkAuthorAction, activePath.checkAuthorActionParams);
-			// check if upload path is valid and has set validUserTypes
-			if ( activePath && activePath.validUserTypes ) {
-				// check if author is in array of activePath.validUserTypes and file was uploaded by author
-				if ( activePath.validUserTypes.indexOf("author")>-1
-				&& activePath.checkAuthorAction && activePath.checkAuthorActionParams ) {
-					// check if uploaded by author
-					req.$ctx.call(activePath.checkAuthorAction, {
-						data: activePath.checkAuthorActionParams
-					})
-						.then(result => {
-							this.logger.info("api.processUpload author:", result);
-							if (result==true) {
-								// user is author
-								self.parseUploadedFile(req, res, activePath);
-							} else {
-								/**
-								 * for other users
-								 * can process form, move file and launch related action, because:
-								 * 1. path is valid
-								 * 2. user is authentificated
-								 * 3. user can upload to that path
-								 */
-								if ( req.$ctx.meta.user.type &&
-								activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
-									self.parseUploadedFile(req, res, activePath);
-								}
-							}
-						});
-				} else if ( activePath && activePath.validUserTypes && // check if user or admin
-					activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
-					self.parseUploadedFile(req, res, activePath);
-				}
-			}
-
+					this.logger.info("api.processUpload() activePath-vars", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author")>-1, activePath.checkAuthorAction, activePath.checkAuthorActionParams);
+					// check if upload path is valid and has set validUserTypes
+					if ( activePath && activePath.validUserTypes ) {
+						// check if author is in array of activePath.validUserTypes and file was uploaded by author
+						if ( activePath.validUserTypes.indexOf("author")>-1
+						&& activePath.checkAuthorAction && activePath.checkAuthorActionParams ) {
+							// check if uploaded by author
+							req.$ctx.call(activePath.checkAuthorAction, {
+								data: activePath.checkAuthorActionParams
+							})
+								.then(result => {
+									this.logger.info("api.processUpload author:", result);
+									if (result==true) {
+										// user is author
+										self.parseUploadedFile(req, res, activePath);
+									} else {
+										/**
+										 * for other users
+										 * can process form, move file and launch related action, because:
+										 * 1. path is valid
+										 * 2. user is authentificated
+										 * 3. user can upload to that path
+										 */
+										if ( req.$ctx.meta.user.type &&
+										activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
+											self.parseUploadedFile(req, res, activePath);
+										}
+									}
+								});
+						} else if ( activePath && activePath.validUserTypes && // check if user or admin
+							activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
+							self.parseUploadedFile(req, res, activePath);
+						}
+					}
+				});
 		},
 
 

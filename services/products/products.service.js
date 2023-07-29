@@ -172,8 +172,8 @@ module.exports = {
 			cache: false,
 			handler(ctx) {
 				if (!ctx.params) { ctx.params = { limit: 10 } }
-				if (!ctx.params?.limit || ctx.params?.limit > 10) {
-					ctx.params.limit = 10;
+				if (!ctx.params?.limit || ctx.params?.limit > 100) {
+					ctx.params.limit = 100;
 				}
 				let filter = ctx.params;
 				let self = this;
