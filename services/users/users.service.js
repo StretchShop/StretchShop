@@ -481,7 +481,7 @@ module.exports = {
 						if (decoded.id) {
 							return this.adapter.findById(decoded.id)
 								.then(found => {
-									if (found.dates.dateActivated && (new Date(found.dates.dateActivated).getTime() < new Date().getTime()) ) {
+									if (found?.dates?.dateActivated && (new Date(found.dates.dateActivated).getTime() < new Date().getTime()) ) {
 										return found;
 									}
 								});
