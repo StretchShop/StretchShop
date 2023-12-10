@@ -470,5 +470,23 @@ module.exports = {
 			return hashSource;
 		},
 
+		/**
+		 * Add special values from context to coreData 
+		 * eg. session for mobile app
+		 * 
+		 * @param {*} ctx 
+		 * @param {*} coreData 
+		 * @returns 
+		 */
+		specialValuesFromContext(ctx, coreData) {
+			const headers = ctx.meta.headers;
+			const cookies = ctx.meta.cookies;
+			// send session in coreData for special header - for mobile app
+			if (headers['resource-type'] && headers['resource-type'] === 'MAL') {
+				coreData.settings.additional['mal'] = cookies['session'];
+			}
+			return coreData;
+		}
+
 	}
 };

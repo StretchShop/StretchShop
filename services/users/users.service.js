@@ -181,6 +181,7 @@ module.exports = {
 									if (ctx.params.transLang!=coreData.lang.code) {
 										coreData.lang = this.getValueByCode(coreData.langs, ctx.params.transLang);
 									}
+									coreData = this.specialValuesFromContext(ctx, coreData);
 									return coreData;
 								});
 						})
@@ -197,6 +198,7 @@ module.exports = {
 						})
 							.then(translation => {
 								coreData.translation = translation;
+								coreData = this.specialValuesFromContext(ctx, coreData);
 								return coreData;
 							})
 							.catch(err => {

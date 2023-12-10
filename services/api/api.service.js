@@ -53,9 +53,16 @@ module.exports = {
 		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
 
 		// Global CORS settings for all routes
-		cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev") ? {
+		cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev" || process.env.CORS_ORIGIN?.trim() !== "") ? {
 			// Configures the Access-Control-Allow-Origin CORS header.
-			origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:8080",
+			origin: () => {
+				if (process.env.CORS_ORIGIN?.trim() !== "") {
+					return process.env.CORS_ORIGIN;
+				} else if (process.env.NODE_ENV == "dockerdev") {
+					return "http://localhost:3000";
+				}
+				return "http://localhost:8080";
+			},
 			// origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:4200",
 			// Configures the Access-Control-Allow-Methods CORS header.
 			methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
@@ -71,7 +78,8 @@ module.exports = {
 				"Set-Cookie", 
 				"cookie", 
 				"x-xsrf-token", 
-				"Access-Control-Allow-Origin"
+				"Access-Control-Allow-Origin",
+				"Resource-Type",
 			],
 			// Configures the Access-Control-Expose-Headers CORS header.
 			exposedHeaders: ["Content-Type", "Content-Disposition"],
@@ -239,7 +247,6 @@ module.exports = {
 			},
 			handler(ctx) {
 				let promises = [];
-
 				let langs = [];
 				ctx.meta.localsDefault?.langs?.forEach(l => {
 					if (l.code) {

@@ -23,6 +23,23 @@ module.exports = {
 	 */
 	
 	methods: {
+		setCookie(ctx, name, value, options) {
+			if (!ctx.meta.makeCookies) {
+				ctx.meta.makeCookies = {};
+			}
+			if (!options.path) {
+				options["path"] = "/";
+			}
+			ctx.meta.makeCookies[name] = {
+				value: value,
+				options: options
+			};
+			if ( process.env.COOKIES_SAME_SITE ) {
+				ctx.meta.makeCookies[name].options["sameSite"] = options?.secure === true ? "None" : process.env.COOKIES_SAME_SITE;
+			}
+			ctx.meta.cookies[name] = value;
+		},
+
 		/**
 		 * Manage user independent application cookies - eg. cart, csrf
 		 * 
@@ -41,6 +58,7 @@ module.exports = {
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;
+			let cookieSecure = ((process.env.COOKIES_SECURE==="true" || process.env.COOKIES_SECURE==true) ? true : false);
 			// CART cookie
 			if ( !cookies.cart ) {
 				const name = "cart";
@@ -49,12 +67,22 @@ module.exports = {
 				hash.update(userCookieString);
 				const value = hash.digest("hex");
 				//--
-				res.cookies.set(name, value, { 
-					signed: true,
-					secure: ((process.env.HTTPS_KEY && process.env.HTTPS_CERT) ? true : false),
-					httpOnly: true
-				});
-				ctx.meta.cookies[name] = value;
+				if (cookieSecure) {
+					this.setCookie(ctx, name, value, {
+						signed: true,
+						secure: true,
+						httpOnly: true
+					});
+				} else {
+					res.cookies.set(name, value, { 
+						path: "/",
+						signed: true,
+						secure: false,
+						httpOnly: true,
+						sameSite: process?.env?.COOKIES_SAME_SITE ? process.env.COOKIES_SAME_SITE : true,
+					});
+					ctx.meta.cookies[name] = value;
+				}
 			}
 
 			// CSRF cookie
@@ -71,12 +99,25 @@ module.exports = {
 					token: hashValue
 				}, this.settings.JWT_SECRET);
 				//--
-				res.cookies.set(name, value, { 
-					signed: true,
-					secure: ((process.env.HTTPS_KEY && process.env.HTTPS_CERT) ? true : false),
-					sameSite: true,
-					httpOnly: false
-				});
+				let sameSite = process?.env?.COOKIES_SAME_SITE ? process.env.COOKIES_SAME_SITE : true;
+				if (cookieSecure) {
+					sameSite = "None";
+				}
+				if (cookieSecure) {
+					this.setCookie(ctx, name, value, {
+						signed: true,
+						secure: true,
+						httpOnly: false
+					});
+				} else {
+					res.cookies.set(name, value, { 
+						path: "/",
+						signed: true,
+						secure: false,
+						sameSite: sameSite,
+						httpOnly: false,
+					});
+				}
 				ctx.meta.cookies[name] = value;
 			}
 		},
@@ -91,12 +132,10 @@ module.exports = {
 		 * @returns {Boolean}
 		 */
 		checkCsrfToken(ctx, req) {
-			console.log("checkCsrfToken() #1 ctx.meta?.headers?.authorization: ", ctx.meta?.headers?.authorization);
 			if (ctx.meta.headers?.authorization) {
 				const cookies = this.parseCookies(req.headers.cookie);
 				const token = ctx.meta.headers.authorization.split("Token ");
 				// check if token was set in header and verify its integrity
-				console.log("checkCsrfToken() #2 token: ", token, cookies.session);
 				if (token[1] && cookies.session) {
 					const cookieData = jwt.decode(cookies.session);
 					const verifyKey = ctx.meta.remoteAddress + "--" + cookieData?.issued;

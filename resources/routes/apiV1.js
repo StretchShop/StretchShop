@@ -120,7 +120,7 @@ module.exports = {
 
 	onBeforeCall(ctx, route, req) {
 		ctx.meta.host = req.headers.host;
-		this.logger.info("api.authorize() visitor IP: ", req.connection.remoteAddress);
+		this.logger.info("api.authorize() visitor IP: ", req.connection.remoteAddress, req.ip);
 		ctx.meta.remoteAddress = req.connection.remoteAddress;
 		ctx.meta.remotePort = req.connection.remotePort;
 		// update localsDefault according to cookie value if possible
@@ -137,33 +137,32 @@ module.exports = {
 		// writing cookies
 		this.logger.info("apiV1 onAfterCall - ctx.meta.makeCookies: ", ctx.meta.makeCookies);
 		if (ctx.meta.makeCookies) {
+			const cookieSecure = ((process.env.COOKIES_SECURE==="true" || process.env.COOKIES_SECURE==true) ? true : false);
+
 			Object.keys(ctx.meta.makeCookies).forEach(function(key) {
+				if (cookieSecure) {
+					ctx.meta.makeCookies[key].options["secure"] = true;
+				}
 				if ( ctx.meta.makeCookies[key].options && ctx.meta.makeCookies[key].options.expires ) {
 					ctx.meta.makeCookies[key].options.expires = new Date(ctx.meta.makeCookies[key].options.expires);
 				}
+				if (!ctx.meta.makeCookies[key].options.path) {
+					ctx.meta.makeCookies[key].options["path"] = "/";
+				}
 
-				if ( process.env.COOKIES_SECURE ) {
-					if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
-						res.cookies.set(
-							key, 
-							ctx.meta.makeCookies[key].value, 
-							ctx.meta.makeCookies[key].options
-						);
-					} else {
-						res.setHeader("Set-Cookie", 
-							cookie.serialize(
-								key, 
-								String(ctx.meta.makeCookies[key].value), 
-								ctx.meta.makeCookies[key].options
-							)
-						);
-					}
-				} else { // not secure cookie
-					ctx.meta.makeCookies[key].options["secure"] = false;
+				if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
 					res.cookies.set(
 						key, 
 						ctx.meta.makeCookies[key].value, 
 						ctx.meta.makeCookies[key].options
+					);
+				} else {
+					res.setHeader("Set-Cookie", 
+						cookie.serialize(
+							key, 
+							String(ctx.meta.makeCookies[key].value), 
+							ctx.meta.makeCookies[key].options
+						)
 					);
 				}
 			});
