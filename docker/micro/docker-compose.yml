@@ -5,176 +5,192 @@ services:
   api:
     build:
       context: ../..
-    image: wradgio/stretchshop:latest
+    image: wradgio/stretchshop_demo:latest
     env_file: docker-compose.env
     environment:
       SERVICES: api
       PORT: 3000
-    # links:
-    #   - redis
-    # depends_on:
-    #   - redis
+    links:
+        - mongo
+    depends_on:
+        - mongo
     labels:
       - "traefik.enable=true"
-      - "traefik.backend=api"
-      - "traefik.port=3000"
-      - "traefik.frontend.entryPoints=http"
-      - "traefik.frontend.rule=PathPrefix:/"
+      - "traefik.http.routers.api.rule=PathPrefix(`/`)"
+      - "traefik.http.services.api.loadbalancer.server.port=3000"
     volumes:
       - /var/www/html/stretchshop/static:/app/public/assets/data
-    #deploy:
-    #  replicas: 2
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+#      - /etc/letsencrypt/:/etc/letsencrypt
+    networks:
+      - internal
 
   users:
     build:
-      context: .
-    image: wradgio/stretchshop:latest
+      context: ../..
+    image: wradgio/stretchshop_demo:latest
     env_file: docker-compose.env
     environment:
       SERVICES: users
+      PORT: 3000
     links:
-      # - redis
-      - mongo
+        - mongo
     depends_on:
-      # - redis
-      - mongo
-    #deploy:
-    #  replicas: 2
+        - mongo
+    volumes:
+      - /var/www/html/stretchshop/static:/app/public/assets/data
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+    networks:
+      - internal
+
 
   products:
     build:
-      context: .
-    image: wradgio/stretchshop:latest
+      context: ../..
+    image: wradgio/stretchshop_demo:latest
     env_file: docker-compose.env
     environment:
       SERVICES: products
     links:
-      # - redis
       - mongo
     depends_on:
-      # - redis
       - mongo
-    #deploy:
-    #  replicas: 2
+    volumes:
+      - /var/www/html/stretchshop/static:/app/public/assets/_s
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+    networks:
+      - internal
 
-  categories:
-    build:
-      context: .
-    image: wradgio/stretchshop:latest
-    env_file: docker-compose.env
-    environment:
-      SERVICES: categories
-    links:
-      # - redis
-      - mongo
-    depends_on:
-      # - redis
-      - mongo
-    #deploy:
-    #  replicas: 2
-
-  cart:
-    build:
-      context: .
-    image: wradgio/stretchshop:latest
-    env_file: docker-compose.env
-    environment:
-      SERVICES: cart
-    links:
-      # - redis
-      - mongo
-    depends_on:
-      # - redis
-      - mongo
-    #deploy:
-    #  replicas: 2
-
-  orders:
-    build:
-      context: .
-    image: wradgio/stretchshop:latest
-    env_file: docker-compose.env
-    environment:
-      SERVICES: orders
-    links:
-      # - redis
-      - mongo
-    depends_on:
-      # - redis
-      - mongo
-    #deploy:
-    #  replicas: 2
-
-  subscriptions:
-    build:
-      context: .
-    image: wradgio/stretchshop:latest
-    env_file: docker-compose.env
-    environment:
-      SERVICES: subscriptions
-    links:
-      # - redis
-      - mongo
-    depends_on:
-      # - redis
-      - mongo
-    #deploy:
-    #  replicas: 2
-
-  # redis:
-  #   image: redis:alpine
 
   pages:
     build:
-      context: .
-    image: wradgio/stretchshop:latest
+      context: ../..
+    image: wradgio/stretchshop_demo:latest
     env_file: docker-compose.env
     environment:
       SERVICES: pages
     links:
-      # - redis
       - mongo
     depends_on:
-      # - redis
       - mongo
-    #deploy:
-    #  replicas: 2
+    volumes:
+      - /var/www/html/stretchshop/static:/app/public/assets/_s
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+    networks:
+      - internal
 
-  # redis:
-  #   image: redis:alpine
+
+  categories:
+    build:
+      context: ../..
+    image: wradgio/stretchshop_demo:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: categories
+    links:
+      - mongo
+    depends_on:
+      - mongo
+    volumes:
+      - /var/www/html/stretchshop/static:/app/public/assets/_s
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+    networks:
+      - internal
+
+
+  cart:
+    build:
+      context: ../..
+    image: wradgio/stretchshop_demo:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: cart
+    links:
+      - mongo
+    depends_on:
+      - mongo
+    volumes:
+      - /var/www/html/stretchshop/static:/app/public/assets/_s
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+    networks:
+      - internal
+
+
+  orders:
+    build:
+      context: ../..
+    image: wradgio/stretchshop_demo:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: orders
+    links:
+      - mongo
+    depends_on:
+      - mongo
+    volumes:
+      - /var/www/html/stretchshop/static:/app/public/assets/_s
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+    networks:
+      - internal
+
+
+  subscriptions:
+    build:
+      context: ../..
+    image: wradgio/stretchshop_demo:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: subscriptions
+    links:
+      - mongo
+    depends_on:
+      - mongo
+    volumes:
+      - /var/www/html/stretchshop/static:/app/public/assets/_s
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+    networks:
+      - internal
+
 
   mongo:
-    image: mongo
-    # image: mvertes/alpine-mongo
-    # image: bitnami/mongodb
+    image: mongo:latest
     restart: on-failure
     volumes:
       - ./db:/data/db
-      # - ./dbentry:/docker-entrypoint-initdb.d
       - ./dbconf:/etc/mongo
     ports:
       - "27017:27017"
     command: mongod --auth
+    networks:
+      - internal
+
 
   nats-server:
     image: nats
-    entrypoint: "/gnatsd -D --user defaultUsername --pass defaultPassword" # -D debug , -V trace
     ports:
       - "4222:4222"
+    networks:
+      - internal
+
 
   traefik:
-    image: traefik:1.7
+    image: traefik:latest
     command:
-      - "--api"
-      - "--docker"
-      - "--docker.watch"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.backend=traefik"
-      - "traefik.port=8080"
+      - "--api.insecure=true" # only if you are using nginx or something else to protect the traefik dashboard
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
     ports:
-      - "3000:80"
-      - "3001:8080"
+      - "3100:80"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /dev/null:/traefik.toml
+    networks:
+      - internal
+      - default
+
+
+networks:
+  internal:
+
+volumes:
+  data:
+

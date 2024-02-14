@@ -2,12 +2,13 @@ version: "3.0"
 
 services:
 
-  stretchshop:
+  api:
     build:
       context: ../..
     image: wradgio/stretchshop_demo:latest
     env_file: docker-compose.env
     environment:
+      SERVICES: api,users
       PORT: 3000
     links:
         - mongo
@@ -21,6 +22,42 @@ services:
       - /var/www/html/stretchshop/static:/app/public/assets/data
       - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
 #      - /etc/letsencrypt/:/etc/letsencrypt
+    networks:
+      - internal
+
+
+  products:
+    build:
+      context: ../..
+    image: wradgio/stretchshop_demo:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: products,pages,categories
+    links:
+      - mongo
+    depends_on:
+      - mongo
+    volumes:
+      - /var/www/html/stretchshop/static:/app/public/assets/_s
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+    networks:
+      - internal
+
+
+  orders:
+    build:
+      context: ../..
+    image: wradgio/stretchshop_demo:latest
+    env_file: docker-compose.env
+    environment:
+      SERVICES: cart,orders,subscriptions
+    links:
+      - mongo
+    depends_on:
+      - mongo
+    volumes:
+      - /var/www/html/stretchshop/static:/app/public/assets/_s
+      - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
     networks:
       - internal
 
