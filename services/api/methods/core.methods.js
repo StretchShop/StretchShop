@@ -49,12 +49,13 @@ module.exports = {
 		 * @param {Object} res 
 		 */
 		cookiesManagement(ctx, route, req, res) {
-			if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
-				// req.connection.encrypted = true;
+			let cookieKey = "Lvj1MalbaTe6k";
+			if ( process.env.COOKIES_KEY ) {
+				cookieKey = process.env.COOKIES_KEY;
 			}
 			const bsKeys = SettingsMixin.getSiteSettings("business", true);
 
-			res.cookies = new Cookies(req, res, { keys: ["Lvj1MalbaTe6k"] });
+			res.cookies = new Cookies(req, res, { keys: [cookieKey] });
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;

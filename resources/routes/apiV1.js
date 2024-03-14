@@ -120,8 +120,15 @@ module.exports = {
 
 	onBeforeCall(ctx, route, req) {
 		ctx.meta.host = req.headers.host;
-		this.logger.info("api.authorize() visitor IP: ", req.connection.remoteAddress, req.ip);
+		this.logger.info("onBeforeCall visitor IP (req.connection.remoteAddress / req.ip): ", req.connection.remoteAddress, "/", req.ip);
+		this.logger.info("onBeforeCall headers: ", req.headers);
 		ctx.meta.remoteAddress = req.connection.remoteAddress;
+		if (req.headers["x-forwarded-for"]) {
+			ctx.meta.remoteAddress = req.headers["x-forwarded-for"];
+		}
+		if (req.headers["x-real-ip"]) {
+			ctx.meta.remoteAddress = req.headers["x-real-ip"];
+		}
 		ctx.meta.remotePort = req.connection.remotePort;
 		// update localsDefault according to cookie value if possible
 		ctx.meta.localsDefault = this.settings.localsDefault;
