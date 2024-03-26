@@ -222,7 +222,7 @@ module.exports = {
 		 */
 		create: {
 			auth: "required",
-			authType: "csrfOnly",
+			authType: "csrfCheck",
 			params: {
 				user: { type: "object", props: {
 					username: { type: "string" },
@@ -323,7 +323,7 @@ module.exports = {
 		 */
 		login: {
 			auth: "required",
-			auth: "csrfOnly",
+			authType: "csrfCheck",
 			params: {
 				user: { type: "object", props: {
 					email: { type: "email", min: 2 },
@@ -724,7 +724,7 @@ module.exports = {
 
 		checkIfUserExists: {
 			auth: "required",
-			authType: "csrfOnly",
+			authType: "csrfCheck",
 			params: {
 				username: { type: "string" }
 			},
@@ -746,7 +746,7 @@ module.exports = {
 
 		checkIfEmailExists: {
 			auth: "required",
-			authType: "csrfOnly",
+			authType: "csrfCheck",
 			params: {
 				email: { type: "email" }
 			},
@@ -948,7 +948,7 @@ module.exports = {
 		 */
 		resetPassword: {
 			auth: "required",
-			authType: "csrfOnly",
+			authType: "csrfCheck",
 			params: {
 				email: { type: "string" }
 			},

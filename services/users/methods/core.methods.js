@@ -100,13 +100,17 @@ module.exports = {
 			const exp = new Date(today);
 			exp.setDate(today.getDate() + 60);
 
+			// cover the case all cookies are missing
+			if (!ctx.meta.cookies) {
+				ctx.meta.cookies = {};
+			}
+
 			const generatedJwt = jwt.sign({
 				id: user._id,
 				username: user.username,
 				exp: Math.floor(exp.getTime() / 1000)
 			}, this.settings.JWT_SECRET);
 
-			// this.logger.info("users.generateJWT - cookies:", ctx.meta.cookies);
 			if ( ctx.meta.cookies ) {
 				if (!ctx.meta.makeCookies) {
 					ctx.meta.makeCookies = {};

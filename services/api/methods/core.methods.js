@@ -164,27 +164,29 @@ module.exports = {
 
 
 		/**
-		 * Authorize the request:
-		 *  - if csrfOnly, check only csrf token
-		 *  - if auth is required, check the access token
+		 * Authenticate the request. It check the `Authorization` token 
+		 * value in the request header.
+		 * Check the token value & resolve the user by the token.
+		 * The resolved user will be available in `ctx.meta.user`
 		 *
 		 * @param {Context} ctx
 		 * @param {Object} route
 		 * @param {IncomingRequest} req
 		 * @returns {Promise}
 		 */
-		authorize(ctx, route, req, res) {
+		authenticate(ctx, route, req, res) {
 			ctx.meta.headers = req.headers;
 			let csrfResult = false;
 
 			// check csrf token
 			try {
-				// if csrfOnly, check only csrf token and return result
-				if ( req?.$action?.authType === "csrfOnly" ) {
+				if ( req?.$action?.authType === "csrfCheck" ) {
 					if ( !this.checkCsrfToken(ctx, req) ) {
 						return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
+					} else {
+						// stops further processing, returning null user
+						return this.Promise.resolve(null); // needed for login
 					}
-					return this.Promise.resolve();
 				}
 				// if auth is required, get also csrf token result
 				csrfResult = this.checkCsrfToken(ctx, req);
@@ -195,23 +197,18 @@ module.exports = {
 			this.logger.info("before csfrResult csrfResult #3 route: ");
 			this.cookiesManagement(ctx, route, req, res);
 
-			// skip if no authorization required
-			if (!req.$action?.auth && !req.$action?.authType) {
-				return this.Promise.resolve(true);
-			}
-
 			// get user token from cookie
 			let token = "";
 			ctx.meta.token = null;
-			if (ctx.meta.cookies && ctx.meta.cookies.token) {
+			if (ctx.meta?.cookies?.token) {
 				ctx.meta.token = ctx.meta.cookies.token;
 				token = ctx.meta.token;
 			}
-			this.logger.info("before csfrResult check: ");
+			this.logger.info("before csfrResult check: ", token);
 			// no user action without csrf token
-			if (!csrfResult && req.$action?.auth !== "optional") {
-				return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
-			}
+			// if (!csrfResult && req.$action?.authType !== "csrfOnly") {
+			// 	return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
+			// }
 			this.logger.info("before csfrResult after: ");
 
 			// authorization core
@@ -229,17 +226,14 @@ module.exports = {
 								}
 								this.logger.info("token #4: ", user);
 								if (user) {
-									this.logger.info("api.authorize() username: ", user.username);
+									this.logger.info("api.authenticate() username: ", user.username);
 									// Reduce user fields (it will be transferred to other nodes)
-									ctx.meta.user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "subtype", "addresses", "settings", "data", "dates"]);
+									user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "subtype", "addresses", "settings", "data", "dates"]);
 									ctx.meta.token = token;
 									ctx.meta.userID = user._id;
-									// --
-									req.$ctx.meta.user = ctx.meta.user;
-									req.$ctx.meta.token = ctx.meta.token;
-									req.$ctx.meta.userID = ctx.meta.userID;
+									this.logger.info("api.authenticate() ctx.meta.user: ", ctx.meta.user);
+									return user;
 								}
-								return user;
 							})
 							.catch(() => {
 								throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
@@ -250,9 +244,10 @@ module.exports = {
 					if (req.$action && req.$action.auth == "required" && !user) {
 						throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
 					}
+					return user;
 				})
 				.catch(err => {
-					console.error("api.authorize() ERROR: ", err);
+					console.error("api.authenticate() ERROR: ", err);
 					throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
 				});
 		},
@@ -354,7 +349,7 @@ module.exports = {
 			req["$action"] = {
 				auth: "required"	
 			};
-			this.authorize(req.$ctx, req.$route, req, res)
+			this.authenticate(req.$ctx, req.$route, req, res)
 				.then((x) => {
 					// get active path with variables
 					let self = this;
