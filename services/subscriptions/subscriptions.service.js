@@ -355,7 +355,7 @@ module.exports = {
 				let promises = [];
 				let self = this;
 				let checkDate = new Date();
-				const daysTolerance = 1; // TODO outsource to settings
+				const daysTolerance = process?.env?.SUBS_DAYS_TOLERANCE || 1;
 				checkDate.setDate(checkDate.getDate() - daysTolerance);
 				// set user as admin so "subscription.suspend" action can be done
 				if (typeof ctx.meta.user === "undefined") {
