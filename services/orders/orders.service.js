@@ -20,7 +20,6 @@ const OrdersMethodsHelpers = require("./methods/helpers.methods");
 const OrdersMethodsSubscription = require("./methods/subscription.methods");
 // service specific mixins
 const paymentWebhook = require("./mixins/payments.webhook.mixin");
-const paymentsPaypal = require("./mixins/payments.paypal1.mixin"); // Paypal API v1
 const paymentsStripe = require("./mixins/payments.stripe.mixin");
 
 // settings
@@ -43,7 +42,6 @@ module.exports = {
 		OrdersMethodsSubscription,
 		// mixins
 		paymentWebhook,
-		paymentsPaypal,
 		paymentsStripe,
 		// events
 		CacheCleanerMixin([
@@ -518,7 +516,7 @@ module.exports = {
 		 * 
 		 * @actions
 		 * 
-     * @param {String} supplier - supplier name (eg. paypal)
+     * @param {String} supplier - supplier name (eg. stripe)
      * @param {String} action - action name (eg. geturl)
      * @param {String} orderId - id of order to pay
      * @param {Object} data - data specific for payment
@@ -565,7 +563,7 @@ module.exports = {
 		 * 
 		 * @actions
 		 * 
-     * @param {String} supplier - supplier name (eg. paypal)
+     * @param {String} supplier - supplier name (eg. stripe)
      * @param {String} result - result string
      * @param {String} PayerID - id of payer
      * @param {Object} paymentId - id of paymnet
@@ -825,7 +823,7 @@ module.exports = {
 		 * 
 		 * @actions
 		 * 
-		 * @param {String} supplier - supplier codename (eg. paypal, stripe)
+		 * @param {String} supplier - supplier codename (eg. stripe)
 		 * @param {String} relatedId - id related to subscription (like API object id)
 		 * @param {String} subscription - related subscription object
 		 * 
@@ -841,7 +839,7 @@ module.exports = {
 				subscription: { type: "object" }
 			},
 			handler(ctx) {
-				let supplier = (ctx.params.supplier) ? ctx.params.supplier : "paypal";
+				let supplier = (ctx.params.supplier) ? ctx.params.supplier : "stripe";
 				
 				this.logger.info("orders.paymentSuspend params: ", ctx.params);
 

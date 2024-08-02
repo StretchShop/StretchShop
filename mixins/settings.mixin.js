@@ -270,9 +270,6 @@ module.exports = {
         "password": process.env.SENDING_ORDER_PWD
       };
       data.availablePaymentActions = [
-        "paypalOrderGeturl",
-        "paypalResult",
-        "paypalWebhook",
         "stripeOrderPaymentintent",
         "stripeOrderSubscription",
         "stripeWebhook"

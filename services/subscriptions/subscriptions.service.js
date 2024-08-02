@@ -705,7 +705,7 @@ module.exports = {
 							// FIX - NO relatedId with Stripe 
 							if (relatedId && relatedId!=null) {
 								// update agreement
-								let paymentType = "online_paypal_paypal";
+								let paymentType = "online_stripe";
 								if (found.data && found.data.order && found.data.order.data && 
 								found.data.order.data.paymentData && 
 								found.data.order.data.paymentData.codename) {
@@ -713,7 +713,7 @@ module.exports = {
 								}
 								// using suspendPayment to be more universal call
 								// TODO - need to setup rules for creating payment names
-								let supplier = "paypal";
+								let supplier = "stripe";
 								if (paymentType=="online_stripe") {
 									supplier = "stripe";
 								}
@@ -769,7 +769,7 @@ module.exports = {
 
 									})
 									.catch(error => {
-										result.error = "paypalSuspendBillingAgreement";
+										result.error = "suspendBillingAgreement";
 										this.logger.error("subscriptions.suspend - "+result.error+" error: ", JSON.stringify(error));
 										self.addToHistory(ctx, found._id, self.newHistoryRecord("error", "user", { 
 											errorMsg: result.error+" error", 

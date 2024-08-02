@@ -83,7 +83,7 @@ module.exports = {
 		"POST /subscription/suspend/:subscriptionId": "subscriptions.suspend",
 		"POST /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
 		// Payment
-		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/paypal/geturl
+		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/stripe/geturl
 		"GET /order/payment/:supplier/:result": "orders.paymentResult",
 		"POST /order/payment/webhook/:supplier": "orders.paymentWebhook",
 

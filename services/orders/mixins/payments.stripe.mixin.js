@@ -20,13 +20,6 @@ module.exports = {
 	settings: {
 
 		paymentsConfigs: {
-			paypal: {
-				environment: (process.env.PAYPAL_ENV==="production" || process.env.PAYPAL_ENV==="live") ? "live" : "sandbox",
-				merchantId: process.env.PAYPAL_CLIENT_ID,
-				publicKey: null,
-				privateKey: process.env.PAYPAL_SECRET,
-				gateway: null
-			}
 		}
 
 	},
