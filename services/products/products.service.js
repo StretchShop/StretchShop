@@ -393,8 +393,8 @@ module.exports = {
 				}
 				// if categories sent, use them
 				let categories = [];
-				if ( ctx.params.query.categories && typeof ctx.params.query.categories["$in"] !== "undefined") {
-					categories = ctx.params.query.categories["$in"];
+				if ( ctx.params.query?.categories && typeof ctx.params.query?.categories["$in"] !== "undefined") {
+					categories = ctx.params.query?.categories["$in"];
 				}
 
 				// add queries to $and array

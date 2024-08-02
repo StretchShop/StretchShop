@@ -299,7 +299,7 @@ module.exports = {
 						return response;
 					})
 					.catch(error => {
-						this.logger.error("payments.paypal1.mixin - paypalSuspendBillingAgreement error: ", JSON.stringify(error));
+						this.logger.error("payments.stripe1.mixin - stripeSuspendBillingAgreement error: ", JSON.stringify(error));
 						return null;
 					});
 			}
@@ -895,14 +895,24 @@ module.exports = {
 				expand: ["latest_invoice.payment_intent"], 
 			});
 
-			return stripe.subscriptions.create({
+			const stripeSubscription = {
 				customer: related.customer.id,
 				items: [{
 					price: related.product.data.stripe.defaultPriceId, // result of createPrice()
 				}],
 				payment_behavior: "default_incomplete", 
 				expand: ["latest_invoice.payment_intent"], 
-			})
+			}
+			// if trial subscription, set trial end date	from subscription dateOrderNext
+			if (related?.subscription?.data?.product?.data?.subscription?.cyclesTrial > 0 && 
+				related?.subscription?.dates?.dateOrderNext) {
+				const trialEndDate = new Date(related.subscription.dates.dateOrderNext); // timestamp in seconds
+				if (trialEndDate && trialEndDate.getTime() > 0) {
+					stripeSubscription["trial_end"] = Math.round(trialEndDate.getTime() / 1000);
+				}
+			}
+
+			return stripe.subscriptions.create()
 				.then(stripeSubscription => {
 					this.logger.info("payments.stripe.mixin pSS() #4.2 stripeSubscription:", stripeSubscription);
 					let updateSubscription = Object.assign({}, related.subscription);

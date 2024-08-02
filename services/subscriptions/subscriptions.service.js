@@ -44,7 +44,7 @@ module.exports = {
 	 */
 	settings: {
 		/** Public fields */
-		fields: ["_id", "userId", "ip", "type", "period", "duration", "cycles", "status", "orderOriginId", "orderItemName", "dates", "price", "data", "history"],
+		fields: ["_id", "userId", "ip", "type", "period", "duration", "cycles", "cyclesTrial", "status", "orderOriginId", "orderItemName", "dates", "price", "data", "history"],
 
 		/** Validator schema for entity */
 		entityValidator: {
@@ -53,6 +53,7 @@ module.exports = {
 			period: {type: "string", min: 3 }, // year, month, week, day, ...
 			duration: {type: "number", positive: true }, // 1, 3, 9.5, ...
 			cycles: {type: "number"}, // number of repeats, for infinity use 0 and less
+			cyclesTrial: { type: "number", optional: true }, // number of trial repeats, must be less than cycles
 			status: { type: "string", min: 3 }, // inactive, active, finished, ...
 			orderOriginId: { type: "string", min: 3 },
 			orderItemName: { type: "string", min: 3 },
@@ -238,6 +239,9 @@ module.exports = {
 							if (subscriptions[i].data.subscription.cycles) {
 								subscription.cycles = subscriptions[i].data.subscription.cycles;
 							}
+							if (subscriptions[i].data.subscription.cyclesTrial) {
+								subscription.cyclesTrial = subscriptions[i].data.subscription.cyclesTrial;
+							}
 						}
 						// basics
 						subscription.userId = order.user.id;
@@ -252,6 +256,17 @@ module.exports = {
 						/* dateOrderNext set to now, because first payment is done 
 						   right after customer accepts agreement to billing plan */
 						subscription.dates.dateOrderNext = new Date();
+						// if trial period is set, set dateEnd to trial end
+						if (subscription.cyclesTrial && subscription.cyclesTrial>0) {
+							// set dateEnd to trial end	
+							subscription.status = "trial";
+							subscription.dates.dateOrderNext = this.setDateOrderNextAfterTrial(
+								subscription.dates.dateOrderNext, 
+								subscription.period, 
+								subscription.duration,
+								subscription.cyclesTrial
+							);
+						}
 						subscription.price = subscriptions[i].price;
 
 						subscription.history.push( 
@@ -353,103 +368,33 @@ module.exports = {
 			cache: false,
 			handler(ctx) {
 				let promises = [];
-				let self = this;
-				let checkDate = new Date();
-				const daysTolerance = process?.env?.SUBS_DAYS_TOLERANCE || 1;
-				checkDate.setDate(checkDate.getDate() - daysTolerance);
-				// set user as admin so "subscription.suspend" action can be done
-				if (typeof ctx.meta.user === "undefined") {
-					ctx.meta.user = { type: "admin" };
-				}
-				if (typeof ctx.meta.user.type === "undefined" || ctx.meta.user.type == null) {
-					ctx.meta.user.type = "admin";
-				}
-				
-				// get dateOrder for today (- days of tolerance) and less
-				// TODO - add $or for case we have subscription, that ended but is active
-				return this.adapter.find({
-					query: {
-						"$or": [
-							{
-								"dates.dateOrderNext": { "$lte": checkDate },
-								"dates.dateEnd": { "$gte": checkDate },
-								status: "active"
-							},
-							{
-								"dates.dateEnd": { "$lte": new Date() },
-								status: "active"
-							},
-							{
-								"dates.dateEnd": { "$lte": new Date() },
-								status: "stopped"
-							}
-						]
-					}
-				})
-					.then(subscriptions => {
-						this.logger.info("subscriptions.checkSubscriptions - subscriptions found", subscriptions);
-						if (subscriptions && subscriptions.length>0) {
-							subscriptions.forEach(s => {
-								promises.push( 
-									ctx.call("subscriptions.suspend", {
-										subscriptionId: s._id.toString(),
-										altUser: "checkSubscription CRON",
-										altMessage: "subscription suspended because no payment received"
-									})
-										.catch(err => {
-											this.logger.error("users.checkSubscriptions - subscriptions.suspend error:", err);
-										})
-										.then(result => {
-											// send email to customer
-											self.sendSubscriptionEmail(
-												ctx, s, 
-												"subscription/suspended"
-											);
-											return result;
-										})
-								);
-							});
-							// return all runned subscriptions
-							return Promise.all(promises)
-								.then((result) => {
-									return result;
-								})
-								.catch(err => {
-									this.logger.error("subscriptions.checkSubscriptions all error:", err);
-									return this.Promise.reject(new MoleculerClientError("Subscriptions checkS all error", 422, "", []));
-								});
-						} else {
-							return "No results";
-						}
-					})
-					.then(suspendedSubs => {
-						// set status to finished to those, with dateEnd in past
-						return self.adapter.updateMany(
-							{
-								"dates.dateEnd": { "$lte": checkDate },
-								status: "active"
-							},
-							{
-								"$set": {
-									status: "finished"
+
+				promises.push(
+					this.stopEndedActiveSubscriptions(ctx)
+				);
+				promises.push(
+					this.firstPaymentAfterTrial(ctx)
+				);
+
+				return Promise.all(promises)
+					.then((values) => {
+						let results = {};
+						if (values) {
+							values.forEach(v => {
+								if (v && v !== null && typeof v === "object") {
+									Object.keys(v).forEach(k => {
+										results[k] = v[k];
+									});
 								}
-							}
-						)
-							.then(subscriptions => {
-								return {
-									suspended: suspendedSubs,
-									finished: subscriptions
-								};	
-							})
-							.catch(err => {
-								this.logger.error("subscriptions.checkSubscriptions updateMany error:", err);
-								return this.Promise.reject(new MoleculerClientError("Subscriptions checkS updateM error", 422, "", []));
 							});
+						}
+						return results;
 					})
 					.catch(err => {
-						this.logger.error("subscriptions.checkSubscriptions find error:", err);
-						// return this.Promise.reject(new MoleculerClientError("Subscriptions checkS find error", 422, "", []));
+						console.error('subscription.checkSubscriptions error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Global search error", 422, "", []));
 					});
+
 			}
 		},
 

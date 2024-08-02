@@ -350,6 +350,36 @@ module.exports = {
 				}
 			}
 			return source;
+		},
+
+
+		/**
+		 * Add number of months to date
+		 * 
+		 * @param {Date} date 
+		 * @param {Number} months 
+		 * @returns {Date}
+		 */
+		addMonths(date, months) { //
+			let d = date.getDate();
+			date.setMonth(date.getMonth() + +months);
+			if (date.getDate() != d) {
+				date.setDate(0);
+			}
+			return date;
+		},
+
+		/**
+		 * Add number of days to date
+		 * 
+		 * @param {Date} date 
+		 * @param {Number} days 
+		 * @returns {Date}
+		 */
+		addDays(date, days) {
+			let newDate = new Date(date);
+			newDate.setDate(newDate.getDate() + days);
+			return newDate;
 		}
 
 

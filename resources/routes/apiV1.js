@@ -85,7 +85,6 @@ module.exports = {
 		// Payment
 		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/paypal/geturl
 		"GET /order/payment/:supplier/:result": "orders.paymentResult",
-		// "POST /order/payment/paypalipn": "orders.paypalIpn", // old api
 		"POST /order/payment/webhook/:supplier": "orders.paymentWebhook",
 
 		// Pages
