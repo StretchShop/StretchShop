@@ -623,6 +623,7 @@ module.exports = {
 					return this.checkCustomer(ctx, related);
 				})
 				.then(customer => {
+					related.customer = customer;
 					this.logger.info("payments.stripe.mixin pSS() #3.X customer:", customer);
 					return this.stripeCreateSubscription(ctx, related);
 				})
@@ -899,15 +900,28 @@ module.exports = {
 			// if trial subscription, set trial end date	from subscription dateOrderNext
 			if (related?.subscription?.data?.product?.data?.subscription?.cyclesTrial > 0 && 
 				related?.subscription?.dates?.dateOrderNext) {
-				const trialEndDate = new Date(related.subscription.dates.dateOrderNext); // timestamp in seconds
+				let trialEndDate = new Date(related.subscription.dates.dateOrderNext); // timestamp in seconds
 				if (trialEndDate && trialEndDate.getTime() > 0) {
+					const period = related.subscription.data.product.data.subscription.period;
+					let periodNumber = 24 * 60 * 60; // default is day in seconds
+					if (period == "week") { periodNumber = 7 * 24 * 60 * 60; }
+					if (period == "month") { periodNumber = 30 * 24 * 60 * 60; }
+					if (period == "year") { periodNumber = 365 * 24 * 60 * 60; }
+					periodNumber = periodNumber * 1000; // convert to milliseconds
+					trialEndDate = new Date(trialEndDate.getTime() + (related.subscription.data.product.data.subscription.cyclesTrial * periodNumber)); // add days
 					stripeSubscription["trial_end"] = Math.round(trialEndDate.getTime() / 1000);
+					stripeSubscription["payment_behavior"] = "default_incomplete";
+					stripeSubscription["expand"] = ['pending_setup_intent'];
 				}
 			}
 
-			return stripe.subscriptions.create()
+			this.logger.info("payments.stripe.mixin pSS() #4.1.1 stripeSubscription:", stripeSubscription);
+
+			return stripe.subscriptions.create(stripeSubscription)
 				.then(stripeSubscription => {
 					this.logger.info("payments.stripe.mixin pSS() #4.2 stripeSubscription:", stripeSubscription);
+					this.logger.info("payments.stripe.mixin pSS() #4.2 updateSubscription LI:", stripeSubscription?.latest_invoice);
+					this.logger.info("payments.stripe.mixin pSS() #4.2 updateSubscription LI.PI:", stripeSubscription?.latest_invoice?.payment_intent);
 					let updateSubscription = Object.assign({}, related.subscription);
 					if (!updateSubscription.data.stripe) { updateSubscription.data["stripe"] = {}; }
 					updateSubscription.data.stripe = stripeSubscription;
@@ -932,9 +946,13 @@ module.exports = {
 							return ctx.call("orders.updateOrder", { order: updateOrder })
 								.then(updatedOrder => {
 									this.logger.info("payments.stripe.mixin pSS() #4.5 updateOrder:", updatedOrder);
+									let clientSecret = stripeSubscription?.latest_invoice?.payment_intent?.client_secret;
+									if (related?.subscription?.data?.product?.data?.subscription?.cyclesTrial > 0) {
+										clientSecret = stripeSubscription?.pending_setup_intent?.client_secret
+									}
 									const result = {
 										id: stripeSubscription.id,
-										clientSecret: stripeSubscription.latest_invoice.payment_intent.client_secret
+										clientSecret,
 									};
 									this.logger.info("payments.stripe.mixin pSS() #4.6 result:", result);
 									return result;
