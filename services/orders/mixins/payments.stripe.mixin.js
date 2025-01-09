@@ -897,10 +897,10 @@ module.exports = {
 				payment_behavior: "default_incomplete", 
 				expand: ["latest_invoice.payment_intent"], 
 			}
-			// if trial subscription, set trial end date	from subscription dateOrderNext
+			// if trial subscription, set trial end date from subscription dateStart
 			if (related?.subscription?.data?.product?.data?.subscription?.cyclesTrial > 0 && 
-				related?.subscription?.dates?.dateOrderNext) {
-				let trialEndDate = new Date(related.subscription.dates.dateOrderNext); // timestamp in seconds
+				related?.subscription?.dates?.dateStart) {
+				let trialEndDate = new Date(related.subscription.dates.dateStart); // timestamp in seconds
 				if (trialEndDate && trialEndDate.getTime() > 0) {
 					const period = related.subscription.data.product.data.subscription.period;
 					let periodNumber = 24 * 60 * 60; // default is day in seconds

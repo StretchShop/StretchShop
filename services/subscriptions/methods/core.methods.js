@@ -373,6 +373,10 @@ module.exports = {
 						},
 						{
 							"dates.dateEnd": { "$lte": new Date() },
+							status: "agreed"
+						},
+						{
+							"dates.dateEnd": { "$lte": new Date() },
 							status: "stopped"
 						}
 					]

@@ -129,12 +129,6 @@
       ]
     }
   ],
-  "sendingOrder": {
-    "url": "https://cw.sk/archive/testarea/stretchshopbridgeapi/",
-    "port": "80",
-    "login": "fester",
-    "password": "mrkvasalat"
-  },
   "availablePaymentActions": [
     "stripeOrderPaymentintent",
     "stripeOrderSubscription",

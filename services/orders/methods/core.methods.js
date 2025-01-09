@@ -1035,8 +1035,9 @@ module.exports = {
 						this.logger.error("orders.orderAfterSaveActions.fetch ERROR:", orderSentError);
 					});
 			} else { // no url to send
+				this.logger.info("orders.orderAfterSaveActions() - NO URL TO SEND");
 				// 2. clear cart + 3. send email
-				return self.orderAfterAcceptedActions(ctx, orderProcessedResult)
+				return self.orderAfterAcceptedActions(ctx, orderProcessedResult.order)
 					.then(success => {
 						if ( success ) {
 							orderProcessedResult.order.dates.emailSent = new Date();

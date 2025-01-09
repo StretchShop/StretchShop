@@ -449,7 +449,7 @@ module.exports = {
 					} else {
 						filter.query["user.id"] = ctx.meta.user._id.toString();
 					}
-					filter.query["$or"] = [{"status":"sent"}, {"status":"paid"}, {"status":"expeded"}];
+					filter.query["$or"] = [{"status":"saved"}, {"status":"sent"}, {"status":"paid"}, {"status":"expeded"}];
 					// set offset
 					if (ctx.params.offset && ctx.params.offset>0) {
 						filter.offset = ctx.params.offset;
