@@ -321,10 +321,16 @@ module.exports = {
 						let subscrIds = [];
 						let productSubscriptions = {};
 						savedSubscriptions.forEach(function(sasu){
-							// get ID or subscription and related product
+							// collect important information into order.subscription.ids
+							// this will be important for order detail and decision making
 							subscrIds.push({
+								created: new Date(),
+								updated: null,
+								lastPaidDate: null,
 								subscription: sasu._id.toString(),
-								product: sasu.data.product._id.toString()
+								product: sasu.data.product._id.toString(),
+								status: "saved",
+								supplier: {}
 							});
 							productSubscriptions[sasu.data.product._id.toString()] = sasu._id.toString();
 						});
@@ -634,9 +640,7 @@ module.exports = {
 
 
 		/**
-		 * Save subscription:
-		 *  - if no ID, create new;
-		 *  - if has ID, update;
+		 * update subscription
 		 * 
 		 * @actions
 		 * 
@@ -745,10 +749,10 @@ module.exports = {
 
 							let relatedId = found.data.agreementId;
 							// get agreement ID from history
-							this.logger.info("subscriptions.suspend stripe.id:", found.data.stripe, found.data.stripe.id, (found.data.stripe && found.data.stripe.id), ( !relatedId || relatedId==null ));
+							this.logger.info("subscriptions.suspend stripe.id:", found.data.stripe, (found.data.stripe && found.data.stripe?.id), ( !relatedId || relatedId==null ));
 
 							if ( !relatedId || relatedId==null ) {
-								if (found.data.stripe && found.data.stripe.id) {
+								if (found.data.stripe && found.data.stripe?.id) {
 									relatedId = found.data.stripe.id;
 								} else if (found.history && found.history.length>0) {
 									found.history.some(record => {
@@ -912,6 +916,18 @@ module.exports = {
 				return this.createPaidSubscriptionOrder(ctx, ctx.params.subscription);
 			}
 		},
+
+
+		subscriptionTrial: {
+			cache: false,
+			params: {
+				subscriptionId: { type: "string" } 
+			},
+			handler(ctx) {
+				return this.subscriptionTrial(ctx, ctx.params.subscription);
+			}
+		},
+
 
 	},
 

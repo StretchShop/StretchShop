@@ -194,7 +194,7 @@ module.exports = {
 			} catch (e) {
 				this.logger.error("Csrf Token error: ", e);
 			}
-			this.logger.info("before csfrResult csrfResult #3 route: ");
+			this.logger.info("before csfrResult csrfResult #3 route: ", route);
 			this.cookiesManagement(ctx, route, req, res);
 
 			// get user token from cookie

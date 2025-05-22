@@ -1,5 +1,5 @@
 # node:current-alpine
-FROM node:23-alpine
+FROM node:22-alpine
 
 RUN mkdir /app
 WORKDIR /app
@@ -7,8 +7,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package.json .
-
-RUN npm install -g npm@latest
 
 RUN npm install --silent --progress=false --production --ignore-scripts
 

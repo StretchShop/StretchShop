@@ -6,19 +6,15 @@ const fetch		= require("cross-fetch");
 const jwt	= require("jsonwebtoken");
 const handlebars = require("handlebars");
 // writing files - logs
-const { writeFileSync, ensureDir, createReadStream } = require("fs-extra");
-// PDF generating
-let pdfMake = require("pdfmake/build/pdfmake");
-let pdfFonts = require("pdfmake/build/vfs_fonts");
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
-let htmlToPdfmake = require("html-to-pdfmake");
-let jsdom = require("jsdom");
-let { JSDOM } = jsdom;
-let { window } = new JSDOM("");
+const { writeFileSync, ensureDir, createWriteStream } = require("fs-extra");
 
 const pathResolve = require("path").resolve;
 
 const SettingsMixin = require("../../../mixins/settings.mixin");
+const PdfPrintMixin = require("../../../mixins/pdfprint.mixin");
+
+const { subscriptionPaymentStatuses } = require("../constants/subscription.constants");
+const { update } = require("lodash");
 
 
 module.exports = {
@@ -1285,51 +1281,46 @@ module.exports = {
 							});
 					})
 					.then( (html) => {
-						let template = htmlToPdfmake(html, {window:window});
-						let docDefinition = {
-							content: [
-								template
-							],
-							styles:{
-							}
-						};
-
-						let pdfDocGenerator = pdfMake.createPdf(docDefinition);
+						// generate pdf
+						self.logger.info("orders.generateInvoice() PDF - html:", html);
 						let publicDir = process.env.PATH_PUBLIC || "./public";
 						let dir = publicDir +"/"+ process.env.ASSETS_PATH +"/invoices/"+ order.user.id;
 						dir = dir.replace(/\/\//g, "/");
 						let path = dir + "/" + order.invoice.id + ".pdf";
 						let sendPath = "invoices/"+ order.user.id + "/" + order.invoice.id + ".pdf";
-						pdfDocGenerator.getBuffer(function(buffer) {
-							return ensureDir(dir, 0o2775)
-								.then(() => {
-									writeFileSync(path, buffer);
-									self.logger.info("orders.generateInvoice() - path:", path);
+						self.logger.info("orders.generateInvoice() PDF - dir & sendPath:", dir, sendPath);
+						// pdfDocGenerator.getBuffer(function(buffer) {
+						ensureDir(dir, 0o2775)
+							.then(() => {
+								let pdfDoc = PdfPrintMixin.generatePdfFromHtml(html);
+								pdfDoc.pipe(createWriteStream(path));
+								pdfDoc.end();
+								self.logger.info("orders.generateInvoice() - path:", path);
+							})
+							.catch(orderEnsureDirErr => {
+								self.logger.error("orders.generateInvoice() - orderEnsureDirErr:", orderEnsureDirErr);
+							})
+							.then(() => {
+								ctx.call("users.sendEmail",{ // return 
+									template: "orderpaid",
+									data: {
+										order: order, 
+										html: html
+									},
+									settings: {
+										subject: process.env.SITE_NAME +" - We received Payment for Your Order #"+order._id,
+										to: order.user.email,
+										attachments: [{
+											path: path
+										}]
+									}
 								})
-								.catch(orderEnsureDirErr => {
-									self.logger.error("orders.generateInvoice() - orderEnsureDirErr:", orderEnsureDirErr);
-								})
-								.then(() => {
-									ctx.call("users.sendEmail",{ // return 
-										template: "orderpaid",
-										data: {
-											order: order, 
-											html: html
-										},
-										settings: {
-											subject: process.env.SITE_NAME +" - We received Payment for Your Order #"+order._id,
-											to: order.user.email,
-											attachments: [{
-												path: path
-											}]
-										}
-									})
-										.then(booleanResult => {
-											self.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
-											//return true;
-										});
-								});
-						});
+									.then(booleanResult => {
+										self.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
+										//return true;
+									});
+							});
+						// });
 						return { html: html, path: sendPath };
 					});
 			}
@@ -1492,15 +1483,15 @@ module.exports = {
 			}
 			order.data.paymentData.lastResponseResult.push(response);
 			// calculate total amount paid
-			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
-				if (order.data.paymentData.lastResponseResult[i].state && 
-					order.data.paymentData.lastResponseResult[i].state == "approved" && 
-					order.data.paymentData.lastResponseResult[i].transactions) {
-					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
-						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
-							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+			for (const element of order.data.paymentData.lastResponseResult) {
+				if (element.state && 
+					element.state == "approved" && 
+					element.transactions) {
+					for (let j=0; j<element.transactions.length; j++) {
+						if (element.transactions[j].amount && 
+							element.transactions[j].amount.total) {
 							order.data.paymentData.paidAmountTotal += parseFloat(
-								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+								element.transactions[j].amount.total
 							);
 						}
 					}
@@ -1510,6 +1501,168 @@ module.exports = {
 			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
 
 			return order;
+		},
+
+
+		/**
+		 * Get order summary status of payment from its products and subscriptions
+		 * 
+		 * @param {Object} order
+		 * 
+		 * @returns {string} status
+		 */
+		getOrderPaymentStatus(order) {
+			/*
+			 * Set default status: 
+			 * saved = stored in database, not created in payment gateway, not paid
+			 * prepared = created in payment gateway, not paid
+			 * running = paid in payment gateway,
+			 * completed = paid in payment gateway, all subscriptions paid, ended by desired date or by user
+			 * failed = any error
+			 */
+			const paymentStatuses = subscriptionPaymentStatuses;
+			let orderPaymentStatus = 0; // 0: saved -> 1: prepared -> 2: running
+
+			// get status of products
+			let productsStatus = null; // saved as starting s
+			const id = order?.data?.paymentData?.paymentRequestId || order?.data?.paymentData?.supplier?.id;
+			console.log("id ------- >: ", id);
+		  if (id && id.toString().trim() !== "" && order?.items?.length) {
+				productsStatus = 0;
+				if (order?.data?.paymentData?.supplier?.status === "paid" && order?.data?.paymentData?.supplier?.paid) {
+					productsStatus = 1;
+				}
+			}
+
+			// get status of subscriptions
+			let subscriptionsStatus = null; // saved as starting status
+			let countRemainingSubscriptions2pay = 0;
+			let countRemainingSubscriptions2prepare = 0;
+			let nextSubscription = null; // next subscription to use
+			let nextSubscriptionToPay = null;
+			let nextSubscriptionToPrepare = null;
+			if (order?.data?.subscription?.ids) {
+				// find worst subscription state
+				const statuses = [];
+			  for (const idItem of order.data.subscription.ids) {
+					if (idItem.subscription && idItem.subscription.toString().trim() !== "") {
+						let thisStatus = 0;
+						if (idItem.status === "prepared") {
+							thisStatus = 1;
+							countRemainingSubscriptions2pay++;
+							if (!nextSubscription) {
+								nextSubscription = idItem;
+							}
+							if (!nextSubscriptionToPay) {
+								nextSubscriptionToPay = idItem;
+							}
+						} else if (idItem.status === "active") {
+							thisStatus = 2;
+						} else if (idItem.status === "completed") {
+							thisStatus = 3;
+						} else { // is only in stretchshop DB
+							countRemainingSubscriptions2prepare++;
+							countRemainingSubscriptions2pay++;
+							if (!nextSubscription) {
+								nextSubscription = idItem;
+							}
+							if (!nextSubscriptionToPrepare) {
+								nextSubscriptionToPrepare = idItem;
+							}
+						}
+						statuses.push(thisStatus);
+					}
+			  }
+				subscriptionsStatus = Math.min(...statuses);
+			}
+
+			// find worst status
+			orderPaymentStatus = Math.min(productsStatus, subscriptionsStatus);
+
+			return {
+				order: {
+					index: orderPaymentStatus,
+					status: paymentStatuses[orderPaymentStatus] || null
+				},
+				products: {
+					count: order?.items?.filter((i) => i.type !== "subscription").length || 0,
+					index: productsStatus,
+					status: paymentStatuses[productsStatus] || null
+				},
+				subscriptions: {
+					index: subscriptionsStatus,
+					status: paymentStatuses[subscriptionsStatus] || null,
+					counters: {
+						total: order?.data?.subscription?.ids?.length,
+						remaining: {
+							toPay: countRemainingSubscriptions2pay,
+							toPrepare: countRemainingSubscriptions2prepare
+						}
+					},
+					next: {
+						use: nextSubscription, // next subscription to use
+						toPay: nextSubscriptionToPay,
+						toPrepare: nextSubscriptionToPrepare
+					}
+				}
+			};
+		},
+
+
+		/**
+		 * Update order state according to payment provider and received data
+		 * 
+		 * @param {Object} order
+		 * @param {Object} updateData
+		 * @param {string} provider
+		 */
+		updateOrderState(updateData, provider, action) {
+			this.logger.info("updateOrderState #1: ", updateData, provider, action);
+
+			if (updateData && provider) {
+				this.logger.info("updateOrderState #2: ", provider, provider === "stripe");
+			
+				const filter = { query: {
+					_id: self.fixStringToId(data.object.metadata.orderId),
+				}, limit: 1 };
+
+				ctx.call("orders.find", filter)
+					.then(foundOrder => {
+						if (foundOrder) {
+							foundOrder = foundOrder[0];
+							if (!foundOrder.id) {
+								foundOrder.id = foundOrder._id;
+							}
+							this.logger.info("WEBHOOK charge.succeeded - order foundOrder:", foundOrder);
+							// update order with payment data
+							if (foundOrder.data?.paymentData?.lastResponseResult) {
+								foundOrder.data.paymentData.lastResponseResult.push(data);
+							} else {
+								if (!foundOrder.data.paymentData) {
+									foundOrder.data.paymentData = {
+										lastResponseResult: []
+									};
+								}
+								foundOrder.data.paymentData.lastResponseResult = [data];
+							}
+
+							// update provider specific information
+							if (provider === "stripe") {
+								this.logger.info("updateOrderState #3 Stripe");
+								foundOrder = this.updateOrderStateStripe(order, updateData, action);
+							}
+							
+							// save updated order
+							return ctx.call("orders.updateOrder", { order: foundOrder })
+							.then(updatedOrder => {
+								this.logger.info("WEBHOOK charge.succeeded - order updated:", updatedOrder);
+							});
+						}
+					})
+					.catch(error => {
+						self.logger.error("WEBHOOK charge.succeeded find error", error);
+					});
+			}
 		},
 
 

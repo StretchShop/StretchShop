@@ -272,19 +272,17 @@ module.exports = {
 					order.invoice["path"] = invoice.path;
 					// set related subscription product and data as paid
 					if (order.items && order.items.length>0) {
-						for (let i=0; i<order.items.length; i++) {
-							if (order.items[i].type==="subscription" && 
-							order.items[i]._id.toString()===subscription.data.product._id.toString()) {
-								order.items[i]["paid"] = true;
+						for (const element of order.items) {
+							if (element.type==="subscription" && 
+							element._id.toString()===subscription.data.product._id.toString()) {
+								element["paid"] = true;
 							}
 						}
 					}
-					if (order.data && order.data.subscription && 
-					order.data.subscription.ids && 
-					order.data.subscription.ids.length>0) {
-						for (let i=0; i<order.data.subscription.ids.length; i++) {
-							if (order.data.subscription.ids[i].subscription==subscription._id.toString()) {
-								order.data.subscription.ids[i]["paid"] = new Date();
+					if (order?.data?.subscription?.ids?.length>0) {
+						for (const element of order.data.subscription.ids) {
+							if (element.subscription==subscription._id.toString()) {
+								element["paid"] = new Date();
 							}
 						}
 					}

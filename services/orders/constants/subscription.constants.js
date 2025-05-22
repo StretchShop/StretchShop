@@ -1,0 +1,1 @@
+export const subscriptionPaymentStatuses = ["saved", "prepared", "trialing", "active", "completed", "canceled", "paused", "failed"];

@@ -132,6 +132,7 @@
   "availablePaymentActions": [
     "stripeOrderPaymentintent",
     "stripeOrderSubscription",
+    "stripeOrderNotification",
     "stripeWebhook"
   ]
 }

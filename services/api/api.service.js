@@ -94,8 +94,15 @@ module.exports = {
 		port: process.env.PORT || 3000,
 
 		routes: [
+			/**
+			 * Webhook endpoint for payment providers, that NEED raw body (eg. stripe)
+			 * It disables body parsing and reads raw body from request
+			 * Has to be called with supplier name as parameter
+			 * Webhook URL example https://mydemo.tld/apis/v1/order/payment/webhook-raw/stripe
+			 * NOTICE: "APIS" part of URL is of API SPECIAL, not a typo. All common API routes are under /api/v1
+			 */
 			{
-				path: "/api/v1/order/payment-raw",// If you need to disable body parsers
+				path: "/apis/v1/order/payment/webhook-raw",
 				bodyParsers: {
 					json: false,
 					urlencoded: false,
@@ -106,10 +113,12 @@ module.exports = {
 				mappingPolicy: "restrict",
 				mergeParams: false,
 				aliases: {
-					"POST /webhook/:supplier": "orders.paymentWebhookRaw",
+					"POST /:supplier": "orders.paymentWebhookRaw",
 				},
 				onBeforeCall(ctx, route, req) {
 					// Set request headers to context meta
+					console.log("api.service - onBeforeCall - route: ", route);
+					console.log("api.service - onBeforeCall - req.body: ", req.body);
 					ctx.meta.rawbody = req.body.toString();
 					ctx.meta.headers = req.headers;
 				},

@@ -45,7 +45,7 @@ module.exports = {
 		 */
 		paymentWebhookRaw: {
 			handler(ctx) {
-				// this.logger.info("orders.paymentWebhook service ctx.params:", typeof ctx.params.body, ctx.params );
+				this.logger.info("orders.paymentWebhook service ctx.params:", typeof ctx.params.body, ctx.params );
 				if (!ctx.params) { ctx.params = { params: {} }; }
 				if (!ctx.params.params) { ctx.params.params = { supplier: "stripe" }; }
 				ctx.params.params["supplier"] = "stripe";

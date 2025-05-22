@@ -47,6 +47,7 @@ module.exports = {
 			subscriptionOrder.status = "cart";
 
 			delete subscriptionOrder.data.paymentData.paymentRequestId;
+			delete subscriptionOrder.data.paymentData.supplier;
 			delete subscriptionOrder.data.paymentData.lastStatus;
 			delete subscriptionOrder.data.paymentData.lastDate;
 			delete subscriptionOrder.data.paymentData.paidAmountTotal;
@@ -291,18 +292,18 @@ module.exports = {
 			// configuring email message
 			let emailSetup = {
 				settings: {
-					to: [subscription.data.order.user.email, "support@stretchshop.app"]
+					to: [subscription.data.order.user.email, process.env.SITE_SUPPORT_EMAIL]
 				},
 				functionSettings: {
 					language: subscription.data.order.user.settings.language
 				},
 				template: template,
 				data: {
-					webname: ctx.meta.siteSettings.name,
+					webname: ctx.meta.siteSettings?.name || process.env.SITE_NAME || "StretchShop",
 					username: subscription.data.order.user.username,
 					email: subscription.data.order.user.email, 
 					subscription: subscription, 
-					support_email: ctx.meta.siteSettings.supportEmail
+					support_email: ctx.meta.siteSettings?.supportEmail || process.env.SITE_SUPPORT_EMAIL
 				}
 			};
 			// sending email
@@ -487,7 +488,12 @@ module.exports = {
 					this.logger.error("subscriptions.firstPaymentAfterTrial find error:", err);
 					// return this.Promise.reject(new MoleculerClientError("Subscriptions checkS find error", 422, "", []));
 				});
-		}
+		}, 
+
+
+		setSubscriptionStatus(subscriptionId, status) {
+			
+		},
 
 	}
 };

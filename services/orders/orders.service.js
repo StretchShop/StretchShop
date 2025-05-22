@@ -306,7 +306,7 @@ module.exports = {
 				let self = this;
 				let entity = ctx.params.order;
 				// count order prices
-				this.logger.info("order.update - order:", entity);
+				this.logger.info("order.update - order:", entity?.id, entity);
 
 				return this.adapter.findById(entity.id)
 					.then(found => {
@@ -338,6 +338,9 @@ module.exports = {
 										return null;
 									});
 							}
+						} else {
+							self.logger.warn("order.update - order not found:", entity.id);
+							return null;
 						}
 					})
 					.catch(err => {
@@ -432,7 +435,8 @@ module.exports = {
 				limit: { type: "number", optional: true },
 				offset: { type: "number", optional: true },
 				sort: { type: "string", optional: true },
-				fullData: { type: "boolean", optional: true }
+				fullData: { type: "boolean", optional: true },
+				paymentStatus: { type: "boolean", optional: true } // add payment status to every order
 			},
 			handler(ctx) {
 				let self = this;
@@ -467,7 +471,7 @@ module.exports = {
 						filter.sort = ctx.params.sort;
 					}
 
-					if ( filter.query && filter.query._id && filter.query._id.trim()!="" ) {
+					if ( filter?.query?._id && filter.query._id.trim()!="" ) {
 						filter.query._id = this.fixStringToId(filter.query._id);
 						filter.limit = 1;
 					}
@@ -475,13 +479,19 @@ module.exports = {
 					// send query
 					return ctx.call("orders.find", filter)
 						.then(found => {
-							if (found && found.constructor===Array) { // order found in datasource, return it
+							if (found?.constructor===Array) { // order found in datasource, return it
 								// remove html render of invoice if more than 1 result
-								if (found && found.length>1) {
-									for (let i=0; i<found.length; i++) {
-										if (found[i] && found[i].invoice && found[i].invoice.html) {
-											delete found[i].invoice.html;
+								if (found.length>1) {
+									for (const element of found) {
+										if (element?.invoice?.html) {
+											delete element.invoice.html;
 										}
+									}
+								}
+								// add payment status if requested
+								if (ctx.params.paymentStatus) {
+									for (const element of found) {
+										element.data['paymentStatus'] = self.getOrderPaymentStatus(element);
 									}
 								}
 								return ctx.call("orders.count", filter)
@@ -531,12 +541,70 @@ module.exports = {
 				data: { type: "object", optional: true }
 			},
 			handler(ctx) {
+				let self = this;
 				// get action to call - get its name from supplier & action params
 				const supplier = ctx.params.supplier.toLowerCase();
 				let action = ctx.params.action.charAt(0).toUpperCase();
 				action += ctx.params.action.slice(1);
-				const actionName = supplier+"Order"+action;
+				let actionName = supplier+"Order"+action;
 				const availablePaymentActions = SettingsMixin.getOriginalSiteSettings("orders")["availablePaymentActions"];
+				console.log("action: ", action, ctx.params.action);
+
+				if (action === 'Prepare') {
+					return this.adapter.findById(ctx.params.orderId)
+						.then(order => {
+							const orderPaymentStatus = self.getOrderPaymentStatus(order);
+							console.log("orderPaymentStatus: ", JSON.stringify(orderPaymentStatus, null, 2));
+							if ( ["prepared", "running", "completed"].includes(orderPaymentStatus.order.status) ) {
+								return { success: true, data: null, message: 'order_already_prepared' };
+							}
+							console.log("products status: ", orderPaymentStatus.products?.status, [null, "saved"].includes(orderPaymentStatus.products?.status));
+							console.log("subscriptions status: ", orderPaymentStatus.subscriptions?.status, 
+								(
+									["prepared", "running", "completed"].includes(orderPaymentStatus.products?.status) || 
+									orderPaymentStatus.products?.count === 0
+								) && 
+								["saved", "failed"].includes(orderPaymentStatus.subscriptions?.status)
+							);
+
+							if ([null, "saved"].includes(orderPaymentStatus.products?.status)) {
+								actionName = supplier+"OrderPaymentintent";
+							} else if ( 
+								// if products paid or not exist and subscriptions not exist or failed
+								(
+									["prepared", "running", "completed"].includes(orderPaymentStatus.products?.status) || 
+									orderPaymentStatus.products?.count === 0
+								) && 
+								["saved", "failed"].includes(orderPaymentStatus.subscriptions?.status)
+							) { // products are already prepared, but subscription(s) not
+								actionName = supplier+"OrderSubscription";
+							}
+
+							// using resources/settings/orders.js check if final payment action can be called
+							this.logger.info("order.payment - calling payment: ", actionName);
+							this.logger.info("order.payment - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
+							if ( availablePaymentActions && availablePaymentActions.indexOf(actionName)>-1 ) {
+								console.log("action & order & data: ", actionName, order, ctx.params.data);
+								// call action, that accepts already available order
+								return ctx.call("orders."+actionName, {
+									order,
+									data: ctx.params.data
+								})
+									.then(result => {
+										result["paymentStatus"] = orderPaymentStatus;
+										return result;
+									})
+									.catch(error => {
+										this.logger.error("order.payment - calling payment error: ", error);
+										return null;
+									});
+							}
+						})
+						.catch(error => {
+							this.logger.error("order.payment - find order error: ", error);
+							return this.Promise.reject(new MoleculerClientError("Item not found!", 404));
+						});
+				}
 
 				// using resources/settings/orders.js check if final payment action can be called
 				this.logger.info("order.payment - calling payment: ", actionName);
@@ -856,7 +924,87 @@ module.exports = {
 						return null;
 					});
 			}
-		} 
+		},
+
+
+		/**
+		 * Mark order as trial
+		 * 
+		 * Status trial means, all products that are not subscrition type
+		 * are paid, but one or more of subscription products are in trial.
+		 * 
+		 * @actions
+		 * 
+		 * @param {String} subscriptionId - id of subscription to mark as trial
+		 */
+		orderSubscriptionTrial: {
+			cache: false,
+			auth: "required",
+			params: {
+				subscriptionId: { type: "string" }
+			},
+			handler(ctx) {
+				let self = this;
+				let result = { success: false, message: null };
+				let subscriptionId = ctx.params.subscriptionId;
+				this.logger.info("order.orderSubscriptionTrial - subscriptionId: ", subscriptionId);
+
+				return this.adapter.find({
+					query: {
+						"subscription.id": subscriptionId
+					}
+				})
+					.then(found => {
+						if (found && found.length>0) {
+							let order = found[0];
+							order.status = "trial";
+							order.dates.dateChanged = new Date();
+							order.data.paymentData.lastResponseResult.push({
+								description: "Marked as Trial by Admin",
+								date: new Date(),
+								userId: ctx.meta.user._id.toString()
+							});
+							let orderId = order._id.toString();
+							delete order.id;
+							delete order._id;
+							const update = {
+								"$set": order
+							};
+							return self.adapter.updateById(orderId, update)
+								.then(doc => {
+									return this.transformDocuments(ctx, {}, doc);
+								})
+								.then(json => {
+									return this.entityChanged("updated", json, ctx)
+										.then(() => {
+											self.logger.info("order.orderSubscriptionTrial - trial success: ");
+											result.success = true;
+											return result;
+										})
+										.then((orderUpdated) => {
+											if (orderUpdated.success) {
+												return ctx.call('subscriptions.subscriptionTrial', { subscriptionId: subscriptionId } )
+											}
+										});
+								})
+								.catch(error => {
+									self.logger.error("order.orderSubscriptionTrial - update error: ", error);
+									result.message = "error: " + JSON.stringify(error);
+									return result;
+								});
+						} else {
+							self.logger.error("order.orderSubscriptionTrial - not found: ", subscriptionId);
+							result.message = "error: order not found";
+							return result;
+						}
+					})
+					.catch(error => {
+						self.logger.error("order.orderSubscriptionTrial - find error: ", error);
+						result.message = "error: " + JSON.stringify(error);
+						return result;
+					});
+			}
+		}
 
 
 	},
@@ -927,6 +1075,17 @@ module.exports = {
 					return { user: result, order };
 				});
 		},
+
+
+		/**
+		 * After order was paid, perform actions that help to deliver digital goods
+		 * @param {*} order 
+		 * @param {*} ctx 
+		 */
+		receivedPayment(order, ctx, paymentData) {
+			// replace this action with your own
+			this.logger.info("receivedPayment: ", order, ctx, paymentData);
+		}
 
 	},
 
