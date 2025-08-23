@@ -6,6 +6,7 @@ const url = require("url");
 const HelpersMixin = require("../../../mixins/helpers.mixin");
 const priceLevels = require("../../../mixins/price.levels.mixin");
 const DbService = require("../../../mixins/db.mixin");
+const PaymentModel = require("../models/payment.model");
 
 const fetch 		= require("cross-fetch");
 
@@ -453,7 +454,6 @@ module.exports = {
 				let stripeSignature = ctx.meta.headers["stripe-signature"];
 				this.logger.info("stripeWebhook ----- data :", typeof data, data);
 				this.logger.info("stripeWebhook ----- stripeSignature :", typeof stripeSignature, stripeSignature);
-				this.logger.info("stripeWebhook ----- process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET :", typeof process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET, process.env.STRIPE_WEBHOOK_ENDPOINT_SECRET);
 
 				let event;
 				try {
@@ -467,6 +467,7 @@ module.exports = {
 					return Promise.reject(new MoleculerClientError("Webhook error", 400, "", [{ field: "webhook event", message: "failed"}]));
 				}
 
+				this.logger.info("stripeWebhook ---WEBHOOK--- EVENT NAME from event.type :", event?.type);
 				this.logger.info("stripeWebhook #1:", JSON.stringify(event));
 				this.logger.info("path resolve:", pathResolve("./.temp/ipnlog.log"));
 				let log_file = fs.createWriteStream("./.temp/ipnlog.log", {flags : "a"});
@@ -489,73 +490,21 @@ module.exports = {
 					amount = event.data.object.lines.data[0].plan.amount; // price = amount / 100
 					subscriptionStripeId = event.data.object.lines.data[0].subscription; // price = amount / 100
 				}
-				
 
-				// Handle the event
-				switch (event.type) {
-
-				case "charge.succeeded": { // payment of PRODCUTS succeeded
-					this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
-					const data = event.data;
-					
-					this.logger.info("charge.succeeded DATA : ", data);
-					
-					// update order status according to payment data
-					self.updateOrderState(data, "stripe", "products");
-
-					break;
-				}
-
-				case "customer.subscription.updated": { // subscription updated - maybe bound to payment method
-					this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
-					const data = event.data;
-					
-					this.logger.info("charge.succeeded DATA : ", data);
-					
-					// update order status according to payment data
-					self.updateOrderState(data, "stripe", "subscription");
-
-					break;
-				}
-
-
-				case "charge.updated": {
-					this.logger.info("WEBHOOK : "+ event.type +" ---------- payment_intent.created");
-					const data = event.data;
-					this.logger.info("charge.updated DATA : ", data);
-					break;
-				}
-
-				case "customer.subscription.deleted": {
-					const paymentMethod = event.data.object;
-					this.logger.info("WEBHOOK : customer.subscription.deleted local ---------- Subscription has been deleted for Customer!", paymentMethod);
-					// get subscription object by its stripeId
-					if (paymentMethod && paymentMethod.id && paymentMethod.id.trim() != "") {
-						subscriptionStripeId = paymentMethod.id.trim();
-					}
-					this.logger.info("WEBHOOK customer.subscription.deleted - subscriptionStripeId:", subscriptionStripeId);
-					if (subscriptionStripeId && subscriptionStripeId!=null) {
-						ctx.call("subscriptions.find", {
-							query: {
-								"data.stripe.id": subscriptionStripeId
-							},
-							limit: 1
-						})
-							.then(subscriptions => {
-								this.logger.info("WEBHOOK customer.subscription.deleted - subscriptions found:", subscriptions);
-								if (subscriptions && subscriptions[0]) {
-									this.subscriptionCancelled(ctx, subscriptions[0]); // find in orders.service
+				if (event?.data?.object?.metadata?.orderId) {
+					let filter = { query: { _id: event.data.object.metadata.orderId }, limit: 1 };
+					ctx.call("orders.find", filter)
+						.then(foundOrder => {
+							if (foundOrder) {
+								foundOrder = foundOrder[0];
+								if (!foundOrder.id) {
+									foundOrder.id = foundOrder._id;
 								}
-							});
-					}
-					break;
+								this.handleStripeWebhookEvent(event, foundOrder);
+							}
+						});
 				}
-				// ... handle other event types
-				default: {
-					this.logger.info(`WEBHOOK : other event type ---------- Unhandled event type ${event.type}`, event);
-					break;
-				}
-				}
+				
 			}
 		},
 
@@ -567,7 +516,146 @@ module.exports = {
 
 	methods: {
 
-		
+		handleStripeWebhookEvent(event, order) {
+			this.logger.info("payments.stripe.mixin handleStripeWebhookEvent() #0:", event, order);
+			// Handle the event based on its type
+
+				const metadata = new Metadata({
+					type: data?.object?.metadata?.type,
+					orderId: data?.object?.metadata?.orderId,
+					subscriptionId: data?.object?.metadata?.subscriptionId,
+					productId: data?.object?.metadata?.productId
+				});
+
+				const paymentData = new PaymentModel({
+					id: data?.object?.id,
+					amount: data?.object?.amount,
+					currency: data?.object?.currency,
+					status: data?.object?.status,
+					paymentMethod: data?.object?.payment_method_details?.type,
+					createdAt: data?.object?.created,
+					metadata: metadata,
+					originalData: data
+				});
+			
+				// Handle the event
+				switch (event.type) {
+					case "charge.succeeded": { // payment of PRODCUTS succeeded
+						this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
+						const data = event.data;
+						
+						this.logger.info("charge.succeeded DATA : ", data, paymentData);
+
+						// update order status according to payment data
+						self.orderPaymentReceived(ctx, order, paymentData, "stripe", "products");
+
+						break;
+					}
+
+					case "customer.subscription.updated": { // subscription updated - maybe bound to payment method
+						this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
+						const data = event.data;
+						
+						this.logger.info("customer.subscription.updated DATA : ", data, paymentData);
+						
+						// update order status according to payment data
+						self.orderPaymentReceived(ctx, order, paymentData, "stripe", "subscription");
+
+						break;
+					}
+
+					case "invoice.payment_succeeded": {
+						// ----- SET DEFAULT PAYMENT METHOD for future payments
+						const paymentIntent = event.data.object;
+						this.logger.info("WEBHOOK invoice.payment_succeeded: "+ event.type +" ---------- PaymentIntent was successful!", paymentIntent);
+						// get subscription object by its stripeId
+						let subscriptionStripeId = null;
+						if (paymentIntent && paymentIntent.subscription && paymentIntent.subscription.trim() != "") {
+							subscriptionStripeId = paymentIntent.subscription.trim();
+						}
+						let paymentIntentId = null;
+						if (paymentIntent && paymentIntent.payment_intent && paymentIntent.payment_intent.trim() != "") {
+							paymentIntentId = paymentIntent.payment_intent.trim();
+						}
+						this.logger.info("WEBHOOK invoice.payment_succeeded - subscriptionStripeId:", subscriptionStripeId);
+						if (paymentIntentId && paymentIntentId!=null) {
+							stripe.paymentIntents.retrieve(paymentIntentId)
+								.then( paymentIntentResult => {
+									stripe.subscriptions.update( subscriptionStripeId, {
+										default_payment_method: paymentIntentResult.payment_method
+									})
+										.then(defaultPaymentMethodUpdate => {
+											this.logger.info("WEBHOOK invoice.payment_succeeded - defaultPaymentMethodUpdate:", defaultPaymentMethodUpdate);
+											// update subscription 
+											ctx.call("subscriptions.find", {
+												query: {
+													"data.stripe.id": subscriptionStripeId
+												},
+												limit: 1
+											})
+												.then(subscriptions => {
+													this.logger.info("WEBHOOK invoice.paid - subscriptions found:", subscriptions);
+													if (subscriptions && subscriptions[0]) {
+														if (subscriptions[0].data.order.data.paymentData.lastResponseResult) {
+															subscriptions[0].data.order.data.paymentData.lastResponseResult.push(paymentIntent);
+														}
+														this.subscriptionPaymentReceived(ctx, subscriptions[0]); // find in orders.service
+													}
+												});
+										})
+										.catch(error => {
+											this.logger.error("WEBHOOK invoice.payment_succeeded error: ", JSON.stringify(error));
+											return null;
+										});
+								})
+								.catch(error => {
+									this.logger.error("WEBHOOK invoice.payment_succeeded error: ", JSON.stringify(error));
+									return null;
+								});
+						}
+						break;
+					}
+
+
+					case "charge.updated": {
+						this.logger.info("WEBHOOK : "+ event.type +" ---------- charge.updated");
+						const data = event.data;
+						this.logger.info("charge.updated DATA : ", data);
+						break;
+					}
+
+					case "customer.subscription.deleted": {
+						const paymentMethod = event.data.object;
+						this.logger.info("WEBHOOK : customer.subscription.deleted local ---------- Subscription has been deleted for Customer!", paymentMethod);
+						// get subscription object by its stripeId
+						if (paymentMethod && paymentMethod.id && paymentMethod.id.trim() != "") {
+							subscriptionStripeId = paymentMethod.id.trim();
+						}
+						this.logger.info("WEBHOOK customer.subscription.deleted - subscriptionStripeId:", subscriptionStripeId);
+						if (subscriptionStripeId && subscriptionStripeId!=null) {
+							ctx.call("subscriptions.find", {
+								query: {
+									"data.stripe.id": subscriptionStripeId
+								},
+								limit: 1
+							})
+								.then(subscriptions => {
+									this.logger.info("WEBHOOK customer.subscription.deleted - subscriptions found:", subscriptions);
+									if (subscriptions && subscriptions[0]) {
+										this.subscriptionCancelled(ctx, subscriptions[0]); // find in orders.service
+									}
+								});
+						}
+						break;
+					}
+					// ... handle other event types
+					default: {
+						this.logger.info(`WEBHOOK : other event type ---------- Unhandled event type ${event.type}`, event);
+						break;
+					}
+				}
+		},
+
 		getOrderSubscriptions(ctx, related) {
 			let self = this;
 			let filter = { query: {}, limit: 1 };
@@ -1140,7 +1228,7 @@ module.exports = {
 		},
 
 
-		updateOrderStateStripe(order, data, action) {
+		updateOrderStatePaidStripe(order, data, action) {
 			this.logger.info("updateOrderStateStripe():", action, data?.object?.paid, data?.object?.paid === true);
 			const availableActions = ["products", "subscription"];
 			
@@ -1172,7 +1260,7 @@ module.exports = {
 							id.subscription == data.object.metadata?.subscriptionId
 						) {
 							// update subscription payment status
-							order.data.subscription.ids[i].supplier.status = data.object.status;
+							order.data.subscription.ids[i].supplier.status = this.mapStripeSubscriptionStatus(data.object.status);
 							// update subscription payment boolean
 							order.data.subscription.ids[i].supplier.paid = true;
 							// set subscription charge ID
@@ -1189,6 +1277,21 @@ module.exports = {
 			}
 			this.logger.info("updateOrderStateStripe() order.data.paymentData.supplier:", order.data.paymentData.supplier);
 			return order;
+		},
+
+
+		mapStripeSubscriptionStatus(status) {
+			const statusMap = {
+				"incomplete": "failed", 
+				"incomplete_expired": "failed", 
+				"trialing": "trialing", 
+				"active": "active", 
+				"past_due": "failed", 
+				"canceled": "canceled", 
+				"unpaid": "failed", 
+				"paused": "paused",
+			};
+			return statusMap[status] || status;
 		},
 
 

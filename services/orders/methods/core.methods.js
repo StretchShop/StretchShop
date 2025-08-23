@@ -14,6 +14,8 @@ const SettingsMixin = require("../../../mixins/settings.mixin");
 const PdfPrintMixin = require("../../../mixins/pdfprint.mixin");
 
 const { subscriptionPaymentStatuses } = require("../constants/subscription.constants");
+const { productStatuses } = require("../constants/product.constants");
+const { orderStatuses } = require("../constants/order.constants");
 const { update } = require("lodash");
 
 
@@ -1450,7 +1452,13 @@ module.exports = {
 		},
 
 
-		orderPaymentReceived(ctx, order, paymentType) {
+		orderPaymentReceived(ctx, order, paymentData, paymentProvider, action) {
+			// TODO - HERE check if order is fully paid or just partially
+			if (paymentProvider && paymentProvider !== 'admin') {
+				this.updateOrderPaymentState(ctx, order, paymentData, paymentProvider, action);
+				// UPDATE FOLLOWING ACCORDING TO NEW STRIPE STATE
+				// this.updatePaidOrderData(order, ctx.params.response);
+			}
 			// order should already have updated amount paid in 
 			return this.generateInvoice(order, ctx)
 				.then(invoice => {
@@ -1462,6 +1470,62 @@ module.exports = {
 							return orderUpdated.invoice;
 						});
 				});
+		},
+
+
+		updateOrderPaymentState(ctx, order, paymentData, paymentProvider, action) {
+			// get payment data and compare it with order data
+			// according to it, update order status
+			const expectedAmounts = {
+				"products": 0,
+				"subscriptions": {}
+			};
+			if (order?.items?.length > 0) {
+				order.items.forEach(item => {
+					if (item.type === "subscription") {
+						expectedAmounts.subscriptions[item.id] = {
+							amount: item.price,
+							status: order?.data
+						};
+					} else {
+						expectedAmounts.products += item.price;
+					}
+				});
+			}
+
+			// ---- STRIPE SPECIFIC
+			// by default we consider it's payment for "products"
+			// that means all products in the order except subscriptions
+			if (action === "subscription") {
+				// get subscription price and compare it to order price
+				if (expectedAmounts.subscriptions[item.id].amount === paymentData.amount) {
+					this.updateOrderStatePaidStripe(order, paymentData, action);
+				} else {
+					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
+						provider: paymentProvider,
+						expected: expectedAmounts.subscriptions[item.id], 
+						actual: paymentData.amount,
+						order: order._id
+					});
+				}
+			} else {
+				// get product price and compare it to order price
+				// if price fits, update order status
+				if (expectedAmounts.products === paymentData.amount) {
+					this.updateOrderStatePaidStripe(order, paymentData, action);
+				} else {
+					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
+						provider: paymentProvider,
+						expected: expectedAmounts.products, 
+						actual: paymentData.amount,
+						order: order._id
+					});
+				}
+			}
+
+			
+
+			return order;
 		},
 
 
@@ -1525,12 +1589,12 @@ module.exports = {
 
 			// get status of products
 			let productsStatus = null; // saved as starting s
-			const id = order?.data?.paymentData?.paymentRequestId || order?.data?.paymentData?.supplier?.id;
-			console.log("id ------- >: ", id);
-		  if (id && id.toString().trim() !== "" && order?.items?.length) {
+			const productPaymentId = order?.data?.paymentData?.paymentRequestId || order?.data?.paymentData?.supplier?.id;
+			console.log("id ------- >: ", productPaymentId);
+		  if (productPaymentId && productPaymentId.toString().trim() !== "" && order?.items?.length) {
 				productsStatus = 0;
 				if (order?.data?.paymentData?.supplier?.status === "paid" && order?.data?.paymentData?.supplier?.paid) {
-					productsStatus = 1;
+					productsStatus = 2;
 				}
 			}
 
@@ -1556,10 +1620,17 @@ module.exports = {
 							if (!nextSubscriptionToPay) {
 								nextSubscriptionToPay = idItem;
 							}
-						} else if (idItem.status === "active") {
+						} else if (idItem.status === "trialing") {
 							thisStatus = 2;
-						} else if (idItem.status === "completed") {
+						} else if ( idItem.status === "active" ) {
 							thisStatus = 3;
+						} else if (idItem.status === "completed") {
+							thisStatus = 4;
+						} else if (
+							idItem.status.trim() !== "" &&
+							["paused", "canceled", "failed"].includes(idItem.status)
+						) {
+							thisStatus = 4;
 						} else { // is only in stretchshop DB
 							countRemainingSubscriptions2prepare++;
 							countRemainingSubscriptions2pay++;
@@ -1576,22 +1647,41 @@ module.exports = {
 				subscriptionsStatus = Math.min(...statuses);
 			}
 
-			// find worst status
-			orderPaymentStatus = Math.min(productsStatus, subscriptionsStatus);
+			// calculate status for the whole order
+			let orderTempStatus = 0;
+			if (productPaymentId && !order?.data?.subscription?.ids) { // only products
+				orderTempStatus = productsStatus || 0;
+			} else if (order?.data?.subscription?.ids.length > 0) { // only subscriptions
+				orderTempStatus = subscriptionsStatus || 0;
+			} else { // get minimum of both, if both are null, set to 0
+				orderTempStatus = Math.min(productsStatus, subscriptionsStatus) || 0;
+			}
+			// set status of order
+			if (orderTempStatus >=0 && orderTempStatus <= 1) {
+				orderPaymentStatus = orderTempStatus; // saved or prepared
+			} else if (orderTempStatus >= 2 && orderTempStatus <= 3) {
+				orderPaymentStatus = 2; // paid
+			} else if (orderTempStatus === 4) {
+				orderPaymentStatus = 3; // finished
+			} else if (productsStatus === 5 || [5, 6].includes(subscriptionsStatus)) {
+				orderPaymentStatus = 4; // stopped
+			} else {
+				orderPaymentStatus = 5; // failed
+			}
 
 			return {
 				order: {
 					index: orderPaymentStatus,
-					status: paymentStatuses[orderPaymentStatus] || null
+					status: orderStatuses[orderPaymentStatus] || null
 				},
 				products: {
 					count: order?.items?.filter((i) => i.type !== "subscription").length || 0,
 					index: productsStatus,
-					status: paymentStatuses[productsStatus] || null
+					status: productStatuses[productsStatus] || null
 				},
 				subscriptions: {
 					index: subscriptionsStatus,
-					status: paymentStatuses[subscriptionsStatus] || null,
+					status: subscriptionPaymentStatuses[subscriptionsStatus] || null,
 					counters: {
 						total: order?.data?.subscription?.ids?.length,
 						remaining: {
@@ -1612,18 +1702,20 @@ module.exports = {
 		/**
 		 * Update order state according to payment provider and received data
 		 * 
+		 * @param {Object} ctx - context
 		 * @param {Object} order
 		 * @param {Object} updateData
 		 * @param {string} provider
 		 */
-		updateOrderState(updateData, provider, action) {
+		updateOrderState(ctx, updateData, provider, action) {
+			let self = this;
 			this.logger.info("updateOrderState #1: ", updateData, provider, action);
 
 			if (updateData && provider) {
 				this.logger.info("updateOrderState #2: ", provider, provider === "stripe");
 			
 				const filter = { query: {
-					_id: self.fixStringToId(data.object.metadata.orderId),
+					_id: self.fixStringToId(updateData.object.metadata.orderId),
 				}, limit: 1 };
 
 				ctx.call("orders.find", filter)
@@ -1636,20 +1728,20 @@ module.exports = {
 							this.logger.info("WEBHOOK charge.succeeded - order foundOrder:", foundOrder);
 							// update order with payment data
 							if (foundOrder.data?.paymentData?.lastResponseResult) {
-								foundOrder.data.paymentData.lastResponseResult.push(data);
+								foundOrder.data.paymentData.lastResponseResult.push(updateData);
 							} else {
 								if (!foundOrder.data.paymentData) {
 									foundOrder.data.paymentData = {
 										lastResponseResult: []
 									};
 								}
-								foundOrder.data.paymentData.lastResponseResult = [data];
+								foundOrder.data.paymentData.lastResponseResult = [updateData];
 							}
 
 							// update provider specific information
 							if (provider === "stripe") {
 								this.logger.info("updateOrderState #3 Stripe");
-								foundOrder = this.updateOrderStateStripe(order, updateData, action);
+								foundOrder = this.updateOrderStatePaidStripe(foundOrder, updateData, action);
 							}
 							
 							// save updated order

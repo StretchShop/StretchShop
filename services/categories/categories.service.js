@@ -176,6 +176,7 @@ module.exports = {
 
 				query = this.filterOnlyActiveCategories(query, ctx);
 				filter.query = query;
+				console.log("categories.findActive filter: ", filter);
 
 				return ctx.call("categories.find", filter)
 					.then(categories => {
