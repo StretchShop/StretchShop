@@ -133,7 +133,7 @@ module.exports = {
 				});
 
 				// finish setting price levels
-				if ( newPriceLevels === {} ) {
+				if ( Object.keys(newPriceLevels).length === 0 ) {
 					// if no price levels set, log an error
 					this.logger.error("No priceLevels for product.id: " + product.id);
 				} else {

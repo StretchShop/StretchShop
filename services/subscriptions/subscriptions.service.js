@@ -242,7 +242,7 @@ module.exports = {
 						subscription.data.product = subscriptions[i];
 						subscription.data.order = order;
 						// fill in data from product - period & duration & cycles
-						if (subscriptions[i].data && subscriptions[i].data.subscription) {
+						if (subscriptions[i]?.data?.subscription) {
 							if (subscriptions[i].data.subscription.period) {
 								subscription.period = subscriptions[i].data.subscription.period;
 							}

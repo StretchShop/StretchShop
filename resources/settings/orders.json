@@ -1,10 +1,10 @@
 {
   "deliveryMethods": [
     {
-      "codename": "personaly",
+      "codename": "personally",
       "type": "physical",
       "name": {
-        "en": "Personaly on Branch",
+        "en": "Personally on Branch",
         "sk": "Osobne na Pobočke"
       },
       "prices": [

@@ -214,7 +214,7 @@ module.exports = {
 				result.taxDecimal = product.tax;
 			}
 			// count tax prices using taxDecimal
-			if (result.taxDecimal>0 && product && product.price) {
+			if (result.taxDecimal>0 && product && product.price >= 0) {
 				result.tax = result.taxDecimal * product.price;
 				result.taxType = taxSettings.taxType;
 				if (taxSettings.taxType == "IT") {

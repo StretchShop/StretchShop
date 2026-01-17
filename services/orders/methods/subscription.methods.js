@@ -325,7 +325,7 @@ module.exports = {
 			// in the begining it's same as dateStart, later it's updated
 			let dateToStart = subscription.dates.dateOrderNext;
 			if (!dateToStart || dateToStart===null) {
-				subscription.dates.dateStart;
+				dateToStart = subscription.dates.dateStart;
 			}
 			// update date of subscription end only if it is not set yet
 			let withDateEnd = true;
@@ -381,7 +381,7 @@ module.exports = {
 					
 					delete subscription._id;
 
-					if (resultDates && resultDates.dateOrderNext && resultDates.dateEnd) {
+					if (resultDates?.dateOrderNext && resultDates.dateEnd) {
 					// update subscription
 						return ctx.call("subscriptions.save", {
 							entity: subscription

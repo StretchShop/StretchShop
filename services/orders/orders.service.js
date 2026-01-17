@@ -548,7 +548,6 @@ module.exports = {
 				action += ctx.params.action.slice(1);
 				let actionName = supplier+"Order"+action;
 				const availablePaymentActions = SettingsMixin.getOriginalSiteSettings("orders")["availablePaymentActions"];
-				console.log("action: ", action, ctx.params.action);
 
 				if (action === 'Prepare') {
 					return this.adapter.findById(ctx.params.orderId)
@@ -558,21 +557,25 @@ module.exports = {
 							if ( ["prepared", "running", "completed"].includes(orderPaymentStatus.order.status) ) {
 								return { success: true, data: null, message: 'order_already_prepared' };
 							}
-							console.log("products status: ", orderPaymentStatus.products?.status, [null, "saved"].includes(orderPaymentStatus.products?.status));
-							console.log("subscriptions status: ", orderPaymentStatus.subscriptions?.status, 
+							this.logger.info("products status: ", orderPaymentStatus.products?.status, [null, "saved"].includes(orderPaymentStatus.products?.status));
+							this.logger.info("subscriptions status: ", orderPaymentStatus.subscriptions?.status, 
 								(
-									["prepared", "running", "completed"].includes(orderPaymentStatus.products?.status) || 
+									["paid", "shipped", "delivered"].includes(orderPaymentStatus.products?.status) || 
 									orderPaymentStatus.products?.count === 0
 								) && 
 								["saved", "failed"].includes(orderPaymentStatus.subscriptions?.status)
 							);
 
-							if ([null, "saved"].includes(orderPaymentStatus.products?.status)) {
+							// null if order has products already prepared
+							if (
+								orderPaymentStatus.products?.count > 0 &&
+								[null, "saved"].includes(orderPaymentStatus.products?.status)
+							) {
 								actionName = supplier+"OrderPaymentintent";
 							} else if ( 
 								// if products paid or not exist and subscriptions not exist or failed
 								(
-									["prepared", "running", "completed"].includes(orderPaymentStatus.products?.status) || 
+									["paid", "shipped", "delivered"].includes(orderPaymentStatus.products?.status) || 
 									orderPaymentStatus.products?.count === 0
 								) && 
 								["saved", "failed"].includes(orderPaymentStatus.subscriptions?.status)
@@ -581,10 +584,10 @@ module.exports = {
 							}
 
 							// using resources/settings/orders.js check if final payment action can be called
-							this.logger.info("order.payment - calling payment: ", actionName);
-							this.logger.info("order.payment - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
+							this.logger.info("order.payment #1 - calling payment: ", actionName);
+							this.logger.info("order.payment #1 - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
 							if ( availablePaymentActions && availablePaymentActions.indexOf(actionName)>-1 ) {
-								console.log("action & order & data: ", actionName, order, ctx.params.data);
+								this.logger.info("action & order & data: ", actionName, order, ctx.params.data);
 								// call action, that accepts already available order
 								return ctx.call("orders."+actionName, {
 									order,
@@ -607,8 +610,8 @@ module.exports = {
 				}
 
 				// using resources/settings/orders.js check if final payment action can be called
-				this.logger.info("order.payment - calling payment: ", actionName);
-				this.logger.info("order.payment - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
+				this.logger.info("order.payment #2 - calling payment: ", actionName);
+				this.logger.info("order.payment #2 - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
 				if ( availablePaymentActions && availablePaymentActions.indexOf(actionName)>-1 ) {
 					return ctx.call("orders."+actionName, {
 						orderId: ctx.params.orderId,
@@ -780,6 +783,7 @@ module.exports = {
 				// only admin can generate invoices
 				if ( ctx.meta.user.type=="admin" ) {
 					if ( ctx.params.orderId.trim() != "" ) {
+						this.logger.info("orders.paid - marking order as paid, id: ", ctx.params.orderId);
 						return this.adapter.findById(ctx.params.orderId)
 							.then(order => {
 								// specific for admin

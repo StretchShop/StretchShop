@@ -18,6 +18,7 @@ const { productStatuses } = require("../constants/product.constants");
 const { orderStatuses } = require("../constants/order.constants");
 const { update } = require("lodash");
 
+const calcExcludedTypes = ["subscription"];
 
 module.exports = {
 
@@ -594,31 +595,41 @@ module.exports = {
 		/**
 		 * Check basic options of order - delivery and payment types
 		 * Get prices of delivery and payment from settings
+		 * This is NOT calculated for calcExcludedTypes, e.g. subscriptions - they must have delivery and payment as part of their price
 		 */
 		checkOrderData() {
 			this.settings.orderErrors.orderErrors = [];
 			let self = this;
 			const businessSettings = SettingsMixin.getSiteSettings('business');
 
-			// get order item types and subtypes - itemsTypology
-			let itemsTypology = { types: [], subtypes: [] };
+			// get order item types and subtypes - orderCalcItemsTypology
+			let orderCalcItemsTypology = { types: [], subtypes: [] };
 			this.settings.orderTemp.items.some(function(product){
 				// check if type not in array
-				if ( product && product.type && itemsTypology.types.indexOf(product.type)===-1 ) {
-					itemsTypology.types.push(product.type);
-				}
-				// check if subtype not in array
-				if ( product && product.subtype && itemsTypology.subtypes.indexOf(product.subtype)===-1 ) {
-					itemsTypology.subtypes.push(product.subtype);
+				if ( product?.type && !calcExcludedTypes.includes(product.type) && orderCalcItemsTypology.types.indexOf(product.type)===-1 ) {
+					orderCalcItemsTypology.types.push(product.type);
+					// check if subtype not in array
+					if ( product?.subtype && orderCalcItemsTypology.subtypes.indexOf(product.subtype)===-1 ) {
+						orderCalcItemsTypology.subtypes.push(product.subtype);
+					}
 				}
 			});
-			
+			Object.keys(this.settings.orderTemp.data.deliveryData?.codename || {}).forEach(function(key){
+				if ( !orderCalcItemsTypology.subtypes.includes(key) ) {
+					delete self.settings.orderTemp.data.deliveryData.codename[key];
+				}
+			});
+
+			const orderTypology = self.getOrderTypology(self.settings.orderTemp);
+			self.logger.info("------------------ checkOrderData() - orderTypology ------------------", orderTypology);
+			self.logger.info("------------------ checkOrderData() - orderCalcItemsTypology ------------------", orderCalcItemsTypology);
+
 			/**
 			 * Check received delivery data:
 			 * 1. loop received delivery types (digital, physical)
 			 * 2. check if delivery type is in shop settings
 			 * 3. get price for that type
-			 * 4. if some type is missing in itemsTypology.subtypes, return false
+			 * 4. if some type is missing in orderCalcItemsTypology.subtypes, return false
 			 */
 			// check if delivery type is set
 			if ( this.settings.orderTemp.data.deliveryData && this.settings.orderTemp.data.deliveryData.codename ) {
@@ -632,7 +643,7 @@ module.exports = {
 				// go through delivery types of order (like physical, digital, ...)
 				Object.keys(deliveryType).forEach(function(typeKey){
 					// check if delivery type has values
-					if (deliveryType[typeKey]!=null) {
+					if (deliveryType[typeKey] !== null) {
 						// loop delivery types of this shop
 						self.settings.order.deliveryMethods.some(function(shopDeliveryType){
 							if ( !deliveryType[typeKey].value ) {
@@ -649,11 +660,13 @@ module.exports = {
 								self.settings.orderTemp.prices.priceItems = 0;
 								// get delivery price specific to type of product (physical, digital, ...)
 								// first count total prices for that specific type of items, to get valid price
-								self.countOrderPrices("items", shopDeliveryType.type); // shopDeliveryType.codename = digital, physical, ...
-								if ( self.settings.orderTemp.prices.priceItems>0 ) {
+								console.log("------------------ checkOrderData() - deliveryType/deliveryMethods LOOP - priceItemsCheck ------------------");
+								const priceItemsCheck = self.countOrderPrices("items", shopDeliveryType.type, self.settings.orderTemp); // shopDeliveryType.codename = digital, physical, ...
+								// then get delivery price for that type and total items price
+								if ( priceItemsCheck?.prices?.priceItems > 0 ) {
 									// get delivery price for that specific type and items total
 									shopDeliveryType.prices.some(function(deliveryPrice){
-										if ( self.settings.orderTemp.prices.priceItems>=deliveryPrice.range.from && self.settings.orderTemp.prices.priceItems<deliveryPrice.range.to ) {
+										if ( priceItemsCheck?.prices?.priceItems >= deliveryPrice.range.from && priceItemsCheck?.prices?.priceItems < deliveryPrice.range.to ) {
 											// have match - set the delivery price
 											self.settings.orderTemp.prices.priceDelivery += deliveryPrice.price;
 											let deliveryProduct = {
@@ -685,14 +698,16 @@ module.exports = {
 						});
 					}
 				});
+				console.log("------------------ checkOrderData() - BEFORE 4 ------------------");
 				self.countOrderPrices("items");
 
+				console.log("processedDeliveryMethodCodenames: ", processedDeliveryMethodCodenames);
 				// 4. check if no received delivery method is missing for ordered items
 				if (deliveryMethodExists && processedDeliveryMethodCodenames) {
 					if ( processedDeliveryMethodCodenames.length>0 ) {
 						// loop typology to see if nothing is missing
 						let typeMissing = false;
-						itemsTypology.subtypes.some(function(type){
+						orderCalcItemsTypology.subtypes.some(function(type){
 							if ( processedDeliveryMethodCodenames.indexOf(type)==-1 ) {
 								typeMissing = true;
 								return false;
@@ -710,7 +725,7 @@ module.exports = {
 					}
 				}
 
-				if (!deliveryMethodExists) {
+				if (!deliveryMethodExists && !orderTypology.types.includes("subscription")) {
 					this.logger.error("order.checkOrderData() - delivery type not exist");
 					this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
 				}
@@ -733,7 +748,7 @@ module.exports = {
 						selectedPaymentMethod = paymentType;
 						// need to filter language later
 						self.settings.orderTemp.data.paymentData.name = shopPaymentType.name;
-						self.logger.info("orders.checkOrderData() - shopPaymentType: ", shopPaymentType);
+						self.logger.info("orders.checkOrderData() - shopPaymentType ITEMS LAST: ", shopPaymentType);
 						//--
 						if ( self.settings.orderTemp.prices.priceItems <= 0 ) {
 							self.countOrderPrices("items");
@@ -789,9 +804,11 @@ module.exports = {
 		 * Count cart items total price and order total prices
 		 */
 		countOrderPrices(calculate, specification, order) {
-			let calcTypes = ["all", "items", "totals"];
+			this.logger.warn("orders.countOrderPrices() - PARAMS: ", calculate, specification, typeof order !== undefined);
+
+			const calcTypes = ["all", "items", "totals"];
 			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
-			specification = typeof specification !== "undefined" ?  specification : null;
+			specification = typeof specification === "undefined" ?  null : specification;
 
 			const businessSettings = SettingsMixin.getSiteSettings('business');
 			
@@ -807,19 +824,41 @@ module.exports = {
 
 			// prices of items
 			if ( calculate=="all" || calculate=="items" ) {
-				order.prices.priceItems = 0;
-				order.prices.priceItemsNoTax = 0;
-				order.prices.priceTaxTotal = 0;
+				if ( !order.prices ) {
+					order.prices = {};
+				}
+				order.prices = {
+					...order.prices,
+					...{
+						priceItems: 0,
+						priceItemsNoTax: 0,
+						priceItemsTax: 0,
+						priceTotal: 0,
+						priceTotalNoTax: 0,
+						priceTaxTotal: 0,
+						priceDelivery: 0,
+						priceDeliveryTaxData: null,
+						pricePayment: 0,
+						pricePaymentTaxData: null,
+						priceSubsFirstPayTotal: 0
+					}
+				};
 				order.items
 					.filter(function(item){
 						// if specification is set items are filtered for calculation by subtype - eg. only digital items
-						if (specification && specification!=null) {
-							if ( item.subtype==specification ) {
-								return true;
-							}
-							return false;
+						if (specification && specification !== null) {
+							self.logger.error("orders.countOrderPrices() - specification set but empty: ", specification);
+							return [item.type, item.subtype].includes(specification);
+						} else { // otherwise all items except subscriptions, but first count subscriptions separately
+							let subsFirstPriceTotal = 0;
+							order.items.filter(function(subItem){
+								if ( [subItem.type, subItem.subtype].some((i) => i==="subscription") ) {
+									subsFirstPriceTotal += subItem.price;
+								}
+							});
+							order.prices.priceSubsFirstPayTotal = self.formatPrice(subsFirstPriceTotal);
+							return ![item.type, item.subtype].some((i) => calcExcludedTypes.includes(i));
 						}
-						return true;
 					})
 					.forEach(function(value){
 						if ( value.taxData ) {
@@ -870,7 +909,9 @@ module.exports = {
 				// price total without tax
 				order.prices.priceTotalNoTax = order.prices.priceItemsNoTax +
 					priceDeliveryNoTax + pricePaymentNoTax;
+				console.log(" priceTotalNoTax: ", order.prices.priceTotalNoTax, order.prices.priceItemsNoTax, priceDeliveryNoTax, pricePaymentNoTax);
 				order.prices.priceTotalNoTax = this.formatPrice(order.prices.priceTotalNoTax);
+				console.log(" priceTaxTotal Formated: ", order.prices.priceTaxTotal);
 				// total with tax, delivery and payment
 				// total for IT tax
 				if ( businessSettings.taxData.global.taxType==="IT" ) {
@@ -878,14 +919,18 @@ module.exports = {
 						order.prices.priceDelivery +
 						order.prices.pricePayment + 
 						order.prices.priceTaxTotal;
+					console.log(" priceTotal IT: ", order.prices.priceTotal, order.prices.priceItems, order.prices.priceDelivery, order.prices.pricePayment, order.prices.priceTaxTotal);
 				} else {
 					// total for VAT tax
 					order.prices.priceTotal = order.prices.priceItems +
 						order.prices.priceDelivery +
 						order.prices.pricePayment;
 				}
+				console.log(" priceTotal: ", order.prices.priceTotal, order.prices.priceItems, order.prices.priceDelivery, order.prices.pricePayment);
 				order.prices.priceTotal = this.formatPrice(order.prices.priceTotal);
+				console.log(" priceTotal Formated: ", order.prices.priceTotal);
 			}
+			this.logger.warn("orders.countOrderPrices() - order.prices: ", calculate, specification, typeof order !== undefined, order.prices);
 
 			if (orderFromParam) {
 				return order;
@@ -1126,7 +1171,7 @@ module.exports = {
 						order.items && order.items.length>0 ) {
 						let hasSubscriptions = false;
 						order.items.some(item => {
-							if (item.type=="subscription") {
+							if (item.type === "subscription") {
 								hasSubscriptions = true;
 							}
 						});
@@ -1256,14 +1301,17 @@ module.exports = {
 					})
 					.then( (html) => {
 						// compile html from template and data
-						let template = handlebars.compile(html);
+						const template = handlebars.compile(html);
 						try {
 							template();
 						}	catch (error) {
 							self.logger.error("orders.generateInvoice() - handlebars ERROR:", error);
 						}
+						const orderFixed = { ...order };
+						orderFixed.items = orderFixed.items.filter(item => item.type !== "subscription");
+						orderFixed.prices.priceTotalToPay = orderFixed.prices.priceTotal - (orderFixed.data.paymentData.paidAmountTotal ?? 0);
 						let data = {
-							order: order, 
+							order: orderFixed,
 							business: SettingsMixin.getSiteSettings('business')
 						};
 						data = this.prepareDataForTemplate(data);
@@ -1284,7 +1332,7 @@ module.exports = {
 					})
 					.then( (html) => {
 						// generate pdf
-						self.logger.info("orders.generateInvoice() PDF - html:", html);
+						self.logger.info("orders.generateInvoice() PDF - HTML");
 						let publicDir = process.env.PATH_PUBLIC || "./public";
 						let dir = publicDir +"/"+ process.env.ASSETS_PATH +"/invoices/"+ order.user.id;
 						dir = dir.replace(/\/\//g, "/");
@@ -1446,7 +1494,6 @@ module.exports = {
 					});
 				}
 			}
-			
 
 			return result;
 		},
@@ -1455,9 +1502,13 @@ module.exports = {
 		orderPaymentReceived(ctx, order, paymentData, paymentProvider, action) {
 			// TODO - HERE check if order is fully paid or just partially
 			if (paymentProvider && paymentProvider !== 'admin') {
-				this.updateOrderPaymentState(ctx, order, paymentData, paymentProvider, action);
-				// UPDATE FOLLOWING ACCORDING TO NEW STRIPE STATE
-				// this.updatePaidOrderData(order, ctx.params.response);
+				this.logger.info("orders.orderPaymentReceived() - payment received:", { order: order._id, provider: paymentProvider, action: action, paymentData: paymentData });
+				const updatedOrder = this.updateOrderPaymentState(ctx, order, paymentData, paymentProvider, action);
+				// get order payment status after payment update
+				const status = this.getOrderPaymentStatus(updatedOrder);
+				if (status.order.status == "paid") {
+					this.updatePaidOrderData(updatedOrder, paymentData);
+				}
 			}
 			// order should already have updated amount paid in 
 			return this.generateInvoice(order, ctx)
@@ -1482,8 +1533,9 @@ module.exports = {
 			};
 			if (order?.items?.length > 0) {
 				order.items.forEach(item => {
+					const itemId = item._id ? item._id : item.id;
 					if (item.type === "subscription") {
-						expectedAmounts.subscriptions[item.id] = {
+						expectedAmounts.subscriptions[itemId] = {
 							amount: item.price,
 							status: order?.data
 						};
@@ -1492,18 +1544,24 @@ module.exports = {
 					}
 				});
 			}
+			this.logger.info("orders.updateOrderPaymentState() - expectedAmounts:", expectedAmounts);
 
 			// ---- STRIPE SPECIFIC
 			// by default we consider it's payment for "products"
 			// that means all products in the order except subscriptions
 			if (action === "subscription") {
 				// get subscription price and compare it to order price
-				if (expectedAmounts.subscriptions[item.id].amount === paymentData.amount) {
+				const expectedAmount = expectedAmounts.subscriptions[paymentData?.metadata?.productId]?.amount;
+				this.logger.info("orders.updateOrderPaymentState() - paymentData.amount:", paymentData.amount, " expectedAmount:", expectedAmount);
+				if (
+					((expectedAmount * 10) < paymentData.amount && paymentData.amount/100 >= expectedAmount) || 
+					((expectedAmount * 10) > paymentData.amount && paymentData.amount >= expectedAmount) // in case stripe sends amount without decimals
+				) {
 					this.updateOrderStatePaidStripe(order, paymentData, action);
 				} else {
 					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
 						provider: paymentProvider,
-						expected: expectedAmounts.subscriptions[item.id], 
+						expected: expectedAmounts.subscriptions[paymentData?.metadata?.subscriptionId], 
 						actual: paymentData.amount,
 						order: order._id
 					});
@@ -1511,7 +1569,9 @@ module.exports = {
 			} else {
 				// get product price and compare it to order price
 				// if price fits, update order status
-				if (expectedAmounts.products === paymentData.amount) {
+				if ( 
+					((expectedAmounts.products * 10) < paymentData.amount && paymentData.amount/100 >= expectedAmounts.products) ||  
+					((expectedAmounts.products * 10) > paymentData.amount && paymentData.amount >= expectedAmounts.products) ) { // in case stripe sends amount without decimals
 					this.updateOrderStatePaidStripe(order, paymentData, action);
 				} else {
 					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
@@ -1522,8 +1582,6 @@ module.exports = {
 					});
 				}
 			}
-
-			
 
 			return order;
 		},
@@ -1536,16 +1594,16 @@ module.exports = {
 		 * 
 		 * @returns {Object} order updated
 		 */
-		updatePaidOrderData(order, response) {
+		updatePaidOrderData(order, paymentData) {
 			order.dates.datePaid = new Date();
 			order.status = "paid";
-			order.data.paymentData.lastStatus = response.state;
+			order.data.paymentData.lastStatus = paymentData.status;
 			order.data.paymentData.lastDate = new Date();
 			order.data.paymentData.paidAmountTotal = 0;
 			if ( !order.data.paymentData.lastResponseResult ) {
 				order.data.paymentData.lastResponseResult = [];
 			}
-			order.data.paymentData.lastResponseResult.push(response);
+			order.data.paymentData.lastResponseResult.push(paymentData);
 			// calculate total amount paid
 			for (const element of order.data.paymentData.lastResponseResult) {
 				if (element.state && 
@@ -1588,7 +1646,7 @@ module.exports = {
 			let orderPaymentStatus = 0; // 0: saved -> 1: prepared -> 2: running
 
 			// get status of products
-			let productsStatus = null; // saved as starting s
+			let productsStatus = null; // saved as starting status => null means no products
 			const productPaymentId = order?.data?.paymentData?.paymentRequestId || order?.data?.paymentData?.supplier?.id;
 			console.log("id ------- >: ", productPaymentId);
 		  if (productPaymentId && productPaymentId.toString().trim() !== "" && order?.items?.length) {
@@ -1609,9 +1667,10 @@ module.exports = {
 				// find worst subscription state
 				const statuses = [];
 			  for (const idItem of order.data.subscription.ids) {
-					if (idItem.subscription && idItem.subscription.toString().trim() !== "") {
+					if (idItem?.subscription && idItem.subscription.toString().trim() !== "") {
 						let thisStatus = 0;
-						if (idItem.status === "prepared") {
+						const supplierStatus = idItem.supplier?.status || idItem.status;
+						if (supplierStatus === "prepared") {
 							thisStatus = 1;
 							countRemainingSubscriptions2pay++;
 							if (!nextSubscription) {
@@ -1620,15 +1679,15 @@ module.exports = {
 							if (!nextSubscriptionToPay) {
 								nextSubscriptionToPay = idItem;
 							}
-						} else if (idItem.status === "trialing") {
+						} else if (supplierStatus === "trialing") {
 							thisStatus = 2;
-						} else if ( idItem.status === "active" ) {
+						} else if ( supplierStatus === "active" ) {
 							thisStatus = 3;
-						} else if (idItem.status === "completed") {
+						} else if (supplierStatus === "completed") {
 							thisStatus = 4;
 						} else if (
-							idItem.status.trim() !== "" &&
-							["paused", "canceled", "failed"].includes(idItem.status)
+							supplierStatus.trim() !== "" &&
+							["paused", "canceled", "failed"].includes(supplierStatus)
 						) {
 							thisStatus = 4;
 						} else { // is only in stretchshop DB
@@ -1677,7 +1736,7 @@ module.exports = {
 				products: {
 					count: order?.items?.filter((i) => i.type !== "subscription").length || 0,
 					index: productsStatus,
-					status: productStatuses[productsStatus] || null
+					status: productStatuses[productsStatus] || (order?.items?.length ? "saved" : null)
 				},
 				subscriptions: {
 					index: subscriptionsStatus,
