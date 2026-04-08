@@ -223,8 +223,7 @@ module.exports = {
 				this.logger.info("order.progress - ctx.params.orderParams: ", ctx.params.orderParams);
 				// remove stripeKey if forgotten
 				if (
-					ctx.params.orderParams && ctx.params.orderParams.settings && 
-					ctx.params.orderParams.settings.stripeKey
+					ctx.params.orderParams?.settings?.stripeKey
 				) {
 					delete ctx.params.orderParams.settings.stripeKey;
 				}
@@ -485,6 +484,8 @@ module.exports = {
 									for (const element of found) {
 										if (element?.invoice?.html) {
 											delete element.invoice.html;
+											delete element.data;
+											delete element.user.data.stripe;
 										}
 									}
 								}

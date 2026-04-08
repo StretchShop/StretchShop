@@ -341,7 +341,21 @@ module.exports = {
 								if (related.orderPaymentStatus?.subscriptions?.next?.use?.status === "saved") {
 									related.subscription = orderSubscriptions.find(sub => sub._id == related.orderPaymentStatus?.subscriptions?.next?.use?.subscription);
 									this.logger.info("payments.stripe.mixin stripeOrderSubscribtion #3.2 - CREATING");
-									return self.prepareStripeSubscription(ctx, related);
+									if (related.subscription) {
+										return self.prepareStripeSubscription(ctx, related);
+									} else {
+										this.logger.error("payments.stripe.mixin stripeOrderSubscribtion #3.2 - subscription to prepare not found:", related.orderPaymentStatus?.subscriptions?.next?.use?.subscription, orderSubscriptions);
+										return {
+											result: {
+												clientSecret: null,
+												existing: false,
+												supplier: null,
+												finished: true,
+												message: "Subscription to prepare not found"
+											},
+											success: false,
+										};
+									}
 								}
 							}
 							
@@ -358,7 +372,11 @@ module.exports = {
 							this.logger.info("payments.stripe.mixin stripeOrderSubscribtion related.result:", related?.result);
 							if (related?.result) {
 								this.logger.info("payments.stripe.mixin stripeOrderSubscribtion RESULT IN");
-								result.success = true;
+								if (related?.success !== undefined && related.success === false) {
+									result.success = false;
+								} else {
+									result.success = true;
+								}
 								result.data = related.result;
 								result.message = related?.result?.message || "";
 							}
@@ -588,11 +606,11 @@ module.exports = {
 					this.logger.info("WEBHOOK invoice.payment_succeeded: "+ event.type +" ---------- PaymentIntent was successful!", paymentIntent);
 					// get subscription object by its stripeId
 					let subscriptionStripeId = null;
-					if (paymentIntent && paymentIntent.subscription && paymentIntent.subscription.trim() != "") {
+					if (paymentIntent?.subscription && paymentIntent.subscription.trim() != "") {
 						subscriptionStripeId = paymentIntent.subscription.trim();
 					}
 					let paymentIntentId = null;
-					if (paymentIntent && paymentIntent.payment_intent && paymentIntent.payment_intent.trim() != "") {
+					if (paymentIntent?.payment_intent && paymentIntent.payment_intent.trim() != "") {
 						paymentIntentId = paymentIntent.payment_intent.trim();
 					}
 					this.logger.info("WEBHOOK invoice.payment_succeeded - subscriptionStripeId:", subscriptionStripeId);
@@ -613,7 +631,7 @@ module.exports = {
 										})
 											.then(subscriptions => {
 												this.logger.info("WEBHOOK invoice.paid - subscriptions found:", subscriptions);
-												if (subscriptions && subscriptions[0]) {
+												if (subscriptions?.[0]) {
 													if (subscriptions[0].data.order.data.paymentData.lastResponseResult) {
 														subscriptions[0].data.order.data.paymentData.lastResponseResult.push(paymentIntent);
 													}
@@ -651,7 +669,7 @@ module.exports = {
 					const paymentMethod = event.data.object;
 					this.logger.info("WEBHOOK : customer.subscription.deleted local ---------- Subscription has been deleted for Customer!", paymentMethod);
 					// get subscription object by its stripeId
-					if (paymentMethod && paymentMethod.id && paymentMethod.id.trim() != "") {
+					if (paymentMethod?.id && paymentMethod.id.trim() != "") {
 						subscriptionStripeId = paymentMethod.id.trim();
 					}
 					this.logger.info("WEBHOOK customer.subscription.deleted - subscriptionStripeId:", subscriptionStripeId);
@@ -875,8 +893,7 @@ module.exports = {
 			return new Promise((resolve, reject) => {
 				this.logger.info("payments.stripe.mixin pSS() #2:", related.product);
 				const priceCode = self.getStripePriceAmountCode(related.product.price);
-				if ( related?.product?.data?.stripe?.prices && related?.product?.data?.stripe?.prices[priceCode] &&
-				related.product.data.stripe.prices[priceCode].toString().trim()=="" ) {
+				if ( related?.product?.data?.stripe?.prices?.[priceCode]?.toString().trim() == "" ) {
 					this.logger.info("payments.stripe.mixin pSS() #2.1 true");
 					resolve(true);
 				}
@@ -909,8 +926,8 @@ module.exports = {
 					unit_amount: product.price * 100, // price as positive integer in cents
 					currency: related.order.prices.currency.code,
 					recurring: {
-						interval: related.subscription.period, 
-						interval_count: related.subscription.duration
+						interval: related.subscription?.period, 
+						interval_count: related.subscription?.duration
 					},
 					product: related.product.data.stripe.productId,
 				}
@@ -922,8 +939,8 @@ module.exports = {
 				unit_amount: stripePriceAmount, 
 				currency: related.order.prices.currency.code,
 				recurring: {
-					interval: related.subscription.period, 
-					interval_count: related.subscription.duration
+					interval: related.subscription?.period, 
+					interval_count: related.subscription?.duration
 				},
 				product: related.product.data.stripe.productId,
 			})
@@ -1293,6 +1310,8 @@ module.exports = {
 								order.data.paymentData.lastResponseResult = [];
 							}
 							order.data.paymentData.lastResponseResult.push(paymentData);
+							// update also subscription after payment
+							self.addUpdateToSubscription(id.subscription, paymentData, order.data.paymentData.supplier);
 							return true;
 						}
 					});
@@ -1303,8 +1322,37 @@ module.exports = {
 		},
 
 
+		addUpdateToSubscription(subscriptionId, paymentData, orderSupplierData)	{
+			if (subscriptionId && paymentData && orderSupplierData) {
+				// add update to subscription supplier data
+				return ctx.call("subscriptions.update", 
+				{
+					updateObject: { 
+						id: subscriptionId,
+						status: orderSupplierData.status,
+					},
+					historyRecordToAdd: {
+						action: "payment",
+						type: "stripe",
+						date: new Date(),
+						data: {
+							type: "paymentData",
+							content: paymentData,
+						}
+					} 
+				})
+				.then(updated => {
+					return updated;
+				})
+				.catch(error => {
+					this.logger.error("subscriptions.addToHistory() - error: ", JSON.stringify(error));
+					return null;
+				});
+			}
+		},
+
+
 		mapStripeSubscriptionStatus(status) {
-			console.log("payments.stripe.mixin mapStripeSubscriptionStatus() - ????? status:", status);
 			const statusMap = {
 				"incomplete": "failed", 
 				"incomplete_expired": "failed", 
@@ -1316,7 +1364,6 @@ module.exports = {
 				"paused": "paused",
 			};
 
-			console.log("payments.stripe.mixin mapStripeSubscriptionStatus() - ????? status:", statusMap[status]);
 			return statusMap[status] || status;
 		},
 

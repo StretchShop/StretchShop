@@ -19,7 +19,7 @@ module.exports = {
 		 * @returns {Object}
 		 */
 		prepareForUpdate(object) {
-			let objectToSave = Object.assign({}, object); //JSON.parse(JSON.stringify(object));
+			let objectToSave = { ...object}; //JSON.parse(JSON.stringify(object));
 			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
 				delete objectToSave._id;
 			}
@@ -154,6 +154,7 @@ module.exports = {
 		 * @param {Number} durationMax 
 		 */
 		calculateDateEnd(dateStart, period, duration, durationMax) {
+			console.log("calculateDateEnd: ", dateStart, period, duration, durationMax);
 			let dateEnd = new Date(dateStart.getTime());
 			const maxDuration = 1000; // eternity does not exist and it prevents infinite loops
 			if (!durationMax || durationMax<=0 || durationMax>maxDuration) {
@@ -370,15 +371,7 @@ module.exports = {
 						},
 						{
 							"dates.dateEnd": { "$lte": new Date() },
-							status: "active"
-						},
-						{
-							"dates.dateEnd": { "$lte": new Date() },
-							status: "agreed"
-						},
-						{
-							"dates.dateEnd": { "$lte": new Date() },
-							status: "stopped"
+							status: { "$in": ["active", "trial", "agreed"] }
 						}
 					]
 				}

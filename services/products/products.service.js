@@ -179,10 +179,12 @@ module.exports = {
 				let self = this;
 				this.logger.info("products.find filter before FRI:", JSON.stringify(filter));
 				this.fixRequestIds(filter);
+				if (filter.query?.["$and"] && Array.isArray(filter.query["$and"]) && filter.query["$and"].length <= 1) {
+					filter.query = filter.query["$and"][0];
+				}
 				this.logger.info("products.find filter after FRI:", JSON.stringify(filter));
 				return this.adapter.find(filter)
 					.then( results => {
-						// this.logger.info("products.find results before:", results);
 						if (results && results.length>0) {
 							results.forEach(result => {
 								result = self.priceByUser(result, ctx.meta.user);
@@ -192,7 +194,6 @@ module.exports = {
 								);
 							});
 						}
-						// this.logger.info("products.find results after:", results);
 						return results;
 					})
 					.catch(err => {
@@ -274,15 +275,15 @@ module.exports = {
 
 							// fix filter if needed
 							let filter = { query: {}, limit: 30};
-							if (typeof ctx.params.filter !== "undefined" && ctx.params.filter) {
+							if (ctx.params.filter !== undefined && ctx.params.filter) {
 								filter = ctx.params.filter;
 							}
 
 							// add queries to $and array
 							let query = {"$and": []};
-							if (typeof filter.query !== "undefined" && filter.query) {
+							if (filter.query !== undefined && filter.query) {
 								for (let q in filter.query) {
-									if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+									if (Object.hasOwn(filter.query, q)) {
 										let obj = {};
 										obj[q] = filter.query[q];
 										query["$and"].push(obj);
@@ -401,7 +402,7 @@ module.exports = {
 				let query = {"$and": []};
 				if (typeof filter.query !== "undefined" && filter.query) {
 					for (let q in filter.query) {
-						if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+						if (Object.hasOwn(filter.query, q)) {
 							let obj = {};
 							obj[q] = filter.query[q];
 							query["$and"].push(obj);
@@ -412,11 +413,11 @@ module.exports = {
 				filter.query = query;
 
 				// set offset
-				if (ctx.params.offset && ctx.params.offset>0) {
+				if (ctx.params.offset !== undefined && ctx.params.offset>0) {
 					filter.offset = ctx.params.offset;
 				}
 				// set max of results
-				if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
+				if (ctx.params.limit !== undefined && ctx.params.limit) {
 					filter.limit = ctx.params.limit;
 				}
 				if (filter.limit>100) {

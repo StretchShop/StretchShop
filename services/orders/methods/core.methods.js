@@ -368,7 +368,7 @@ module.exports = {
 				// that means, there is no registered & activated & logged user 
 				// user is being created in process of order
 				let orderNoVerif = jwt.decode(ctx.meta.cookies["order_no_verif"]);
-				if ( orderNoVerif && orderNoVerif.id && orderNoVerif.email ) {
+				if ( orderNoVerif?.id && orderNoVerif.email ) {
 					user = {
 						id: orderNoVerif.id,
 						externalId: null,
@@ -606,8 +606,10 @@ module.exports = {
 			let orderCalcItemsTypology = { types: [], subtypes: [] };
 			this.settings.orderTemp.items.some(function(product){
 				// check if type not in array
-				if ( product?.type && !calcExcludedTypes.includes(product.type) && orderCalcItemsTypology.types.indexOf(product.type)===-1 ) {
-					orderCalcItemsTypology.types.push(product.type);
+				if ( product?.type && !calcExcludedTypes.includes(product.type) ) {
+					if ( orderCalcItemsTypology.types.indexOf(product.type)===-1 ) {
+						orderCalcItemsTypology.types.push(product.type);
+					}
 					// check if subtype not in array
 					if ( product?.subtype && orderCalcItemsTypology.subtypes.indexOf(product.subtype)===-1 ) {
 						orderCalcItemsTypology.subtypes.push(product.subtype);
@@ -621,8 +623,6 @@ module.exports = {
 			});
 
 			const orderTypology = self.getOrderTypology(self.settings.orderTemp);
-			self.logger.info("------------------ checkOrderData() - orderTypology ------------------", orderTypology);
-			self.logger.info("------------------ checkOrderData() - orderCalcItemsTypology ------------------", orderCalcItemsTypology);
 
 			/**
 			 * Check received delivery data:
@@ -632,8 +632,8 @@ module.exports = {
 			 * 4. if some type is missing in orderCalcItemsTypology.subtypes, return false
 			 */
 			// check if delivery type is set
-			if ( this.settings.orderTemp.data.deliveryData && this.settings.orderTemp.data.deliveryData.codename ) {
-				let deliveryType = this.settings.orderTemp.data.deliveryData.codename;
+			if ( this.settings?.orderTemp?.data?.deliveryData?.codename ) {
+				let deliveryType = {...this.settings.orderTemp.data.deliveryData.codename};
 				this.settings.orderTemp.data.deliveryData = { "codename": deliveryType };
 				let deliveryMethodExists = false;
 				let processedDeliveryMethodCodenames = [];
@@ -650,7 +650,7 @@ module.exports = {
 								let valueTemp = deliveryType[typeKey];
 								deliveryType[typeKey] = { value: valueTemp };
 							}
-							if ( shopDeliveryType && shopDeliveryType.codename==deliveryType[typeKey].value ) {
+							if ( shopDeliveryType && shopDeliveryType.codename == deliveryType[typeKey].value ) {
 								// delivery type exists in shop settings
 								self.settings.orderTemp.data.deliveryData.codename[typeKey] = {};
 								// need to filter language later
@@ -660,7 +660,6 @@ module.exports = {
 								self.settings.orderTemp.prices.priceItems = 0;
 								// get delivery price specific to type of product (physical, digital, ...)
 								// first count total prices for that specific type of items, to get valid price
-								console.log("------------------ checkOrderData() - deliveryType/deliveryMethods LOOP - priceItemsCheck ------------------");
 								const priceItemsCheck = self.countOrderPrices("items", shopDeliveryType.type, self.settings.orderTemp); // shopDeliveryType.codename = digital, physical, ...
 								// then get delivery price for that type and total items price
 								if ( priceItemsCheck?.prices?.priceItems > 0 ) {
@@ -698,10 +697,8 @@ module.exports = {
 						});
 					}
 				});
-				console.log("------------------ checkOrderData() - BEFORE 4 ------------------");
 				self.countOrderPrices("items");
 
-				console.log("processedDeliveryMethodCodenames: ", processedDeliveryMethodCodenames);
 				// 4. check if no received delivery method is missing for ordered items
 				if (deliveryMethodExists && processedDeliveryMethodCodenames) {
 					if ( processedDeliveryMethodCodenames.length>0 ) {

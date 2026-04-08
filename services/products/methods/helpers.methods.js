@@ -19,7 +19,7 @@ module.exports = {
 		 */
 		filterOnlyActiveProducts(query, metaUser) {
 			// display only active products (admin can see all)
-			if (metaUser && metaUser.type=="admin") {
+			if (metaUser?.type === "admin") {
 				return query;
 			}
 			query["$and"].push({

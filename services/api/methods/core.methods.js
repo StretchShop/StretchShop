@@ -1,13 +1,12 @@
 "use strict";
 
 const Cookies = require("cookies");
-const crypto = require("crypto");
+const crypto = require("node:crypto");
 const ApiGateway = require("moleculer-web");
 const fs = require("fs-extra");
-// const fs = require("fs");
 const formidable = require("formidable");
 const jwt = require("jsonwebtoken");
-const util = require("util");
+const util = require("node:util");
 const _ = require("lodash");
 
 const SettingsMixin = require("../../../mixins/settings.mixin");
@@ -181,20 +180,18 @@ module.exports = {
 			// check csrf token
 			try {
 				if ( req?.$action?.authType === "csrfCheck" ) {
-					if ( !this.checkCsrfToken(ctx, req) ) {
-						return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
-					} else {
+					if ( this.checkCsrfToken(ctx, req) ) {
 						// stops further processing, returning null user
 						return this.Promise.resolve(null); // needed for login
+					} else {
+						return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
 					}
 				}
 				// if auth is required, get also csrf token result
 				csrfResult = this.checkCsrfToken(ctx, req);
-				this.logger.info("before csfrResult csrfResult #2: ", csrfResult);
 			} catch (e) {
 				this.logger.error("Csrf Token error: ", e);
 			}
-			this.logger.info("before csfrResult csrfResult #3 route: ", route);
 			this.cookiesManagement(ctx, route, req, res);
 
 			// get user token from cookie
@@ -204,12 +201,10 @@ module.exports = {
 				ctx.meta.token = ctx.meta.cookies.token;
 				token = ctx.meta.token;
 			}
-			this.logger.info("before csfrResult check: ", token);
 			// no user action without csrf token
 			// if (!csrfResult && req.$action?.authType !== "csrfOnly") {
 			// 	return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
 			// }
-			this.logger.info("before csfrResult after: ");
 
 			// authorization core
 			return this.Promise.resolve(token)
@@ -241,7 +236,7 @@ module.exports = {
 					}
 				})
 				.then(user => {
-					if (req.$action && req.$action.auth == "required" && !user) {
+					if (req.$action?.auth == "required" && !user) {
 						throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
 					}
 					return user;
@@ -273,7 +268,7 @@ module.exports = {
 				// multiple files to upload - multiple promises as in import
 				// after all done, create message and send
 				for (let property in files) {
-					if (Object.prototype.hasOwnProperty.call(files,property)) {
+					if (Object.hasOwn(files,property)) {
 
 						const r = self.prepareFilePathNameData(req, activePath, fields, files, property);
 						
@@ -322,7 +317,7 @@ module.exports = {
 						});
 						let headers = res.getHeaders();
 						self.logger.info("api.parseUploadedFile Promise.all RES:", headers);
-						if ( typeof headers["content-type"] !== "undefined" ) {
+						if ( headers["content-type"] !== undefined ) {
 							res.writeHead(200, {"content-type": "application/json"});
 						}
 						res.end(util.inspect(JSON.stringify({
@@ -357,9 +352,9 @@ module.exports = {
 
 					this.logger.info("api.processUpload() activePath-vars", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author")>-1, activePath.checkAuthorAction, activePath.checkAuthorActionParams);
 					// check if upload path is valid and has set validUserTypes
-					if ( activePath && activePath.validUserTypes ) {
+					if ( activePath?.validUserTypes ) {
 						// check if author is in array of activePath.validUserTypes and file was uploaded by author
-						if ( activePath.validUserTypes.indexOf("author")>-1
+						if ( activePath.validUserTypes.includes("author")
 						&& activePath.checkAuthorAction && activePath.checkAuthorActionParams ) {
 							// check if uploaded by author
 							req.$ctx.call(activePath.checkAuthorAction, {
@@ -384,8 +379,8 @@ module.exports = {
 										}
 									}
 								});
-						} else if ( activePath && activePath.validUserTypes && // check if user or admin
-							activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
+						} else if ( activePath.validUserTypes && // check if user or admin
+							activePath.validUserTypes.includes(req.$ctx.meta.user.type) ) {
 							self.parseUploadedFile(req, res, activePath);
 						}
 					}

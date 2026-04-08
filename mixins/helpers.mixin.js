@@ -206,11 +206,11 @@ module.exports = {
 				priceWithTax: null // eg. 120 (150 - (0.2 * 150))
 			};
 			// use global tax as default
-			if (taxSettings && taxSettings.global && taxSettings.global.taxDecimal) {
+			if (taxSettings?.global?.taxDecimal) {
 				result.taxDecimal = taxSettings.global.taxDecimal;
 			}
 			// use product tax, if set
-			if (product && product.tax && product.tax!==null) {
+			if (product?.tax && product.tax!==null) {
 				result.taxDecimal = product.tax;
 			}
 			// count tax prices using taxDecimal

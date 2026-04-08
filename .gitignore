@@ -10,6 +10,7 @@ data/
 db
 .env
 public/
+!public/index.html
 
 resources/emails/
 resources/navigation/
