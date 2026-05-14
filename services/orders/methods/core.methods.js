@@ -1554,7 +1554,7 @@ module.exports = {
 					((expectedAmount * 10) < paymentData.amount && paymentData.amount/100 >= expectedAmount) || 
 					((expectedAmount * 10) > paymentData.amount && paymentData.amount >= expectedAmount) // in case stripe sends amount without decimals
 				) {
-					this.updateOrderStatePaidStripe(order, paymentData, action);
+					this.updateOrderStatePaidStripe(ctx, order, paymentData, action);
 				} else {
 					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
 						provider: paymentProvider,
@@ -1569,7 +1569,7 @@ module.exports = {
 				if ( 
 					((expectedAmounts.products * 10) < paymentData.amount && paymentData.amount/100 >= expectedAmounts.products) ||  
 					((expectedAmounts.products * 10) > paymentData.amount && paymentData.amount >= expectedAmounts.products) ) { // in case stripe sends amount without decimals
-					this.updateOrderStatePaidStripe(order, paymentData, action);
+					this.updateOrderStatePaidStripe(ctx, order, paymentData, action);
 				} else {
 					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
 						provider: paymentProvider,
@@ -1797,7 +1797,7 @@ module.exports = {
 							// update provider specific information
 							if (provider === "stripe") {
 								this.logger.info("updateOrderState #3 Stripe");
-								foundOrder = this.updateOrderStatePaidStripe(foundOrder, updateData, action);
+								foundOrder = this.updateOrderStatePaidStripe(ctx, foundOrder, updateData, action);
 							}
 							
 							// save updated order
