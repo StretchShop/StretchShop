@@ -556,6 +556,9 @@ module.exports = {
 								this.handleStripeWebhookEvent(ctx, event, foundOrder, paymentData);
 							}
 						});
+				} else if (["invoice.payment_succeeded", "customer.subscription.deleted"].includes(event.type)) {
+					// These subscription-level events carry no orderId in metadata — dispatch directly.
+					this.handleStripeWebhookEvent(ctx, event, null, paymentData);
 				}
 				
 			}
