@@ -214,6 +214,16 @@ module.exports = {
 								relatedOrder: null
 							}
 						};
+						// Enrich with payment details when available (e.g. Stripe invoice data)
+						if (agreement && Array.isArray(agreement) && agreement.length > 0) {
+							const latestPayment = agreement[agreement.length - 1];
+							if (latestPayment?.amount_paid !== undefined) {
+								historyRecord.data.amount = latestPayment.amount_paid;
+								historyRecord.data.currency = latestPayment.currency;
+								historyRecord.data.invoiceId = latestPayment.id;
+								historyRecord.data.paymentIntentId = latestPayment.payment_intent;
+							}
+						}
 						subscription.history.push(historyRecord);
 
 						// DECISION MAKING - if first payment for this subscription

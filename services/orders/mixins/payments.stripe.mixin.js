@@ -556,6 +556,9 @@ module.exports = {
 								this.handleStripeWebhookEvent(ctx, event, foundOrder, paymentData);
 							}
 						});
+				} else if (["invoice.payment_succeeded", "customer.subscription.deleted"].includes(event.type)) {
+					// These subscription-level events carry no orderId in metadata — dispatch directly.
+					this.handleStripeWebhookEvent(ctx, event, null, paymentData);
 				}
 				
 			}
@@ -1266,7 +1269,7 @@ module.exports = {
 		},
 
 
-		updateOrderStatePaidStripe(order, paymentData, action) {
+		updateOrderStatePaidStripe(ctx, order, paymentData, action) {
 			const availableActions = ["products", "subscription"];
 			let self = this;
 
@@ -1311,7 +1314,7 @@ module.exports = {
 							}
 							order.data.paymentData.lastResponseResult.push(paymentData);
 							// update also subscription after payment
-							self.addUpdateToSubscription(id.subscription, paymentData, order.data.paymentData.supplier);
+							self.addUpdateToSubscription(ctx, id.subscription, paymentData, order.data.paymentData.supplier);
 							return true;
 						}
 					});
@@ -1322,7 +1325,7 @@ module.exports = {
 		},
 
 
-		addUpdateToSubscription(subscriptionId, paymentData, orderSupplierData)	{
+		addUpdateToSubscription(ctx, subscriptionId, paymentData, orderSupplierData)	{
 			if (subscriptionId && paymentData && orderSupplierData) {
 				// add update to subscription supplier data
 				return ctx.call("subscriptions.update", 
