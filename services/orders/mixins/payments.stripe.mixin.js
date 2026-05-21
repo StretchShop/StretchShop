@@ -527,6 +527,12 @@ module.exports = {
 					subscriptionId: event?.data?.object?.metadata?.subscriptionId,
 					productId: event?.data?.object?.metadata?.productId
 				};
+				if (event?.data?.object?.parent?.subscription_details?.metadata) {
+					metadata.type = event.data.object.parent.subscription_details.metadata.type;
+					metadata.orderId = event.data.object.parent.subscription_details.metadata.orderId;
+					metadata.subscriptionId = event.data.object.parent.subscription_details.metadata.subscriptionId;
+					metadata.productId = event.data.object.parent.subscription_details.metadata.productId;
+				}
 
 				this.logger.info("WEBHOOK : event?.data?.object?.status:", event?.data?.object?.status);
 				this.logger.info("WEBHOOK : paymentData.status = event?.data?.object?.status");
@@ -543,8 +549,10 @@ module.exports = {
 				};
 
 				this.logger.info("WEBHOOK : event?.data?.object?.metadata?.orderId:", event?.data?.object?.metadata?.orderId);
-				if (event?.data?.object?.metadata?.orderId) {
-					let filter = { query: { _id: self.fixStringToId(event.data.object.metadata.orderId) }, limit: 1 };
+				this.logger.info("WEBHOOK : paymentData?.metadata?.orderId:", paymentData?.metadata?.orderId);
+				const orderId = event?.data?.object?.metadata?.orderId || paymentData?.metadata?.orderId;
+				if (orderId) {
+					let filter = { query: { _id: self.fixStringToId(orderId) }, limit: 1 };
 					ctx.call("orders.find", filter)
 						.then(foundOrder => {
 							this.logger.info("WEBHOOK : order found:", !!foundOrder);
@@ -651,7 +659,26 @@ module.exports = {
 								this.logger.error("WEBHOOK invoice.payment_succeeded error: ", JSON.stringify(error));
 								return null;
 							});
+					} else if (paymentData?.metadata?.subscriptionId) {
+						// if subscription ID is in metadata, update subscription log with payment info
+						this.logger.info("WEBHOOK invoice.payment_succeeded - paymentData.metadata.subscriptionId:", paymentData.metadata);
+						ctx.call("subscriptions.find", {
+							query: {
+								"_id": paymentData.metadata.subscriptionId
+							},
+							limit: 1
+						})
+							.then(subscriptions => {
+								this.logger.info("WEBHOOK invoice.paid - subscriptions found:", subscriptions);
+								if (subscriptions?.[0]) {
+									if (subscriptions[0].data.order.data.paymentData.lastResponseResult) {
+										subscriptions[0].data.order.data.paymentData.lastResponseResult.push(paymentIntent);
+									}
+									this.subscriptionPaymentReceived(ctx, subscriptions[0]); // find in orders.service
+								}
+							});
 					}
+					
 					break;
 				}
 
@@ -670,6 +697,7 @@ module.exports = {
 
 				case "customer.subscription.deleted": {
 					const paymentMethod = event.data.object;
+					let subscriptionStripeId = null;
 					this.logger.info("WEBHOOK : customer.subscription.deleted local ---------- Subscription has been deleted for Customer!", paymentMethod);
 					// get subscription object by its stripeId
 					if (paymentMethod?.id && paymentMethod.id.trim() != "") {
