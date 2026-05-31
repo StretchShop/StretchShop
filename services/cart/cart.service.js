@@ -22,25 +22,24 @@ module.exports = {
 		CartMethodsCore
 	],
 
-	crons: [{
-		name: "CartsCleaner",
-		cronTime: "0 1 * * *",
-		onTick: function() {
-
-			this.logger.info("Starting to Clean up the Carts");
-
-			this.getLocalService("cart")
-				.actions.cleanCarts()
-				.then((data) => {
-					this.logger.info("Carts Cleaned up", data);
-				});
-		}
-	}],
-
 	/**
 	 * Default settings
 	 */
 	settings: {
+		cronJobs: [{
+			name: "CartsCleaner",
+			cronTime: "0 1 * * *",
+			onTick: function() {
+
+				this.logger.info("Starting to Clean up the Carts");
+
+				this.broker.call("cart.cleanCarts")
+					.then((data) => {
+						this.logger.info("Carts Cleaned up", data);
+					});
+			}
+		}],
+
 		/** Public fields */
 		fields: ["_id", "user", "ip", "hash", "order", "dateCreated", "dateUpdated", "items"],
 

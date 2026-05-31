@@ -50,25 +50,24 @@ module.exports = {
 		Cron
 	],
 
-	crons: [{
-		name: "OrdersCleaner",
-		cronTime: "10 1 * * *",
-		onTick: function() {
-
-			this.logger.info("Starting to Clean up the Orders");
-
-			this.getLocalService("orders")
-				.actions.cleanOrders()
-				.then((data) => {
-					this.logger.info("Orders Cleaned up", data);
-				});
-		}
-	}],
-
 	/**
 	 * Default settings
 	 */
 	settings: {
+		cronJobs: [{
+			name: "OrdersCleaner",
+			cronTime: "10 1 * * *",
+			onTick: function() {
+
+				this.logger.info("Starting to Clean up the Orders");
+
+				this.broker.call("orders.cleanOrders")
+					.then((data) => {
+						this.logger.info("Orders Cleaned up", data);
+					});
+			}
+		}],
+
 		/** Secret for JWT */
 		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
 

@@ -9,7 +9,7 @@ const DbService = require("../../../mixins/db.mixin");
 const PaymentModel = require("../models/payment.model");
 const Metadata = require("../models/metadata.model");
 
-const fetch 		= require("cross-fetch");
+const fetch = require("cross-fetch");
 
 // This is a sample test API key. Sign in to see examples pre-filled with your key.
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);

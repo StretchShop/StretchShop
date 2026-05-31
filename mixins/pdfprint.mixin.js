@@ -1,6 +1,7 @@
 "use strict";
 
-let PdfPrinter = require("pdfmake");
+let PdfPrinterModule = require("pdfmake/js/Printer");
+let PdfPrinter = PdfPrinterModule.default || PdfPrinterModule;
 let pdfmakeFonts = require("./../resources/pdftemplates/fonts/pdfmake-font-definition");
 var printer = new PdfPrinter(pdfmakeFonts);
 
