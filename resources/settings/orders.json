@@ -1,10 +1,10 @@
 {
   "deliveryMethods": [
     {
-      "codename": "personaly",
+      "codename": "personally",
       "type": "physical",
       "name": {
-        "en": "Personaly on Branch",
+        "en": "Personally on Branch",
         "sk": "Osobne na Pobočke"
       },
       "prices": [
@@ -105,30 +105,6 @@
       ]
     },
     {
-      "codename": "online_paypal_paypal",
-      "name": {
-        "en": "Pay online with Paypal (Card, PayPal)",
-        "sk": "Zaplatiť online cez Paypal (Karta, PayPal)"
-      },
-      "prices": [
-        {
-          "range": {
-            "from": 0,
-            "to": 500
-          },
-          "price": 2,
-          "tax": 0.2
-        },
-        {
-          "range": {
-            "from": 500,
-            "to": 1000000
-          },
-          "price": 0
-        }
-      ]
-    },
-    {
       "codename": "online_stripe",
       "name": {
         "en": "Pay online with Stripe (Card, PayPal)",
@@ -153,18 +129,10 @@
       ]
     }
   ],
-  "sendingOrder": {
-    "url": "https://cw.sk/archive/testarea/stretchshopbridgeapi/",
-    "port": "80",
-    "login": "fester",
-    "password": "mrkvasalat"
-  },
   "availablePaymentActions": [
-    "paypalOrderGeturl",
-    "paypalResult",
-    "paypalWebhook",
     "stripeOrderPaymentintent",
     "stripeOrderSubscription",
+    "stripeOrderNotification",
     "stripeWebhook"
   ]
 }

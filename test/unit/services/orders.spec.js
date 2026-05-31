@@ -201,7 +201,7 @@ describe("Test 'orders' service", () => {
 			global.orderSpecial.data.deliveryData = {
 				codename:{
 					physical: {
-						value: "personaly",
+						value: "personally",
 						price: 0,
 						taxData: {
 							taxDecimal: 0.1,
@@ -244,7 +244,7 @@ describe("Test 'orders' service", () => {
 			global.orderExpectation.data.deliveryData = expect.objectContaining({
 				codename: expect.objectContaining({
 					physical: expect.objectContaining({
-						value: "personaly",
+						value: "personally",
 						price: expect.any(Number),
 						taxData: expect.objectContaining({
 							taxDecimal: expect.any(Number),

@@ -114,5 +114,27 @@ module.exports = {
 		},
 
 
+		getOrderTypology(order) {
+			const excludedTypes = []; // 'subscription'
+			const cartItemTypology = { types: [], subtypes: [] };
+			if (order.items && order.items.length > 0) {
+				order.items
+				.filter(item => ![item.type, item.subtype].some((i) => excludedTypes.includes(i)) )
+				.forEach(item => {
+					console.log("getOrderTypology - item/subtype:", item.type, item.subtype);
+					// set variables for delivery & payment types
+					if (!cartItemTypology.types.includes(item.type)) {
+						cartItemTypology.types.push(item.type);
+					}
+					if (!cartItemTypology.subtypes.includes(item.subtype)) {
+						cartItemTypology.subtypes.push(item.subtype);
+					}
+				});
+			}
+
+			return cartItemTypology;
+		}
+
+
 	}
 };

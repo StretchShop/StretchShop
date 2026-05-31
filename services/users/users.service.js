@@ -36,29 +36,28 @@ module.exports = {
 		UsersMethodsCore
 	],
 
-	crons: [{
-		name: "UsersCleaner",
-		cronTime: "20 1 * * *",
-		onTick: function() {
-
-			this.logger.info("users.crons - Starting to Remove Users that want to Delete their Profile");
-
-			this.getLocalService("users")
-				.actions.cleanUsers()
-				.then((data) => {
-					this.logger.info("users.crons - Users Cleaned up", data);
-				})
-				.catch(err => {
-					console.error('crons.clearUsers error: ', err);
-					return this.Promise.reject(new MoleculerClientError("Cron clean users failed", 422, "", []));
-				});;
-		}
-	}],
-
 	/**
 	 * Default settings
 	 */
 	settings: {
+		cronJobs: [{
+			name: "UsersCleaner",
+			cronTime: "20 1 * * *",
+			onTick: function() {
+
+				this.logger.info("users.crons - Starting to Remove Users that want to Delete their Profile");
+
+				this.broker.call("users.cleanUsers")
+					.then((data) => {
+						this.logger.info("users.crons - Users Cleaned up", data);
+					})
+					.catch(err => {
+						console.error('crons.clearUsers error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Cron clean users failed", 422, "", []));
+					});;
+			}
+		}],
+
 		/** Secret for JWT */
 		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
 
@@ -1415,11 +1414,11 @@ module.exports = {
 
 				return this.adapter.findOne({ id: self.fixStringToId(ctx.params.userId) })
 					.then((foundUser) => {
-						if ( !foundUser.data ) { foundUser.data = { contentDependencies: { list: [] } } };
-						if ( !foundUser.data.contentDependencies ) { foundUser.data.contentDependencies = { list: [] } };
-						if ( !foundUser.data.contentDependencies.list ) { foundUser.data.contentDependencies.list = [] };
+						if ( !foundUser.data ) { foundUser.data = { contentDependencies: { list: [] } }; };
+						if ( !foundUser.data.contentDependencies ) { foundUser.data.contentDependencies = { list: [] }; };
+						if ( !foundUser.data.contentDependencies.list ) { foundUser.data.contentDependencies.list = []; };
 						if ( foundUser && productCodes.length > 0 ) {
-							foundUser.data.contentDependencies.list = productCodes.filter((item, index, array) => array.indexOf(item) == index)
+							foundUser.data.contentDependencies.list = productCodes.filter((item, index, array) => array.indexOf(item) == index);
 						}
 						return foundUser;
 					})

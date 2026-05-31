@@ -82,10 +82,13 @@ module.exports = {
 		"POST /subscription/list": "subscriptions.listSubscriptions",
 		"POST /subscription/suspend/:subscriptionId": "subscriptions.suspend",
 		"POST /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
-		// Payment
-		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/paypal/geturl
+		// Payment endpoints for FE
+		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/stripe/paymentintent
 		"GET /order/payment/:supplier/:result": "orders.paymentResult",
-		// "POST /order/payment/paypalipn": "orders.paypalIpn", // old api
+		/**
+		 * Payment webhook that parses body as JSON
+		 * for raw body use paymentWebhookRaw
+		 */
 		"POST /order/payment/webhook/:supplier": "orders.paymentWebhook",
 
 		// Pages

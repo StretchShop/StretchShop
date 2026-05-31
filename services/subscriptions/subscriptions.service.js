@@ -24,27 +24,38 @@ module.exports = {
 		SubscriptionsMethodsCore,
 	],
 
-	crons: [{
-		name: "SubscriptionsCheck",
-		cronTime: "5 0 * * *",
-		onTick: function() {
-
-			this.logger.info("Starting to Clean up the Subscriptions");
-
-			this.getLocalService("subscriptions")
-				.actions.checkSubscriptions()
-				.then((data) => {
-					this.logger.info("Subscriptions runned", data);
-				});
-		}
-	}],
-
 	/**
 	 * Default settings
 	 */
 	settings: {
+		cronJobs: [{
+			name: "SubscriptionsCheck",
+			cronTime: "5 0 * * *",
+			onTick: function() {
+
+				this.logger.info("Starting to Clean up the Subscriptions");
+
+				this.broker.call("subscriptions.checkSubscriptions")
+					.then((data) => {
+						this.logger.info("Subscriptions runned", data);
+					});
+			}
+		}, {
+			name: "SubscriptionsEndCheck",
+			cronTime: "*/15 * * * *",
+			onTick: function() {
+
+				this.logger.info("Starting to Check for ending Subscriptions");
+
+				this.broker.call("subscriptions.stopEndingSubscriptions")
+					.then((data) => {
+						this.logger.info("Subscriptions runned", data);
+					});
+			}
+		}],
+		
 		/** Public fields */
-		fields: ["_id", "userId", "ip", "type", "period", "duration", "cycles", "status", "orderOriginId", "orderItemName", "dates", "price", "data", "history"],
+		fields: ["_id", "userId", "ip", "type", "period", "duration", "cycles", "cyclesTrial", "status", "orderOriginId", "orderItemName", "dates", "price", "data", "history"],
 
 		/** Validator schema for entity */
 		entityValidator: {
@@ -53,6 +64,7 @@ module.exports = {
 			period: {type: "string", min: 3 }, // year, month, week, day, ...
 			duration: {type: "number", positive: true }, // 1, 3, 9.5, ...
 			cycles: {type: "number"}, // number of repeats, for infinity use 0 and less
+			cyclesTrial: { type: "number", optional: true }, // number of trial repeats, must be less than cycles
 			status: { type: "string", min: 3 }, // inactive, active, finished, ...
 			orderOriginId: { type: "string", min: 3 },
 			orderItemName: { type: "string", min: 3 },
@@ -228,7 +240,7 @@ module.exports = {
 						subscription.data.product = subscriptions[i];
 						subscription.data.order = order;
 						// fill in data from product - period & duration & cycles
-						if (subscriptions[i].data && subscriptions[i].data.subscription) {
+						if (subscriptions[i]?.data?.subscription) {
 							if (subscriptions[i].data.subscription.period) {
 								subscription.period = subscriptions[i].data.subscription.period;
 							}
@@ -237,6 +249,9 @@ module.exports = {
 							}
 							if (subscriptions[i].data.subscription.cycles) {
 								subscription.cycles = subscriptions[i].data.subscription.cycles;
+							}
+							if (subscriptions[i].data.subscription.cyclesTrial) {
+								subscription.cyclesTrial = subscriptions[i].data.subscription.cyclesTrial;
 							}
 						}
 						// basics
@@ -252,6 +267,17 @@ module.exports = {
 						/* dateOrderNext set to now, because first payment is done 
 						   right after customer accepts agreement to billing plan */
 						subscription.dates.dateOrderNext = new Date();
+						// if trial period is set, set dateEnd to trial end
+						if (subscription.cyclesTrial && subscription.cyclesTrial>0) {
+							// set dateEnd to trial end	
+							subscription.status = "trial";
+							subscription.dates.dateOrderNext = this.setDateOrderNextAfterTrial(
+								subscription.dates.dateOrderNext, 
+								subscription.period, 
+								subscription.duration,
+								subscription.cyclesTrial
+							);
+						}
 						subscription.price = subscriptions[i].price;
 
 						subscription.history.push( 
@@ -262,6 +288,7 @@ module.exports = {
 						);
 
 						// setting up date when subscription ends
+						console.log("calling calculateDateEnd #1", subscription);
 						let dateEnd = this.calculateDateEnd(
 							subscription.dates.dateStart,
 							subscription.period,
@@ -293,10 +320,16 @@ module.exports = {
 						let subscrIds = [];
 						let productSubscriptions = {};
 						savedSubscriptions.forEach(function(sasu){
-							// get ID or subscription and related product
+							// collect important information into order.subscription.ids
+							// this will be important for order detail and decision making
 							subscrIds.push({
+								created: new Date(),
+								updated: null,
+								lastPaidDate: null,
 								subscription: sasu._id.toString(),
-								product: sasu.data.product._id.toString()
+								product: sasu.data.product._id.toString(),
+								status: "saved",
+								supplier: {}
 							});
 							productSubscriptions[sasu.data.product._id.toString()] = sasu._id.toString();
 						});
@@ -308,15 +341,15 @@ module.exports = {
 						}
 						ctx.params.order.data.subscription.ids = subscrIds;
 						// add subscription ID also into product in order list
-						for (let i=0; i<ctx.params.order.items.length; i++) {
-							ctx.params.order.items[i].subscriptionId = productSubscriptions[ctx.params.order.items[i]._id.toString()];
+						for (const element of ctx.params.order.items) {
+							element.subscriptionId = productSubscriptions[element._id.toString()];
 						}
 						this.logger.info("subscriptions.orderToSubscription Promise.all(promises) subscrIds:", subscrIds);
 						// add ID parameter
 						ctx.params.order.id = ctx.params.order._id;
 						// saving ids into related order
 						return ctx.call("orders.updateOrder", {
-							order: Object.assign({}, ctx.params.order)
+							order: { ...ctx.params.order}
 						})
 							.then(order => {
 								// save IDs
@@ -353,103 +386,80 @@ module.exports = {
 			cache: false,
 			handler(ctx) {
 				let promises = [];
-				let self = this;
-				let checkDate = new Date();
-				const daysTolerance = process?.env?.SUBS_DAYS_TOLERANCE || 1;
-				checkDate.setDate(checkDate.getDate() - daysTolerance);
-				// set user as admin so "subscription.suspend" action can be done
-				if (typeof ctx.meta.user === "undefined") {
-					ctx.meta.user = { type: "admin" };
-				}
-				if (typeof ctx.meta.user.type === "undefined" || ctx.meta.user.type == null) {
-					ctx.meta.user.type = "admin";
-				}
-				
-				// get dateOrder for today (- days of tolerance) and less
-				// TODO - add $or for case we have subscription, that ended but is active
-				return this.adapter.find({
-					query: {
-						"$or": [
-							{
-								"dates.dateOrderNext": { "$lte": checkDate },
-								"dates.dateEnd": { "$gte": checkDate },
-								status: "active"
-							},
-							{
-								"dates.dateEnd": { "$lte": new Date() },
-								status: "active"
-							},
-							{
-								"dates.dateEnd": { "$lte": new Date() },
-								status: "stopped"
-							}
-						]
-					}
-				})
-					.then(subscriptions => {
-						this.logger.info("subscriptions.checkSubscriptions - subscriptions found", subscriptions);
-						if (subscriptions && subscriptions.length>0) {
-							subscriptions.forEach(s => {
-								promises.push( 
-									ctx.call("subscriptions.suspend", {
-										subscriptionId: s._id.toString(),
-										altUser: "checkSubscription CRON",
-										altMessage: "subscription suspended because no payment received"
-									})
-										.catch(err => {
-											this.logger.error("users.checkSubscriptions - subscriptions.suspend error:", err);
-										})
-										.then(result => {
-											// send email to customer
-											self.sendSubscriptionEmail(
-												ctx, s, 
-												"subscription/suspended"
-											);
-											return result;
-										})
-								);
-							});
-							// return all runned subscriptions
-							return Promise.all(promises)
-								.then((result) => {
-									return result;
-								})
-								.catch(err => {
-									this.logger.error("subscriptions.checkSubscriptions all error:", err);
-									return this.Promise.reject(new MoleculerClientError("Subscriptions checkS all error", 422, "", []));
-								});
-						} else {
-							return "No results";
-						}
-					})
-					.then(suspendedSubs => {
-						// set status to finished to those, with dateEnd in past
-						return self.adapter.updateMany(
-							{
-								"dates.dateEnd": { "$lte": checkDate },
-								status: "active"
-							},
-							{
-								"$set": {
-									status: "finished"
+
+				promises.push(
+					this.stopEndedActiveSubscriptions(ctx)
+				);
+				promises.push(
+					this.firstPaymentAfterTrial(ctx)
+				);
+
+				return Promise.all(promises)
+					.then((values) => {
+						let results = {};
+						if (values) {
+							values.forEach(v => {
+								if (v && v !== null && typeof v === "object") {
+									Object.keys(v).forEach(k => {
+										results[k] = v[k];
+									});
 								}
-							}
-						)
-							.then(subscriptions => {
-								return {
-									suspended: suspendedSubs,
-									finished: subscriptions
-								};	
-							})
-							.catch(err => {
-								this.logger.error("subscriptions.checkSubscriptions updateMany error:", err);
-								return this.Promise.reject(new MoleculerClientError("Subscriptions checkS updateM error", 422, "", []));
 							});
+						}
+						return results;
 					})
 					.catch(err => {
-						this.logger.error("subscriptions.checkSubscriptions find error:", err);
-						// return this.Promise.reject(new MoleculerClientError("Subscriptions checkS find error", 422, "", []));
+						console.error('subscription.checkSubscriptions error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Check Subscriptions", 422, "", []));
 					});
+
+			}
+		},
+
+
+		/**
+		 * CRON action (see crons.cronTime setting for time to process):
+		 *  1. find all subscriptions that end in next 15 minutes
+		 * ??? TODO
+		 *  2. check if:
+		 *     2.1. all payments in subscription have been received
+		 *     2.2. stripe paid subscriptions were suspended 
+		 *  3. if not, make them inactive
+		 * 
+		 * to debug you can use - mol $ call subscriptions.checkSubscriptions
+		 * 
+		 * @actions
+		 */
+		stopEndingSubscriptions: {
+			cache: false,
+			handler(ctx) {
+				let promises = [];
+				
+				console.log("subscriptions.checkEndingSubscriptions");
+
+				promises.push(
+					this.stopEndedActiveSubscriptions(ctx)
+				);
+
+				return Promise.all(promises)
+					.then((values) => {
+						let results = {};
+						if (values) {
+							values.forEach(v => {
+								if (v && v !== null && typeof v === "object") {
+									Object.keys(v).forEach(k => {
+										results[k] = v[k];
+									});
+								}
+							});
+						}
+						return results;
+					})
+					.catch(err => {
+						console.error('subscription.checkEndingSubscriptions error: ', err);
+						return this.Promise.reject(new MoleculerClientError("Check Ending Subscriptions", 422, "", []));
+					});
+
 			}
 		},
 
@@ -629,9 +639,7 @@ module.exports = {
 
 
 		/**
-		 * Save subscription:
-		 *  - if no ID, create new;
-		 *  - if has ID, update;
+		 * update subscription
 		 * 
 		 * @actions
 		 * 
@@ -651,15 +659,15 @@ module.exports = {
 				return this.adapter.findById(ctx.params.updateObject.id)
 					.then(found => {
 						if (found) {
-							let original = Object.assign({}, found);
-							original.data = JSON.parse(JSON.stringify(original.data));
+							let original = {...found};
+							original.data = structuredClone(original.data);
 							delete original._id;
 							let updatedOriginal = self.updateObject(original, ctx.params.updateObject);
 							
 							// add history record if set
 							if (ctx.params.historyRecordToAdd) {
 								updatedOriginal.history.push(
-									JSON.parse(JSON.stringify(ctx.params.historyRecordToAdd))
+									structuredClone(ctx.params.historyRecordToAdd)
 								);
 							}
 
@@ -740,111 +748,78 @@ module.exports = {
 
 							let relatedId = found.data.agreementId;
 							// get agreement ID from history
-							this.logger.info("subscriptions.suspend stripe.id:", found.data.stripe, found.data.stripe.id, (found.data.stripe && found.data.stripe.id), ( !relatedId || relatedId==null ));
+							this.logger.info("subscriptions.suspend stripe.id:", found.data.stripe, (found.data.stripe && found.data.stripe?.id), ( !relatedId || relatedId==null ));
 
 							if ( !relatedId || relatedId==null ) {
-								if (found.data.stripe && found.data.stripe.id) {
+								if (found.data.stripe?.id) {
 									relatedId = found.data.stripe.id;
 								} else if (found.history && found.history.length>0) {
 									found.history.some(record => {
-										if (record && record.action=="agreed" && record.data && 
-										record.data.agreement && record.data.agreement.id) {
+										if (record?.action == "agreed" && record.record.data?.agreement?.id) {
 											relatedId = record.data.agreement.id;
 											return true;
 										}
 									});
 								}
 							}
+							if ( !relatedId || relatedId==null ) {
+									ctx.call("orders.find", {
+										query: {
+											_id: self.fixStringToId(found.orderOriginId)
+										},
+										limit: 1
+									})
+									.then(ordersFound => {
+										if (ordersFound?.[0]?.data?.subscription?.ids) {
+											ordersFound[0].data.subscription.ids.some(subscr => {
+												if (subscr && subscr.subscription==found._id.toString() && subscr.supplier && subscr.supplier.stripe && subscr.supplier.stripe.id) {
+													relatedId = subscr.supplier.stripe.id;
+													return self.suspendSubscription(ctx, found, relatedId);
+												}
+											});
+										}
+									})
+									.catch(error => {
+										this.logger.error("subscriptions.suspend - orders.find error: ", error);
+									});
+							}
 							this.logger.info("subscriptions.suspend relatedId:", relatedId);
 
 							// FIX - NO relatedId with Stripe 
 							if (relatedId && relatedId!=null) {
-								// update agreement
-								let paymentType = "online_paypal_paypal";
-								if (found.data && found.data.order && found.data.order.data && 
-								found.data.order.data.paymentData && 
-								found.data.order.data.paymentData.codename) {
-									paymentType = found.data.order.data.paymentData.codename;
-								}
-								// using suspendPayment to be more universal call
-								// TODO - need to setup rules for creating payment names
-								let supplier = "paypal";
-								if (paymentType=="online_stripe") {
-									supplier = "stripe";
-								}
-								// call suspend action that calls related API
-								return ctx.call("orders.paymentSuspend", {
-									supplier: supplier,
-									relatedId: relatedId,
-									subscription: found
-								})
-									.then(suspendResult => {
-										// return suspendResult
-
-										found.history.push(
-											this.newHistoryRecord("suspended", altUser, {
-												relatedOrder: null,
-												message: altMessage
-											})
-										);
-
-										result.success = true;
-										result.message = "suspend sent";
-										result.data = {
-											subscription: found,
-											agreement: suspendResult
-										};
-
-										found.id = found._id.toString();
-										found.status = "suspend sent";
-										delete found._id;
-										
-										return ctx.call("subscriptions.save", {
-											entity: found
-										})
-											.then(updated => {
-												this.logger.info("subscriptions.suspend - subscriptions.save:", updated);
-												result.data.subscription = updated;
-												delete result.data.subscription.history;
-												return result;
-											})
-											.catch(error => {
-												this.logger.error("subscriptions.suspend - subscriptions.save error: ", error);
-												return null;
-											})
-											.then(subResult => {
-												if (subResult) {
-													return ctx.call("users.removeContentDependencies")
-														.then(updatedUser => {
-															this.logger.info("subscriptions.suspend - users.removeContentDependencies updatedUser:", updatedUser);
-															return subResult;
-														})
-												}
-											});
-
-									})
-									.catch(error => {
-										result.error = "paypalSuspendBillingAgreement";
-										this.logger.error("subscriptions.suspend - "+result.error+" error: ", JSON.stringify(error));
-										self.addToHistory(ctx, found._id, self.newHistoryRecord("error", "user", { 
-											errorMsg: result.error+" error", 
-											error: error
-										}));
-										return result;
-									});
+								return self.suspendSubscription(ctx, found, relatedId);
 							} else {
 								result.error = "relatedId not found";
-								this.logger.error("subscriptions.suspend - " + result.error);
-								self.addToHistory(ctx, found._id, self.newHistoryRecord("error", "user", { 
-									errorMsg: result.error+" error"
-								}));
-								return result;
+
+								this.logger.warn("subscriptions.update OOOOO - updateObject:", 
+									{
+										id: this.fixStringToId(found._id),
+										status: "suspend cleanup"
+									}
+								);
+
+								return ctx.call("subscriptions.update", {
+									updateObject: {
+										id: this.fixStringToId(found._id),
+										status: "suspend cleanup"
+									},
+									historyRecordToAdd: self.newHistoryRecord("suspend cleanup", altUser, { 
+										relatedOrder: null,
+										message: altMessage,
+										errorMsg: result.error+" error"
+									})
+								})
+								.then(updated => {
+									this.logger.info("subscriptions.suspend - relatedId not found - subscription updated:", updated);
+									result.success = true;
+									result.message = "subscription suspended, as it was expired and relatedId was not found";
+									return result;
+								})
+								.catch(error => {
+									this.logger.error("subscriptions.suspend - subscriptions.update error: ", error);
+								});
 							}
 						}
-					})
-					.catch(error => {
-						this.logger.error("subscriptions.suspend - subscriptions.find error: ", error);
-						return null;
 					});
 			}
 		},
@@ -877,6 +852,7 @@ module.exports = {
 				);
 				let dateEnd = null;
 				if (ctx.params.withDateEnd) {
+					console.log("calling calculateDateEnd #2", ctx.params);
 					dateEnd = this.calculateDateEnd(
 						ctx.params.dateStart,
 						ctx.params.period,
@@ -908,6 +884,18 @@ module.exports = {
 			}
 		},
 
+
+		subscriptionTrial: {
+			cache: false,
+			params: {
+				subscriptionId: { type: "string" } 
+			},
+			handler(ctx) {
+				return this.subscriptionTrial(ctx, ctx.params.subscription);
+			}
+		},
+
+
 	},
 
 
@@ -917,6 +905,83 @@ module.exports = {
 	 * /methods/code.methods.js
 	 */
 	methods: {
+		suspendSubscription: function(ctx, subscription, relatedId) {
+			let self = this;
+			let result = { success: false, url: null, message: "error" };
+			let altUser = (ctx.params.altUser && ctx.params.altUser.trim()!=="") ? ctx.params.altUser : "user";
+			let altMessage = ctx.params.altMessage ? ctx.params.altMessage : "";
+			// update agreement
+			let paymentType = "online_stripe";
+			if (subscription?.data?.order?.data?.paymentData?.codename) {
+				paymentType = subscription.data.order.data.paymentData.codename;
+			}
+			// using suspendPayment to be more universal call
+			// TODO - need to setup rules for creating payment names
+			let supplier = "stripe";
+			if (paymentType=="online_stripe") {
+				supplier = "stripe";
+			}
+			// call suspend action that calls related API
+			return ctx.call("orders.paymentSuspend", {
+				supplier: supplier,
+				relatedId: relatedId,
+				subscription: subscription
+			})
+				.then(suspendResult => {
+					// return suspendResult
+
+					subscription.history.push(
+						this.newHistoryRecord("suspended", altUser, {
+							relatedOrder: null,
+							message: altMessage
+						})
+					);
+
+					result.success = true;
+					result.message = "suspend sent";
+					result.data = {
+						subscription: subscription,
+						agreement: suspendResult
+					};
+
+					subscription.id = subscription._id.toString();
+					subscription.status = "suspend sent";
+					delete subscription._id;
+					
+					return ctx.call("subscriptions.save", {
+						entity: subscription
+					})
+						.then(updated => {
+							this.logger.info("subscriptions.suspend - subscriptions.save:", updated);
+							result.data.subscription = updated;
+							delete result.data.subscription.history;
+							return result;
+						})
+						.catch(error => {
+							this.logger.error("subscriptions.suspend - subscriptions.save error: ", error);
+							return null;
+						})
+						.then(subResult => {
+							if (subResult) {
+								return ctx.call("users.removeContentDependencies")
+									.then(updatedUser => {
+										this.logger.info("subscriptions.suspend - users.removeContentDependencies updatedUser:", updatedUser);
+										return subResult;
+									});
+							}
+						});
+
+				})
+				.catch(errorResult => {
+					errorResult.error = "suspendBillingAgreement";
+					this.logger.error("subscriptions.suspend - "+errorResult.error+" error: ", JSON.stringify(errorResult));
+					self.addToHistory(ctx, subscription._id, self.newHistoryRecord("error", "user", { 
+						errorMsg: errorResult.error+" error", 
+						error: errorResult
+					}));
+					return errorResult;
+				});
+		}
 	},
 
 	events: {

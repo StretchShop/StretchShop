@@ -32,7 +32,7 @@ module.exports = {
 			order.data.paymentData.codename.indexOf("online_stripe") > -1 ) {
 				this.getPaidTotalStripe(order.data.paymentData);
 			} else {
-				this.getPaidTotalPaypal(order.data.paymentData);
+				this.logger.error("orders.updatePaidOrderSubscriptionData() - payment codename not recognized", order.data.paymentData.codename);
 			}
 			
 			// calculate how much to pay
@@ -214,6 +214,16 @@ module.exports = {
 								relatedOrder: null
 							}
 						};
+						// Enrich with payment details when available (e.g. Stripe invoice data)
+						if (agreement && Array.isArray(agreement) && agreement.length > 0) {
+							const latestPayment = agreement[agreement.length - 1];
+							if (latestPayment?.amount_paid !== undefined) {
+								historyRecord.data.amount = latestPayment.amount_paid;
+								historyRecord.data.currency = latestPayment.currency;
+								historyRecord.data.invoiceId = latestPayment.id;
+								historyRecord.data.paymentIntentId = latestPayment.payment_intent;
+							}
+						}
 						subscription.history.push(historyRecord);
 
 						// DECISION MAKING - if first payment for this subscription
@@ -240,7 +250,7 @@ module.exports = {
 									);
 								})
 								.catch(error => {
-									self.logger.error("payments.paypal1.mixin.subscriptionPaymentReceived - subscriptions.createPaidSubscriptionOrder - paypal execute error: ", JSON.stringify(error));
+									self.logger.error("subscriptions.createPaidSubscriptionOrder - execute error: ", JSON.stringify(error));
 								});
 						}
 
@@ -272,19 +282,17 @@ module.exports = {
 					order.invoice["path"] = invoice.path;
 					// set related subscription product and data as paid
 					if (order.items && order.items.length>0) {
-						for (let i=0; i<order.items.length; i++) {
-							if (order.items[i].type==="subscription" && 
-							order.items[i]._id.toString()===subscription.data.product._id.toString()) {
-								order.items[i]["paid"] = true;
+						for (const element of order.items) {
+							if (element.type==="subscription" && 
+							element._id.toString()===subscription.data.product._id.toString()) {
+								element["paid"] = true;
 							}
 						}
 					}
-					if (order.data && order.data.subscription && 
-					order.data.subscription.ids && 
-					order.data.subscription.ids.length>0) {
-						for (let i=0; i<order.data.subscription.ids.length; i++) {
-							if (order.data.subscription.ids[i].subscription==subscription._id.toString()) {
-								order.data.subscription.ids[i]["paid"] = new Date();
+					if (order?.data?.subscription?.ids?.length>0) {
+						for (const element of order.data.subscription.ids) {
+							if (element.subscription==subscription._id.toString()) {
+								element["paid"] = new Date();
 							}
 						}
 					}
@@ -327,7 +335,7 @@ module.exports = {
 			// in the begining it's same as dateStart, later it's updated
 			let dateToStart = subscription.dates.dateOrderNext;
 			if (!dateToStart || dateToStart===null) {
-				subscription.dates.dateStart;
+				dateToStart = subscription.dates.dateStart;
 			}
 			// update date of subscription end only if it is not set yet
 			let withDateEnd = true;
@@ -342,7 +350,7 @@ module.exports = {
 				withDateEnd: withDateEnd
 			})
 				.then(resultDates => {
-					this.logger.info("payments.paypal1.mixin - updateSubscriptionAfterPaid resultDates & payment codename && cycles", resultDates, subscription.data.order.data.paymentData.codename, subscription.cycles);
+					this.logger.info("subscription.methods updateSubscriptionAfterPaid resultDates & payment codename && cycles", resultDates, subscription.data.order.data.paymentData.codename, subscription.cycles);
 					// if stripe subscription
 					if ( 
 						subscription.data.order.data.paymentData.codename === "online_stripe" && 
@@ -383,26 +391,26 @@ module.exports = {
 					
 					delete subscription._id;
 
-					if (resultDates && resultDates.dateOrderNext && resultDates.dateEnd) {
+					if (resultDates?.dateOrderNext && resultDates.dateEnd) {
 					// update subscription
 						return ctx.call("subscriptions.save", {
 							entity: subscription
 						})
 							.then(updated => {
-								this.logger.info("payments.paypal1.mixin - updateSubscriptionAfterPaid updated:", updated);
+								this.logger.info("subscription.methods - updateSubscriptionAfterPaid updated:", updated);
 								return updated;
 							})
 							.catch(error => {
-								this.logger.error("payments.paypal1.mixin - updateSubscriptionAfterPaid update error: ", error);
+								this.logger.error("subscription.methods - updateSubscriptionAfterPaid update error: ", error);
 								return null;
 							});
 					} else {
-						this.logger.error("payments.paypal1.mixin - updateSubscriptionAfterPaid resultDates wrong: ", resultDates);
+						this.logger.error("subscription.methods - updateSubscriptionAfterPaid resultDates wrong: ", resultDates);
 						return null;
 					}
 				})
 				.catch(error => {
-					this.logger.error("payments.paypal1.mixin - updateSubscriptionAfterPaid calculateDates error: ", error);
+					this.logger.error("subscription.methods - updateSubscriptionAfterPaid calculateDates error: ", error);
 					return null;
 				});
 		},

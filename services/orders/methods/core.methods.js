@@ -6,20 +6,19 @@ const fetch		= require("cross-fetch");
 const jwt	= require("jsonwebtoken");
 const handlebars = require("handlebars");
 // writing files - logs
-const { writeFileSync, ensureDir, createReadStream } = require("fs-extra");
-// PDF generating
-let pdfMake = require("pdfmake/build/pdfmake");
-let pdfFonts = require("pdfmake/build/vfs_fonts");
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
-let htmlToPdfmake = require("html-to-pdfmake");
-let jsdom = require("jsdom");
-let { JSDOM } = jsdom;
-let { window } = new JSDOM("");
+const { writeFileSync, ensureDir, createWriteStream } = require("fs-extra");
 
 const pathResolve = require("path").resolve;
 
 const SettingsMixin = require("../../../mixins/settings.mixin");
+const PdfPrintMixin = require("../../../mixins/pdfprint.mixin");
 
+const { subscriptionPaymentStatuses } = require("../constants/subscription.constants");
+const { productStatuses } = require("../constants/product.constants");
+const { orderStatuses } = require("../constants/order.constants");
+const { update } = require("lodash");
+
+const calcExcludedTypes = ["subscription"];
 
 module.exports = {
 
@@ -369,7 +368,7 @@ module.exports = {
 				// that means, there is no registered & activated & logged user 
 				// user is being created in process of order
 				let orderNoVerif = jwt.decode(ctx.meta.cookies["order_no_verif"]);
-				if ( orderNoVerif && orderNoVerif.id && orderNoVerif.email ) {
+				if ( orderNoVerif?.id && orderNoVerif.email ) {
 					user = {
 						id: orderNoVerif.id,
 						externalId: null,
@@ -596,35 +595,45 @@ module.exports = {
 		/**
 		 * Check basic options of order - delivery and payment types
 		 * Get prices of delivery and payment from settings
+		 * This is NOT calculated for calcExcludedTypes, e.g. subscriptions - they must have delivery and payment as part of their price
 		 */
 		checkOrderData() {
 			this.settings.orderErrors.orderErrors = [];
 			let self = this;
 			const businessSettings = SettingsMixin.getSiteSettings('business');
 
-			// get order item types and subtypes - itemsTypology
-			let itemsTypology = { types: [], subtypes: [] };
+			// get order item types and subtypes - orderCalcItemsTypology
+			let orderCalcItemsTypology = { types: [], subtypes: [] };
 			this.settings.orderTemp.items.some(function(product){
 				// check if type not in array
-				if ( product && product.type && itemsTypology.types.indexOf(product.type)===-1 ) {
-					itemsTypology.types.push(product.type);
-				}
-				// check if subtype not in array
-				if ( product && product.subtype && itemsTypology.subtypes.indexOf(product.subtype)===-1 ) {
-					itemsTypology.subtypes.push(product.subtype);
+				if ( product?.type && !calcExcludedTypes.includes(product.type) ) {
+					if ( orderCalcItemsTypology.types.indexOf(product.type)===-1 ) {
+						orderCalcItemsTypology.types.push(product.type);
+					}
+					// check if subtype not in array
+					if ( product?.subtype && orderCalcItemsTypology.subtypes.indexOf(product.subtype)===-1 ) {
+						orderCalcItemsTypology.subtypes.push(product.subtype);
+					}
 				}
 			});
-			
+			Object.keys(this.settings.orderTemp.data.deliveryData?.codename || {}).forEach(function(key){
+				if ( !orderCalcItemsTypology.subtypes.includes(key) ) {
+					delete self.settings.orderTemp.data.deliveryData.codename[key];
+				}
+			});
+
+			const orderTypology = self.getOrderTypology(self.settings.orderTemp);
+
 			/**
 			 * Check received delivery data:
 			 * 1. loop received delivery types (digital, physical)
 			 * 2. check if delivery type is in shop settings
 			 * 3. get price for that type
-			 * 4. if some type is missing in itemsTypology.subtypes, return false
+			 * 4. if some type is missing in orderCalcItemsTypology.subtypes, return false
 			 */
 			// check if delivery type is set
-			if ( this.settings.orderTemp.data.deliveryData && this.settings.orderTemp.data.deliveryData.codename ) {
-				let deliveryType = this.settings.orderTemp.data.deliveryData.codename;
+			if ( this.settings?.orderTemp?.data?.deliveryData?.codename ) {
+				let deliveryType = {...this.settings.orderTemp.data.deliveryData.codename};
 				this.settings.orderTemp.data.deliveryData = { "codename": deliveryType };
 				let deliveryMethodExists = false;
 				let processedDeliveryMethodCodenames = [];
@@ -634,14 +643,14 @@ module.exports = {
 				// go through delivery types of order (like physical, digital, ...)
 				Object.keys(deliveryType).forEach(function(typeKey){
 					// check if delivery type has values
-					if (deliveryType[typeKey]!=null) {
+					if (deliveryType[typeKey] !== null) {
 						// loop delivery types of this shop
 						self.settings.order.deliveryMethods.some(function(shopDeliveryType){
 							if ( !deliveryType[typeKey].value ) {
 								let valueTemp = deliveryType[typeKey];
 								deliveryType[typeKey] = { value: valueTemp };
 							}
-							if ( shopDeliveryType && shopDeliveryType.codename==deliveryType[typeKey].value ) {
+							if ( shopDeliveryType && shopDeliveryType.codename == deliveryType[typeKey].value ) {
 								// delivery type exists in shop settings
 								self.settings.orderTemp.data.deliveryData.codename[typeKey] = {};
 								// need to filter language later
@@ -651,11 +660,12 @@ module.exports = {
 								self.settings.orderTemp.prices.priceItems = 0;
 								// get delivery price specific to type of product (physical, digital, ...)
 								// first count total prices for that specific type of items, to get valid price
-								self.countOrderPrices("items", shopDeliveryType.type); // shopDeliveryType.codename = digital, physical, ...
-								if ( self.settings.orderTemp.prices.priceItems>0 ) {
+								const priceItemsCheck = self.countOrderPrices("items", shopDeliveryType.type, self.settings.orderTemp); // shopDeliveryType.codename = digital, physical, ...
+								// then get delivery price for that type and total items price
+								if ( priceItemsCheck?.prices?.priceItems > 0 ) {
 									// get delivery price for that specific type and items total
 									shopDeliveryType.prices.some(function(deliveryPrice){
-										if ( self.settings.orderTemp.prices.priceItems>=deliveryPrice.range.from && self.settings.orderTemp.prices.priceItems<deliveryPrice.range.to ) {
+										if ( priceItemsCheck?.prices?.priceItems >= deliveryPrice.range.from && priceItemsCheck?.prices?.priceItems < deliveryPrice.range.to ) {
 											// have match - set the delivery price
 											self.settings.orderTemp.prices.priceDelivery += deliveryPrice.price;
 											let deliveryProduct = {
@@ -694,7 +704,7 @@ module.exports = {
 					if ( processedDeliveryMethodCodenames.length>0 ) {
 						// loop typology to see if nothing is missing
 						let typeMissing = false;
-						itemsTypology.subtypes.some(function(type){
+						orderCalcItemsTypology.subtypes.some(function(type){
 							if ( processedDeliveryMethodCodenames.indexOf(type)==-1 ) {
 								typeMissing = true;
 								return false;
@@ -712,7 +722,7 @@ module.exports = {
 					}
 				}
 
-				if (!deliveryMethodExists) {
+				if (!deliveryMethodExists && !orderTypology.types.includes("subscription")) {
 					this.logger.error("order.checkOrderData() - delivery type not exist");
 					this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
 				}
@@ -735,7 +745,7 @@ module.exports = {
 						selectedPaymentMethod = paymentType;
 						// need to filter language later
 						self.settings.orderTemp.data.paymentData.name = shopPaymentType.name;
-						self.logger.info("orders.checkOrderData() - shopPaymentType: ", shopPaymentType);
+						self.logger.info("orders.checkOrderData() - shopPaymentType ITEMS LAST: ", shopPaymentType);
 						//--
 						if ( self.settings.orderTemp.prices.priceItems <= 0 ) {
 							self.countOrderPrices("items");
@@ -791,9 +801,11 @@ module.exports = {
 		 * Count cart items total price and order total prices
 		 */
 		countOrderPrices(calculate, specification, order) {
-			let calcTypes = ["all", "items", "totals"];
+			this.logger.warn("orders.countOrderPrices() - PARAMS: ", calculate, specification, typeof order !== undefined);
+
+			const calcTypes = ["all", "items", "totals"];
 			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
-			specification = typeof specification !== "undefined" ?  specification : null;
+			specification = typeof specification === "undefined" ?  null : specification;
 
 			const businessSettings = SettingsMixin.getSiteSettings('business');
 			
@@ -809,19 +821,41 @@ module.exports = {
 
 			// prices of items
 			if ( calculate=="all" || calculate=="items" ) {
-				order.prices.priceItems = 0;
-				order.prices.priceItemsNoTax = 0;
-				order.prices.priceTaxTotal = 0;
+				if ( !order.prices ) {
+					order.prices = {};
+				}
+				order.prices = {
+					...order.prices,
+					...{
+						priceItems: 0,
+						priceItemsNoTax: 0,
+						priceItemsTax: 0,
+						priceTotal: 0,
+						priceTotalNoTax: 0,
+						priceTaxTotal: 0,
+						priceDelivery: 0,
+						priceDeliveryTaxData: null,
+						pricePayment: 0,
+						pricePaymentTaxData: null,
+						priceSubsFirstPayTotal: 0
+					}
+				};
 				order.items
 					.filter(function(item){
 						// if specification is set items are filtered for calculation by subtype - eg. only digital items
-						if (specification && specification!=null) {
-							if ( item.subtype==specification ) {
-								return true;
-							}
-							return false;
+						if (specification && specification !== null) {
+							self.logger.error("orders.countOrderPrices() - specification set but empty: ", specification);
+							return [item.type, item.subtype].includes(specification);
+						} else { // otherwise all items except subscriptions, but first count subscriptions separately
+							let subsFirstPriceTotal = 0;
+							order.items.filter(function(subItem){
+								if ( [subItem.type, subItem.subtype].some((i) => i==="subscription") ) {
+									subsFirstPriceTotal += subItem.price;
+								}
+							});
+							order.prices.priceSubsFirstPayTotal = self.formatPrice(subsFirstPriceTotal);
+							return ![item.type, item.subtype].some((i) => calcExcludedTypes.includes(i));
 						}
-						return true;
 					})
 					.forEach(function(value){
 						if ( value.taxData ) {
@@ -872,7 +906,9 @@ module.exports = {
 				// price total without tax
 				order.prices.priceTotalNoTax = order.prices.priceItemsNoTax +
 					priceDeliveryNoTax + pricePaymentNoTax;
+				console.log(" priceTotalNoTax: ", order.prices.priceTotalNoTax, order.prices.priceItemsNoTax, priceDeliveryNoTax, pricePaymentNoTax);
 				order.prices.priceTotalNoTax = this.formatPrice(order.prices.priceTotalNoTax);
+				console.log(" priceTaxTotal Formated: ", order.prices.priceTaxTotal);
 				// total with tax, delivery and payment
 				// total for IT tax
 				if ( businessSettings.taxData.global.taxType==="IT" ) {
@@ -880,14 +916,18 @@ module.exports = {
 						order.prices.priceDelivery +
 						order.prices.pricePayment + 
 						order.prices.priceTaxTotal;
+					console.log(" priceTotal IT: ", order.prices.priceTotal, order.prices.priceItems, order.prices.priceDelivery, order.prices.pricePayment, order.prices.priceTaxTotal);
 				} else {
 					// total for VAT tax
 					order.prices.priceTotal = order.prices.priceItems +
 						order.prices.priceDelivery +
 						order.prices.pricePayment;
 				}
+				console.log(" priceTotal: ", order.prices.priceTotal, order.prices.priceItems, order.prices.priceDelivery, order.prices.pricePayment);
 				order.prices.priceTotal = this.formatPrice(order.prices.priceTotal);
+				console.log(" priceTotal Formated: ", order.prices.priceTotal);
 			}
+			this.logger.warn("orders.countOrderPrices() - order.prices: ", calculate, specification, typeof order !== undefined, order.prices);
 
 			if (orderFromParam) {
 				return order;
@@ -1035,8 +1075,9 @@ module.exports = {
 						this.logger.error("orders.orderAfterSaveActions.fetch ERROR:", orderSentError);
 					});
 			} else { // no url to send
+				this.logger.info("orders.orderAfterSaveActions() - NO URL TO SEND");
 				// 2. clear cart + 3. send email
-				return self.orderAfterAcceptedActions(ctx, orderProcessedResult)
+				return self.orderAfterAcceptedActions(ctx, orderProcessedResult.order)
 					.then(success => {
 						if ( success ) {
 							orderProcessedResult.order.dates.emailSent = new Date();
@@ -1127,7 +1168,7 @@ module.exports = {
 						order.items && order.items.length>0 ) {
 						let hasSubscriptions = false;
 						order.items.some(item => {
-							if (item.type=="subscription") {
+							if (item.type === "subscription") {
 								hasSubscriptions = true;
 							}
 						});
@@ -1257,14 +1298,17 @@ module.exports = {
 					})
 					.then( (html) => {
 						// compile html from template and data
-						let template = handlebars.compile(html);
+						const template = handlebars.compile(html);
 						try {
 							template();
 						}	catch (error) {
 							self.logger.error("orders.generateInvoice() - handlebars ERROR:", error);
 						}
+						const orderFixed = { ...order };
+						orderFixed.items = orderFixed.items.filter(item => item.type !== "subscription");
+						orderFixed.prices.priceTotalToPay = orderFixed.prices.priceTotal - (orderFixed.data.paymentData.paidAmountTotal ?? 0);
 						let data = {
-							order: order, 
+							order: orderFixed,
 							business: SettingsMixin.getSiteSettings('business')
 						};
 						data = this.prepareDataForTemplate(data);
@@ -1284,51 +1328,46 @@ module.exports = {
 							});
 					})
 					.then( (html) => {
-						let template = htmlToPdfmake(html, {window:window});
-						let docDefinition = {
-							content: [
-								template
-							],
-							styles:{
-							}
-						};
-
-						let pdfDocGenerator = pdfMake.createPdf(docDefinition);
+						// generate pdf
+						self.logger.info("orders.generateInvoice() PDF - HTML");
 						let publicDir = process.env.PATH_PUBLIC || "./public";
 						let dir = publicDir +"/"+ process.env.ASSETS_PATH +"/invoices/"+ order.user.id;
 						dir = dir.replace(/\/\//g, "/");
 						let path = dir + "/" + order.invoice.id + ".pdf";
 						let sendPath = "invoices/"+ order.user.id + "/" + order.invoice.id + ".pdf";
-						pdfDocGenerator.getBuffer(function(buffer) {
-							return ensureDir(dir, 0o2775)
-								.then(() => {
-									writeFileSync(path, buffer);
-									self.logger.info("orders.generateInvoice() - path:", path);
+						self.logger.info("orders.generateInvoice() PDF - dir & sendPath:", dir, sendPath);
+						// pdfDocGenerator.getBuffer(function(buffer) {
+						ensureDir(dir, 0o2775)
+							.then(() => {
+								let pdfDoc = PdfPrintMixin.generatePdfFromHtml(html);
+								pdfDoc.pipe(createWriteStream(path));
+								pdfDoc.end();
+								self.logger.info("orders.generateInvoice() - path:", path);
+							})
+							.catch(orderEnsureDirErr => {
+								self.logger.error("orders.generateInvoice() - orderEnsureDirErr:", orderEnsureDirErr);
+							})
+							.then(() => {
+								ctx.call("users.sendEmail",{ // return 
+									template: "orderpaid",
+									data: {
+										order: order, 
+										html: html
+									},
+									settings: {
+										subject: process.env.SITE_NAME +" - We received Payment for Your Order #"+order._id,
+										to: order.user.email,
+										attachments: [{
+											path: path
+										}]
+									}
 								})
-								.catch(orderEnsureDirErr => {
-									self.logger.error("orders.generateInvoice() - orderEnsureDirErr:", orderEnsureDirErr);
-								})
-								.then(() => {
-									ctx.call("users.sendEmail",{ // return 
-										template: "orderpaid",
-										data: {
-											order: order, 
-											html: html
-										},
-										settings: {
-											subject: process.env.SITE_NAME +" - We received Payment for Your Order #"+order._id,
-											to: order.user.email,
-											attachments: [{
-												path: path
-											}]
-										}
-									})
-										.then(booleanResult => {
-											self.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
-											//return true;
-										});
-								});
-						});
+									.then(booleanResult => {
+										self.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
+										//return true;
+									});
+							});
+						// });
 						return { html: html, path: sendPath };
 					});
 			}
@@ -1452,13 +1491,22 @@ module.exports = {
 					});
 				}
 			}
-			
 
 			return result;
 		},
 
 
-		orderPaymentReceived(ctx, order, paymentType) {
+		orderPaymentReceived(ctx, order, paymentData, paymentProvider, action) {
+			// TODO - HERE check if order is fully paid or just partially
+			if (paymentProvider && paymentProvider !== 'admin') {
+				this.logger.info("orders.orderPaymentReceived() - payment received:", { order: order._id, provider: paymentProvider, action: action, paymentData: paymentData });
+				const updatedOrder = this.updateOrderPaymentState(ctx, order, paymentData, paymentProvider, action);
+				// get order payment status after payment update
+				const status = this.getOrderPaymentStatus(updatedOrder);
+				if (status.order.status == "paid") {
+					this.updatePaidOrderData(updatedOrder, paymentData);
+				}
+			}
 			// order should already have updated amount paid in 
 			return this.generateInvoice(order, ctx)
 				.then(invoice => {
@@ -1473,6 +1521,69 @@ module.exports = {
 		},
 
 
+		updateOrderPaymentState(ctx, order, paymentData, paymentProvider, action) {
+			// get payment data and compare it with order data
+			// according to it, update order status
+			const expectedAmounts = {
+				"products": 0,
+				"subscriptions": {}
+			};
+			if (order?.items?.length > 0) {
+				order.items.forEach(item => {
+					const itemId = item._id ? item._id : item.id;
+					if (item.type === "subscription") {
+						expectedAmounts.subscriptions[itemId] = {
+							amount: item.price,
+							status: order?.data
+						};
+					} else {
+						expectedAmounts.products += item.price;
+					}
+				});
+			}
+			this.logger.info("orders.updateOrderPaymentState() - expectedAmounts:", expectedAmounts);
+
+			// ---- STRIPE SPECIFIC
+			// by default we consider it's payment for "products"
+			// that means all products in the order except subscriptions
+			if (action === "subscription") {
+				// get subscription price and compare it to order price
+				const expectedAmount = expectedAmounts.subscriptions[paymentData?.metadata?.productId]?.amount;
+				this.logger.info("orders.updateOrderPaymentState() - paymentData.amount:", paymentData.amount, " expectedAmount:", expectedAmount);
+				if (
+					((expectedAmount * 10) < paymentData.amount && paymentData.amount/100 >= expectedAmount) || 
+					((expectedAmount * 10) > paymentData.amount && paymentData.amount >= expectedAmount) // in case stripe sends amount without decimals
+				) {
+					this.updateOrderStatePaidStripe(ctx, order, paymentData, action);
+				} else {
+					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
+						provider: paymentProvider,
+						expected: expectedAmounts.subscriptions[paymentData?.metadata?.subscriptionId], 
+						actual: paymentData.amount,
+						order: order._id
+					});
+				}
+			} else {
+				// get product price and compare it to order price
+				// if price fits, update order status
+				if ( 
+					((expectedAmounts.products * 10) < paymentData.amount && paymentData.amount/100 >= expectedAmounts.products) ||  
+					((expectedAmounts.products * 10) > paymentData.amount && paymentData.amount >= expectedAmounts.products) ) { // in case stripe sends amount without decimals
+					this.updateOrderStatePaidStripe(ctx, order, paymentData, action);
+				} else {
+					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
+						provider: paymentProvider,
+						expected: expectedAmounts.products, 
+						actual: paymentData.amount,
+						order: order._id
+					});
+				}
+			}
+
+			return order;
+		},
+
+
 		/**
 		 * 
 		 * @param {Object} order 
@@ -1480,26 +1591,26 @@ module.exports = {
 		 * 
 		 * @returns {Object} order updated
 		 */
-		updatePaidOrderData(order, response) {
+		updatePaidOrderData(order, paymentData) {
 			order.dates.datePaid = new Date();
 			order.status = "paid";
-			order.data.paymentData.lastStatus = response.state;
+			order.data.paymentData.lastStatus = paymentData.status;
 			order.data.paymentData.lastDate = new Date();
 			order.data.paymentData.paidAmountTotal = 0;
 			if ( !order.data.paymentData.lastResponseResult ) {
 				order.data.paymentData.lastResponseResult = [];
 			}
-			order.data.paymentData.lastResponseResult.push(response);
+			order.data.paymentData.lastResponseResult.push(paymentData);
 			// calculate total amount paid
-			for ( let i=0; i<order.data.paymentData.lastResponseResult.length; i++ ) {
-				if (order.data.paymentData.lastResponseResult[i].state && 
-					order.data.paymentData.lastResponseResult[i].state == "approved" && 
-					order.data.paymentData.lastResponseResult[i].transactions) {
-					for (let j=0; j<order.data.paymentData.lastResponseResult[i].transactions.length; j++) {
-						if (order.data.paymentData.lastResponseResult[i].transactions[j].amount && 
-							order.data.paymentData.lastResponseResult[i].transactions[j].amount.total) {
+			for (const element of order.data.paymentData.lastResponseResult) {
+				if (element.state && 
+					element.state == "approved" && 
+					element.transactions) {
+					for (let j=0; j<element.transactions.length; j++) {
+						if (element.transactions[j].amount && 
+							element.transactions[j].amount.total) {
 							order.data.paymentData.paidAmountTotal += parseFloat(
-								order.data.paymentData.lastResponseResult[i].transactions[j].amount.total
+								element.transactions[j].amount.total
 							);
 						}
 					}
@@ -1509,6 +1620,197 @@ module.exports = {
 			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
 
 			return order;
+		},
+
+
+		/**
+		 * Get order summary status of payment from its products and subscriptions
+		 * 
+		 * @param {Object} order
+		 * 
+		 * @returns {string} status
+		 */
+		getOrderPaymentStatus(order) {
+			/*
+			 * Set default status: 
+			 * saved = stored in database, not created in payment gateway, not paid
+			 * prepared = created in payment gateway, not paid
+			 * running = paid in payment gateway,
+			 * completed = paid in payment gateway, all subscriptions paid, ended by desired date or by user
+			 * failed = any error
+			 */
+			const paymentStatuses = subscriptionPaymentStatuses;
+			let orderPaymentStatus = 0; // 0: saved -> 1: prepared -> 2: running
+
+			// get status of products
+			let productsStatus = null; // saved as starting status => null means no products
+			const productPaymentId = order?.data?.paymentData?.paymentRequestId || order?.data?.paymentData?.supplier?.id;
+			console.log("id ------- >: ", productPaymentId);
+		  if (productPaymentId && productPaymentId.toString().trim() !== "" && order?.items?.length) {
+				productsStatus = 0;
+				if (order?.data?.paymentData?.supplier?.status === "paid" && order?.data?.paymentData?.supplier?.paid) {
+					productsStatus = 2;
+				}
+			}
+
+			// get status of subscriptions
+			let subscriptionsStatus = null; // saved as starting status
+			let countRemainingSubscriptions2pay = 0;
+			let countRemainingSubscriptions2prepare = 0;
+			let nextSubscription = null; // next subscription to use
+			let nextSubscriptionToPay = null;
+			let nextSubscriptionToPrepare = null;
+			if (order?.data?.subscription?.ids) {
+				// find worst subscription state
+				const statuses = [];
+			  for (const idItem of order.data.subscription.ids) {
+					if (idItem?.subscription && idItem.subscription.toString().trim() !== "") {
+						let thisStatus = 0;
+						const supplierStatus = idItem.supplier?.status || idItem.status;
+						if (supplierStatus === "prepared") {
+							thisStatus = 1;
+							countRemainingSubscriptions2pay++;
+							if (!nextSubscription) {
+								nextSubscription = idItem;
+							}
+							if (!nextSubscriptionToPay) {
+								nextSubscriptionToPay = idItem;
+							}
+						} else if (supplierStatus === "trialing") {
+							thisStatus = 2;
+						} else if ( supplierStatus === "active" ) {
+							thisStatus = 3;
+						} else if (supplierStatus === "completed") {
+							thisStatus = 4;
+						} else if (
+							supplierStatus.trim() !== "" &&
+							["paused", "canceled", "failed"].includes(supplierStatus)
+						) {
+							thisStatus = 4;
+						} else { // is only in stretchshop DB
+							countRemainingSubscriptions2prepare++;
+							countRemainingSubscriptions2pay++;
+							if (!nextSubscription) {
+								nextSubscription = idItem;
+							}
+							if (!nextSubscriptionToPrepare) {
+								nextSubscriptionToPrepare = idItem;
+							}
+						}
+						statuses.push(thisStatus);
+					}
+			  }
+				subscriptionsStatus = Math.min(...statuses);
+			}
+
+			// calculate status for the whole order
+			let orderTempStatus = 0;
+			if (productPaymentId && !order?.data?.subscription?.ids) { // only products
+				orderTempStatus = productsStatus || 0;
+			} else if (order?.data?.subscription?.ids.length > 0) { // only subscriptions
+				orderTempStatus = subscriptionsStatus || 0;
+			} else { // get minimum of both, if both are null, set to 0
+				orderTempStatus = Math.min(productsStatus, subscriptionsStatus) || 0;
+			}
+			// set status of order
+			if (orderTempStatus >=0 && orderTempStatus <= 1) {
+				orderPaymentStatus = orderTempStatus; // saved or prepared
+			} else if (orderTempStatus >= 2 && orderTempStatus <= 3) {
+				orderPaymentStatus = 2; // paid
+			} else if (orderTempStatus === 4) {
+				orderPaymentStatus = 3; // finished
+			} else if (productsStatus === 5 || [5, 6].includes(subscriptionsStatus)) {
+				orderPaymentStatus = 4; // stopped
+			} else {
+				orderPaymentStatus = 5; // failed
+			}
+
+			return {
+				order: {
+					index: orderPaymentStatus,
+					status: orderStatuses[orderPaymentStatus] || null
+				},
+				products: {
+					count: order?.items?.filter((i) => i.type !== "subscription").length || 0,
+					index: productsStatus,
+					status: productStatuses[productsStatus] || (order?.items?.length ? "saved" : null)
+				},
+				subscriptions: {
+					index: subscriptionsStatus,
+					status: subscriptionPaymentStatuses[subscriptionsStatus] || null,
+					counters: {
+						total: order?.data?.subscription?.ids?.length,
+						remaining: {
+							toPay: countRemainingSubscriptions2pay,
+							toPrepare: countRemainingSubscriptions2prepare
+						}
+					},
+					next: {
+						use: nextSubscription, // next subscription to use
+						toPay: nextSubscriptionToPay,
+						toPrepare: nextSubscriptionToPrepare
+					}
+				}
+			};
+		},
+
+
+		/**
+		 * Update order state according to payment provider and received data
+		 * 
+		 * @param {Object} ctx - context
+		 * @param {Object} order
+		 * @param {Object} updateData
+		 * @param {string} provider
+		 */
+		updateOrderState(ctx, updateData, provider, action) {
+			let self = this;
+			this.logger.info("updateOrderState #1: ", updateData, provider, action);
+
+			if (updateData && provider) {
+				this.logger.info("updateOrderState #2: ", provider, provider === "stripe");
+			
+				const filter = { query: {
+					_id: self.fixStringToId(updateData.object.metadata.orderId),
+				}, limit: 1 };
+
+				ctx.call("orders.find", filter)
+					.then(foundOrder => {
+						if (foundOrder) {
+							foundOrder = foundOrder[0];
+							if (!foundOrder.id) {
+								foundOrder.id = foundOrder._id;
+							}
+							this.logger.info("WEBHOOK charge.succeeded - order foundOrder:", foundOrder);
+							// update order with payment data
+							if (foundOrder.data?.paymentData?.lastResponseResult) {
+								foundOrder.data.paymentData.lastResponseResult.push(updateData);
+							} else {
+								if (!foundOrder.data.paymentData) {
+									foundOrder.data.paymentData = {
+										lastResponseResult: []
+									};
+								}
+								foundOrder.data.paymentData.lastResponseResult = [updateData];
+							}
+
+							// update provider specific information
+							if (provider === "stripe") {
+								this.logger.info("updateOrderState #3 Stripe");
+								foundOrder = this.updateOrderStatePaidStripe(ctx, foundOrder, updateData, action);
+							}
+							
+							// save updated order
+							return ctx.call("orders.updateOrder", { order: foundOrder })
+							.then(updatedOrder => {
+								this.logger.info("WEBHOOK charge.succeeded - order updated:", updatedOrder);
+							});
+						}
+					})
+					.catch(error => {
+						self.logger.error("WEBHOOK charge.succeeded find error", error);
+					});
+			}
 		},
 
 

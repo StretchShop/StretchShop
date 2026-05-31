@@ -206,15 +206,15 @@ module.exports = {
 				priceWithTax: null // eg. 120 (150 - (0.2 * 150))
 			};
 			// use global tax as default
-			if (taxSettings && taxSettings.global && taxSettings.global.taxDecimal) {
+			if (taxSettings?.global?.taxDecimal) {
 				result.taxDecimal = taxSettings.global.taxDecimal;
 			}
 			// use product tax, if set
-			if (product && product.tax && product.tax!==null) {
+			if (product?.tax && product.tax!==null) {
 				result.taxDecimal = product.tax;
 			}
 			// count tax prices using taxDecimal
-			if (result.taxDecimal>0 && product && product.price) {
+			if (result.taxDecimal>0 && product && product.price >= 0) {
 				result.tax = result.taxDecimal * product.price;
 				result.taxType = taxSettings.taxType;
 				if (taxSettings.taxType == "IT") {
@@ -350,6 +350,36 @@ module.exports = {
 				}
 			}
 			return source;
+		},
+
+
+		/**
+		 * Add number of months to date
+		 * 
+		 * @param {Date} date 
+		 * @param {Number} months 
+		 * @returns {Date}
+		 */
+		addMonths(date, months) { //
+			let d = date.getDate();
+			date.setMonth(date.getMonth() + +months);
+			if (date.getDate() != d) {
+				date.setDate(0);
+			}
+			return date;
+		},
+
+		/**
+		 * Add number of days to date
+		 * 
+		 * @param {Date} date 
+		 * @param {Number} days 
+		 * @returns {Date}
+		 */
+		addDays(date, days) {
+			let newDate = new Date(date);
+			newDate.setDate(newDate.getDate() + days);
+			return newDate;
 		}
 
 

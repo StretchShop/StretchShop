@@ -166,7 +166,7 @@ module.exports = {
 				let query = {"$and": []};
 				if (typeof filter.query !== "undefined" && filter.query) {
 					for (let q in filter.query) {
-						if (Object.prototype.hasOwnProperty.call(filter.query, q)) {
+						if (Object.hasOwn(filter.query, q)) {
 							let obj = {};
 							obj[q] = filter.query[q];
 							query["$and"].push(obj);
@@ -176,6 +176,7 @@ module.exports = {
 
 				query = this.filterOnlyActiveCategories(query, ctx);
 				filter.query = query;
+				console.log("categories.findActive filter: ", filter);
 
 				return ctx.call("categories.find", filter)
 					.then(categories => {
