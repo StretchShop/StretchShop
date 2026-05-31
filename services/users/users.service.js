@@ -1414,11 +1414,11 @@ module.exports = {
 
 				return this.adapter.findOne({ id: self.fixStringToId(ctx.params.userId) })
 					.then((foundUser) => {
-						if ( !foundUser.data ) { foundUser.data = { contentDependencies: { list: [] } } };
-						if ( !foundUser.data.contentDependencies ) { foundUser.data.contentDependencies = { list: [] } };
-						if ( !foundUser.data.contentDependencies.list ) { foundUser.data.contentDependencies.list = [] };
+						if ( !foundUser.data ) { foundUser.data = { contentDependencies: { list: [] } }; };
+						if ( !foundUser.data.contentDependencies ) { foundUser.data.contentDependencies = { list: [] }; };
+						if ( !foundUser.data.contentDependencies.list ) { foundUser.data.contentDependencies.list = []; };
 						if ( foundUser && productCodes.length > 0 ) {
-							foundUser.data.contentDependencies.list = productCodes.filter((item, index, array) => array.indexOf(item) == index)
+							foundUser.data.contentDependencies.list = productCodes.filter((item, index, array) => array.indexOf(item) == index);
 						}
 						return foundUser;
 					})

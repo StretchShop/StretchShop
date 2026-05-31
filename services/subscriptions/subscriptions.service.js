@@ -967,7 +967,7 @@ module.exports = {
 									.then(updatedUser => {
 										this.logger.info("subscriptions.suspend - users.removeContentDependencies updatedUser:", updatedUser);
 										return subResult;
-									})
+									});
 							}
 						});
 
