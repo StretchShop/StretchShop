@@ -26,8 +26,35 @@ function getRequiredSecret(name, devFallback = null) {
 	return devFallback;
 }
 
+function useRedisCacher() {
+	return isProduction() && !!process.env.TRANSPORTER?.trim();
+}
+
+function getCacherConfig() {
+	if (useRedisCacher()) {
+		return {
+			type: "Redis",
+			options: {
+				prefix: process.env.CACHER_PREFIX || "stretchshop",
+				ttl: parseInt(process.env.CACHER_TTL || "3600", 10),
+				redis: getRequiredSecret("REDIS_URL", null),
+				maxParamsLength: 100,
+			},
+		};
+	}
+
+	return {
+		type: "Memory",
+		options: {
+			maxParamsLength: 100,
+		},
+	};
+}
+
 module.exports = {
 	isProduction,
 	isNonProductionEnv,
 	getRequiredSecret,
+	useRedisCacher,
+	getCacherConfig,
 };

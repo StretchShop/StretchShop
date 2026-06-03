@@ -95,6 +95,15 @@ module.exports = {
 		port: process.env.PORT || 3000,
 
 		routes: [
+			{
+				path: "/health",
+				aliases: {
+					"GET /": "metrics.health",
+				},
+				authentication: false,
+				authorization: false,
+				mappingPolicy: "restrict",
+			},
 			/**
 			 * Webhook endpoint for payment providers, that NEED raw body (eg. stripe)
 			 * It disables body parsing and reads raw body from request

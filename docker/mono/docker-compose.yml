@@ -26,7 +26,7 @@ services:
 
 
   mongo:
-    image: mongo:latest
+    image: mongo:7.0.18
     restart: on-failure
     volumes:
       - ./db:/data/db
@@ -39,15 +39,22 @@ services:
 
 
   nats-server:
-    image: nats
+    image: nats:2.10-alpine
     ports:
       - "4222:4222"
     networks:
       - internal
 
 
+  redis:
+    image: redis:7.4-alpine
+    restart: on-failure
+    networks:
+      - internal
+
+
   traefik:
-    image: traefik:latest
+    image: traefik:v3.3.5
     command:
       - "--api.insecure=true" # only if you are using nginx or something else to protect the traefik dashboard
       - "--providers.docker=true"
