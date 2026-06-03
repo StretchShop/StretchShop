@@ -24,30 +24,30 @@ module.exports = {
 
 			// set full lang
 			if ( coreData.lang && coreData.langs ) {
-				for (let i = 0; i<coreData.langs.length; i++) {
-					if (coreData.langs[i].code==coreData.lang) {
-						coreData.langs[i]["default"] = true;
-						coreData.lang = coreData.langs[i];
+				for (const element of coreData.langs) {
+					if (element.code==coreData.lang) {
+						element["default"] = true;
+						coreData.lang = element;
 						break;
 					}
 				}
 			}
 			// set full currency
 			if ( coreData.currency && coreData.currencies ) {
-				for (let i = 0; i<coreData.currencies.length; i++) {
-					if (coreData.currencies[i].code==coreData.currency) {
-						coreData.currencies[i]["default"] = true;
-						coreData.currency = coreData.currencies[i];
+				for (const element of coreData.currencies) {
+					if (element.code==coreData.currency) {
+						element["default"] = true;
+						coreData.currency = element;
 						break;
 					}
 				}
 			}
 			// set full country
 			if ( coreData.country && coreData.countries ) {
-				for (let i = 0; i<coreData.countries.length; i++) {
-					if (coreData.countries[i].code==coreData.country) {
-						coreData.countries[i]["default"] = true;
-						coreData.country = coreData.countries[i];
+				for (const element of coreData.countries) {
+					if (element.code==coreData.country) {
+						element["default"] = true;
+						coreData.country = element;
 						break;
 					}
 				}

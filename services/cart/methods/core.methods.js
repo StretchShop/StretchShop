@@ -17,10 +17,10 @@ module.exports = {
 		createEmptyCart(ctx, cartCookie) {
 			let userId = null,
 				orderId = null;
-			if ( ctx.meta.user && ctx.meta.user._id ) {
+			if ( ctx.meta.user?._id ) {
 				userId = ctx.meta.user._id;
 			}
-			if ( ctx.meta.order && ctx.meta.order._id ) {
+			if ( ctx.meta.order?._id ) {
 				orderId = ctx.meta.order._id;
 			}
 			let entity = {
@@ -74,6 +74,15 @@ module.exports = {
 		 * @param {Object} productAvailable 
 		 * @returns Promise
 		 */
+		prepareForUpdate(object) {
+			let objectToSave = Object.assign({}, object);
+			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
+				delete objectToSave._id;
+			}
+			return { "$set": objectToSave };
+		},
+
+
 		addToCart(ctx, productAvailable) {
 			return ctx.call("cart.me")
 				.then(cart => {

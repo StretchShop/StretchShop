@@ -14,6 +14,7 @@ const UserService = require("../../../services/users/users.service");
 
 const testLocals = require("../../../resources/settings/locals.json");
 const testUser = require("../../demodata/user.json");
+const { seedTestProduct } = require("../../setup/seed");
 
 global.testMeta = {
 	localsDefault: testLocals,
@@ -94,6 +95,7 @@ describe("Test 'orders' service", () => {
 
 	beforeAll(async () => {
 		await broker.start();
+		await seedTestProduct(serviceProducts);
 	});
 	afterAll(async () => {
 		await broker.stop()
@@ -103,6 +105,11 @@ describe("Test 'orders' service", () => {
 	// Test order updates
 	describe("Test 'orders.progress' action", () => {
 
+		const withCartMeta = (meta = global.testMeta) => ({
+			...meta,
+			cookies: { cart: global.lastCart.hash || global.lastCart._id?.toString() },
+			cart: global.lastCart,
+		});
 
 		it("Should return Object of New Order created", async () => {			
 			const cart = await broker.call("cart.add", {
@@ -110,14 +117,21 @@ describe("Test 'orders' service", () => {
 				amount: 1
 			});
 
+			const cartMeta = {
+				...global.testMeta,
+				cookies: { cart: cart.hash },
+				cart,
+			};
+
 			// create new order because none exists for cart
-			const orderResponse = await broker.call("orders.progress", {}, { meta: global.testMeta });
+			const orderResponse = await broker.call("orders.progress", {}, { meta: cartMeta });
 			expect(orderResponse.result).toMatchObject({
 				id: 1,
 				name: "missing user data",
 				success: false
 			});
 			global.orderSpecial = orderResponse.order;
+			global.lastCart = cart;
 
 			expect(orderResponse.order).toMatchObject(global.orderExpectation);
 		});
@@ -150,7 +164,7 @@ describe("Test 'orders' service", () => {
 			};
 
 			// call progress action to get result - order status
-			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: global.testMeta });
+			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 2,
 				name: "missing order data",
@@ -232,7 +246,7 @@ describe("Test 'orders' service", () => {
 			};
 
 			// create new order because none exists for cart
-			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: global.testMeta });
+			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 3,
 				name: "missing confirmation",
@@ -283,7 +297,7 @@ describe("Test 'orders' service", () => {
 			global.orderSpecial.dates['userConfirmation'] = (new Date()).getTime();
 
 			// create new order because none exists for cart
-			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: global.testMeta });
+			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 4,
 				name: "confirmed",

@@ -10,6 +10,7 @@ const { createTestBroker } = require("../../setup/broker");
 const ApiService = require("../../../services/api/api.service");
 const CartService = require("../../../services/cart/cart.service");
 const ProductsService = require("../../../services/products/products.service");
+const { seedTestProduct } = require("../../setup/seed");
 
 
 describe("Test 'cart' service", () => {
@@ -25,12 +26,20 @@ describe("Test 'cart' service", () => {
 	
 	beforeAll(async () => {
 		await broker.start();
-		const res = await broker.call("cart.delete");
+		await seedTestProduct(serviceProducts);
+		await broker.call("cart.delete");
 	});
 	afterAll(async () => {
 		await broker.stop();
 	});
 
+
+	describe("Test 'cart.cleanCarts' action", () => {
+		it("should return an array when no stale carts exist", async () => {
+			const result = await broker.call("cart.cleanCarts");
+			expect(Array.isArray(result)).toBe(true);
+		});
+	});
 
 	// Test New cart
 	describe("Test 'cart.me' action", () => {
