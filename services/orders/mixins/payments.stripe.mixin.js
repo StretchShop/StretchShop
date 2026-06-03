@@ -479,8 +479,6 @@ module.exports = {
 				const self = this;
 
 				let stripeSignature = ctx.meta.headers["stripe-signature"];
-				this.logger.info("stripeWebhook ----- data :", typeof data, data);
-				this.logger.info("stripeWebhook ----- stripeSignature :", typeof stripeSignature, stripeSignature);
 
 				let event;
 				try {

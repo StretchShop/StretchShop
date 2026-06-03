@@ -17,9 +17,8 @@ module.exports = {
 				supplier: { type: "string", min: 3 }
 			},
 			handler(ctx) {
-				this.logger.info("orders.paymentWebhook service params:", JSON.stringify(ctx.params) );
-				
-				let supplier = ctx.params.supplier.toLowerCase();
+				const supplier = ctx.params.supplier?.toLowerCase();
+				this.logger.info("orders.paymentWebhook supplier:", supplier);
 				let actionName = supplier+"Webhook";
 
 				// using resources/settings/orders.js check if final payment action can be called
@@ -45,7 +44,6 @@ module.exports = {
 		 */
 		paymentWebhookRaw: {
 			handler(ctx) {
-				this.logger.info("orders.paymentWebhook service ctx.params:", typeof ctx.params.body, ctx.params );
 				if (!ctx.params) { ctx.params = { params: {} }; }
 				if (!ctx.params.params) { ctx.params.params = { supplier: "stripe" }; }
 				ctx.params.params["supplier"] = "stripe";
@@ -53,13 +51,11 @@ module.exports = {
 				if (!ctx.params.body) {
 					return Promise.reject(new MoleculerClientError("Webhook error", 400, "", [{ field: "request body", message: "not found"}]));
 				}
-				
-				// this.logger.info("orders.paymentWebhook service params:", ctx.params );
-				
+
 				let supplier = ctx.params.params.supplier.toLowerCase();
 				let actionName = supplier+"Webhook";
 
-				this.logger.info("action name & call", actionName, "orders."+actionName);
+				this.logger.info("orders.paymentWebhookRaw supplier:", supplier);
 
 				// using resources/settings/orders.js check if final payment action can be called
 				if ( this.settings.order.availablePaymentActions &&

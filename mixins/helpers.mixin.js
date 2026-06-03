@@ -380,6 +380,35 @@ module.exports = {
 			let newDate = new Date(date);
 			newDate.setDate(newDate.getDate() + days);
 			return newDate;
+		},
+
+
+		mergeContentDependencyCodes(existingList, newCodes) {
+			const existing = Array.isArray(existingList) ? existingList : [];
+			const additions = Array.isArray(newCodes) ? newCodes : [];
+			return [...new Set([...existing, ...additions])];
+		},
+
+
+		getContentDependencyRemovalParamsFromSubscription(subscription) {
+			const product = subscription?.data?.product;
+			const userId = subscription?.userId;
+			if (!userId || !product?.contentDependency || !product?.orderCode) {
+				return null;
+			}
+			return {
+				userId: userId.toString(),
+				productCodes: [product.orderCode],
+			};
+		},
+
+
+		removeSubscriptionContentDependencies(ctx, subscription) {
+			const params = this.getContentDependencyRemovalParamsFromSubscription(subscription);
+			if (!params) {
+				return Promise.resolve(null);
+			}
+			return ctx.call("users.removeContentDependencies", params);
 		}
 
 

@@ -10,6 +10,7 @@ const path = require("path");
 // global mixins
 const HelpersMixin = require("../../mixins/helpers.mixin");
 const SettingsMixin = require("../../mixins/settings.mixin");
+const { getRequiredSecret } = require("../../mixins/env.helpers");
 
 // methods
 const ApiMethodsCore = require("./methods/core.methods");
@@ -50,7 +51,7 @@ module.exports = {
 			cert: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_CERT))
 		} : null,
 		
-		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
+		JWT_SECRET: getRequiredSecret("JWT_SECRET", "jwt-stretchshop-secret"),
 
 		// Global CORS settings for all routes
 		cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev" || process.env.CORS_ORIGIN?.trim() !== "") ? {
@@ -116,9 +117,6 @@ module.exports = {
 					"POST /:supplier": "orders.paymentWebhookRaw",
 				},
 				onBeforeCall(ctx, route, req) {
-					// Set request headers to context meta
-					console.log("api.service - onBeforeCall - route: ", route);
-					console.log("api.service - onBeforeCall - req.body: ", req.body);
 					ctx.meta.rawbody = req.body.toString();
 					ctx.meta.headers = req.headers;
 				},

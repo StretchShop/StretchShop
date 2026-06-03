@@ -10,6 +10,7 @@ const util = require("node:util");
 const _ = require("lodash");
 
 const SettingsMixin = require("../../../mixins/settings.mixin");
+const { getRequiredSecret } = require("../../../mixins/env.helpers");
 
 const E = require("moleculer-web").Errors;
 
@@ -48,10 +49,7 @@ module.exports = {
 		 * @param {Object} res 
 		 */
 		cookiesManagement(ctx, route, req, res) {
-			let cookieKey = "Lvj1MalbaTe6k";
-			if ( process.env.COOKIES_KEY ) {
-				cookieKey = process.env.COOKIES_KEY;
-			}
+			const cookieKey = getRequiredSecret("COOKIES_KEY", "Lvj1MalbaTe6k");
 			const bsKeys = SettingsMixin.getSiteSettings("business", true);
 
 			res.cookies = new Cookies(req, res, { keys: [cookieKey] });
@@ -144,15 +142,13 @@ module.exports = {
 						if (decoded) {
 							// compare if token from cookie is same as token from header
 							if (decoded.token === cookieData?.token) {
-								this.logger.info("Token valid");
 								return true;
-							} else {
-								this.logger.error("Token INVALID");
-								return false;
 							}
+							this.logger.warn("CSRF token mismatch");
+							return false;
 						}
 					} catch (e) {
-						this.logger.error("Token INVALID: ", e);
+						this.logger.warn("CSRF token verification failed");
 						return false;
 					}
 				}
@@ -209,24 +205,16 @@ module.exports = {
 			// authorization core
 			return this.Promise.resolve(token)
 				.then(token => {
-					this.logger.info("token #1: ", token);
 					if (token && token.toString().trim()!=="") {
-						// Verify JWT token
-						this.logger.info("token #2: ", token);
 						return ctx.call("users.resolveToken", { token: token })
 							.then(user => {
-								this.logger.info("token #3: ", user);
 								if ( typeof user !== "undefined" && user && user.length>0 ) {
 									user = user[0];
 								}
-								this.logger.info("token #4: ", user);
 								if (user) {
-									this.logger.info("api.authenticate() username: ", user.username);
-									// Reduce user fields (it will be transferred to other nodes)
 									user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "subtype", "addresses", "settings", "data", "dates"]);
 									ctx.meta.token = token;
 									ctx.meta.userID = user._id;
-									this.logger.info("api.authenticate() ctx.meta.user: ", ctx.meta.user);
 									return user;
 								}
 							})
@@ -242,7 +230,9 @@ module.exports = {
 					return user;
 				})
 				.catch(err => {
-					console.error("api.authenticate() ERROR: ", err);
+					if (!(err instanceof ApiGateway.Errors.UnAuthorizedError)) {
+						this.logger.warn("Authentication failed");
+					}
 					throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
 				});
 		},

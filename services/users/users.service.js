@@ -17,6 +17,8 @@ const emailTemplate = require("../../mixins/email.mixin");
 const validateAddress = require("../../mixins/validate.address.mixin");
 const HelpersMixin = require("../../mixins/helpers.mixin");
 const priceLevels = require("../../mixins/price.levels.mixin");
+const SettingsMixin = require("../../mixins/settings.mixin");
+const { getRequiredSecret } = require("../../mixins/env.helpers");
 
 // methods
 const UsersMethodsCore = require("./methods/core.methods");
@@ -59,7 +61,7 @@ module.exports = {
 		}],
 
 		/** Secret for JWT */
-		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
+		JWT_SECRET: getRequiredSecret("JWT_SECRET", "jwt-stretchshop-secret"),
 
 		/** Public fields */
 		fields: ["_id", "username", "email", "type", "subtype", "bio", "image", "company", "addresses", "settings", "data", "dates", "superadmined"],
@@ -1048,16 +1050,21 @@ module.exports = {
 				dictionary: { type: "object" }
 			},
 			handler(ctx) {
+				const business = SettingsMixin.getSiteSettings("business", true);
+				if (ctx.meta.user?.type !== "admin" || business.editableSettings?.translates !== true) {
+					return Promise.reject(new MoleculerClientError("Not authorized", 403, "", []));
+				}
+
 				return fs.writeJson(
-					ctx.meta.siteSettings.translation.dictionaryPath, 
-					ctx.params.dictionary, 
+					ctx.meta.siteSettings.translation.dictionaryPath,
+					ctx.params.dictionary,
 					{ spaces: 2 }
 				).then(() => {
 					return { success: true };
 				})
 					.catch(err => {
-						console.error("settings.mixin updateSettingsFile write error: ", err);
-						return { success: false, error: err };
+						this.logger.error("users.updateDictionary write error: ", err);
+						return Promise.reject(new MoleculerClientError("Can't update dictionary", 422, "", []));
 					});
 			}
 		},
@@ -1405,28 +1412,42 @@ module.exports = {
 		 * 
 		 */
 		updateContentDependencies: {
+			visibility: "protected",
 			params: {
 				userId: { type: "string" },
 				productCodes: { type: "array", items: { type: "string" } }
 			},
 			handler(ctx) {
-				let self = this;
+				const { userId, productCodes } = ctx.params;
 
-				return this.adapter.findOne({ id: self.fixStringToId(ctx.params.userId) })
+				return this.adapter.findById(this.fixStringToId(userId))
 					.then((foundUser) => {
-						if ( !foundUser.data ) { foundUser.data = { contentDependencies: { list: [] } }; };
-						if ( !foundUser.data.contentDependencies ) { foundUser.data.contentDependencies = { list: [] }; };
-						if ( !foundUser.data.contentDependencies.list ) { foundUser.data.contentDependencies.list = []; };
-						if ( foundUser && productCodes.length > 0 ) {
-							foundUser.data.contentDependencies.list = productCodes.filter((item, index, array) => array.indexOf(item) == index);
+						if (!foundUser) {
+							return Promise.reject(new MoleculerClientError("User not found", 404));
+						}
+						if (!foundUser.data) {
+							foundUser.data = { contentDependencies: { list: [] } };
+						}
+						if (!foundUser.data.contentDependencies) {
+							foundUser.data.contentDependencies = { list: [] };
+						}
+						if (!foundUser.data.contentDependencies.list) {
+							foundUser.data.contentDependencies.list = [];
+						}
+						if (productCodes.length > 0) {
+							foundUser.data.contentDependencies.list = [...new Set(productCodes)];
 						}
 						return foundUser;
 					})
-					.catch(err => {
-						this.logger.error("users.updateContentDependencies error:", err);
-					})
 					.then((updatedUser) => {
 						return this.adapter.updateById(updatedUser._id, this.prepareForUpdate(updatedUser));
+					})
+					.catch(err => {
+						this.logger.error("users.updateContentDependencies error:", err);
+						if (err instanceof MoleculerClientError) {
+							return Promise.reject(err);
+						}
+						return Promise.reject(new MoleculerClientError("Can't update content dependencies", 422, "", []));
 					});
 			}
 		},
@@ -1441,30 +1462,41 @@ module.exports = {
 		 * 
 		 */
 		removeContentDependencies: {
+			visibility: "protected",
 			params: {
 				userId: { type: "string" },
 				productCodes: { type: "array", items: { type: "string" } }
 			},
 			handler(ctx) {
-				let self = this;
+				const { userId, productCodes } = ctx.params;
 
-				return this.adapter.findOne({ id: self.fixStringToId(ctx.params.userId) })
+				return this.adapter.findById(this.fixStringToId(userId))
 					.then((foundUser) => {
-						if ( foundUser && productCodes.length > 0 ) {
+						if (!foundUser) {
+							return Promise.reject(new MoleculerClientError("User not found", 404));
+						}
+						if (!foundUser.data?.contentDependencies?.list) {
+							return foundUser;
+						}
+						if (productCodes.length > 0) {
 							productCodes.forEach(code => {
 								const foundIndex = foundUser.data.contentDependencies.list.indexOf(code);
-								if ( foundIndex > -1 ) {
+								if (foundIndex > -1) {
 									foundUser.data.contentDependencies.list.splice(foundIndex, 1);
 								}
 							});
 						}
 						return foundUser;
 					})
-					.catch(err => {
-						this.logger.error("users.removeContentDependencies error:", err);
-					})
 					.then((updatedUser) => {
 						return this.adapter.updateById(updatedUser._id, this.prepareForUpdate(updatedUser));
+					})
+					.catch(err => {
+						this.logger.error("users.removeContentDependencies error:", err);
+						if (err instanceof MoleculerClientError) {
+							return Promise.reject(err);
+						}
+						return Promise.reject(new MoleculerClientError("Can't remove content dependencies", 422, "", []));
 					});
 			}
 		},

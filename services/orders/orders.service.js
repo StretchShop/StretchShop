@@ -13,6 +13,7 @@ const priceLevels = require("../../mixins/price.levels.mixin");
 const FileHelpers = require("../../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../../mixins/cache.cleaner.mixin");
 const SettingsMixin = require("../../mixins/settings.mixin");
+const { getRequiredSecret } = require("../../mixins/env.helpers");
 
 // methods
 const OrdersMethodsCore = require("./methods/core.methods");
@@ -69,7 +70,7 @@ module.exports = {
 		}],
 
 		/** Secret for JWT */
-		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
+		JWT_SECRET: getRequiredSecret("JWT_SECRET", "jwt-stretchshop-secret"),
 
 		/** Public fields */
 		fields: [
@@ -1039,44 +1040,49 @@ module.exports = {
 		 * @param {*} ctx 
 		 */
 		afterPaidUserUpdates(order, ctx) {
-			// 1. get order products with data.contentDependency:true (if any)
 			this.logger.info("afterPaidUserUpdates default");
 			let cdProductCodes = [];
-			if (order && order.items && order.items.length > 0) {
+			if (order?.items?.length > 0) {
 				order.items.forEach(oi => {
-					if (oi && oi.contentDependency && oi.contentDependency === true && oi.orderCode) {
+					if (oi?.contentDependency === true && oi.orderCode) {
 						cdProductCodes.push(oi.orderCode);
 					}
 				});
 			}
-			// 2. then update active user data.contentDependencies in ctx & DB
-			// update meta
+
+			if (!order?.user?.id || cdProductCodes.length === 0) {
+				return Promise.resolve({ user: null, order });
+			}
+
 			let cdProductCodesUniq = cdProductCodes;
 			if (ctx.meta.user) {
 				if (!ctx.meta.user.data) {
-					// if data not set already, set it now
-					ctx.meta.user.data = { contentDependencies: { list: cdProductCodes } };
+					ctx.meta.user.data = { contentDependencies: { list: [] } };
 				}
 				if (!ctx.meta.user.data.contentDependencies) {
-					// if data.contentDependencies not set already, set it now
-					ctx.meta.user.data.contentDependencies = { list: cdProductCodes };
+					ctx.meta.user.data.contentDependencies = { list: [] };
 				}
-				// get array with unique values
-				cdProductCodesUniq = ctx.meta.user.data.contentDependencies.concat(cdProductCodes);
-				cdProductCodesUniq = cdProductCodesUniq.filter((item, index, array) => array.indexOf(item) == index);
+				if (!ctx.meta.user.data.contentDependencies.list) {
+					ctx.meta.user.data.contentDependencies.list = [];
+				}
+				cdProductCodesUniq = this.mergeContentDependencyCodes(
+					ctx.meta.user.data.contentDependencies.list,
+					cdProductCodes
+				);
 				ctx.meta.user.data.contentDependencies.list = cdProductCodesUniq;
 			}
-			// update in DB
-			return ctx.call("user.updateContentDependencies", { 
+
+			return ctx.call("users.updateContentDependencies", {
 				userId: order.user.id,
 				productCodes: cdProductCodesUniq
 			})
-				.catch(err => {
-					this.logger.error("order.afterPaidUserUpdates() error:", err);
-				})
 				.then(result => {
 					this.logger.info("user contentDependencies updated:", result);
 					return { user: result, order };
+				})
+				.catch(err => {
+					this.logger.error("order.afterPaidUserUpdates() error:", err);
+					return Promise.reject(err);
 				});
 		},
 
