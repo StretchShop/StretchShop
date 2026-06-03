@@ -43,6 +43,9 @@ module.exports = [
 			"no-var": ["error"],
 			"no-console": ["off"],
 			"no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+			"no-useless-assignment": "warn",
+			"no-constant-binary-expression": "warn",
+			"valid-typeof": "warn",
 		},
 	},
 	// Moleculer-specific configuration for service files

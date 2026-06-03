@@ -171,7 +171,7 @@ module.exports = {
 			},
 			cache: false,
 			handler(ctx) {
-				if (!ctx.params) { ctx.params = { limit: 10 } }
+				if (!ctx.params) { ctx.params = { limit: 10 }; }
 				if (!ctx.params?.limit || ctx.params?.limit > 100) {
 					ctx.params.limit = 100;
 				}
@@ -190,7 +190,7 @@ module.exports = {
 								result = self.priceByUser(result, ctx.meta.user);
 								result = self.getProductTaxData(
 									result, 
-									SettingsMixin.getSiteSettings('business')?.taxData
+									SettingsMixin.getSiteSettings("business")?.taxData
 								);
 							});
 						}
@@ -227,9 +227,9 @@ module.exports = {
 				if (ctx.params.limit && parseInt(ctx.params.limit) > 0) {
 					params.filter = {
 						limit: ctx.params.limit
-					}
+					};
 				}
-				return ctx.call('products.productsList', params)
+				return ctx.call("products.productsList", params)
 					.catch(err => {
 						this.logger.error("products.productsListGet error:", err);
 						return this.Promise.reject(new MoleculerClientError("Products findG error", 422, "", []));
@@ -271,7 +271,7 @@ module.exports = {
 							if ( categoriesToListProductsIn.length<1 ) {
 								categoriesToListProductsIn = [categoriesToListProductsIn];
 							}
-							category["taxData"] = SettingsMixin.getSiteSettings('business')?.taxData?.global;
+							category["taxData"] = SettingsMixin.getSiteSettings("business")?.taxData?.global;
 
 							// fix filter if needed
 							let filter = { query: {}, limit: 30};
@@ -352,7 +352,7 @@ module.exports = {
 										.then(properties => {
 											productsResult["filterProperties"] = properties;
 											return productsResult;
-										})
+										});
 								});
 						}
 					})
@@ -512,7 +512,7 @@ module.exports = {
 								result = self.priceByUser(result, ctx.meta.user);
 								result = self.getProductTaxData(
 									result, 
-									SettingsMixin.getSiteSettings('business')?.taxData
+									SettingsMixin.getSiteSettings("business")?.taxData
 								);
 							});
 						}

@@ -163,7 +163,7 @@ module.exports = {
 									created: (new Date()).toISOString,
 									id: pi.id,
 									paid: null,
-									status: 'created',
+									status: "created",
 								};
 								// define order.id for update action
 								this.logger.info("payments.stripe.mixin stripeOrderPaymentintent order1:", order);
@@ -237,36 +237,36 @@ module.exports = {
 					order.data.subscription.ids.length > 0 
 				) {
 
-						// confirmation after agreement saved to refresh order
-						if (data.action == "subAgree" && data.subscriptionId && data.success == true) {
-							return self.agreeOrderSubscription(ctx, data.subscriptionId, order);
+					// confirmation after agreement saved to refresh order
+					if (data.action == "subAgree" && data.subscriptionId && data.success == true) {
+						return self.agreeOrderSubscription(ctx, data.subscriptionId, order);
+					}
+
+					let ids = [];
+					// get subscription IDs - product & subscription
+					order.data.subscription.ids.forEach(id => {
+						if (id && id.supplier?.status != "paid") {
+							ids.push(id);
 						}
+					});
+					this.logger.info("payments.stripe.mixin stripeOrderSubscribtion ids:", ids);
 
-						let ids = [];
-						// get subscription IDs - product & subscription
-						order.data.subscription.ids.forEach(id => {
-							if (id && id.supplier?.status != "paid") {
-								ids.push(id);
-							}
-						});
-						this.logger.info("payments.stripe.mixin stripeOrderSubscribtion ids:", ids);
+					// get status of order payment
+					const orderPaymentStatus = self.getOrderPaymentStatus(order);
+					this.logger.info("payments.stripe.mixin stripeOrderSubscription #1 orderPaymentStatus:", JSON.stringify(orderPaymentStatus, null, 2));
 
-						// get status of order payment
-						const orderPaymentStatus = self.getOrderPaymentStatus(order);
-						this.logger.info("payments.stripe.mixin stripeOrderSubscription #1 orderPaymentStatus:", JSON.stringify(orderPaymentStatus, null, 2));
+					// define related object
+					const related = {
+						ids,
+						order, 
+						orderPaymentStatus,
+						subscription: null,
+						product: null,
+						result: null
+					};
 
-						// define related object
-						const related = {
-							ids,
-							order, 
-							orderPaymentStatus,
-							subscription: null,
-							product: null,
-							result: null
-						};
-
-						// get all order subscriptions - to filter them later
-						return this.getOrderSubscriptions(ctx, related)
+					// get all order subscriptions - to filter them later
+					return this.getOrderSubscriptions(ctx, related)
 						.then(subscriptions => {
 							this.logger.info("payments.stripe.mixin stripeOrderSubscription #1 related:", related);
 							orderSubscriptions = subscriptions;
@@ -587,144 +587,144 @@ module.exports = {
 		
 			// Handle the event
 			switch (event.type) {
-				case "charge.succeeded": { // payment of PRODCUTS succeeded
-					this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
-					const data = event.data;
+			case "charge.succeeded": { // payment of PRODCUTS succeeded
+				this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
+				const data = event.data;
 					
-					this.logger.info("charge.succeeded DATA : ", data, paymentData);
+				this.logger.info("charge.succeeded DATA : ", data, paymentData);
 
-					// update order status according to payment data
-					self.orderPaymentReceived(ctx, order, paymentData, "stripe", "products");
+				// update order status according to payment data
+				self.orderPaymentReceived(ctx, order, paymentData, "stripe", "products");
 
-					break;
+				break;
+			}
+
+			case "customer.subscription.updated": { // subscription updated - maybe bound to payment method
+				this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
+				const data = event.data;
+					
+				this.logger.info("customer.subscription.updated DATA : ", data, paymentData);
+					
+				// update order status according to payment data
+				self.orderPaymentReceived(ctx, order, paymentData, "stripe", "subscription");
+
+				break;
+			}
+
+			case "invoice.payment_succeeded": {
+				// ----- SET DEFAULT PAYMENT METHOD for future payments
+				const paymentIntent = event.data.object;
+				this.logger.info("WEBHOOK invoice.payment_succeeded: "+ event.type +" ---------- PaymentIntent was successful!", paymentIntent);
+				// get subscription object by its stripeId
+				let subscriptionStripeId = null;
+				if (paymentIntent?.subscription && paymentIntent.subscription.trim() != "") {
+					subscriptionStripeId = paymentIntent.subscription.trim();
 				}
-
-				case "customer.subscription.updated": { // subscription updated - maybe bound to payment method
-					this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
-					const data = event.data;
-					
-					this.logger.info("customer.subscription.updated DATA : ", data, paymentData);
-					
-					// update order status according to payment data
-					self.orderPaymentReceived(ctx, order, paymentData, "stripe", "subscription");
-
-					break;
+				let paymentIntentId = null;
+				if (paymentIntent?.payment_intent && paymentIntent.payment_intent.trim() != "") {
+					paymentIntentId = paymentIntent.payment_intent.trim();
 				}
-
-				case "invoice.payment_succeeded": {
-					// ----- SET DEFAULT PAYMENT METHOD for future payments
-					const paymentIntent = event.data.object;
-					this.logger.info("WEBHOOK invoice.payment_succeeded: "+ event.type +" ---------- PaymentIntent was successful!", paymentIntent);
-					// get subscription object by its stripeId
-					let subscriptionStripeId = null;
-					if (paymentIntent?.subscription && paymentIntent.subscription.trim() != "") {
-						subscriptionStripeId = paymentIntent.subscription.trim();
-					}
-					let paymentIntentId = null;
-					if (paymentIntent?.payment_intent && paymentIntent.payment_intent.trim() != "") {
-						paymentIntentId = paymentIntent.payment_intent.trim();
-					}
-					this.logger.info("WEBHOOK invoice.payment_succeeded - subscriptionStripeId:", subscriptionStripeId);
-					if (paymentIntentId && paymentIntentId!=null) {
-						stripe.paymentIntents.retrieve(paymentIntentId)
-							.then( paymentIntentResult => {
-								stripe.subscriptions.update( subscriptionStripeId, {
-									default_payment_method: paymentIntentResult.payment_method
-								})
-									.then(defaultPaymentMethodUpdate => {
-										this.logger.info("WEBHOOK invoice.payment_succeeded - defaultPaymentMethodUpdate:", defaultPaymentMethodUpdate);
-										// update subscription 
-										ctx.call("subscriptions.find", {
-											query: {
-												"data.stripe.id": subscriptionStripeId
-											},
-											limit: 1
-										})
-											.then(subscriptions => {
-												this.logger.info("WEBHOOK invoice.paid - subscriptions found:", subscriptions);
-												if (subscriptions?.[0]) {
-													if (subscriptions[0].data.order.data.paymentData.lastResponseResult) {
-														subscriptions[0].data.order.data.paymentData.lastResponseResult.push(paymentIntent);
-													}
-													this.subscriptionPaymentReceived(ctx, subscriptions[0]); // find in orders.service
-												}
-											});
-									})
-									.catch(error => {
-										this.logger.error("WEBHOOK invoice.payment_succeeded error: ", JSON.stringify(error));
-										return null;
-									});
+				this.logger.info("WEBHOOK invoice.payment_succeeded - subscriptionStripeId:", subscriptionStripeId);
+				if (paymentIntentId && paymentIntentId!=null) {
+					stripe.paymentIntents.retrieve(paymentIntentId)
+						.then( paymentIntentResult => {
+							stripe.subscriptions.update( subscriptionStripeId, {
+								default_payment_method: paymentIntentResult.payment_method
 							})
-							.catch(error => {
-								this.logger.error("WEBHOOK invoice.payment_succeeded error: ", JSON.stringify(error));
-								return null;
-							});
-					} else if (paymentData?.metadata?.subscriptionId) {
-						// if subscription ID is in metadata, update subscription log with payment info
-						this.logger.info("WEBHOOK invoice.payment_succeeded - paymentData.metadata.subscriptionId:", paymentData.metadata);
-						ctx.call("subscriptions.find", {
-							query: {
-								"_id": paymentData.metadata.subscriptionId
-							},
-							limit: 1
+								.then(defaultPaymentMethodUpdate => {
+									this.logger.info("WEBHOOK invoice.payment_succeeded - defaultPaymentMethodUpdate:", defaultPaymentMethodUpdate);
+									// update subscription 
+									ctx.call("subscriptions.find", {
+										query: {
+											"data.stripe.id": subscriptionStripeId
+										},
+										limit: 1
+									})
+										.then(subscriptions => {
+											this.logger.info("WEBHOOK invoice.paid - subscriptions found:", subscriptions);
+											if (subscriptions?.[0]) {
+												if (subscriptions[0].data.order.data.paymentData.lastResponseResult) {
+													subscriptions[0].data.order.data.paymentData.lastResponseResult.push(paymentIntent);
+												}
+												this.subscriptionPaymentReceived(ctx, subscriptions[0]); // find in orders.service
+											}
+										});
+								})
+								.catch(error => {
+									this.logger.error("WEBHOOK invoice.payment_succeeded error: ", JSON.stringify(error));
+									return null;
+								});
 						})
-							.then(subscriptions => {
-								this.logger.info("WEBHOOK invoice.paid - subscriptions found:", subscriptions);
-								if (subscriptions?.[0]) {
-									if (subscriptions[0].data.order.data.paymentData.lastResponseResult) {
-										subscriptions[0].data.order.data.paymentData.lastResponseResult.push(paymentIntent);
-									}
-									this.subscriptionPaymentReceived(ctx, subscriptions[0]); // find in orders.service
+						.catch(error => {
+							this.logger.error("WEBHOOK invoice.payment_succeeded error: ", JSON.stringify(error));
+							return null;
+						});
+				} else if (paymentData?.metadata?.subscriptionId) {
+					// if subscription ID is in metadata, update subscription log with payment info
+					this.logger.info("WEBHOOK invoice.payment_succeeded - paymentData.metadata.subscriptionId:", paymentData.metadata);
+					ctx.call("subscriptions.find", {
+						query: {
+							"_id": paymentData.metadata.subscriptionId
+						},
+						limit: 1
+					})
+						.then(subscriptions => {
+							this.logger.info("WEBHOOK invoice.paid - subscriptions found:", subscriptions);
+							if (subscriptions?.[0]) {
+								if (subscriptions[0].data.order.data.paymentData.lastResponseResult) {
+									subscriptions[0].data.order.data.paymentData.lastResponseResult.push(paymentIntent);
 								}
-							});
-					}
+								this.subscriptionPaymentReceived(ctx, subscriptions[0]); // find in orders.service
+							}
+						});
+				}
 					
-					break;
-				}
+				break;
+			}
 
 
-				case "charge.updated": {					
-					this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
-					const data = event.data;
+			case "charge.updated": {					
+				this.logger.info("WEBHOOK : "+ event.type +" ---------- ");
+				const data = event.data;
 					
-					this.logger.info("charge.updated DATA : ", data, paymentData);
+				this.logger.info("charge.updated DATA : ", data, paymentData);
 
-					// update order status according to payment data
-					self.orderPaymentReceived(ctx, order, paymentData, "stripe", "products");
+				// update order status according to payment data
+				self.orderPaymentReceived(ctx, order, paymentData, "stripe", "products");
 
-					break;
-				}
+				break;
+			}
 
-				case "customer.subscription.deleted": {
-					const paymentMethod = event.data.object;
-					let subscriptionStripeId = null;
-					this.logger.info("WEBHOOK : customer.subscription.deleted local ---------- Subscription has been deleted for Customer!", paymentMethod);
-					// get subscription object by its stripeId
-					if (paymentMethod?.id && paymentMethod.id.trim() != "") {
-						subscriptionStripeId = paymentMethod.id.trim();
-					}
-					this.logger.info("WEBHOOK customer.subscription.deleted - subscriptionStripeId:", subscriptionStripeId);
-					if (subscriptionStripeId && subscriptionStripeId!=null) {
-						ctx.call("subscriptions.find", {
-							query: {
-								"data.stripe.id": subscriptionStripeId
-							},
-							limit: 1
-						})
-							.then(subscriptions => {
-								this.logger.info("WEBHOOK customer.subscription.deleted - subscriptions found:", subscriptions);
-								if (subscriptions && subscriptions[0]) {
-									this.subscriptionCancelled(ctx, subscriptions[0]); // find in orders.service
-								}
-							});
-					}
-					break;
+			case "customer.subscription.deleted": {
+				const paymentMethod = event.data.object;
+				let subscriptionStripeId = null;
+				this.logger.info("WEBHOOK : customer.subscription.deleted local ---------- Subscription has been deleted for Customer!", paymentMethod);
+				// get subscription object by its stripeId
+				if (paymentMethod?.id && paymentMethod.id.trim() != "") {
+					subscriptionStripeId = paymentMethod.id.trim();
 				}
-				// ... handle other event types
-				default: {
-					this.logger.info(`WEBHOOK : other event type ---------- Unhandled event type ${event.type}`, event);
-					break;
+				this.logger.info("WEBHOOK customer.subscription.deleted - subscriptionStripeId:", subscriptionStripeId);
+				if (subscriptionStripeId && subscriptionStripeId!=null) {
+					ctx.call("subscriptions.find", {
+						query: {
+							"data.stripe.id": subscriptionStripeId
+						},
+						limit: 1
+					})
+						.then(subscriptions => {
+							this.logger.info("WEBHOOK customer.subscription.deleted - subscriptions found:", subscriptions);
+							if (subscriptions && subscriptions[0]) {
+								this.subscriptionCancelled(ctx, subscriptions[0]); // find in orders.service
+							}
+						});
 				}
+				break;
+			}
+			// ... handle other event types
+			default: {
+				this.logger.info(`WEBHOOK : other event type ---------- Unhandled event type ${event.type}`, event);
+				break;
+			}
 			}
 		},
 
@@ -1112,7 +1112,7 @@ module.exports = {
 					"orderId": related?.order?._id?.toString() || "",
 					"productId": related?.product?._id?.toString() || "",
 				}
-			}
+			};
 			// if trial subscription, set trial end date from subscription dateStart
 			if (related?.subscription?.data?.product?.data?.subscription?.cyclesTrial > 0 && 
 				related?.subscription?.dates?.dateStart) {
@@ -1127,7 +1127,7 @@ module.exports = {
 					trialEndDate = new Date(trialEndDate.getTime() + (related.subscription.data.product.data.subscription.cyclesTrial * periodNumber)); // add days
 					stripeSubscription["trial_end"] = Math.round(trialEndDate.getTime() / 1000);
 					stripeSubscription["payment_behavior"] = "default_incomplete";
-					stripeSubscription["expand"] = ['pending_setup_intent'];
+					stripeSubscription["expand"] = ["pending_setup_intent"];
 				}
 			}
 
@@ -1169,7 +1169,7 @@ module.exports = {
 										id: stripeSubscription.id,
 										paid: false,
 										status: stripeSubscription.status, // any status from Stripe
-									}
+									};
 									// TODO - check if order is paid (with related products & subscriptions)
 									return true;
 								}
@@ -1180,7 +1180,7 @@ module.exports = {
 									this.logger.info("payments.stripe.mixin pSS() #4.5 updateOrder:", updatedOrder);
 									let clientSecret = stripeSubscription?.latest_invoice?.payment_intent?.client_secret;
 									if (related?.subscription?.data?.product?.data?.subscription?.cyclesTrial > 0) {
-										clientSecret = stripeSubscription?.pending_setup_intent?.client_secret
+										clientSecret = stripeSubscription?.pending_setup_intent?.client_secret;
 									}
 									const result = {
 										id: stripeSubscription.id,
@@ -1326,7 +1326,7 @@ module.exports = {
 					this.logger.info("payments.stripe.mixin updateOrderStateStripe() - subscription IDs:", order.data.subscription.ids);
 					order.data.subscription.ids.some((id, i) => {
 						if (
-							id.subscription.toString().trim() !== '' && 
+							id.subscription.toString().trim() !== "" && 
 							id.subscription == paymentData.metadata?.subscriptionId
 						) {
 							// update subscription payment status
@@ -1357,28 +1357,28 @@ module.exports = {
 			if (subscriptionId && paymentData && orderSupplierData) {
 				// add update to subscription supplier data
 				return ctx.call("subscriptions.update", 
-				{
-					updateObject: { 
-						id: subscriptionId,
-						status: orderSupplierData.status,
-					},
-					historyRecordToAdd: {
-						action: "payment",
-						type: "stripe",
-						date: new Date(),
-						data: {
-							type: "paymentData",
-							content: paymentData,
-						}
-					} 
-				})
-				.then(updated => {
-					return updated;
-				})
-				.catch(error => {
-					this.logger.error("subscriptions.addToHistory() - error: ", JSON.stringify(error));
-					return null;
-				});
+					{
+						updateObject: { 
+							id: subscriptionId,
+							status: orderSupplierData.status,
+						},
+						historyRecordToAdd: {
+							action: "payment",
+							type: "stripe",
+							date: new Date(),
+							data: {
+								type: "paymentData",
+								content: paymentData,
+							}
+						} 
+					})
+					.then(updated => {
+						return updated;
+					})
+					.catch(error => {
+						this.logger.error("subscriptions.addToHistory() - error: ", JSON.stringify(error));
+						return null;
+					});
 			}
 		},
 

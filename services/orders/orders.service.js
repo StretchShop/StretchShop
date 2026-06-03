@@ -243,7 +243,7 @@ module.exports = {
 						}
 					})
 					.catch(err => {
-						console.error('orders.progress cart.me error: ', err);
+						console.error("orders.progress cart.me error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Order cart error", 422, "", []));
 					}); // cart end
 			}
@@ -342,7 +342,7 @@ module.exports = {
 						}
 					})
 					.catch(err => {
-						console.error('order.create find error: ', err);
+						console.error("order.create find error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Order create error", 422, "", []));
 					});
 
@@ -491,7 +491,7 @@ module.exports = {
 								// add payment status if requested
 								if (ctx.params.paymentStatus) {
 									for (const element of found) {
-										element.data['paymentStatus'] = self.getOrderPaymentStatus(element);
+										element.data["paymentStatus"] = self.getOrderPaymentStatus(element);
 									}
 								}
 								return ctx.call("orders.count", filter)
@@ -549,13 +549,13 @@ module.exports = {
 				let actionName = supplier+"Order"+action;
 				const availablePaymentActions = SettingsMixin.getOriginalSiteSettings("orders")["availablePaymentActions"];
 
-				if (action === 'Prepare') {
+				if (action === "Prepare") {
 					return this.adapter.findById(ctx.params.orderId)
 						.then(order => {
 							const orderPaymentStatus = self.getOrderPaymentStatus(order);
 							console.log("orderPaymentStatus: ", JSON.stringify(orderPaymentStatus, null, 2));
 							if ( ["prepared", "running", "completed"].includes(orderPaymentStatus.order.status) ) {
-								return { success: true, data: null, message: 'order_already_prepared' };
+								return { success: true, data: null, message: "order_already_prepared" };
 							}
 							this.logger.info("products status: ", orderPaymentStatus.products?.status, [null, "saved"].includes(orderPaymentStatus.products?.status));
 							this.logger.info("subscriptions status: ", orderPaymentStatus.subscriptions?.status, 
@@ -672,7 +672,7 @@ module.exports = {
 							return result;
 						})
 						.catch(err => {
-							console.error('order.paymentResult *action error: ', err);
+							console.error("order.paymentResult *action error: ", err);
 							return this.Promise.reject(new MoleculerClientError("Order payment error", 422, "", []));
 						});
 				}
@@ -705,7 +705,7 @@ module.exports = {
 										return "Removed orders: " +JSON.stringify(removed);
 									})
 									.catch(err => {
-										console.error('order.cleanOrders remove error: ', err);
+										console.error("order.cleanOrders remove error: ", err);
 										return this.Promise.reject(new MoleculerClientError("Order clean remove error", 422, "", []));
 									})
 							);
@@ -714,13 +714,13 @@ module.exports = {
 						return Promise.all(promises).then((result) => {
 							return result;
 						})
-						.catch(err => {
-							console.error('order.cleanOrders promises error: ', err);
-							return this.Promise.reject(new MoleculerClientError("Orders clean error", 422, "", []));
-						});
+							.catch(err => {
+								console.error("order.cleanOrders promises error: ", err);
+								return this.Promise.reject(new MoleculerClientError("Orders clean error", 422, "", []));
+							});
 					})
 					.catch(err => {
-						console.error('order.cleanOrders find error: ', err);
+						console.error("order.cleanOrders find error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Order clean find error", 422, "", []));
 					});
 			}
@@ -803,12 +803,12 @@ module.exports = {
 										return result;
 									})
 									.catch(err => {
-										console.error('order.paid paymentReceived error: ', err);
+										console.error("order.paid paymentReceived error: ", err);
 										return this.Promise.reject(new MoleculerClientError("Order payR error", 422, "", []));
 									});
 							})
 							.catch(err => {
-								console.error('order.paid find error: ', err);
+								console.error("order.paid find error: ", err);
 								return this.Promise.reject(new MoleculerClientError("Order pay find error", 422, "", []));
 							});
 					}
@@ -987,7 +987,7 @@ module.exports = {
 										})
 										.then((orderUpdated) => {
 											if (orderUpdated.success) {
-												return ctx.call('subscriptions.subscriptionTrial', { subscriptionId: subscriptionId } )
+												return ctx.call("subscriptions.subscriptionTrial", { subscriptionId: subscriptionId } );
 											}
 										});
 								})
@@ -1063,7 +1063,7 @@ module.exports = {
 				}
 				// get array with unique values
 				cdProductCodesUniq = ctx.meta.user.data.contentDependencies.concat(cdProductCodes);
-				cdProductCodesUniq = cdProductCodesUniq.filter((item, index, array) => array.indexOf(item) == index)
+				cdProductCodesUniq = cdProductCodesUniq.filter((item, index, array) => array.indexOf(item) == index);
 				ctx.meta.user.data.contentDependencies.list = cdProductCodesUniq;
 			}
 			// update in DB

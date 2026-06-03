@@ -62,17 +62,10 @@
     "pdfmake": "^0.3.8",
     "promise-each": "^2.2.0",
     "saslprep": "^1.0.3",
-    "slug": "^11.0.1",
+    "slug": "^8.2.3",
     "stripe": "^22.1.1"
   },
   "engines": {
     "node": ">= 18.x.x"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "rootDir": "./services",
-    "roots": [
-      "../test"
-    ]
   }
 }

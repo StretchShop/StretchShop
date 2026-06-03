@@ -52,7 +52,7 @@ module.exports = {
 						this.logger.info("users.crons - Users Cleaned up", data);
 					})
 					.catch(err => {
-						console.error('crons.clearUsers error: ', err);
+						console.error("crons.clearUsers error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Cron clean users failed", 422, "", []));
 					});;
 			}
@@ -201,7 +201,7 @@ module.exports = {
 								return coreData;
 							})
 							.catch(err => {
-								console.error('users.getCoreData error: ', err);
+								console.error("users.getCoreData error: ", err);
 								return this.Promise.reject(new MoleculerClientError("Can't read coredata", 422, "", []));
 							});
 					}
@@ -256,7 +256,7 @@ module.exports = {
 
 					})
 					.catch(err => {
-						console.error('users.create error: ', err);
+						console.error("users.create error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Can't create user", 422, "", []));
 					})
 					.then(() => {
@@ -304,7 +304,7 @@ module.exports = {
 								return entity;
 							})
 							.catch(err => {
-								console.error('users.getCoreData insert error: ', err);
+								console.error("users.getCoreData insert error: ", err);
 								return this.Promise.reject(new MoleculerClientError("Can't insert user", 422, "", []));
 							});
 					});
@@ -371,12 +371,12 @@ module.exports = {
 							ctx.meta.cart.user = user._id;
 						}
 
-						user = this.removePrivateData(user)
+						user = this.removePrivateData(user);
 
 						return this.transformEntity(user, true, ctx);
 					})
 					.catch(err => {
-						console.error('users.login error: ', err);
+						console.error("users.login error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Login failed", 422, "", []));
 					});
 			}
@@ -429,7 +429,7 @@ module.exports = {
 							return this.transformEntity(user, true, ctx);
 						})
 						.catch(err => {
-							console.error('users.login error: ', err);
+							console.error("users.login error: ", err);
 							return this.Promise.reject(new MoleculerClientError("Login failed", 422, "", []));
 						});
 				}
@@ -489,7 +489,7 @@ module.exports = {
 						}
 					})
 					.catch(err => {
-						console.error('users.resolveToken error: ', err);
+						console.error("users.resolveToken error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Invalid token", 422, "", []));
 					});
 			}
@@ -650,9 +650,9 @@ module.exports = {
 					.then(doc => this.transformDocuments(ctx, {}, doc))
 					.then(user => this.transformEntity(user, false, ctx))
 					.then(json => this.entityChanged("updated", json, ctx)
-					.then(() => json))
+						.then(() => json))
 					.catch(err => {
-						console.error('users.updateUser error: ', err);
+						console.error("users.updateUser error: ", err);
 						return this.Promise.reject(new MoleculerClientError("User update error", 422, "", []));
 					});
 
@@ -681,10 +681,10 @@ module.exports = {
 				user.image = ctx.params.data.image;
 				user.dates.dateUpdated = new Date();
 				return this.adapter.updateById(ctx.meta.user._id, this.prepareForUpdate(user))
-				.catch(err => {
-					console.error('users.updateMyProfileImage error: ', err);
-					return this.Promise.reject(new MoleculerClientError("Can't update profile image", 422, "", []));
-				});
+					.catch(err => {
+						console.error("users.updateMyProfileImage error: ", err);
+						return this.Promise.reject(new MoleculerClientError("Can't update profile image", 422, "", []));
+					});
 			}
 		},
 
@@ -714,7 +714,7 @@ module.exports = {
 					})
 					.then(user => this.transformProfile(ctx, user, ctx.meta.user))
 					.catch(err => {
-						console.error('users.profile error: ', err);
+						console.error("users.profile error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Can't read profile", 422, "", []));
 					});
 			}
@@ -736,7 +736,7 @@ module.exports = {
 						return {result: {userExists: false}};
 					})
 					.catch(err => {
-						console.error('users.checkIfUserExists user already exists: ', err);
+						console.error("users.checkIfUserExists user already exists: ", err);
 						return this.Promise.reject(new MoleculerClientError("User already exists", 422, "", [{ field: "username", message: "exists" }]));
 					});
 			}
@@ -758,7 +758,7 @@ module.exports = {
 						return {result: {emailExists: false}};
 					})
 					.catch(err => {
-						console.error('users.checkIfEmailExists email already exists: ', err);
+						console.error("users.checkIfEmailExists email already exists: ", err);
 						return this.Promise.reject(new MoleculerClientError("Email already exists", 422, "", [{ field: "email", message: "exists" }]));
 					});
 			}
@@ -924,7 +924,7 @@ module.exports = {
 						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed"}]));
 					})
 					.catch(err => {
-						console.error('users.verifyHash activation failed: ', err);
+						console.error("users.verifyHash activation failed: ", err);
 						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed"}]));
 					});
 				/**
@@ -992,7 +992,7 @@ module.exports = {
 						return Promise.reject(new MoleculerClientError("Account reset failed - try again", 422, "", [{ field: "email", message: "not found"}]));
 					})
 					.catch(err => {
-						console.error('users.resetPassword account reset failed: ', err);
+						console.error("users.resetPassword account reset failed: ", err);
 						return Promise.reject(new MoleculerClientError("Account reset failed - try again", 422, "", [{ field: "email", message: "not found"}]));
 					});
 				/**
@@ -1035,7 +1035,7 @@ module.exports = {
 						return translation;
 					})
 					.catch(err => {
-						console.error('users.readTranslation failed: ', err);
+						console.error("users.readTranslation failed: ", err);
 						return Promise.reject(new MoleculerClientError("Reading translation failed - try again", 422, "", [{ field: "translation", message: "failed"}]));
 					});
 			}
@@ -1055,10 +1055,10 @@ module.exports = {
 				).then(() => {
 					return { success: true };
 				})
-				.catch(err => {
-					console.error('settings.mixin updateSettingsFile write error: ', err);
-					return { success: false, error: err };
-				});
+					.catch(err => {
+						console.error("settings.mixin updateSettingsFile write error: ", err);
+						return { success: false, error: err };
+					});
 			}
 		},
 
@@ -1349,7 +1349,7 @@ module.exports = {
 									return result;
 								})
 								.catch(err => {
-									console.error('users.clearUsers user error: ', user, err);
+									console.error("users.clearUsers user error: ", user, err);
 									return this.Promise.reject(new MoleculerClientError("Can't erase user", 422, "", []));
 								});
 						} else {
@@ -1357,7 +1357,7 @@ module.exports = {
 						}
 					})
 					.catch(err => {
-						console.error('users.clearUsers error: ', err);
+						console.error("users.clearUsers error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Can't clean users", 422, "", []));
 					});
 			}
@@ -1387,7 +1387,7 @@ module.exports = {
 						return recaptchaResponse.success;
 					})
 					.catch(err => {
-						console.error('users.recaptcha error: ', err);
+						console.error("users.recaptcha error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Recaptcha failed", 422, "", []));
 					});
 			}

@@ -141,7 +141,7 @@ module.exports = {
 							.then(updatedUser => {
 								this.logger.info("subscriptions to webhook cancel - users.removeContentDependencies updatedUser:", updatedUser);
 								return subResult;
-							})
+							});
 					}
 				});
 		},

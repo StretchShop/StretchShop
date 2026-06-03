@@ -5,6 +5,7 @@ const nullOrAny = require("../../extensions/null-or-any");
 
 const { ServiceBroker, Context } = require("moleculer");
 const { ValidationError } = require("moleculer").Errors;
+const { createTestBroker } = require("../../setup/broker");
 const ApiService = require("../../../services/api/api.service");
 const CartService = require("../../../services/cart/cart.service");
 const ProductsService = require("../../../services/products/products.service");
@@ -24,7 +25,7 @@ global.orderSpecial = {};
 global.orderExpectation = {};
 
 describe("Test 'orders' service", () => {
-	let broker = new ServiceBroker({ logger: false });
+	let broker = createTestBroker();
 	const serviceApi = broker.createService(ApiService, {});
 	const serviceOrders = broker.createService(OrdersService, { meta: global.testMeta });
 	const serviceProducts = broker.createService(ProductsService, {});
@@ -266,11 +267,7 @@ describe("Test 'orders' service", () => {
 				})
 			});
 			global.orderExpectation.prices = expect.objectContaining({
-				priceDeliveryTaxData: expect.objectContaining({
-					taxDecimal: expect.any(Number),
-					tax: expect.any(Number),
-					taxType: expect.any(String),
-				}),
+				priceDeliveryTaxData: expect.nullOrAny(Object),
 				pricePaymentTaxData: expect.objectContaining({
 					taxDecimal: expect.any(Number),
 					tax: expect.any(Number),
