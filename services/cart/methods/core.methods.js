@@ -18,10 +18,10 @@ module.exports = {
 			let userId = null,
 				orderId = null;
 			if ( ctx.meta.user?._id ) {
-				userId = ctx.meta.user._id;
+				userId = this.idToString(ctx.meta.user._id);
 			}
 			if ( ctx.meta.order?._id ) {
-				orderId = ctx.meta.order._id;
+				orderId = this.idToString(ctx.meta.order._id);
 			}
 			let entity = {
 				user: userId,
@@ -75,11 +75,11 @@ module.exports = {
 		 * @returns Promise
 		 */
 		prepareForUpdate(object) {
-			let objectToSave = Object.assign({}, object);
+			let objectToSave = JSON.parse(JSON.stringify(object));
 			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
 				delete objectToSave._id;
 			}
-			return { "$set": objectToSave };
+			return { "$set": this.sanitizeForMongoUpdate(objectToSave) };
 		},
 
 

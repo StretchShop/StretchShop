@@ -27,7 +27,7 @@ module.exports = {
 				}
 
 				let cartCookie = (ctx.meta && ctx.meta.cookies && ctx.meta.cookies.cart) ? ctx.meta.cookies.cart : null;
-				if ( cartCookie && ctx.meta.cart ) { // we have cart in meta
+				if (cartCookie && ctx.meta.cart) { // we have cart in meta
 					return ctx.meta.cart;
 				} else { // no cart in meta, find it in datasource
 					return ctx.call("cart.find", {
@@ -36,9 +36,9 @@ module.exports = {
 						}
 					})
 						.then(found => {
-							if (found && found.constructor===Array && found[0] && found[0].constructor!==Array ) {
+							if (found && found.constructor === Array && found[0] && found[0].constructor !== Array) {
 								// cart found in datasource, save to meta
-								if ( found && found.length>0 ) {
+								if (found && found.length > 0) {
 									found = found[0];
 								}
 								ctx.meta.cart = found;
@@ -82,7 +82,7 @@ module.exports = {
 					}
 				})
 					.then(productAvailable => {
-						if (productAvailable && productAvailable.length>0) {
+						if (productAvailable && productAvailable.length > 0) {
 							productAvailable = productAvailable[0];
 							productAvailable._id = productAvailable._id.toString();
 						}
@@ -93,9 +93,9 @@ module.exports = {
 						if (ctx.params.amount > productAvailable.stockAmount) {
 							// if digital or subscription - only 1 pcs can be ordered, 
 							// but only if stockAmount is set (more than -1) 
-							if (productAvailable.type=="subscription" || productAvailable.subtype=="digital") {
+							if (productAvailable.type == "subscription" || productAvailable.subtype == "digital") {
 								ctx.params.amount = 1;
-								if (productAvailable.stockAmount>-1) {
+								if (productAvailable.stockAmount > -1) {
 									return this.Promise.reject(new MoleculerClientError("Requested amount is not available"));
 								}
 							} else { // physical products
@@ -138,26 +138,26 @@ module.exports = {
 				// get cart
 				return ctx.call("cart.me")
 					.then(cart => {
-						if (cart && cart.length>0) {
+						if (cart && cart.length > 0) {
 							cart = cart[0];
 						}
 						// check if there are any items inside
-						if ( cart.items && cart.items.length>0 ) {
-							if ( ctx.params.itemId ) {
+						if (cart.items && cart.items.length > 0) {
+							if (ctx.params.itemId) {
 								// find product in cart
 								let productInCart = -1;
-								for (let i=0; i<cart.items.length; i++) {
+								for (let i = 0; i < cart.items.length; i++) {
 									if (cart.items[i]._id == ctx.params.itemId) {
 										productInCart = i;
 										break;
 									}
 								}
 								// if found, remove one product from cart
-								if (productInCart>-1) {
-									if ( ctx.params.amount && ctx.params.amount>0 ) {
+								if (productInCart > -1) {
+									if (ctx.params.amount && ctx.params.amount > 0) {
 										// remove amount from existing value
 										cart.items[productInCart].amount = cart.items[productInCart].amount - ctx.params.amount;
-										if (cart.items[productInCart].amount<=0) {
+										if (cart.items[productInCart].amount <= 0) {
 											// if new amount less or equal to 0, remove whole product
 											cart.items.splice(productInCart, 1);
 										}
@@ -177,7 +177,7 @@ module.exports = {
 							return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
 								.then(doc => this.transformDocuments(ctx, {}, doc))
 								.then(json => this.entityChanged("removed", json, ctx)
-								.then(() => json))
+									.then(() => json))
 								.catch(err => {
 									console.error('cart.delete update error: ', err);
 									return this.Promise.reject(new MoleculerClientError("Can't update cart", 422, "", []));
@@ -208,36 +208,36 @@ module.exports = {
 				amount: { type: "number", positive: true, optional: true }
 			},
 			handler(ctx) {
-				ctx.params.itemId = (typeof ctx.params.itemId !== "undefined") ?  ctx.params.itemId : null;
-				ctx.params.amount = (typeof ctx.params.amount !== "undefined") ?  ctx.params.amount : 1;
+				ctx.params.itemId = (typeof ctx.params.itemId !== "undefined") ? ctx.params.itemId : null;
+				ctx.params.amount = (typeof ctx.params.amount !== "undefined") ? ctx.params.amount : 1;
 				// get cart
 				return ctx.call("cart.me")
 					.then(cart => {
-						if (cart && cart.length>0) {
+						if (cart && cart.length > 0) {
 							cart = cart[0];
 						}
 						// check if there are any items inside
-						if ( cart.items && cart.items.length>0 ) {
-							if ( ctx.params.itemId ) {
+						if (cart.items && cart.items.length > 0) {
+							if (ctx.params.itemId) {
 								// find product in cart
 								let productInCart = -1;
-								for (let i=0; i<cart.items.length; i++) {
+								for (let i = 0; i < cart.items.length; i++) {
 									if (cart.items[i]._id == ctx.params.itemId) {
 										productInCart = i;
 										break;
 									}
 								}
 								// if found, remove one product from cart
-								if (productInCart>-1) {
-									if ( ctx.params.amount && ctx.params.amount>0 ) {
+								if (productInCart > -1) {
+									if (ctx.params.amount && ctx.params.amount > 0) {
 										// remove amount from existing value
 										cart.items[productInCart].amount = ctx.params.amount;
-										if (cart.items[productInCart].amount<=0) {
+										if (cart.items[productInCart].amount <= 0) {
 											// if new amount less or equal to 0, remove whole product
 											cart.items.splice(productInCart, 1);
 										}
 										// if product contains requirements, remove amount
-										if (cart.items[productInCart].requirements && cart.items[productInCart].requirements.length>0) {
+										if (cart.items[productInCart].requirements && cart.items[productInCart].requirements.length > 0) {
 											cart.items[productInCart].amount = 1;
 										}
 									}
@@ -246,10 +246,11 @@ module.exports = {
 							cart.dateUpdated = new Date();
 							// update cart in variable and datasource
 							ctx.meta.cart = cart;
+							this.logger.info("cart.updateCartItemAmount - ctx.meta.cart: ", ctx.meta.cart);
 							return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
 								.then(doc => this.transformDocuments(ctx, {}, doc))
 								.then(json => this.entityChanged("updated", json, ctx)
-								.then(() => json))
+									.then(() => json))
 								.catch(err => {
 									console.error('cart.updateCartItemAmount update error: ', err);
 									return this.Promise.reject(new MoleculerClientError("Can't update cart", 422, "", []));
@@ -281,14 +282,14 @@ module.exports = {
 				// get user's cart
 				return ctx.call("cart.me")
 					.then(cart => {
-						if (cart && cart.length>0) {
+						if (cart && cart.length > 0) {
 							cart = cart[0];
 						}
 
 						// update old cart according to new one, if property set, otherwise keep old
-						if ( ctx.params.cartNew ) {
-							for ( let property in ctx.params.cartNew ) {
-								if ( Object.prototype.hasOwnProperty.call(cart,property) && Object.prototype.hasOwnProperty.call(ctx.params.cartNew,property) ) {
+						if (ctx.params.cartNew) {
+							for (let property in ctx.params.cartNew) {
+								if (Object.prototype.hasOwnProperty.call(cart, property) && Object.prototype.hasOwnProperty.call(ctx.params.cartNew, property)) {
 									cart[property] = ctx.params.cartNew[property];
 								}
 							}
@@ -301,14 +302,14 @@ module.exports = {
 						return this.adapter.updateById(ctx.meta.cart._id, this.prepareForUpdate(cart))
 							.then(doc => this.transformDocuments(ctx, {}, doc))
 							.then(json => this.entityChanged("updated", json, ctx)
-							.then(() => json))
+								.then(() => json))
 							.catch(err => {
 								console.error('cart.updateMyCart update error: ', err);
 								return this.Promise.reject(new MoleculerClientError("Can't update cart", 422, "", []));
 							});
 					});
 			}
-		}, 
+		},
 
 	}
 };

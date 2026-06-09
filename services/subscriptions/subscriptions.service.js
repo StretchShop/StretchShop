@@ -41,32 +41,32 @@ module.exports = {
 	 * Default settings
 	 */
 	settings: {
-		cronJobs: [{
-			name: "SubscriptionsCheck",
-			cronTime: "5 0 * * *",
-			onTick: function() {
+		// cronJobs: [{
+		// 	name: "SubscriptionsCheck",
+		// 	cronTime: "5 0 * * *",
+		// 	onTick: function() {
 
-				this.logger.info("Starting to Clean up the Subscriptions");
+		// 		this.logger.info("Starting to Clean up the Subscriptions");
 
-				this.broker.call("subscriptions.checkSubscriptions")
-					.then((data) => {
-						this.logger.info("Subscriptions runned", data);
-					});
-			}
-		}, {
-			name: "SubscriptionsEndCheck",
-			cronTime: "*/15 * * * *",
-			onTick: function() {
+		// 		this.broker.call("subscriptions.checkSubscriptions")
+		// 			.then((data) => {
+		// 				this.logger.info("Subscriptions runned", data);
+		// 			});
+		// 	}
+		// }, {
+		// 	name: "SubscriptionsEndCheck",
+		// 	cronTime: "*/15 * * * *",
+		// 	onTick: function() {
 
-				this.logger.info("Starting to Check for ending Subscriptions");
+		// 		this.logger.info("Starting to Check for ending Subscriptions");
 
-				this.broker.call("subscriptions.stopEndingSubscriptions")
-					.then((data) => {
-						this.logger.info("Subscriptions runned", data);
-					});
-			}
-		}],
-		
+		// 		this.broker.call("subscriptions.stopEndingSubscriptions")
+		// 			.then((data) => {
+		// 				this.logger.info("Subscriptions runned", data);
+		// 			});
+		// 	}
+		// }],
+
 		/** Public fields */
 		fields: ["_id", "userId", "ip", "type", "period", "duration", "cycles", "cyclesTrial", "status", "orderOriginId", "orderItemName", "dates", "price", "data", "history"],
 
@@ -74,22 +74,25 @@ module.exports = {
 		entityValidator: {
 			userId: { type: "string", min: 3 },
 			ip: { type: "string", min: 4 },
-			period: {type: "string", min: 3 }, // year, month, week, day, ...
-			duration: {type: "number", positive: true }, // 1, 3, 9.5, ...
-			cycles: {type: "number"}, // number of repeats, for infinity use 0 and less
+			period: { type: "string", min: 3 }, // year, month, week, day, ...
+			duration: { type: "number", positive: true }, // 1, 3, 9.5, ...
+			cycles: { type: "number" }, // number of repeats, for infinity use 0 and less
 			cyclesTrial: { type: "number", optional: true }, // number of trial repeats, must be less than cycles
 			status: { type: "string", min: 3 }, // inactive, active, finished, ...
 			orderOriginId: { type: "string", min: 3 },
 			orderItemName: { type: "string", min: 3 },
-			dates: { type: "object", props: {
-				dateStart: { type: "date" },
-				dateOrderNext: { type: "date", optional: true },
-				dateEnd: { type: "date", optional: true },
-				dateCreated: { type: "date" },
-				dateUpdated: { type: "date" },
-			}},
+			dates: {
+				type: "object", props: {
+					dateStart: { type: "date" },
+					dateOrderNext: { type: "date", optional: true },
+					dateEnd: { type: "date", optional: true },
+					dateCreated: { type: "date" },
+					dateUpdated: { type: "date" },
+				}
+			},
 			price: { type: "number" },
-			data: { type: "object", props:
+			data: {
+				type: "object", props:
 				{
 					product: { type: "object" },
 					order: { type: "object", optional: true },
@@ -98,13 +101,16 @@ module.exports = {
 					agreement: { type: "any", optional: true }
 				}
 			},
-			history: { type: "array", optional: true, items:
-				{ type: "object", props: {
-					action: { type: "string" }, // created, prolonged, stopped, paused, ...
-					type: { type: "string" }, // user, automatic, ...
-					date: { type: "date" },
-					data: { type: "object", optional: true }
-				} }
+			history: {
+				type: "array", optional: true, items:
+				{
+					type: "object", props: {
+						action: { type: "string" }, // created, prolonged, stopped, paused, ...
+						type: { type: "string" }, // user, automatic, ...
+						date: { type: "date" },
+						data: { type: "object", optional: true }
+					}
+				}
 			}
 		}
 	},

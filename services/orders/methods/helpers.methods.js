@@ -104,11 +104,11 @@ module.exports = {
 		 * @param {*} object 
 		 */
 		prepareForUpdate(object) {
-			let objectToSave = structuredClone(object);
+			let objectToSave = JSON.parse(JSON.stringify(object));
 			if ( objectToSave._id !== undefined && objectToSave._id ) {
 				delete objectToSave._id;
 			}
-			return { "$set": objectToSave };
+			return { "$set": this.sanitizeForMongoUpdate(objectToSave) };
 		},
 
 

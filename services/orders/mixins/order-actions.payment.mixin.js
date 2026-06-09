@@ -6,6 +6,7 @@ const { createReadStream } = require("fs-extra");
 const { ReadStream } = require("fs");
 const jwt = require("jsonwebtoken");
 const fetch = require("cross-fetch");
+const SettingsMixin = require("../../../mixins/settings.mixin");
 
 module.exports = {
 	actions: {
@@ -22,7 +23,7 @@ module.exports = {
 				const supplier = ctx.params.supplier.toLowerCase();
 				let action = ctx.params.action.charAt(0).toUpperCase();
 				action += ctx.params.action.slice(1);
-				let actionName = supplier+"Order"+action;
+				let actionName = supplier + "Order" + action;
 				const availablePaymentActions = SettingsMixin.getOriginalSiteSettings("orders")["availablePaymentActions"];
 
 				if (action === "Prepare") {
@@ -30,15 +31,15 @@ module.exports = {
 						.then(order => {
 							const orderPaymentStatus = self.getOrderPaymentStatus(order);
 							console.log("orderPaymentStatus: ", JSON.stringify(orderPaymentStatus, null, 2));
-							if ( ["prepared", "running", "completed"].includes(orderPaymentStatus.order.status) ) {
+							if (["prepared", "running", "completed"].includes(orderPaymentStatus.order.status)) {
 								return { success: true, data: null, message: "order_already_prepared" };
 							}
 							this.logger.info("products status: ", orderPaymentStatus.products?.status, [null, "saved"].includes(orderPaymentStatus.products?.status));
-							this.logger.info("subscriptions status: ", orderPaymentStatus.subscriptions?.status, 
+							this.logger.info("subscriptions status: ", orderPaymentStatus.subscriptions?.status,
 								(
-									["paid", "shipped", "delivered"].includes(orderPaymentStatus.products?.status) || 
+									["paid", "shipped", "delivered"].includes(orderPaymentStatus.products?.status) ||
 									orderPaymentStatus.products?.count === 0
-								) && 
+								) &&
 								["saved", "failed"].includes(orderPaymentStatus.subscriptions?.status)
 							);
 
@@ -47,25 +48,25 @@ module.exports = {
 								orderPaymentStatus.products?.count > 0 &&
 								[null, "saved"].includes(orderPaymentStatus.products?.status)
 							) {
-								actionName = supplier+"OrderPaymentintent";
-							} else if ( 
+								actionName = supplier + "OrderPaymentintent";
+							} else if (
 								// if products paid or not exist and subscriptions not exist or failed
 								(
-									["paid", "shipped", "delivered"].includes(orderPaymentStatus.products?.status) || 
+									["paid", "shipped", "delivered"].includes(orderPaymentStatus.products?.status) ||
 									orderPaymentStatus.products?.count === 0
-								) && 
+								) &&
 								["saved", "failed"].includes(orderPaymentStatus.subscriptions?.status)
 							) { // products are already prepared, but subscription(s) not
-								actionName = supplier+"OrderSubscription";
+								actionName = supplier + "OrderSubscription";
 							}
 
 							// using resources/settings/orders.js check if final payment action can be called
 							this.logger.info("order.payment #1 - calling payment: ", actionName);
 							this.logger.info("order.payment #1 - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
-							if ( availablePaymentActions && availablePaymentActions.indexOf(actionName)>-1 ) {
+							if (availablePaymentActions && availablePaymentActions.indexOf(actionName) > -1) {
 								this.logger.info("action & order & data: ", actionName, order, ctx.params.data);
 								// call action, that accepts already available order
-								return ctx.call("orders."+actionName, {
+								return ctx.call("orders." + actionName, {
 									order,
 									data: ctx.params.data
 								})
@@ -88,8 +89,8 @@ module.exports = {
 				// using resources/settings/orders.js check if final payment action can be called
 				this.logger.info("order.payment #2 - calling payment: ", actionName);
 				this.logger.info("order.payment #2 - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
-				if ( availablePaymentActions && availablePaymentActions.indexOf(actionName)>-1 ) {
-					return ctx.call("orders."+actionName, {
+				if (availablePaymentActions && availablePaymentActions.indexOf(actionName) > -1) {
+					return ctx.call("orders." + actionName, {
 						orderId: ctx.params.orderId,
 						data: ctx.params.data
 					})
@@ -110,10 +111,10 @@ module.exports = {
 		 * 
 		 * @actions
 		 * 
-     * @param {String} supplier - supplier name (eg. stripe)
-     * @param {String} result - result string
-     * @param {String} PayerID - id of payer
-     * @param {Object} paymentId - id of paymnet
+		 * @param {String} supplier - supplier name (eg. stripe)
+		 * @param {String} result - result string
+		 * @param {String} PayerID - id of payer
+		 * @param {Object} paymentId - id of paymnet
 		 * 
 		 * @returns {Object} Unified result from related action
 		 */
@@ -126,7 +127,7 @@ module.exports = {
 			},
 			handler(ctx) {
 				let supplier = ctx.params.supplier.toLowerCase();
-				let actionName = supplier+"Result";
+				let actionName = supplier + "Result";
 				let params = {
 					result: ctx.params.result,
 					PayerID: ctx.params.PayerID,
@@ -141,9 +142,9 @@ module.exports = {
 				}
 
 				// using resources/settings/orders.js check if final payment action can be called
-				if ( this.settings.order.availablePaymentActions &&
-				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
-					return ctx.call("orders."+actionName, params)
+				if (this.settings.order.availablePaymentActions &&
+					this.settings.order.availablePaymentActions.indexOf(actionName) > -1) {
+					return ctx.call("orders." + actionName, params)
 						.then(result => {
 							return result;
 						})
@@ -172,13 +173,13 @@ module.exports = {
 			},
 			handler(ctx) {
 				let supplier = (ctx.params.supplier) ? ctx.params.supplier : "stripe";
-				
+
 				this.logger.info("orders.paymentSuspend params: ", ctx.params);
 
 				// get name of action to call for this supplier
-				return ctx.call("orders."+supplier+"SuspendBillingAgreement", {
+				return ctx.call("orders." + supplier + "SuspendBillingAgreement", {
 					billingRelatedId: ctx.params.relatedId
-				} )
+				})
 					.then(suspendResult => {
 						this.logger.info("orders.paymentSuspend supplier call response: ", suspendResult);
 						return suspendResult;
@@ -219,7 +220,7 @@ module.exports = {
 					}
 				})
 					.then(found => {
-						if (found && found.length>0) {
+						if (found && found.length > 0) {
 							let order = found[0];
 							order.status = "trial";
 							order.dates.dateChanged = new Date();
@@ -247,7 +248,7 @@ module.exports = {
 										})
 										.then((orderUpdated) => {
 											if (orderUpdated.success) {
-												return ctx.call("subscriptions.subscriptionTrial", { subscriptionId: subscriptionId } );
+												return ctx.call("subscriptions.subscriptionTrial", { subscriptionId: subscriptionId });
 											}
 										});
 								})
