@@ -222,7 +222,7 @@ module.exports = {
 												"keepItForLater": this.buildHashSourceFromEntity(entity.user.password, entity.user.dates.dateCreated),
 												"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
 												"language": entity.user.settings.language,
-												"templateName": "pwdreset"
+												"templateName": "auth/pwdreset"
 											};
 											this.sendVerificationEmail(emailData, ctx);
 											this.logger.info("users.resetPassword - Email sent");

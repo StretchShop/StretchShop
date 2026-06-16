@@ -21,7 +21,7 @@ module.exports = {
 	/**
 	 * Methods
 	 */
-	
+
 	methods: {
 		setCookie(ctx, name, value, options) {
 			if (!ctx.meta.makeCookies) {
@@ -34,7 +34,7 @@ module.exports = {
 				value: value,
 				options: options
 			};
-			if ( process.env.COOKIES_SAME_SITE ) {
+			if (process.env.COOKIES_SAME_SITE) {
 				ctx.meta.makeCookies[name].options["sameSite"] = options?.secure === true ? "None" : process.env.COOKIES_SAME_SITE;
 			}
 			ctx.meta.cookies[name] = value;
@@ -56,9 +56,9 @@ module.exports = {
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;
-			let cookieSecure = ((process.env.COOKIES_SECURE==="true" || process.env.COOKIES_SECURE==true) ? true : false);
+			let cookieSecure = ((process.env.COOKIES_SECURE === "true" || process.env.COOKIES_SECURE == true) ? true : false);
 			// CART cookie
-			if ( !cookies.cart ) {
+			if (!cookies.cart) {
 				const name = "cart";
 				const hash = crypto.createHash("sha256");
 				const userCookieString = ctx.meta.remoteAddress + "--" + new Date().toISOString();
@@ -72,7 +72,7 @@ module.exports = {
 						httpOnly: true
 					});
 				} else {
-					res.cookies.set(name, value, { 
+					res.cookies.set(name, value, {
 						path: "/",
 						signed: true,
 						secure: false,
@@ -84,7 +84,7 @@ module.exports = {
 			}
 
 			// CSRF cookie
-			if ( !cookies.session ) {
+			if (!cookies.session) {
 				const csrfDate = new Date();
 				const name = "session";
 				const hash = crypto.createHash("sha256");
@@ -108,7 +108,7 @@ module.exports = {
 						httpOnly: false
 					});
 				} else {
-					res.cookies.set(name, value, { 
+					res.cookies.set(name, value, {
 						path: "/",
 						signed: true,
 						secure: false,
@@ -130,13 +130,17 @@ module.exports = {
 		 * @returns {Boolean}
 		 */
 		checkCsrfToken(ctx, req) {
+			this.logger.info("api.checkCsrfToken - ctx.meta.headers.authorization: ", ctx.meta.headers.authorization);
 			if (ctx.meta.headers?.authorization) {
 				const cookies = this.parseCookies(req.headers.cookie);
 				const token = ctx.meta.headers.authorization.split("Token ");
 				// check if token was set in header and verify its integrity
+				this.logger.info("api.checkCsrfToken - token: ", token);
+				this.logger.info("api.checkCsrfToken - cookies.session: ", cookies.session);
 				if (token[1] && cookies.session) {
 					const cookieData = jwt.decode(cookies.session);
 					const verifyKey = ctx.meta.remoteAddress + "--" + cookieData?.issued;
+					this.logger.info("api.checkCsrfToken - verifyKey: ", verifyKey);
 					try {
 						const decoded = jwt.verify(token[1].trim(), verifyKey);
 						if (decoded) {
@@ -175,8 +179,8 @@ module.exports = {
 
 			// check csrf token
 			try {
-				if ( req?.$action?.authType === "csrfCheck" ) {
-					if ( this.checkCsrfToken(ctx, req) ) {
+				if (req?.$action?.authType === "csrfCheck") {
+					if (this.checkCsrfToken(ctx, req)) {
 						// stops further processing, returning null user
 						return this.Promise.resolve(null); // needed for login
 					} else {
@@ -205,10 +209,10 @@ module.exports = {
 			// authorization core
 			return this.Promise.resolve(token)
 				.then(token => {
-					if (token && token.toString().trim()!=="") {
+					if (token && token.toString().trim() !== "") {
 						return ctx.call("users.resolveToken", { token: token })
 							.then(user => {
-								if ( typeof user !== "undefined" && user && user.length>0 ) {
+								if (typeof user !== "undefined" && user && user.length > 0) {
 									user = user[0];
 								}
 								if (user) {
@@ -251,19 +255,19 @@ module.exports = {
 				self.logger.info("api.parseUploadedFile() #2.5", err, fields, files);
 				let promises = [];
 				self.logger.info("api.parseUploadedFile() #3", files, fields);
-				if ( err ) {
+				if (err) {
 					self.logger.error("api.parseUploadedFile() ERROR:", err);
 				}
 
 				// multiple files to upload - multiple promises as in import
 				// after all done, create message and send
 				for (let property in files) {
-					if (Object.hasOwn(files,property)) {
+					if (Object.hasOwn(files, property)) {
 
 						const r = self.prepareFilePathNameData(req, activePath, fields, files, property);
-						
+
 						promises.push(
-							fs.ensureDir(r.copyBaseDir+"/"+r.targetDir)
+							fs.ensureDir(r.copyBaseDir + "/" + r.targetDir)
 								.then(() => {
 									return self.moveFile(r.fileFrom, r.fileToSave).then(() => { // (result)
 										return {
@@ -290,11 +294,11 @@ module.exports = {
 					.then((values) => {
 						let fileErrors = false;
 						values.forEach((v) => {
-							if ( v.success !== true ) {
+							if (v.success !== true) {
 								fileErrors = true;
 							}
 							// if available, run post action
-							if ( v.action ) {
+							if (v.action) {
 								req.$ctx.call(v.action, {
 									data: {
 										image: v.path,
@@ -307,8 +311,8 @@ module.exports = {
 						});
 						let headers = res.getHeaders();
 						self.logger.info("api.parseUploadedFile Promise.all RES:", headers);
-						if ( headers["content-type"] !== undefined ) {
-							res.writeHead(200, {"content-type": "application/json"});
+						if (headers["content-type"] !== undefined) {
+							res.writeHead(200, { "content-type": "application/json" });
 						}
 						res.end(util.inspect(JSON.stringify({
 							success: true,
@@ -332,7 +336,7 @@ module.exports = {
 		 */
 		processUpload(req, res) {
 			req["$action"] = {
-				auth: "required"	
+				auth: "required"
 			};
 			this.authenticate(req.$ctx, req.$route, req, res)
 				.then((x) => {
@@ -340,19 +344,19 @@ module.exports = {
 					let self = this;
 					let activePath = this.getActiveUploadPath(req);
 
-					this.logger.info("api.processUpload() activePath-vars", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author")>-1, activePath.checkAuthorAction, activePath.checkAuthorActionParams);
+					this.logger.info("api.processUpload() activePath-vars", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author") > -1, activePath.checkAuthorAction, activePath.checkAuthorActionParams);
 					// check if upload path is valid and has set validUserTypes
-					if ( activePath?.validUserTypes ) {
+					if (activePath?.validUserTypes) {
 						// check if author is in array of activePath.validUserTypes and file was uploaded by author
-						if ( activePath.validUserTypes.includes("author")
-						&& activePath.checkAuthorAction && activePath.checkAuthorActionParams ) {
+						if (activePath.validUserTypes.includes("author")
+							&& activePath.checkAuthorAction && activePath.checkAuthorActionParams) {
 							// check if uploaded by author
 							req.$ctx.call(activePath.checkAuthorAction, {
 								data: activePath.checkAuthorActionParams
 							})
 								.then(result => {
 									this.logger.info("api.processUpload author:", result);
-									if (result==true) {
+									if (result == true) {
 										// user is author
 										self.parseUploadedFile(req, res, activePath);
 									} else {
@@ -363,14 +367,14 @@ module.exports = {
 										 * 2. user is authentificated
 										 * 3. user can upload to that path
 										 */
-										if ( req.$ctx.meta.user.type &&
-										activePath.validUserTypes.indexOf(req.$ctx.meta.user.type)>-1 ) {
+										if (req.$ctx.meta.user.type &&
+											activePath.validUserTypes.indexOf(req.$ctx.meta.user.type) > -1) {
 											self.parseUploadedFile(req, res, activePath);
 										}
 									}
 								});
-						} else if ( activePath.validUserTypes && // check if user or admin
-							activePath.validUserTypes.includes(req.$ctx.meta.user.type) ) {
+						} else if (activePath.validUserTypes && // check if user or admin
+							activePath.validUserTypes.includes(req.$ctx.meta.user.type)) {
 							self.parseUploadedFile(req, res, activePath);
 						}
 					}

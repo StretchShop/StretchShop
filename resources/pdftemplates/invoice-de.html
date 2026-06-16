@@ -1,0 +1,138 @@
+<div>
+  <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;,&quot;*&quot;]}">
+    <tr>
+      <td><!-- company_logo //--></td>
+      <td>
+        Rechnungsnummer: 
+        <span style="font-size:12px;font-weight:bold;">{{order.invoice.id}}</span><br />
+        Zur Bestellung Nr.: <br />{{order.externalCode}}
+      </td>
+    </tr>
+  </table>
+  <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;,&quot;*&quot;]}">
+    <tr>
+      <td><strong>Zahlungsdatum: {{order.dates.datePaid}}</strong></td>
+      <td>Zahlungsart: {{order.data.paymentData.nameReady}}</td>
+    </tr>
+  </table>
+  <table width="100%">
+    <tr>
+      <td style="font-size:10px;">
+        <h2 style="font-size:14px;">Verkäufer</h2><br />
+        <p><strong>{{business.invoiceData.company.name}}</strong><br />
+          {{business.invoiceData.company.address.street}}, {{business.invoiceData.company.address.zip}} {{business.invoiceData.company.address.city}} {{business.invoiceData.company.address.country}}<br />
+          ID: {{business.invoiceData.company.orgId}}, Steuernummer: {{business.invoiceData.company.taxId}}
+          {{#if business.invoiceData.company.taxVatId}}
+            {{business.invoiceData.company.taxVatId}}
+          {{/if}}<br />
+          {{business.invoiceData.company.registration}}<br />
+          Bankkonto {{business.invoiceData.company.account.bank}}: {{business.invoiceData.company.account.number}}, IBAN: {{business.invoiceData.company.account.iban}}, SWIFT: {{business.invoiceData.company.account.swift}}<br />
+          Kontakt: Tel. {{business.invoiceData.company.contacts.phone}}, E-Mail: {{business.invoiceData.company.contacts.email}}, Web: {{business.invoiceData.company.contacts.web}}</p>
+      </td>
+    </tr>
+  </table>
+  <table width="100%">
+    <tr>
+      <td style="font-size:10px;">
+        <h2 style="font-size:14px;">Käufer</h2><br />
+        <p><strong>{{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}</strong><br />
+          {{#if order.addresses.invoiceAddress.companyName}}
+          <strong>{{order.addresses.invoiceAddress.companyName}}</strong></strong><br />
+          {{/if}}
+          {{order.addresses.invoiceAddress.street}} {{order.addresses.invoiceAddress.street2}}<br />
+          {{order.addresses.invoiceAddress.zip}} {{order.addresses.invoiceAddress.city}}<br />
+          Kontakt: Tel. {{order.addresses.invoiceAddress.phone}}, E-Mail {{order.user.email}}</p>
+          {{#if order.addresses.invoiceAddress.companyOrgId}}
+            <br />ID: {{order.addresses.invoiceAddress.companyOrgId}}
+          {{/if}}
+          {{#if order.addresses.invoiceAddress.companyTaxId}}
+            , Steuernummer: {{order.addresses.invoiceAddress.companyTaxId}}, USt-IdNr.: {{order.addresses.invoiceAddress.companyTaxVatId}}
+          {{/if}}
+      </td>
+    </tr>
+  </table>
+  <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;,&quot;*&quot;]}">
+    <tr>
+      <td style="font-size:10px;">
+        Steuerbeleg <strong>(Rechnungsnummer):</strong>
+        <span style="font-size:12px;font-weight:bold;">{{order.invoice.id}}</span><br />
+        Konstantes Symbol: 0308
+      </td>
+      <td style="font-size:10px;">
+        Ausstellungsdatum: {{order.dates.dateInvoiceIssued}}<br />
+        Steuerpflichtige Leistung: {{order.dates.dateInvoiceIssued}}<br />
+        Fälligkeitsdatum: <strong style="font-size:12px;font-weight:bold;">10.1.2020</strong>
+      </td>
+    </tr>
+  </table>
+  <table width="100%" data-pdfmake="{&quot;widths&quot;:[200,&quot;*&quot;,&quot;*&quot;,&quot;*&quot;,&quot;*&quot;]}">
+    <tr>
+      <th style="font-size:10px;">Bezeichnung</th>
+      <th style="font-size:10px;">Menge</th>
+      <th style="font-size:10px;">%<br />MwSt.</th>
+      <th style="font-size:10px;">Preis/Stk.<br />ohne MwSt.</th>
+      <th style="font-size:10px;">Summe<br />mit MwSt.</th>
+    </tr>
+    {{#each order.items}}
+    <tr>
+      <td style="font-size:10px;">{{nameReady}}</td>
+      <td style="font-size:10px;">{{amount}}</td>
+      <td style="font-size:10px;">{{tax}}</td>
+      <td style="font-size:10px;">{{taxData.priceWithoutTax}} {{../order.prices.currency.symbol}}</td>
+      <td style="font-size:10px;">{{itemTotal}} {{../order.prices.currency.symbol}}</td>
+    </tr>
+    {{/each}}
+    {{#each order.data.deliveryDataReady}}
+    <tr>
+      <td style="font-size:10px;">{{name}}</td>
+      <td style="font-size:10px;">1</td>
+      <td style="font-size:10px;">0</td>
+      <td style="font-size:10px;">{{price}} {{../order.prices.currency.symbol}}</td>
+      <td style="font-size:10px;">{{price}} {{../order.prices.currency.symbol}}</td>
+    </tr>
+    {{/each}}
+    <tr>
+      <td style="font-size:10px;">{{order.data.paymentData.nameReady}}</td>
+      <td style="font-size:10px;">1</td>
+      <td style="font-size:10px;">0</td>
+      <td style="font-size:10px;">{{order.data.paymentData.price}} {{order.prices.currency.symbol}}</td>
+      <td style="font-size:10px;">{{order.data.paymentData.price}} {{order.prices.currency.symbol}}</td>
+    </tr>
+  </table>
+  <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;,&quot;*&quot;]}">
+    <tr>
+      <td>
+        --
+      </td>
+      <td>
+        <table width="100%" data-pdfmake="{&quot;widths&quot;:[&quot;*&quot;,&quot;*&quot;]}">
+          <tr>
+            <td style="font-size:10px;">Summe ohne MwSt.</td>
+            <td style="font-size:10px;">{{order.prices.priceTotalNoTax}} {{order.prices.currency.symbol}}</td>
+          </tr>
+          <tr>
+            <td style="font-size:10px;">Summe MwSt.</td>
+            <td style="font-size:10px;">{{order.prices.priceTaxTotal}} {{order.prices.currency.symbol}}</td>
+          </tr>
+          <tr>
+            <td style="font-size:10px;">Summe mit MwSt.</td>
+            <td style="font-size:10px;">{{order.prices.priceTotal}} {{order.prices.currency.symbol}}</td>
+          </tr>
+          <tr>
+            <td style="font-size:10px;">Bezahlt</td>
+            <td style="font-size:10px;">- {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}</td>
+          </tr>
+          <tr>
+            <td><strong>Gesamtbetrag zur Zahlung</strong></td>
+            <td><strong>{{order.prices.priceTotalToPay}} {{order.prices.currency.symbol}}</strong></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  {{#if business.invoiceData.company.taxVatId}}
+  ----
+  {{else}}
+  <p>Kein Umsatzsteuerzahler</p>
+  {{/if}}
+</div>

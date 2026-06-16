@@ -217,7 +217,7 @@ module.exports = {
 							functionSettings: {
 								language: user.settings.language
 							},
-							template: "adminlogin",
+							template: "admin/adminlogin",
 							data: {
 								webname: ctx.meta.siteSettings.name,
 								admin: admin,

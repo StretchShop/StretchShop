@@ -10,6 +10,16 @@
       "code": "en",
       "longCode": "en-US",
       "name": "English"
+    },
+    {
+      "code": "de",
+      "longCode": "de-DE",
+      "name": "Deutsch"
+    },
+    {
+      "code": "es",
+      "longCode": "es-ES",
+      "name": "Español"
     }
   ],
   "country": "sk",

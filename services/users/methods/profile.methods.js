@@ -277,7 +277,7 @@ module.exports = {
 								functionSettings: {
 									language: user.settings.language
 								},
-								template: "profiledelete",
+								template: "profile/profiledelete",
 								data: {
 									webname: ctx.meta.siteSettings.name,
 									username: user.username,
@@ -333,7 +333,7 @@ module.exports = {
 								functionSettings: {
 									language: user.settings.language
 								},
-								template: "profileundelete",
+								template: "profile/profileundelete",
 								data: {
 									webname: ctx.meta.siteSettings.name,
 									username: user.username,

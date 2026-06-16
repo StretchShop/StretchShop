@@ -5,7 +5,9 @@
       "type": "physical",
       "name": {
         "en": "Personally on Branch",
-        "sk": "Osobne na Pobočke"
+        "sk": "Osobne na Pobočke",
+        "de": "Persönlich in der Filiale",
+        "es": "Recogida en sucursal"
       },
       "prices": [
         {
@@ -31,7 +33,9 @@
       "type": "physical",
       "name": {
         "en": "Courier",
-        "sk": "Kuriér"
+        "sk": "Kuriér",
+        "de": "Kurier",
+        "es": "Mensajería"
       },
       "prices": [
         {
@@ -56,7 +60,9 @@
       "type": "digital",
       "name": {
         "en": "Download",
-        "sk": "Stiahnuť"
+        "sk": "Stiahnuť",
+        "de": "Download",
+        "es": "Descargar"
       },
       "prices": [
         {
@@ -83,7 +89,9 @@
       "type": "physical",
       "name": {
         "en": "Cash On Delivery",
-        "sk": "Platba Pri Doručení"
+        "sk": "Platba Pri Doručení",
+        "de": "Nachnahme",
+        "es": "Pago contra reembolso"
       },
       "prices": [
         {
@@ -108,7 +116,9 @@
       "codename": "online_stripe",
       "name": {
         "en": "Pay online with Stripe (Card, PayPal)",
-        "sk": "Zaplatiť online cez Stripe (Karta, PayPal)"
+        "sk": "Zaplatiť online cez Stripe (Karta, PayPal)",
+        "de": "Online mit Stripe bezahlen (Karte, PayPal)",
+        "es": "Pagar online con Stripe (Tarjeta, PayPal)"
       },
       "prices": [
         {

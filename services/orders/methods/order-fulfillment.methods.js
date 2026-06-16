@@ -39,7 +39,7 @@ module.exports = {
 				}
 			}
 			ctx.call("users.sendEmail",{ // return 
-				template: "ordered",
+				template: "order/ordered",
 				data: {
 					order,
 				},
@@ -165,7 +165,7 @@ module.exports = {
 							})
 							.then(() => {
 								ctx.call("users.sendEmail",{ // return 
-									template: "orderpaid",
+									template: "order/orderpaid",
 									data: {
 										order: order, 
 										html: html

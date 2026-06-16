@@ -91,7 +91,7 @@ module.exports = {
 									"keepItForLater": this.buildHashSourceFromEntity(hashedPwd, entity.user.dates.dateCreated.toISOString()),
 									"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
 									"language": entity.user.settings.language,
-									"templateName": "registration"
+									"templateName": "auth/registration"
 								};
 								this.sendVerificationEmail(emailData, ctx);
 

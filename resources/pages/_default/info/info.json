@@ -1,15 +1,21 @@
 {
   "name": {
     "sk": "test SK",
-    "en": "StretchShop Info"
+    "en": "StretchShop Info",
+    "de": "StretchShop Info",
+    "es": "StretchShop Info"
   },
   "descriptionShort": {
     "sk": "test SK",
-    "en": "Basic information about StretchShop"
+    "en": "Basic information about StretchShop",
+    "de": "Grundlegende Informationen über StretchShop",
+    "es": "Información básica sobre StretchShop"
   },
   "descriptionLong": {
     "sk": "test SK",
-    "en": "What is StretchShop and where can you find more information about it"
+    "en": "What is StretchShop and where can you find more information about it",
+    "de": "Was ist StretchShop und wo finden Sie weitere Informationen darüber",
+    "es": "Qué es StretchShop y dónde puede encontrar más información al respecto"
   },
   "categories": ["pages"],
   "pages": ["homepage", "test"]
