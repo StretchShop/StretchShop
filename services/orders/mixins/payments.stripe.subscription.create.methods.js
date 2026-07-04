@@ -95,8 +95,8 @@ module.exports = {
 				items: [{
 					price: stripeSubsProductPriceId, // result of checkPrice()
 				}],
-				payment_behavior: "default_incomplete", 
-				expand: ["latest_invoice.payment_intent"], 
+				payment_behavior: "default_incomplete",
+				expand: self.getStripeSubscriptionExpandFields(),
 			});
 
 			const stripeSubscription = {
@@ -104,8 +104,11 @@ module.exports = {
 				items: [{
 					price: stripeSubsProductPriceId, // result of checkPrice()
 				}],
-				payment_behavior: "default_incomplete", 
-				expand: ["latest_invoice.payment_intent"], 
+				payment_behavior: "default_incomplete",
+				payment_settings: {
+					save_default_payment_method: "on_subscription",
+				},
+				expand: self.getStripeSubscriptionExpandFields(),
 				// add metadata to receive them in webhook
 				metadata: {
 					"subscriptionId": related?.subscription?._id?.toString() || "",
@@ -126,8 +129,6 @@ module.exports = {
 					periodNumber = periodNumber * 1000; // convert to milliseconds
 					trialEndDate = new Date(trialEndDate.getTime() + (related.subscription.data.product.data.subscription.cyclesTrial * periodNumber)); // add days
 					stripeSubscription["trial_end"] = Math.round(trialEndDate.getTime() / 1000);
-					stripeSubscription["payment_behavior"] = "default_incomplete";
-					stripeSubscription["expand"] = ["pending_setup_intent"];
 				}
 			}
 
@@ -137,7 +138,7 @@ module.exports = {
 				.then(stripeSubscription => {
 					this.logger.info("payments.stripe.mixin pSS() #4.2 stripeSubscription:", stripeSubscription);
 					this.logger.info("payments.stripe.mixin pSS() #4.2 updateSubscription LI:", stripeSubscription?.latest_invoice);
-					this.logger.info("payments.stripe.mixin pSS() #4.2 updateSubscription LI.PI:", stripeSubscription?.latest_invoice?.payment_intent);
+					this.logger.info("payments.stripe.mixin pSS() #4.2 updateSubscription LI.confirmation_secret:", stripeSubscription?.latest_invoice?.confirmation_secret);
 					// prepare to save stripe response into subscription
 					let updateSubscription = Object.assign({}, related.subscription);
 					if (!updateSubscription.data.stripe) { updateSubscription.data["stripe"] = {}; }
@@ -178,10 +179,7 @@ module.exports = {
 							return ctx.call("orders.updateOrder", { order: updateOrder })
 								.then(updatedOrder => {
 									this.logger.info("payments.stripe.mixin pSS() #4.5 updateOrder:", updatedOrder);
-									let clientSecret = stripeSubscription?.latest_invoice?.payment_intent?.client_secret;
-									if (related?.subscription?.data?.product?.data?.subscription?.cyclesTrial > 0) {
-										clientSecret = stripeSubscription?.pending_setup_intent?.client_secret;
-									}
+									const clientSecret = self.getStripeSubscriptionClientSecret(stripeSubscription);
 									const result = {
 										id: stripeSubscription.id,
 										existing: false,

@@ -69,15 +69,13 @@ module.exports = {
 							transporter.sendMail(mailOptions, (error, info) => {
 								if (error) {
 									self.logger.error("users.sendEmail sendMail error: ", error);
-									reject(false);
+									return reject(error);
 								}
 								if ( info && info.messageId ) {
 									self.logger.info("users.sendEmail sendMail MessageId: ", info.messageId);
 								}
 								// Preview only available when sending through an Ethereal account
 								self.logger.info("user.sendEmail sendMail messageUrl: ", nodemailer.getTestMessageUrl(info));
-								// Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
-								// Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
 								resolve(true);
 							});
 						});

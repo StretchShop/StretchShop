@@ -5,11 +5,11 @@
 module.exports = {
 	methods: {
 		prepareForUpdate(object) {
-			let objectToSave = { ...object}; //JSON.parse(JSON.stringify(object));
+			let objectToSave = { ...object};
 			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
 				delete objectToSave._id;
 			}
-			return { "$set": objectToSave };
+			return { "$set": this.sanitizeForMongoUpdate(objectToSave) };
 		},
 
 

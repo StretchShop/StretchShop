@@ -7,7 +7,6 @@ const { ServiceBroker, Context } = require("moleculer");
 const { ValidationError } = require("moleculer").Errors;
 const DbService = require("../../../mixins/db.mixin");
 const { createTestBroker } = require("../../setup/broker");
-const ApiService = require("../../../services/api/api.service");
 const CartService = require("../../../services/cart/cart.service");
 const ProductsService = require("../../../services/products/products.service");
 const { seedTestProduct } = require("../../setup/seed");
@@ -15,7 +14,6 @@ const { seedTestProduct } = require("../../setup/seed");
 
 describe("Test 'cart' service", () => {
 	let broker = createTestBroker();
-	const serviceApi = broker.createService(ApiService, {});
 	const serviceCart = broker.createService(CartService, {});
 	const serviceProducts = broker.createService(ProductsService, {});
 

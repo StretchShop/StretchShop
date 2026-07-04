@@ -99,15 +99,13 @@ module.exports = {
 									this.logger.info("payments.stripe.mixin stripeOrderSubscription #3.1 stripeIdToPay / next.use:", stripeIdToPay, related.orderPaymentStatus.subscriptions.next.use);
 									// get subscription object by its stripeId
 									return stripe.subscriptions.retrieve(stripeIdToPay, {
-										// to get client_secret for payment of subscription
-										// https://stackoverflow.com/questions/77943218/stripe-get-a-client-secret-when-the-amount-is-zero
-										expand: ["pending_setup_intent"]
+										expand: self.getStripeSubscriptionExpandFields()
 									}).then(stripeSubscription => {
-										this.logger.info("payments.stripe.mixin stripeOrderSubscription #3.1 subscription:", stripeSubscription, stripeSubscription?.pending_setup_intent?.client_secret);
-										// if it was not paid yet, pending_setup_intent is available with client_secret
-										if (stripeSubscription?.pending_setup_intent?.client_secret) {
+										const clientSecret = self.getStripeSubscriptionClientSecret(stripeSubscription);
+										this.logger.info("payments.stripe.mixin stripeOrderSubscription #3.1 subscription:", stripeSubscription, clientSecret);
+										if (clientSecret) {
 											related.result = {
-												clientSecret: stripeSubscription?.pending_setup_intent?.client_secret,
+												clientSecret,
 												existing: true,
 												supplier: related.orderPaymentStatus.subscriptions.next.use.supplier
 											};

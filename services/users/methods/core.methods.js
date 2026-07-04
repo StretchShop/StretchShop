@@ -449,9 +449,13 @@ module.exports = {
 			};
 
 			// sending email
-			ctx.call("users.sendEmail", emailSetup).then(json => {
-				this.logger.info("users.sendVerificationEmail email sent", json);
-			});
+			ctx.call("users.sendEmail", emailSetup)
+				.then(json => {
+					this.logger.info("users.sendVerificationEmail email sent", json);
+				})
+				.catch(error => {
+					this.logger.error("users.sendVerificationEmail email failed:", error);
+				});
 		},
 
 

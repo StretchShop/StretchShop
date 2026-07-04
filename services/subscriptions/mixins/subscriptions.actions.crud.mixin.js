@@ -96,7 +96,7 @@ module.exports = {
 									delete entity.id;
 									delete entity._id;
 									const update = {
-										"$set": entity
+										"$set": self.sanitizeForMongoUpdate(entity)
 									};
 
 									return self.adapter.updateById(entityId, update)
@@ -141,7 +141,7 @@ module.exports = {
 											});
 											self.logger.info("subscriptions.save - insert entity:", entity);
 
-											return self.adapter.insert(entity)
+											return self.adapter.insert(self.sanitizeForMongoUpdate(entity))
 												.then(doc => self.transformDocuments(ctx, {}, doc))
 												.then(json => self.entityChanged("created", json, ctx)
 												.then(() => json))

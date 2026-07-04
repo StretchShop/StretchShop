@@ -21,4 +21,4 @@ copyToDemoData.sh
 .github
 *.log
 .temp/
-.temp/ipnlog.log
+.temp/webhook.log

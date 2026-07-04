@@ -6,7 +6,6 @@ const nullOrAny = require("../../extensions/null-or-any");
 const { ServiceBroker, Context } = require("moleculer");
 const { ValidationError } = require("moleculer").Errors;
 const { createTestBroker } = require("../../setup/broker");
-const ApiService = require("../../../services/api/api.service");
 const CartService = require("../../../services/cart/cart.service");
 const ProductsService = require("../../../services/products/products.service");
 const OrdersService = require("../../../services/orders/orders.service");
@@ -27,7 +26,6 @@ global.orderExpectation = {};
 
 describe("Test 'orders' service", () => {
 	let broker = createTestBroker();
-	const serviceApi = broker.createService(ApiService, {});
 	const serviceOrders = broker.createService(OrdersService, { meta: global.testMeta });
 	const serviceProducts = broker.createService(ProductsService, {});
 	const serviceCart = broker.createService(CartService, {});
@@ -314,11 +312,14 @@ describe("Test 'orders' service", () => {
 		it("Should List Last Order", async () => {			
 			global.orderSpecial.dates["userConfirmation"] = (new Date()).getTime();
 
-			// get last order	
+			// get order by id to avoid cross-run pollution in shared test databases
 			if ( global.testMeta.user.id ) {
 				global.testMeta.user["_id"] = global.testMeta.user.id;
 			}
-			const orderLast = await broker.call("orders.listOrders", { limit: 1, sort: "-dates.dateCreated" }, { meta: global.testMeta });
+			const orderLast = await broker.call("orders.listOrders", {
+				query: { _id: global.orderSpecial._id.toString() },
+				limit: 1,
+			}, { meta: global.testMeta });
 			expect(orderLast.total).toBeGreaterThan(0);
 
 			// - - - - - - - - - VALIDATE - - - - - - - - - 

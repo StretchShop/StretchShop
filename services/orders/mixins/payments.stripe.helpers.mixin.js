@@ -212,6 +212,30 @@ module.exports = {
 				}
 			}
 			return null;
+		},
+
+
+		/**
+		 * Client secret for Stripe Payment Element on subscriptions.
+		 * Stripe API 2025-03-31+ exposes invoice.confirmation_secret instead of invoice.payment_intent.
+		 *
+		 * @param {Object} stripeSubscription
+		 * @returns {string|null}
+		 */
+		getStripeSubscriptionClientSecret(stripeSubscription) {
+			if (stripeSubscription?.pending_setup_intent?.client_secret) {
+				return stripeSubscription.pending_setup_intent.client_secret;
+			}
+			if (stripeSubscription?.latest_invoice?.confirmation_secret?.client_secret) {
+				return stripeSubscription.latest_invoice.confirmation_secret.client_secret;
+			}
+			// Legacy Stripe API (< 2025-03-31.basil)
+			return stripeSubscription?.latest_invoice?.payment_intent?.client_secret || null;
+		},
+
+
+		getStripeSubscriptionExpandFields() {
+			return ["latest_invoice.confirmation_secret", "pending_setup_intent"];
 		}
 
 	}

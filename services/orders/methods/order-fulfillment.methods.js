@@ -5,7 +5,7 @@ const passGenerator = require("generate-password");
 const fetch = require("cross-fetch");
 const jwt = require("jsonwebtoken");
 const handlebars = require("handlebars");
-const { writeFileSync, ensureDir, createWriteStream } = require("fs-extra");
+const { ensureDir } = require("fs-extra");
 const pathResolve = require("path").resolve;
 const SettingsMixin = require("../../../mixins/settings.mixin");
 const PdfPrintMixin = require("../../../mixins/pdfprint.mixin");
@@ -38,7 +38,7 @@ module.exports = {
 					userEmail = order.user.email;
 				}
 			}
-			ctx.call("users.sendEmail",{ // return 
+			ctx.call("users.sendEmail", {
 				template: "order/ordered",
 				data: {
 					order,
@@ -50,7 +50,9 @@ module.exports = {
 			})
 				.then(booleanResult => {
 					this.logger.info("orders.orderAfterAcceptedActions() - Email order SENT:", booleanResult);
-					//return true;
+				})
+				.catch(error => {
+					this.logger.error("orders.sendOrderedEmail() - email failed:", error);
 				});
 			return true;
 		},
@@ -155,19 +157,20 @@ module.exports = {
 						// pdfDocGenerator.getBuffer(function(buffer) {
 						ensureDir(dir, 0o2775)
 							.then(() => {
-								let pdfDoc = PdfPrintMixin.generatePdfFromHtml(html);
-								pdfDoc.pipe(createWriteStream(path));
-								pdfDoc.end();
+								const pdfDoc = PdfPrintMixin.generatePdfFromHtml(html);
+								return pdfDoc.write(path);
+							})
+							.then(() => {
 								self.logger.info("orders.generateInvoice() - path:", path);
 							})
 							.catch(orderEnsureDirErr => {
 								self.logger.error("orders.generateInvoice() - orderEnsureDirErr:", orderEnsureDirErr);
 							})
 							.then(() => {
-								ctx.call("users.sendEmail",{ // return 
+								ctx.call("users.sendEmail", {
 									template: "order/orderpaid",
 									data: {
-										order: order, 
+										order: order,
 										html: html
 									},
 									settings: {
@@ -180,7 +183,9 @@ module.exports = {
 								})
 									.then(booleanResult => {
 										self.logger.info("orders.generateInvoice() - Email order PAID SENT:", booleanResult);
-										//return true;
+									})
+									.catch(error => {
+										self.logger.error("orders.generateInvoice() - email failed:", error);
 									});
 							});
 						// });

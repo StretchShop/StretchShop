@@ -68,7 +68,17 @@ module.exports = function(collection) {
 				},
 
 				sanitizeForMongoUpdate(value) {
-					if (value == null || typeof value !== "object") {
+					if (value == null) {
+						return value;
+					}
+					if (typeof value === "bigint") {
+						const asNumber = Number(value);
+						return Number.isSafeInteger(asNumber) ? asNumber : value.toString();
+					}
+					if (typeof value !== "object") {
+						return value;
+					}
+					if (value instanceof Date) {
 						return value;
 					}
 					if (Array.isArray(value)) {
@@ -166,7 +176,27 @@ module.exports = function(collection) {
 				return false;
 			},
 			sanitizeForMongoUpdate(value) {
-				return value;
+				if (value == null) {
+					return value;
+				}
+				if (typeof value === "bigint") {
+					const asNumber = Number(value);
+					return Number.isSafeInteger(asNumber) ? asNumber : value.toString();
+				}
+				if (typeof value !== "object") {
+					return value;
+				}
+				if (value instanceof Date) {
+					return value;
+				}
+				if (Array.isArray(value)) {
+					return value.map(v => this.sanitizeForMongoUpdate(v));
+				}
+				const sanitized = {};
+				Object.keys(value).forEach(key => {
+					sanitized[key] = this.sanitizeForMongoUpdate(value[key]);
+				});
+				return sanitized;
 			}
 		}
 	};

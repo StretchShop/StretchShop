@@ -231,7 +231,10 @@ module.exports = {
 		onError(req, res, err) {
 			// Return with the error as JSON object
 			res.setHeader("Content-type", "application/json; charset=utf-8");
-			res.writeHead(err.code || 500);
+			const statusCode = (typeof err.code === "number" && err.code >= 400 && err.code < 600)
+				? err.code
+				: 500;
+			res.writeHead(statusCode);
 
 			this.logger.error("api onError:", err);
 
