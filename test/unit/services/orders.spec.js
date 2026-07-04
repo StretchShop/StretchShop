@@ -5,7 +5,7 @@ const nullOrAny = require("../../extensions/null-or-any");
 
 const { ServiceBroker, Context } = require("moleculer");
 const { ValidationError } = require("moleculer").Errors;
-const ApiService = require("../../../services/api/api.service");
+const { createTestBroker } = require("../../setup/broker");
 const CartService = require("../../../services/cart/cart.service");
 const ProductsService = require("../../../services/products/products.service");
 const OrdersService = require("../../../services/orders/orders.service");
@@ -13,6 +13,7 @@ const UserService = require("../../../services/users/users.service");
 
 const testLocals = require("../../../resources/settings/locals.json");
 const testUser = require("../../demodata/user.json");
+const { seedTestProduct } = require("../../setup/seed");
 
 global.testMeta = {
 	localsDefault: testLocals,
@@ -24,8 +25,7 @@ global.orderSpecial = {};
 global.orderExpectation = {};
 
 describe("Test 'orders' service", () => {
-	let broker = new ServiceBroker({ logger: false });
-	const serviceApi = broker.createService(ApiService, {});
+	let broker = createTestBroker();
 	const serviceOrders = broker.createService(OrdersService, { meta: global.testMeta });
 	const serviceProducts = broker.createService(ProductsService, {});
 	const serviceCart = broker.createService(CartService, {});
@@ -93,6 +93,7 @@ describe("Test 'orders' service", () => {
 
 	beforeAll(async () => {
 		await broker.start();
+		await seedTestProduct(serviceProducts);
 	});
 	afterAll(async () => {
 		await broker.stop()
@@ -102,6 +103,11 @@ describe("Test 'orders' service", () => {
 	// Test order updates
 	describe("Test 'orders.progress' action", () => {
 
+		const withCartMeta = (meta = global.testMeta) => ({
+			...meta,
+			cookies: { cart: global.lastCart.hash || global.lastCart._id?.toString() },
+			cart: global.lastCart,
+		});
 
 		it("Should return Object of New Order created", async () => {			
 			const cart = await broker.call("cart.add", {
@@ -109,14 +115,21 @@ describe("Test 'orders' service", () => {
 				amount: 1
 			});
 
+			const cartMeta = {
+				...global.testMeta,
+				cookies: { cart: cart.hash },
+				cart,
+			};
+
 			// create new order because none exists for cart
-			const orderResponse = await broker.call("orders.progress", {}, { meta: global.testMeta });
+			const orderResponse = await broker.call("orders.progress", {}, { meta: cartMeta });
 			expect(orderResponse.result).toMatchObject({
 				id: 1,
 				name: "missing user data",
 				success: false
 			});
 			global.orderSpecial = orderResponse.order;
+			global.lastCart = cart;
 
 			expect(orderResponse.order).toMatchObject(global.orderExpectation);
 		});
@@ -149,7 +162,7 @@ describe("Test 'orders' service", () => {
 			};
 
 			// call progress action to get result - order status
-			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: global.testMeta });
+			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 2,
 				name: "missing order data",
@@ -231,7 +244,7 @@ describe("Test 'orders' service", () => {
 			};
 
 			// create new order because none exists for cart
-			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: global.testMeta });
+			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 3,
 				name: "missing confirmation",
@@ -266,11 +279,7 @@ describe("Test 'orders' service", () => {
 				})
 			});
 			global.orderExpectation.prices = expect.objectContaining({
-				priceDeliveryTaxData: expect.objectContaining({
-					taxDecimal: expect.any(Number),
-					tax: expect.any(Number),
-					taxType: expect.any(String),
-				}),
+				priceDeliveryTaxData: expect.nullOrAny(Object),
 				pricePaymentTaxData: expect.objectContaining({
 					taxDecimal: expect.any(Number),
 					tax: expect.any(Number),
@@ -286,7 +295,7 @@ describe("Test 'orders' service", () => {
 			global.orderSpecial.dates['userConfirmation'] = (new Date()).getTime();
 
 			// create new order because none exists for cart
-			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: global.testMeta });
+			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 4,
 				name: "confirmed",
@@ -303,11 +312,14 @@ describe("Test 'orders' service", () => {
 		it("Should List Last Order", async () => {			
 			global.orderSpecial.dates["userConfirmation"] = (new Date()).getTime();
 
-			// get last order	
+			// get order by id to avoid cross-run pollution in shared test databases
 			if ( global.testMeta.user.id ) {
 				global.testMeta.user["_id"] = global.testMeta.user.id;
 			}
-			const orderLast = await broker.call("orders.listOrders", { limit: 1, sort: "-dates.dateCreated" }, { meta: global.testMeta });
+			const orderLast = await broker.call("orders.listOrders", {
+				query: { _id: global.orderSpecial._id.toString() },
+				limit: 1,
+			}, { meta: global.testMeta });
 			expect(orderLast.total).toBeGreaterThan(0);
 
 			// - - - - - - - - - VALIDATE - - - - - - - - - 

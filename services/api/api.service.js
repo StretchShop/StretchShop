@@ -10,6 +10,7 @@ const path = require("path");
 // global mixins
 const HelpersMixin = require("../../mixins/helpers.mixin");
 const SettingsMixin = require("../../mixins/settings.mixin");
+const { getRequiredSecret } = require("../../mixins/env.helpers");
 
 // methods
 const ApiMethodsCore = require("./methods/core.methods");
@@ -50,7 +51,7 @@ module.exports = {
 			cert: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_CERT))
 		} : null,
 		
-		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
+		JWT_SECRET: getRequiredSecret("JWT_SECRET", "jwt-stretchshop-secret"),
 
 		// Global CORS settings for all routes
 		cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev" || process.env.CORS_ORIGIN?.trim() !== "") ? {
@@ -89,11 +90,20 @@ module.exports = {
 			maxAge: 3600
 		} : null,
 
-		ip: process.env.IP || 'localhost',
+		ip: process.env.IP || "localhost",
 
 		port: process.env.PORT || 3000,
 
 		routes: [
+			{
+				path: "/health",
+				aliases: {
+					"GET /": "metrics.health",
+				},
+				authentication: false,
+				authorization: false,
+				mappingPolicy: "restrict",
+			},
 			/**
 			 * Webhook endpoint for payment providers, that NEED raw body (eg. stripe)
 			 * It disables body parsing and reads raw body from request
@@ -116,9 +126,6 @@ module.exports = {
 					"POST /:supplier": "orders.paymentWebhookRaw",
 				},
 				onBeforeCall(ctx, route, req) {
-					// Set request headers to context meta
-					console.log("api.service - onBeforeCall - route: ", route);
-					console.log("api.service - onBeforeCall - req.body: ", req.body);
 					ctx.meta.rawbody = req.body.toString();
 					ctx.meta.headers = req.headers;
 				},
@@ -158,7 +165,7 @@ module.exports = {
 								to: function(context) {
 									let path = "";
 									// if available, update path as required by business
-									if (pathModif && typeof pathModif.updatePath === 'function') {
+									if (pathModif && typeof pathModif.updatePath === "function") {
 										path = pathModif.updatePath(path, context.request);
 									}
 									return path + "/index.html";
@@ -174,7 +181,7 @@ module.exports = {
 
 						// if available, update path as required by business
 						let publicPathReady = publicPath;
-						if (pathModif && typeof pathModif.updatePath === 'function') {
+						if (pathModif && typeof pathModif.updatePath === "function") {
 							publicPathReady = pathModif.updatePath(publicPath, req);
 						}
 
@@ -189,10 +196,10 @@ module.exports = {
 							})
 							.catch( (error) => {
 								console.error("Router / error: ", error);
-								res.set('Content-Type', 'text/plain')
+								res.set("Content-Type", "text/plain")
 									.status(404)
 									.send({ message: "Page index.html not found" });
-							})
+							});
 					},
 				},
 				mappingPolicy: "restrict",
@@ -203,7 +210,7 @@ module.exports = {
 			folder: process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public")
 		},
 
-		localsDefault: SettingsMixin.getSiteSettings('locals'),
+		localsDefault: SettingsMixin.getSiteSettings("locals"),
 
 		translation: {
 			type: "jamlin",
@@ -224,7 +231,10 @@ module.exports = {
 		onError(req, res, err) {
 			// Return with the error as JSON object
 			res.setHeader("Content-type", "application/json; charset=utf-8");
-			res.writeHead(err.code || 500);
+			const statusCode = (typeof err.code === "number" && err.code >= 400 && err.code < 600)
+				? err.code
+				: 500;
+			res.writeHead(statusCode);
 
 			this.logger.error("api onError:", err);
 
@@ -303,7 +313,7 @@ module.exports = {
 						return results;
 					})
 					.catch(err => {
-						console.error('api.globalSearch error: ', err);
+						console.error("api.globalSearch error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Global search error", 422, "", []));
 					});
 			}
@@ -318,10 +328,10 @@ module.exports = {
 			},
 			handler(ctx) {
 				// if user is admin and settings are editable
-				const business = SettingsMixin.getSiteSettings('business', true);
-				this.logger.info('settings: ', business,  ctx.meta.user.type=="admin", 
-				business.editableSettings !== "undefined", 
-				business.editableSettings.core === true, ctx);
+				const business = SettingsMixin.getSiteSettings("business", true);
+				this.logger.info("settings: ", business,  ctx.meta.user.type=="admin", 
+					business.editableSettings !== "undefined", 
+					business.editableSettings.core === true, ctx);
 				if ( ctx.meta.user.type=="admin" && 
 				business.editableSettings !== "undefined" && 
 				business.editableSettings.core === true ) {
@@ -340,10 +350,10 @@ module.exports = {
 			},
 			handler(ctx) {
 				// if user is admin and settings are editable
-				const business = SettingsMixin.getSiteSettings('business', true);
-				this.logger.info('settings: ', business,  ctx.meta.user.type=="admin", 
-				business.editableSettings !== "undefined", 
-				business.editableSettings === true, ctx);
+				const business = SettingsMixin.getSiteSettings("business", true);
+				this.logger.info("settings: ", business,  ctx.meta.user.type=="admin", 
+					business.editableSettings !== "undefined", 
+					business.editableSettings === true, ctx);
 				if ( ctx.meta.user.type=="admin" && 
 				business.editableSettings !== "undefined" && 
 				business.editableSettings === true ) {

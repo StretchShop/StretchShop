@@ -8,7 +8,7 @@ const sppf = require("../mixins/subproject.helper");
 let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../resources");
 
 module.exports = function(emailTemplateName, inputData, requiredFormats){
-	emailTemplateName = (typeof emailTemplateName !== "undefined") ?  emailTemplateName : "registration";
+	emailTemplateName = (typeof emailTemplateName !== "undefined") ?  emailTemplateName : "auth/registration";
 	inputData = (typeof inputData !== "undefined") ?  inputData : {};
 	requiredFormats = (typeof requiredFormats !== "undefined") ?  requiredFormats : ["html","txt"];
 

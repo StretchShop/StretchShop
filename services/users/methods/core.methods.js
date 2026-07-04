@@ -24,30 +24,30 @@ module.exports = {
 
 			// set full lang
 			if ( coreData.lang && coreData.langs ) {
-				for (let i = 0; i<coreData.langs.length; i++) {
-					if (coreData.langs[i].code==coreData.lang) {
-						coreData.langs[i]["default"] = true;
-						coreData.lang = coreData.langs[i];
+				for (const element of coreData.langs) {
+					if (element.code==coreData.lang) {
+						element["default"] = true;
+						coreData.lang = element;
 						break;
 					}
 				}
 			}
 			// set full currency
 			if ( coreData.currency && coreData.currencies ) {
-				for (let i = 0; i<coreData.currencies.length; i++) {
-					if (coreData.currencies[i].code==coreData.currency) {
-						coreData.currencies[i]["default"] = true;
-						coreData.currency = coreData.currencies[i];
+				for (const element of coreData.currencies) {
+					if (element.code==coreData.currency) {
+						element["default"] = true;
+						coreData.currency = element;
 						break;
 					}
 				}
 			}
 			// set full country
 			if ( coreData.country && coreData.countries ) {
-				for (let i = 0; i<coreData.countries.length; i++) {
-					if (coreData.countries[i].code==coreData.country) {
-						coreData.countries[i]["default"] = true;
-						coreData.country = coreData.countries[i];
+				for (const element of coreData.countries) {
+					if (element.code==coreData.country) {
+						element["default"] = true;
+						coreData.country = element;
 						break;
 					}
 				}
@@ -217,7 +217,7 @@ module.exports = {
 							functionSettings: {
 								language: user.settings.language
 							},
-							template: "adminlogin",
+							template: "admin/adminlogin",
 							data: {
 								webname: ctx.meta.siteSettings.name,
 								admin: admin,
@@ -364,37 +364,38 @@ module.exports = {
 		 */
 		extractTranslation(transData, langCode, blockName) {
 			let extractedTranslation = []; // { type: "text", selector: "...", string:   }
-			if ( transData && transData.dictionary && transData.dictionary.records &&
+			if ( transData?.dictionary?.records &&
 				transData.dictionary.records.length>0 && langCode ) {
-				for (let i=0; i<transData.dictionary.records.length; i++) {
+				for (const element of transData.dictionary.records) {
 					let translationRecordString = "";
 					// #1 - get translate with same langCode
-					for (let j=0; j<transData.dictionary.records[i].translates.length; j++) {
-						if (transData.dictionary.records[i].translates[j].langCode===langCode) {
+					for (let j=0; j<element.translates.length; j++) {
+						if (element.translates[j].langCode===langCode) {
 							// GET translation string
-							translationRecordString = transData.dictionary.records[i].translates[j].translation;
+							translationRecordString = element.translates[j].translation;
 						} // END if translates langCode
 					} // END for traslates
 					// #2 - get types and selectors from occurences
-					for (let j=0; j<transData.dictionary.records[i].occurrences.length; j++) {
+					for (let j=0; j<element.occurrences.length; j++) {
 						// TODO - if blockName set, select only specific block
-						if (transData.dictionary.records[i].occurrences[j].type) {
-							if ((typeof blockName !== "undefined" && blockName!="" &&
-							transData.dictionary.records[i].occurrences[j].blockName &&
-							transData.dictionary.records[i].occurrences[j].blockName==blockName) ||
-							typeof blockName === "undefined") {
+						if (element.occurrences[j].type) {
+							if ((blockName !== undefined && blockName!="" &&
+							element.occurrences[j].blockName &&
+							element.occurrences[j].blockName==blockName) ||
+							blockName === undefined) {
 								// GET translation TYPE
-								let translationRecordType = transData.dictionary.records[i].occurrences[j].type;
-								if ( transData.dictionary.records[i].occurrences[j].translationStrings &&
-									transData.dictionary.records[i].occurrences[j].translationStrings.length ) {
-									for (let k=0; k<transData.dictionary.records[i].occurrences[j].translationStrings.length; k++) {
-										let translationRecordSelector = transData.dictionary.records[i].occurrences[j].translationStrings[k].selector;
-										let translationRecordOrig = transData.dictionary.records[i].occurrences[j].translationStrings[k].stringOrig;
+								let translationRecordType = element.occurrences[j].type;
+								if ( element.occurrences[j].translationStrings?.length ) {
+									for (let k=0; k<element.occurrences[j].translationStrings.length; k++) {
+										let translationRecordSelector = element.occurrences[j].translationStrings[k].selector;
+										let translationRecordOrig = element.occurrences[j].translationStrings[k].stringOrig;
+										let translationRecordPath = element.occurrences[j].path?.toString().trim().split("/src/")[1] || "";
 										extractedTranslation.push({
 											type: translationRecordType,
 											selector: translationRecordSelector,
 											string: translationRecordString,
-											original: translationRecordOrig
+											original: translationRecordOrig,
+											path: translationRecordPath
 										});
 									} // END for translationStrings
 								} // END if translationStrings
@@ -448,9 +449,13 @@ module.exports = {
 			};
 
 			// sending email
-			ctx.call("users.sendEmail", emailSetup).then(json => {
-				this.logger.info("users.sendVerificationEmail email sent", json);
-			});
+			ctx.call("users.sendEmail", emailSetup)
+				.then(json => {
+					this.logger.info("users.sendVerificationEmail email sent", json);
+				})
+				.catch(error => {
+					this.logger.error("users.sendVerificationEmail email failed:", error);
+				});
 		},
 
 

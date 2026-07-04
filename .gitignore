@@ -9,7 +9,7 @@ yarn-error.log
 data/
 db
 .env
-public/
+public/**/*
 !public/index.html
 
 resources/emails/
@@ -21,4 +21,4 @@ copyToDemoData.sh
 .github
 *.log
 .temp/
-.temp/ipnlog.log
+.temp/webhook.log

@@ -137,11 +137,11 @@ module.exports = {
 				})
 				.then(subResult => {
 					if (subResult) {
-						return ctx.call("users.removeContentDependencies")
+						return this.removeSubscriptionContentDependencies(ctx, subResult.data.subscription)
 							.then(updatedUser => {
 								this.logger.info("subscriptions to webhook cancel - users.removeContentDependencies updatedUser:", updatedUser);
 								return subResult;
-							})
+							});
 					}
 				});
 		},

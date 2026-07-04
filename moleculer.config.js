@@ -1,5 +1,7 @@
 "use strict";
 
+const { getCacherConfig } = require("./mixins/env.helpers");
+
 module.exports = {
 	timeout: 10000,
 	namespace: "stretchshop",
@@ -13,12 +15,7 @@ module.exports = {
 			moduleColors: false,
 		}
 	},
-	cacher: {
-		type: "memory",
-		options: {
-			maxParamsLength: 100
-		}
-	},
+	cacher: getCacherConfig(),
 
 	// Enable/disable built-in metrics function. More info: https://moleculer.services/docs/0.14/metrics.html
 	metrics: {

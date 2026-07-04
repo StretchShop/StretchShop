@@ -125,7 +125,6 @@ module.exports = {
 	// Call before every request
 	onBeforeCall(ctx, route, req) {
 		ctx.meta.host = req.headers.host;
-		this.logger.info("onBeforeCall headers: ", req.headers);
 		ctx.meta.remoteAddress = req.connection.remoteAddress;
 		if (req.headers["x-forwarded-for"]) {
 			ctx.meta.remoteAddress = req.headers["x-forwarded-for"];
@@ -133,7 +132,6 @@ module.exports = {
 		if (req.headers["x-real-ip"]) {
 			ctx.meta.remoteAddress = req.headers["x-real-ip"];
 		}
-		this.logger.info("onBeforeCall visitor IP (req.connection.remoteAddress / req.ip): ", req.connection.remoteAddress, "/", req.ip);
 		ctx.meta.remotePort = req.connection.remotePort;
 		// update localsDefault according to cookie value if possible
 		ctx.meta.localsDefault = this.settings.localsDefault;
@@ -148,7 +146,6 @@ module.exports = {
 	// Call after every request
 	onAfterCall(ctx, route, req, res, data) {
 		// writing cookies
-		this.logger.info("apiV1 onAfterCall - ctx.meta.makeCookies: ", ctx.meta.makeCookies);
 		if (ctx.meta.makeCookies) {
 			const cookieSecure = ((process.env.COOKIES_SECURE==="true" || process.env.COOKIES_SECURE==true) ? true : false);
 

@@ -34,7 +34,7 @@ module.exports = {
 						path: "/",
 						signed: true,
 						expires: exp,
-						secure: ((process.env.COOKIES_SECURE && process.env.COOKIES_SECURE==true) ? true : false),
+						secure: (!!process.env.COOKIES_SECURE),
 						httpOnly: true
 					}
 				};
@@ -42,8 +42,6 @@ module.exports = {
 					ctx.meta.makeCookies["order_no_verif"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
 				}
 			}
-
-			return;
 		},
 
 
@@ -61,7 +59,7 @@ module.exports = {
 			for(let i=0; i<data.order.items.length; i++) {
 				data.order.items[i] = this.getProductTaxData(
 					data.order.items[i], 
-					SettingsMixin.getSiteSettings('business')?.taxData?.global
+					SettingsMixin.getSiteSettings("business")?.taxData?.global
 				);
 				data.order.items[i].nameReady = data.order.items[i].name[lang];
 				data.order.items[i].itemTotal = data.order.items[i].taxData.priceWithTax * data.order.items[i].amount;
@@ -107,29 +105,29 @@ module.exports = {
 		 */
 		prepareForUpdate(object) {
 			let objectToSave = JSON.parse(JSON.stringify(object));
-			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
+			if ( objectToSave._id !== undefined && objectToSave._id ) {
 				delete objectToSave._id;
 			}
-			return { "$set": objectToSave };
+			return { "$set": this.sanitizeForMongoUpdate(objectToSave) };
 		},
 
 
 		getOrderTypology(order) {
-			const excludedTypes = []; // 'subscription'
+			const excludedTypes = new Set([]); // 'subscription'
 			const cartItemTypology = { types: [], subtypes: [] };
 			if (order.items && order.items.length > 0) {
 				order.items
-				.filter(item => ![item.type, item.subtype].some((i) => excludedTypes.includes(i)) )
-				.forEach(item => {
-					console.log("getOrderTypology - item/subtype:", item.type, item.subtype);
-					// set variables for delivery & payment types
-					if (!cartItemTypology.types.includes(item.type)) {
-						cartItemTypology.types.push(item.type);
-					}
-					if (!cartItemTypology.subtypes.includes(item.subtype)) {
-						cartItemTypology.subtypes.push(item.subtype);
-					}
-				});
+					.filter(item => ![item.type, item.subtype].some((i) => excludedTypes.has(i)) )
+					.forEach(item => {
+						console.log("getOrderTypology - item/subtype:", item.type, item.subtype);
+						// set variables for delivery & payment types
+						if (!cartItemTypology.types.includes(item.type)) {
+							cartItemTypology.types.push(item.type);
+						}
+						if (!cartItemTypology.subtypes.includes(item.subtype)) {
+							cartItemTypology.subtypes.push(item.subtype);
+						}
+					});
 			}
 
 			return cartItemTypology;

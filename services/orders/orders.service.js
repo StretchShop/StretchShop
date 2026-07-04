@@ -13,6 +13,7 @@ const priceLevels = require("../../mixins/price.levels.mixin");
 const FileHelpers = require("../../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../../mixins/cache.cleaner.mixin");
 const SettingsMixin = require("../../mixins/settings.mixin");
+const { getRequiredSecret } = require("../../mixins/env.helpers");
 
 // methods
 const OrdersMethodsCore = require("./methods/core.methods");
@@ -21,6 +22,11 @@ const OrdersMethodsSubscription = require("./methods/subscription.methods");
 // service specific mixins
 const paymentWebhook = require("./mixins/payments.webhook.mixin");
 const paymentsStripe = require("./mixins/payments.stripe.mixin");
+const OrderActionsProgress = require("./mixins/order-actions.progress.mixin");
+const OrderActionsLifecycle = require("./mixins/order-actions.lifecycle.mixin");
+const OrderActionsPayment = require("./mixins/order-actions.payment.mixin");
+const OrderActionsFulfillment = require("./mixins/order-actions.fulfillment.mixin");
+
 
 // settings
 const sppf = require("../../mixins/subproject.helper");
@@ -32,7 +38,6 @@ let resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__
 module.exports = {
 	name: "orders",
 	mixins: [
-		DbService("orders"),
 		HelpersMixin,
 		priceLevels,
 		FileHelpers,
@@ -43,11 +48,16 @@ module.exports = {
 		// mixins
 		paymentWebhook,
 		paymentsStripe,
+		OrderActionsProgress,
+		OrderActionsLifecycle,
+		OrderActionsPayment,
+		OrderActionsFulfillment,
 		// events
 		CacheCleanerMixin([
 			"cache.clean.orders"
 		]),
-		Cron
+		Cron,
+		DbService("orders"), // has to be the last to not override actions
 	],
 
 	/**
@@ -69,7 +79,7 @@ module.exports = {
 		}],
 
 		/** Secret for JWT */
-		JWT_SECRET: process.env.JWT_SECRET || "jwt-stretchshop-secret",
+		JWT_SECRET: getRequiredSecret("JWT_SECRET", "jwt-stretchshop-secret"),
 
 		/** Public fields */
 		fields: [
@@ -201,819 +211,6 @@ module.exports = {
 
 
 	/**
-	 * Actions
-	 */
-	actions: {
-		
-		/**
-		 * Get current order progress according to cart
-		 *
-		 * @returns {Object} order entity of active user
-		 */
-		progress: {
-			// auth: "required",
-			cache: false,
-			params: {
-				orderParams: { type: "object", optional: true },
-			},
-			handler(ctx) {
-				this.logger.info("order.progress - ctx.params: ", ctx.params);
-				ctx.params.orderParams = (typeof ctx.params.orderParams === "undefined" || !ctx.params.orderParams) ? {} : ctx.params.orderParams;
-				this.logger.info("order.progress - ctx.params.orderParams: ", ctx.params.orderParams);
-				// remove stripeKey if forgotten
-				if (
-					ctx.params.orderParams?.settings?.stripeKey
-				) {
-					delete ctx.params.orderParams.settings.stripeKey;
-				}
-				// this.logger.info("orders.progress - ctx.meta: ", ctx.meta);
-				return ctx.call("cart.me")
-					.then(cart => {
-						this.logger.info("order.progress - Cart Result:", cart);
-						if (cart.order && cart.order.toString().trim()!="") { // order exists, get it
-							return this.adapter.findById(cart.order)
-								.then(order => {
-									this.logger.info("order.progress - Order Result:", order);
-									return this.getOrderProgressAction(ctx, cart, order);
-								}); // order found in db END
-
-						} else { // order does not exist, create it
-							this.logger.info("order.progress - no order found, CREATE order");
-							return this.createOrderAction(cart, ctx, this.adapter);
-						}
-					})
-					.catch(err => {
-						console.error('orders.progress cart.me error: ', err);
-						return this.Promise.reject(new MoleculerClientError("Order cart error", 422, "", []));
-					}); // cart end
-			}
-		},
-
-
-		/**
-		 * Insert order from object sent - with recalculating the prices
-		 * 
-		 * @param {Object} order
-		 * 
-		 * @returns {Object} saved order
-		 */
-		create: {
-			params: {
-				order: { type: "object" },
-			},
-			handler(ctx) {
-				let self = this;
-				// count order prices
-				ctx.params.order = this.countOrderPrices("all", null, ctx.params.order);
-				// update dates
-				ctx.params.order.dates.dateCreated = new Date();
-				ctx.params.order.dates.dateChanged = new Date();
-
-				return this.adapter.insert(ctx.params.order)
-					.then(doc => this.transformDocuments(ctx, {}, doc))
-					.then(json => {
-						return this.entityChanged("created", json, ctx)
-							.then(() => {
-								this.logger.info("order.create - created do afterSaveActions:", json);
-								self.orderAfterSaveActions(ctx, {order: json});
-								return json;
-							});
-					})
-					.catch(error => {
-						self.logger.error("order.create - insert error: ", error);
-						return null;
-					});
-
-			}
-		},
-
-
-		/**
-		 * Update order with object sent - with recalculating the prices
-		 * 
-		 * @param {Object} order
-		 * 
-		 * @returns {Object} saved order
-		 */
-		updateOrder: {
-			params: {
-				order: { type: "object" },
-				params: { type: "object", optional: true }
-			},
-			handler(ctx) {
-				let self = this;
-				let entity = ctx.params.order;
-				// count order prices
-				this.logger.info("order.update - order:", entity?.id, entity);
-
-				return this.adapter.findById(entity.id)
-					.then(found => {
-						if (found) { // entity found, update it
-							if ( entity ) {
-								entity = this.countOrderPrices("all", null, entity);
-								// update dates
-								entity.dates.dateChanged = new Date();
-
-								let entityId = entity.id;
-								delete entity.id;
-								delete entity._id;
-								const update = {
-									"$set": entity
-								};
-
-								return self.adapter.updateById(entityId, update)
-									.then(doc => this.transformDocuments(ctx, {}, doc))
-									.then(json => {
-										return this.entityChanged("updated", json, ctx)
-											.then(() => {
-												this.logger.info("order.update - updated order:", json);
-												self.orderAfterSaveActions(ctx, {order: json});
-												return json;
-											});
-									})
-									.catch(error => {
-										self.logger.error("order.create - insert error: ", error);
-										return null;
-									});
-							}
-						} else {
-							self.logger.warn("order.update - order not found:", entity.id);
-							return null;
-						}
-					})
-					.catch(err => {
-						console.error('order.create find error: ', err);
-						return this.Promise.reject(new MoleculerClientError("Order create error", 422, "", []));
-					});
-
-			}
-		},
-
-
-		/**
-		 * Cancel order
-		 * 
-		 * @actions
-		 * 
-		 * @param {String} orderId - id of order to cancel
-		 * 
-		 * @returns {Object} saved order
-		 */
-		cancel: {
-			cache: false,
-			auth: "required",
-			params: {
-				orderId: { type: "string", min: 3 },
-				items: { type: "array", optional: true }
-			},
-			handler(ctx) {
-				let result = { success: false, order: null, message: null };
-				let self = this;
-
-				return this.adapter.findById(ctx.params.orderId)
-					.then(order => {
-						order.status = "canceled";
-						order.dates.dateChanged = new Date();
-						if (order.dates["dateCanceled"]) { order.dates["dateCanceled"] = null; }
-						order.dates.dateCanceled = new Date();
-						if (order.data["canceledUserId"]) { order.dates["canceledUserId"] = null; }
-						order.data.canceledUserId = ctx.meta.user._id.toString();
-						
-						let orderId = order._id.toString();
-						delete order.id;
-						delete order._id;
-						order.invoice = {};
-						const update = {
-							"$set": order
-						};
-
-						return self.adapter.updateById(orderId, update)
-							.then(doc => {
-								return this.transformDocuments(ctx, {}, doc);
-							})
-							.then(json => {
-								return this.entityChanged("updated", json, ctx)
-									.then(() => {
-										self.logger.info("order.cancel - cancel success: ");
-										result.success = true;
-										result.order = json;
-										return result;
-									});
-							})
-							.catch(error => {
-								self.logger.error("order.cancel - update error: ", error);
-								result.message = "error: " + JSON.stringify(error);
-								return result;
-							});
-					})
-					.catch(error => {
-						self.logger.error("order.cancel - not found: ", error);
-						result.message = "error: " + JSON.stringify(error);
-						return result;
-					});
-			}
-		},
-
-
-		/**
-		 * List user orders if logged in
-		 *
-		 * @actions
-		 *
-		 * @returns {Object} Orders list
-		 */
-		listOrders: {
-			// cache: {
-			// 	keys: ["#cartID"]
-			// },
-			cache: false,
-			auth: "required",
-			params: {
-				query: { type: "object", optional: true },
-				limit: { type: "number", optional: true },
-				offset: { type: "number", optional: true },
-				sort: { type: "string", optional: true },
-				fullData: { type: "boolean", optional: true },
-				paymentStatus: { type: "boolean", optional: true } // add payment status to every order
-			},
-			handler(ctx) {
-				let self = this;
-
-				// check if we have logged user
-				if ( ctx.meta.user && ctx.meta.user._id ) { // we have user
-					let filter = { query: {}, limit: 20};
-					if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
-						filter.query = ctx.params.query;
-					}
-					// update filter acording to user
-					if ( ctx.meta.user.type=="admin" && typeof ctx.params.fullData!=="undefined" && ctx.params.fullData==true ) {
-						// admin can browse all orders
-					} else {
-						filter.query["user.id"] = ctx.meta.user._id.toString();
-					}
-					filter.query["$or"] = [{"status":"saved"}, {"status":"sent"}, {"status":"paid"}, {"status":"expeded"}];
-					// set offset
-					if (ctx.params.offset && ctx.params.offset>0) {
-						filter.offset = ctx.params.offset;
-					}
-					// set max of results
-					if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
-						filter.limit = ctx.params.limit;
-					}
-					if (filter.limit>10) {
-						filter.limit = 10;
-					}
-					// sort
-					filter.sort = "-dates.dateCreated";
-					if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
-						filter.sort = ctx.params.sort;
-					}
-
-					if ( filter?.query?._id && filter.query._id.trim()!="" ) {
-						filter.query._id = this.fixStringToId(filter.query._id);
-						filter.limit = 1;
-					}
-
-					// send query
-					return ctx.call("orders.find", filter)
-						.then(found => {
-							if (found?.constructor===Array) { // order found in datasource, return it
-								// remove html render of invoice if more than 1 result
-								if (found.length>1) {
-									for (const element of found) {
-										if (element?.invoice?.html) {
-											delete element.invoice.html;
-											delete element.data;
-											delete element.user.data.stripe;
-										}
-									}
-								}
-								// add payment status if requested
-								if (ctx.params.paymentStatus) {
-									for (const element of found) {
-										element.data['paymentStatus'] = self.getOrderPaymentStatus(element);
-									}
-								}
-								return ctx.call("orders.count", filter)
-									.then(count => {
-										return {
-											total: count,
-											results: found
-										};
-									})
-									.catch(error => {
-										self.logger.error("orders.listOrders count error", error);
-										return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found"}]));
-									});
-							} else { // no order found in datasource
-								self.logger.error("orders.listOrders find error", found);
-								return Promise.reject(new MoleculerClientError("Orders not found!.", 400, "", [{ field: "orders", message: "not found"}]));
-							}
-						})
-						.catch(error => {
-							self.logger.error("orders.listOrders find error", error);
-							return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
-						});
-				}
-
-			}
-		},
-
-
-		/**
-		 * Payment router - call action related to request and 
-		 * allowed in the order settings
-		 * 
-		 * @actions
-		 * 
-     * @param {String} supplier - supplier name (eg. stripe)
-     * @param {String} action - action name (eg. geturl)
-     * @param {String} orderId - id of order to pay
-     * @param {Object} data - data specific for payment
-		 * 
-		 * @returns {Object} Unified result from related action
-		 */
-		payment: {
-			params: {
-				supplier: { type: "string", min: 3 },
-				action: { type: "string", min: 3 },
-				orderId: { type: "string", min: 3 },
-				data: { type: "object", optional: true }
-			},
-			handler(ctx) {
-				let self = this;
-				// get action to call - get its name from supplier & action params
-				const supplier = ctx.params.supplier.toLowerCase();
-				let action = ctx.params.action.charAt(0).toUpperCase();
-				action += ctx.params.action.slice(1);
-				let actionName = supplier+"Order"+action;
-				const availablePaymentActions = SettingsMixin.getOriginalSiteSettings("orders")["availablePaymentActions"];
-
-				if (action === 'Prepare') {
-					return this.adapter.findById(ctx.params.orderId)
-						.then(order => {
-							const orderPaymentStatus = self.getOrderPaymentStatus(order);
-							console.log("orderPaymentStatus: ", JSON.stringify(orderPaymentStatus, null, 2));
-							if ( ["prepared", "running", "completed"].includes(orderPaymentStatus.order.status) ) {
-								return { success: true, data: null, message: 'order_already_prepared' };
-							}
-							this.logger.info("products status: ", orderPaymentStatus.products?.status, [null, "saved"].includes(orderPaymentStatus.products?.status));
-							this.logger.info("subscriptions status: ", orderPaymentStatus.subscriptions?.status, 
-								(
-									["paid", "shipped", "delivered"].includes(orderPaymentStatus.products?.status) || 
-									orderPaymentStatus.products?.count === 0
-								) && 
-								["saved", "failed"].includes(orderPaymentStatus.subscriptions?.status)
-							);
-
-							// null if order has products already prepared
-							if (
-								orderPaymentStatus.products?.count > 0 &&
-								[null, "saved"].includes(orderPaymentStatus.products?.status)
-							) {
-								actionName = supplier+"OrderPaymentintent";
-							} else if ( 
-								// if products paid or not exist and subscriptions not exist or failed
-								(
-									["paid", "shipped", "delivered"].includes(orderPaymentStatus.products?.status) || 
-									orderPaymentStatus.products?.count === 0
-								) && 
-								["saved", "failed"].includes(orderPaymentStatus.subscriptions?.status)
-							) { // products are already prepared, but subscription(s) not
-								actionName = supplier+"OrderSubscription";
-							}
-
-							// using resources/settings/orders.js check if final payment action can be called
-							this.logger.info("order.payment #1 - calling payment: ", actionName);
-							this.logger.info("order.payment #1 - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
-							if ( availablePaymentActions && availablePaymentActions.indexOf(actionName)>-1 ) {
-								this.logger.info("action & order & data: ", actionName, order, ctx.params.data);
-								// call action, that accepts already available order
-								return ctx.call("orders."+actionName, {
-									order,
-									data: ctx.params.data
-								})
-									.then(result => {
-										result["paymentStatus"] = orderPaymentStatus;
-										return result;
-									})
-									.catch(error => {
-										this.logger.error("order.payment - calling payment error: ", error);
-										return null;
-									});
-							}
-						})
-						.catch(error => {
-							this.logger.error("order.payment - find order error: ", error);
-							return this.Promise.reject(new MoleculerClientError("Item not found!", 404));
-						});
-				}
-
-				// using resources/settings/orders.js check if final payment action can be called
-				this.logger.info("order.payment #2 - calling payment: ", actionName);
-				this.logger.info("order.payment #2 - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
-				if ( availablePaymentActions && availablePaymentActions.indexOf(actionName)>-1 ) {
-					return ctx.call("orders."+actionName, {
-						orderId: ctx.params.orderId,
-						data: ctx.params.data
-					})
-						.then(result => {
-							return result;
-						})
-						.catch(error => {
-							this.logger.error("order.payment - calling payment error: ", error);
-							return null;
-						});
-				}
-			}
-		},
-
-
-		/**
-		 * Process result after user paid or agreed and returned to website
-		 * 
-		 * @actions
-		 * 
-     * @param {String} supplier - supplier name (eg. stripe)
-     * @param {String} result - result string
-     * @param {String} PayerID - id of payer
-     * @param {Object} paymentId - id of paymnet
-		 * 
-		 * @returns {Object} Unified result from related action
-		 */
-		paymentResult: {
-			params: {
-				supplier: { type: "string", min: 3 },
-				result: { type: "string", min: 3 },
-				PayerID: { type: "string", optional: true },
-				paymentId: { type: "string", optional: true }
-			},
-			handler(ctx) {
-				let supplier = ctx.params.supplier.toLowerCase();
-				let actionName = supplier+"Result";
-				let params = {
-					result: ctx.params.result,
-					PayerID: ctx.params.PayerID,
-					paymentId: ctx.params.paymentId
-				};
-				// token params
-				if (ctx.params.token) {
-					params.token = ctx.params.token;
-				}
-				if (ctx.params.ba_token) {
-					params.ba_token = ctx.params.ba_token;
-				}
-
-				// using resources/settings/orders.js check if final payment action can be called
-				if ( this.settings.order.availablePaymentActions &&
-				this.settings.order.availablePaymentActions.indexOf(actionName)>-1 ) {
-					return ctx.call("orders."+actionName, params)
-						.then(result => {
-							return result;
-						})
-						.catch(err => {
-							console.error('order.paymentResult *action error: ', err);
-							return this.Promise.reject(new MoleculerClientError("Order payment error", 422, "", []));
-						});
-				}
-			}
-		},
-
-
-
-		/**
-		 * Remove orders that have not changed from cart status 
-		 * for more than a month
-		 */
-		cleanOrders: {
-			cache: false,
-			handler(ctx) {
-				let promises = [];
-				const d = new Date();
-				d.setMonth(d.getMonth() - 1);
-				return this.adapter.find({
-					query: {
-						"dates.dateChanged": { "$lt": d },
-						status: "cart"
-					}
-				})
-					.then(found => {
-						found.forEach(order => {
-							promises.push( 
-								ctx.call("orders.remove", {id: order._id} )
-									.then(removed => {
-										return "Removed orders: " +JSON.stringify(removed);
-									})
-									.catch(err => {
-										console.error('order.cleanOrders remove error: ', err);
-										return this.Promise.reject(new MoleculerClientError("Order clean remove error", 422, "", []));
-									})
-							);
-						});
-						// return all delete results
-						return Promise.all(promises).then((result) => {
-							return result;
-						})
-						.catch(err => {
-							console.error('order.cleanOrders promises error: ', err);
-							return this.Promise.reject(new MoleculerClientError("Orders clean error", 422, "", []));
-						});
-					})
-					.catch(err => {
-						console.error('order.cleanOrders find error: ', err);
-						return this.Promise.reject(new MoleculerClientError("Order clean find error", 422, "", []));
-					});
-			}
-		}, 
-
-		/**
-		 * Download invoice PDF
-		 * 
-		 * @actions
-		 * 
-     * @param {String} invoice - id of invoice
-		 * 
-		 * @returns {ReadStream} Stream of invoice PDF file
-		 */
-		invoiceDownload: {
-			cache: false,
-			auth: "required",
-			params: {
-				invoice: { type: "string", min: 3 }
-			},
-			handler(ctx) {
-				this.logger.info("orders.invoiceDownload - id #"+ctx.params.invoice+" request by user: ", ctx.meta.user);
-				let invoiceData = ctx.params.invoice.split(".");
-				if ( invoiceData[1] && ctx.meta.user._id && ctx.meta.user._id==invoiceData[0] ) {
-					let assets = process.env.PATH_PUBLIC || "./public";
-					let dir = assets +"/"+ process.env.ASSETS_PATH +"invoices/"+ invoiceData[0];
-					let path = dir + "/" + invoiceData[1] + ".pdf";
-					this.logger.info("orders.invoiceDownload - path:", {path: path, resolvedPath: pathResolve(path)});
-					try {
-						let readStream = createReadStream( pathResolve(path) );
-						// We replaced all the event handlers with a simple call to readStream.pipe()
-						// readStream.pipe(ctx.options.parentCtx.params.res);
-						return readStream;
-					} catch(e) {
-						this.logger.error("orders.invoiceDownload - id #"+ctx.params.invoice+" error:", JSON.stringify(e));
-						return null;
-					}
-				}
-			}
-		},
-
-
-		/**
-		 * Admin only action
-		 * Change order state to paid
-		 * 
-		 * @actions
-		 * 
-     * @param {String} orderId - id of order to pay
-		 * 
-		 * @returns {Object} Unified result from related action
-		 */
-		paid: {
-			cache: false,
-			auth: "required",
-			params: {
-				orderId: { type: "string", min: 3 }
-			},
-			handler(ctx) {
-				// only admin can generate invoices
-				if ( ctx.meta.user.type=="admin" ) {
-					if ( ctx.params.orderId.trim() != "" ) {
-						this.logger.info("orders.paid - marking order as paid, id: ", ctx.params.orderId);
-						return this.adapter.findById(ctx.params.orderId)
-							.then(order => {
-								// specific for admin
-								order.status = "paid";
-								order.dates.datePaid = new Date();
-								if (!order.data.paymentData.paidAmountTotal) { order.data.paymentData["paidAmountTotal"] = 0; }
-								order.data.paymentData.paidAmountTotal = order.prices.priceTotal;
-								if (!order.data.paymentData.lastResponseResult) { order.data.paymentData["lastResponseResult"] = []; }
-								order.data.paymentData.lastResponseResult.push({
-									description: "Marked as Paid by Admin by Generating Invoice",
-									date: new Date(),
-									userId: ctx.meta.user._id.toString()
-								});
-								// do actions that happen after payment
-								return this.orderPaymentReceived(ctx, order, "admin")
-									.then(result => {
-										return result;
-									})
-									.catch(err => {
-										console.error('order.paid paymentReceived error: ', err);
-										return this.Promise.reject(new MoleculerClientError("Order payR error", 422, "", []));
-									});
-							})
-							.catch(err => {
-								console.error('order.paid find error: ', err);
-								return this.Promise.reject(new MoleculerClientError("Order pay find error", 422, "", []));
-							});
-					}
-				}
-			}
-		}, 
-
-		
-		/**
-		 * Admin only action
-		 * Change order state to expeded
-		 * 
-		 * @actions
-		 * 
-     * @param {String} orderId - id of order to expede
-		 * 
-		 * @returns {Object} Unified result from related action
-		 */
-		expede: {
-			cache: false,
-			auth: "required",
-			params: {
-				orderId: { type: "string", min: 3 }
-			},
-			handler(ctx) {
-				let result = { success: false, order: null, message: null };
-				const self = this;
-				// only admin can mark order as expeded
-				if ( ctx.meta.user.type=="admin" ) {
-					if ( ctx.params.orderId.trim() != "" ) {
-						return this.adapter.findById(ctx.params.orderId)
-							.then(order => {
-								// specific for admin
-								order.status = "expeded";
-								order.dates.dateChanged = new Date();
-								order.dates.dateExpeded = new Date();
-								order.data.paymentData.lastResponseResult.push({
-									description: "Marked as Expeded by Admin",
-									date: new Date(),
-									userId: ctx.meta.user._id.toString()
-								});
-
-								let orderId = order._id.toString();
-								delete order.id;
-								delete order._id;
-								const update = {
-									"$set": order
-								};
-
-								// update order document
-								return self.adapter.updateById(orderId, update)
-									.then(doc => {
-										return this.transformDocuments(ctx, {}, doc);
-									})
-									.then(json => {
-										return this.entityChanged("updated", json, ctx)
-											.then(() => {
-												self.logger.info("order.expede - expede success: ");
-												result.success = true;
-												result.order = json;
-												return result;
-											});
-									})
-									.catch(error => {
-										self.logger.error("order.expede - update error: ", error);
-										result.message = "error: " + JSON.stringify(error);
-										return result;
-									});
-							})
-							.catch(error => {
-								self.logger.error("order.expede - not found: ", error);
-								result.message = "error: " + JSON.stringify(error);
-								return result;
-							});
-					}
-				}
-			}
-		}, 
-
-
-		/**
-		 * SUBSCRIPTION FLOW - 2.1 (BE->API)
-		 * Call API related to payment type supplier
-		 * 
-		 * @actions
-		 * 
-		 * @param {String} supplier - supplier codename (eg. stripe)
-		 * @param {String} relatedId - id related to subscription (like API object id)
-		 * @param {String} subscription - related subscription object
-		 * 
-		 * @returns {Object} response from service
-		 * 
-		 */
-		paymentSuspend: {
-			cache: false,
-			auth: "required",
-			params: {
-				supplier: { type: "string", min: 3 },
-				relatedId: { type: "string", min: 3 },
-				subscription: { type: "object" }
-			},
-			handler(ctx) {
-				let supplier = (ctx.params.supplier) ? ctx.params.supplier : "stripe";
-				
-				this.logger.info("orders.paymentSuspend params: ", ctx.params);
-
-				// get name of action to call for this supplier
-				return ctx.call("orders."+supplier+"SuspendBillingAgreement", {
-					billingRelatedId: ctx.params.relatedId
-				} )
-					.then(suspendResult => {
-						this.logger.info("orders.paymentSuspend supplier call response: ", suspendResult);
-						return suspendResult;
-					})
-					.catch(error => {
-						this.logger.error("order.paymentSuspend - error: ", error, JSON.stringify(error));
-						return null;
-					});
-			}
-		},
-
-
-		/**
-		 * Mark order as trial
-		 * 
-		 * Status trial means, all products that are not subscrition type
-		 * are paid, but one or more of subscription products are in trial.
-		 * 
-		 * @actions
-		 * 
-		 * @param {String} subscriptionId - id of subscription to mark as trial
-		 */
-		orderSubscriptionTrial: {
-			cache: false,
-			auth: "required",
-			params: {
-				subscriptionId: { type: "string" }
-			},
-			handler(ctx) {
-				let self = this;
-				let result = { success: false, message: null };
-				let subscriptionId = ctx.params.subscriptionId;
-				this.logger.info("order.orderSubscriptionTrial - subscriptionId: ", subscriptionId);
-
-				return this.adapter.find({
-					query: {
-						"subscription.id": subscriptionId
-					}
-				})
-					.then(found => {
-						if (found && found.length>0) {
-							let order = found[0];
-							order.status = "trial";
-							order.dates.dateChanged = new Date();
-							order.data.paymentData.lastResponseResult.push({
-								description: "Marked as Trial by Admin",
-								date: new Date(),
-								userId: ctx.meta.user._id.toString()
-							});
-							let orderId = order._id.toString();
-							delete order.id;
-							delete order._id;
-							const update = {
-								"$set": order
-							};
-							return self.adapter.updateById(orderId, update)
-								.then(doc => {
-									return this.transformDocuments(ctx, {}, doc);
-								})
-								.then(json => {
-									return this.entityChanged("updated", json, ctx)
-										.then(() => {
-											self.logger.info("order.orderSubscriptionTrial - trial success: ");
-											result.success = true;
-											return result;
-										})
-										.then((orderUpdated) => {
-											if (orderUpdated.success) {
-												return ctx.call('subscriptions.subscriptionTrial', { subscriptionId: subscriptionId } )
-											}
-										});
-								})
-								.catch(error => {
-									self.logger.error("order.orderSubscriptionTrial - update error: ", error);
-									result.message = "error: " + JSON.stringify(error);
-									return result;
-								});
-						} else {
-							self.logger.error("order.orderSubscriptionTrial - not found: ", subscriptionId);
-							result.message = "error: order not found";
-							return result;
-						}
-					})
-					.catch(error => {
-						self.logger.error("order.orderSubscriptionTrial - find error: ", error);
-						result.message = "error: " + JSON.stringify(error);
-						return result;
-					});
-			}
-		}
-
-
-	},
-
-	/**
 	 * Core methods required by this service are located in
 	 * /methods/code.methods.js
 	 */
@@ -1039,44 +236,49 @@ module.exports = {
 		 * @param {*} ctx 
 		 */
 		afterPaidUserUpdates(order, ctx) {
-			// 1. get order products with data.contentDependency:true (if any)
 			this.logger.info("afterPaidUserUpdates default");
 			let cdProductCodes = [];
-			if (order && order.items && order.items.length > 0) {
+			if (order?.items?.length > 0) {
 				order.items.forEach(oi => {
-					if (oi && oi.contentDependency && oi.contentDependency === true && oi.orderCode) {
+					if (oi?.contentDependency === true && oi.orderCode) {
 						cdProductCodes.push(oi.orderCode);
 					}
 				});
 			}
-			// 2. then update active user data.contentDependencies in ctx & DB
-			// update meta
+
+			if (!order?.user?.id || cdProductCodes.length === 0) {
+				return Promise.resolve({ user: null, order });
+			}
+
 			let cdProductCodesUniq = cdProductCodes;
 			if (ctx.meta.user) {
 				if (!ctx.meta.user.data) {
-					// if data not set already, set it now
-					ctx.meta.user.data = { contentDependencies: { list: cdProductCodes } };
+					ctx.meta.user.data = { contentDependencies: { list: [] } };
 				}
 				if (!ctx.meta.user.data.contentDependencies) {
-					// if data.contentDependencies not set already, set it now
-					ctx.meta.user.data.contentDependencies = { list: cdProductCodes };
+					ctx.meta.user.data.contentDependencies = { list: [] };
 				}
-				// get array with unique values
-				cdProductCodesUniq = ctx.meta.user.data.contentDependencies.concat(cdProductCodes);
-				cdProductCodesUniq = cdProductCodesUniq.filter((item, index, array) => array.indexOf(item) == index)
+				if (!ctx.meta.user.data.contentDependencies.list) {
+					ctx.meta.user.data.contentDependencies.list = [];
+				}
+				cdProductCodesUniq = this.mergeContentDependencyCodes(
+					ctx.meta.user.data.contentDependencies.list,
+					cdProductCodes
+				);
 				ctx.meta.user.data.contentDependencies.list = cdProductCodesUniq;
 			}
-			// update in DB
-			return ctx.call("user.updateContentDependencies", { 
+
+			return ctx.call("users.updateContentDependencies", {
 				userId: order.user.id,
 				productCodes: cdProductCodesUniq
 			})
-				.catch(err => {
-					this.logger.error("order.afterPaidUserUpdates() error:", err);
-				})
 				.then(result => {
 					this.logger.info("user contentDependencies updated:", result);
 					return { user: result, order };
+				})
+				.catch(err => {
+					this.logger.error("order.afterPaidUserUpdates() error:", err);
+					return Promise.reject(err);
 				});
 		},
 
