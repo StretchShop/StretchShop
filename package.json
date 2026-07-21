@@ -71,5 +71,10 @@
   },
   "engines": {
     "node": ">= 18.x.x"
+  },
+  "overrides": {
+    "@spailybot/moleculer-auto-openapi": {
+      "moleculer": "$moleculer"
+    }
   }
 }
