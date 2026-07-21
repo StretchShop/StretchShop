@@ -1,0 +1,2864 @@
+{
+  "paths": {
+    "/coredata": {
+      "get": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Gets core data for site",
+        "operationId": "coredata",
+        "description": "Gets core data for front - available countries, currencies and langs and their default values\n",
+        "responses": {
+          "200": {
+            "description": "search results matching criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Coredata"
+                },
+                "example": {
+                  "value": {
+                    "lang": {
+                      "code": "en",
+                      "longCode": "en-US",
+                      "name": "English"
+                    },
+                    "langs": [
+                      {
+                        "code": "sk",
+                        "longCode": "sk-SK",
+                        "name": "Slovenčina"
+                      },
+                      {
+                        "code": "en",
+                        "longCode": "en-US",
+                        "name": "English"
+                      }
+                    ],
+                    "country": {
+                      "code": "sk",
+                      "name": "Slovakia"
+                    },
+                    "countries": [
+                      {
+                        "code": "sk",
+                        "name": "Slovakia"
+                      },
+                      {
+                        "code": "us",
+                        "name": "USA"
+                      }
+                    ],
+                    "currency": {
+                      "code": "EUR",
+                      "symbol": "€"
+                    },
+                    "currencies": [
+                      {
+                        "code": "EUR",
+                        "symbol": "€"
+                      },
+                      {
+                        "code": "USD",
+                        "symbol": "$"
+                      }
+                    ],
+                    "translation": {
+                      "en": [
+                        {
+                          "original": "Price"
+                        },
+                        {
+                          "selector": "example: html > body > template > article.tile.is-child.box > p:nth-child(5) > span"
+                        },
+                        {
+                          "string": "Cena"
+                        },
+                        {
+                          "type": "text"
+                        }
+                      ]
+                    },
+                    "user": {
+                      "id": "123456789abcdef",
+                      "username": "User",
+                      "email": "email@example.com",
+                      "type": "user",
+                      "token": "1234567890abcdefghijklmnopqrstuvwxyz$1234567890abcdefghijklmnopqrstuvwxyz$",
+                      "image": "static/users/user.jpg",
+                      "bio": "I am programmer",
+                      "addresses": [],
+                      "settings": {
+                        "currency": "EUR",
+                        "language": "sk"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "out of service"
+          }
+        }
+      }
+    },
+    "/coredata/translation": {
+      "get": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Gets translation strings",
+        "operationId": "coredatatranslation",
+        "description": "Gets translation strings for selected language\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lang",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "Language code eg. \"sk\" or \"en\""
+          },
+          {
+            "in": "query",
+            "name": "blockName",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "Name of the translation block"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "search results matching criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Translation"
+                    }
+                  }
+                },
+                "example": {
+                  "value": {
+                    "sk": [
+                      {
+                        "original": "Price",
+                        "selector": "html > body > template > article.tile.is-child.box > p:nth-child(5) > span",
+                        "string": "Cena",
+                        "type": "text"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "out of service"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update translation strings",
+        "operationId": "coredatatranslationupdate",
+        "description": "Updates translation strings\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dictionary",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Json object of"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Information about success or error of saving dictionary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "value": {
+                    "success": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/login": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Login user",
+        "operationId": "userLogin",
+        "description": "Send user credentials to login\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "password",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "description": "username and password",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserLoginRequest"
+              },
+              "example": {
+                "user": {
+                  "email": "email@example.com",
+                  "password": "userPass"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "search results matching criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserScheme"
+                },
+                "example": {
+                  "user": {
+                    "_id": "123456789abcdef",
+                    "username": "User",
+                    "email": "email@example.com",
+                    "type": "user",
+                    "bio": "I am programmer",
+                    "image": "/static/users/user.jpg",
+                    "activated": "2019-01-31T18:24:36.274Z",
+                    "addresses": [
+                      {
+                        "type": "invoice",
+                        "nameFirst": "User",
+                        "nameLast": "Tester",
+                        "street": "Street 1",
+                        "street2": "",
+                        "zip": "98765",
+                        "city": "City of Town",
+                        "country": "UK",
+                        "phone": "987654321",
+                        "state": ""
+                      }
+                    ],
+                    "token": "1234567890abcdefghijklmnopqrstuvwxyz$1234567890abcdefghijklmnopqrstuvwxyz$"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "out of service"
+          }
+        }
+      }
+    },
+    "/users/logout": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Logout user",
+        "operationId": "userLogout",
+        "description": "Log out",
+        "responses": {
+          "200": {
+            "description": "Logout succesful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/checkemail": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Email check",
+        "operationId": "checkemail",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "description": "check if email is registered",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "name@domain.tld"
+                  }
+                }
+              },
+              "example": {
+                "email": "name@domain.tld"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "email not foud",
+            "content": {
+              "application/json": {
+                "example": {
+                  "result": {
+                    "emailExists": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "email exists",
+            "content": {
+              "application/json": {
+                "example": {
+                  "errors": {
+                    "email": "exists"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/checkusername": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "User name check",
+        "operationId": "checkUsername",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "description": "check if username is used",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "someusername"
+                  }
+                }
+              },
+              "example": {
+                "username": "someusername"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "username not foud",
+            "content": {
+              "application/json": {
+                "example": {
+                  "result": {
+                    "userExists": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "username exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "errors": {
+                    "username": "exists"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/register": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "User registration",
+        "operationId": "userRegister",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "password",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "settings",
+            "required": true,
+            "example": {
+              "language": "sk",
+              "currency": "EUR"
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "language": {
+                  "type": "string"
+                },
+                "currency": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Send user registration",
+          "required": true,
+          "content": {
+            "application/data": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegistration"
+              },
+              "example": {
+                "username": "MyName",
+                "email": "user@domain.tld",
+                "password": "PasSW0rD",
+                "settings": {
+                  "language": "sk",
+                  "currency": "EUR"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "user registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "user": {
+                    "_id": "1234567890abcdef12345678",
+                    "username": "MyName",
+                    "email": "user@domain.tld",
+                    "type": "user",
+                    "bio": "",
+                    "image": "",
+                    "settings": {
+                      "language": "sk",
+                      "currency": "EUR"
+                    },
+                    "token": "abcdef1234567890"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "username exists",
+            "content": {
+              "application/json": {
+                "example": {
+                  "oneOf": [
+                    {
+                      "errors": {
+                        "username": "is exist"
+                      }
+                    },
+                    {
+                      "errors": {
+                        "email": "is exist"
+                      }
+                    },
+                    {
+                      "errors": {
+                        "fieldName": "The 'fieldName' field is required!"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Get profile of logged user",
+        "operationId": "userMe",
+        "responses": {
+          "200": {
+            "description": "Profile of logged user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserScheme"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "schema": {
+              "$ref": "#/components/schemas/UserScheme"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Create new user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserScheme"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "User not updated - missing fields or not authorized for that operation"
+          }
+        }
+      }
+    },
+    "/user/verify": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Verify user email",
+        "operationId": "userVerify",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "hash",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserScheme"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Activation failed"
+          }
+        }
+      }
+    },
+    "/user/reset": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Reset user password",
+        "operationId": "userReset",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Password reset done, email sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserScheme"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Account reset failed"
+          }
+        }
+      }
+    },
+    "/user/image": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "operationId": "userImageUpload",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "file",
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload user profile image",
+            "content": {
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "files[0]": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/image/{type}/{code}/{image}": {
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "operationId": "userImageDelete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "code",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "image",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delete image uploaded by user. Admin can delete all images, other users can delete only their images.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "file deleted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Couldn't delete file",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "delete failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/profile": {
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Delete profile of logged user",
+        "operationId": "userProfileDelete",
+        "responses": {
+          "200": {
+            "description": "Profile with date set to be deleted in specific number of days",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserScheme"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/cancelDelete": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Cancel user account delete",
+        "operationId": "userCancelDelete",
+        "description": "Cancel user account delete",
+        "responses": {
+          "200": {
+            "description": "Delete request canceled"
+          }
+        }
+      }
+    },
+    "/cart": {
+      "get": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Get cart to selected visitor",
+        "operationId": "cartGet",
+        "responses": {
+          "200": {
+            "description": "Cart content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Update amount of product in cart",
+        "operationId": "cartPostAmount",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "itemId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "amount",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "description": "Send product id and amount",
+          "required": true,
+          "content": {
+            "application/data": {
+              "schema": {
+                "$ref": "#/components/schemas/CartUpdate"
+              },
+              "example": {
+                "itemId": "abcdef1234567890",
+                "amount": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product amount changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Add product in the cart",
+        "operationId": "cartPutProduct",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "itemId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "amount",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "description": "Send product id and amount",
+          "required": true,
+          "content": {
+            "application/data": {
+              "schema": {
+                "$ref": "#/components/schemas/CartUpdate"
+              },
+              "example": {
+                "itemId": "abcdef1234567890",
+                "amount": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product added to cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Remove the whole cart",
+        "operationId": "cartRemoveCart",
+        "responses": {
+          "200": {
+            "description": "Empty cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart/find": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Find cart",
+        "operationId": "cartFind",
+        "responses": {
+          "200": {
+            "description": "Found cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart/{itemId}": {
+      "delete": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Remove the product from cart",
+        "operationId": "cartRemoveProduct",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product removed from cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart/{itemId}/{amount}": {
+      "delete": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Remove the product amount from cart",
+        "operationId": "cartRemoveProductAmount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "amount",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product amount removed from cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{category}": {
+      "get": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List products of category",
+        "operationId": "ProductGetCategory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of category's products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List products of category with filter",
+        "operationId": "ProductPostCategory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "filter",
+            "schema": {
+              "$ref": "#/components/schemas/ListFilter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of category's product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/filter": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List products by wider specificated filter",
+        "operationId": "ProductPostFilter",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "minimalData",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/find": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List products by Moleculer default action",
+        "operationId": "ProductPostFind",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{category}/detail/{product}": {
+      "get": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Get detail of product",
+        "operationId": "ProductDetail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "product",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product detail object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products": {
+      "put": {
+        "tags": [
+          "admin",
+          "developer"
+        ],
+        "summary": "Update existing or add new product",
+        "operationId": "ProductImport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "products",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Product"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response about import success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin",
+          "developer"
+        ],
+        "summary": "Update existing or add new product(s)",
+        "operationId": "ProductDelete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "products",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "example": {
+                "id": "1234567890abcdef",
+                "...": null
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Number of deleted products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/count": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Count products matching filter",
+        "operationId": "ProductCount",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Count of matching products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/rebuildpl/{id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Rebuild price levels of specified product",
+        "operationId": "ProductPriceRebuild",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recalculated prices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "id": "1234567890abcdef",
+                    "levels": {
+                      "user": {
+                        "partner": {
+                          "type": "calculated",
+                          "price": 9.5
+                        }
+                      },
+                      "admin": {
+                        "partner": {
+                          "type": "calculated",
+                          "price": 9
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/upload/{orderCode}/{type}": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Upload image for product",
+        "operationId": "ProductImageUpload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderCode",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image successfuly uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "success": true,
+                    "errors": false,
+                    "files": [
+                      {
+                        "id": "files[0]",
+                        "from": "main-picture.jpg",
+                        "to": "assets/data/products/ABC/123/ABC123-default.jpg",
+                        "path": "ABC/123/ABC123-default.jpg",
+                        "name": "ABC123-default.jpg",
+                        "success": true,
+                        "action": "products.updateProductImage"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/category/{categoryPath}": {
+      "get": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Get category detail",
+        "operationId": "CategoryDetail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "categoryPath",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categories": {
+      "put": {
+        "tags": [
+          "admin",
+          "developer"
+        ],
+        "summary": "Update existing or add new categorz",
+        "operationId": "categoryImport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "categories",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Category"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response about import success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Category"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin",
+          "developer"
+        ],
+        "summary": "Update existing or add new category(s)",
+        "operationId": "CategoryDelete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "categories",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "example": {
+                "id": "1234567890abcdef",
+                "...": null
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Number of deleted categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categories/find": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List of categories that match filter with related page",
+        "operationId": "CategoryFind",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "lang",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result with categories list and page detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categories/upload/{slug}": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Upload image for category",
+        "operationId": "CategoryImageUpload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image successfuly uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "success": true,
+                    "errors": false,
+                    "files": [
+                      {
+                        "id": "files[0]",
+                        "from": "category-slug.jpg",
+                        "to": "assets/data/categories/ABC/123/category-slug.jpg",
+                        "path": "ABC/123/category-slug.jpg",
+                        "name": "category-slug.jpg",
+                        "success": true,
+                        "action": "categories.updateCategoryImage"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/progress": {
+      "get": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Get order progress",
+        "operationId": "OrderProgress",
+        "responses": {
+          "200": {
+            "description": "Related order object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Update order progress",
+        "operationId": "OrderUpdate",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "orderParams",
+            "schema": {
+              "$ref": "#/components/schemas/Order"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Related order object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/list": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "List orders",
+        "operationId": "OrderList",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fullData",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/invoice/download/{invoice}": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Download order invoice",
+        "operationId": "OrderInvoiceDownload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/invoice/pay/{orderId}": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Pay order and generate order invoice",
+        "operationId": "OrderInvoiceGenerate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice PDF",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "html": "<div>...</div>",
+                    "id": "5202104080",
+                    "num": 80,
+                    "path": "invoices/1234567890abcdef/5202104080.pdf"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/invoice/cancel/{orderId}": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Cancel order invoice",
+        "operationId": "OrderInvoiceCancel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice was canceled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "order": {
+                      "$ref": "#/components/schemas/Order"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/invoice/expeded/{orderId}": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Mark order as expeded",
+        "operationId": "OrderInvoiceExpeded",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order was marked as expeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "order": {
+                      "$ref": "#/components/schemas/Order"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscription/list": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "List user subscriptions",
+        "operationId": "SubscriptionsList",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fullData",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user subscriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Subscription"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscription/suspend/{subscriptionId}": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Suspend subscription",
+        "operationId": "SubscriptionSuspend",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscription/reactivate/{subscriptionId}": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Reactivate suspended subscription",
+        "operationId": "SubscriptionReactivate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/payment/{supplier}/{action}": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Call action related to order and allowed in the settings",
+        "operationId": "orderPaymentPost",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "action",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "orderId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "data",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result from related action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "url": "return/url",
+                  "message": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/payment/{supplier}/{result}": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Process result after user paid or agreed and returned to website",
+        "operationId": "orderPaymentResultGet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "result",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "PayerID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "paymentId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result from related action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "response": {},
+                  "redirect": "/en/user/orders/"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/payment/webhook/{supplier}": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Webhook for paygate messages",
+        "operationId": "orderPaymentWebhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unified result from related action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/{category}": {
+      "get": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List pages of selected category",
+        "operationId": "pagesCategoryList",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category detail with list of category's pages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List pages of selected category (for filter invoked by url)",
+        "operationId": "pagesCategoryListPost",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "filter",
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of category's pages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/filter": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List pages by wider specificated filter",
+        "operationId": "PagesPostFilter",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "minimalData",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of pages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/find": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List pages by wider specificated filter",
+        "operationId": "PagesPostFind",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of pages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/listTemplates/{page}": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "List templates",
+        "operationId": "PagesListTemplates",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "page",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "withPages",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of page templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/{category}/detail/{page}": {
+      "get": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Page detail",
+        "operationId": "PageDetail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "page",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "lang",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page detail object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "body": {
+                      "type": "string",
+                      "description": "HTML code of related page WYSIWYG's content"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Page"
+                    },
+                    "global": {
+                      "type": "object",
+                      "example": {
+                        "parentCategoryDetail": {},
+                        "parentCategorySlug": "pages-01",
+                        "relatedCat": [],
+                        "relatedCatObjects": [],
+                        "relatedPage": [
+                          "test"
+                        ],
+                        "relatedPageObjects": [],
+                        "relatedUrls": [],
+                        "usedCategories": "static"
+                      }
+                    },
+                    "staticData": {
+                      "type": "object",
+                      "example": {
+                        "categories": [
+                          "pages-01"
+                        ],
+                        "descriptionLong": {
+                          "sk": "test SK",
+                          "en": "test EN"
+                        },
+                        "descriptionShort": {
+                          "sk": "test SK",
+                          "en": "test EN"
+                        },
+                        "name": {
+                          "sk": "test SK",
+                          "en": "test EN"
+                        },
+                        "pages": [
+                          "homepage",
+                          "test"
+                        ],
+                        "parentCategoryDetail": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages": {
+      "put": {
+        "tags": [
+          "admin",
+          "developer"
+        ],
+        "summary": "Update existing or add new page",
+        "operationId": "pageImport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pages",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Page"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response about import success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Page"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin",
+          "developer"
+        ],
+        "summary": "Update existing or add new page(s)",
+        "operationId": "PageDelete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pages",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "example": {
+                "id": "1234567890abcdef",
+                "...": null
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Number of deleted pages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/count": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Count pages matching filter",
+        "operationId": "PageCount",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Count of matching pages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/upload/{slug}/{type}": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Upload image for page",
+        "operationId": "PageImageUpload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image successfuly uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "success": true,
+                    "errors": false,
+                    "files": [
+                      {
+                        "id": "files[0]",
+                        "from": "picture.jpg",
+                        "to": "assets/data/pages/editor/ABC/123/ABC123-default.jpg",
+                        "path": "ABC/123/ABC123-default.jpg",
+                        "name": "ABC123-default.jpg",
+                        "success": true,
+                        "action": "pages.updatePageImage"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/find": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Find pages, products and categories by string query",
+        "operationId": "GlobalFind",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of pages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": {
+                    "categories": [],
+                    "pages": [],
+                    "products": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings": {
+      "post": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Get settings",
+        "operationId": "settingsGet",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Getting settings for specific settings type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "visitor"
+        ],
+        "summary": "Update settings",
+        "operationId": "settingsUpdate",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "description": "Send updated settings for specific settings type",
+          "required": true,
+          "content": {
+            "application/data": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/helpers/recaptcha": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Recaptcha backend entry point",
+        "operationId": "HelpersRecaptcha",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recaptcha response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "openapi": "3.0.0",
+  "info": {
+    "description": "Main API for StretchShop application",
+    "version": "1.0.0-oas3",
+    "title": "StretchShop main API",
+    "contact": {
+      "email": "support@stretchshop.app"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  }
+}

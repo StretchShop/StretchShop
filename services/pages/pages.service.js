@@ -17,6 +17,7 @@ const PagesActionsList = require("./mixins/pages.actions.list.mixin");
 const PagesActionsContent = require("./mixins/pages.actions.content.mixin");
 
 const PageMethodsHelpers = require("./methods/helpers.methods");
+const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
 
 
 /**
@@ -57,6 +58,7 @@ module.exports = {
 		// actions
 		PagesActionsList,
 		PagesActionsContent,
+		openApiActionMetadata("pages"),
 		DbService("pages"), // has to be the last to not override actions
 	],
 

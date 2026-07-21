@@ -17,6 +17,7 @@ const SubscriptionsActionsBilling = require("./mixins/subscriptions.actions.bill
 const SubscriptionsActionsSuspend = require("./mixins/subscriptions.actions.suspend.mixin");
 
 const SubscriptionsMethodsCore = require("./methods/core.methods");
+const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
 
 module.exports = {
 	name: "subscriptions",
@@ -34,6 +35,7 @@ module.exports = {
 		SubscriptionsActionsCrud,
 		SubscriptionsActionsBilling,
 		SubscriptionsActionsSuspend,
+		openApiActionMetadata("subscriptions"),
 		DbService("subscriptions"), // has to be the last to not override actions
 	],
 

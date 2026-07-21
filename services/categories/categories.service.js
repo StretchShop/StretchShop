@@ -15,6 +15,7 @@ const CategoriesActionsDetail = require("./mixins/categories.actions.detail.mixi
 const CategoriesActionsAdmin = require("./mixins/categories.actions.admin.mixin");
 
 const CategoriesMethodsHelpers = require("./methods/helpers.methods");
+const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
 
 
 /**
@@ -35,6 +36,7 @@ module.exports = {
 		CategoriesActionsList,
 		CategoriesActionsDetail,
 		CategoriesActionsAdmin,
+		openApiActionMetadata("categories"),
 		DbService("categories"), // has to be the last to not override actions
 	],
 

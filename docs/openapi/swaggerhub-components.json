@@ -1,0 +1,1500 @@
+{
+  "info": {
+    "description": "Main API for StretchShop application",
+    "version": "1.0.0-oas3",
+    "title": "StretchShop main API",
+    "contact": {
+      "email": "support@stretchshop.app"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "tags": [
+    {
+      "name": "visitor",
+      "description": "Calls for is an unregistered visitor of webpage and potential user."
+    },
+    {
+      "name": "user",
+      "description": "Operations available to registered users"
+    },
+    {
+      "name": "admin",
+      "description": "Secured Admin-only calls"
+    },
+    {
+      "name": "developer",
+      "description": "Operations available to regular developers"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Coredata": {
+        "type": "object",
+        "required": [
+          "countries",
+          "country",
+          "currencies",
+          "currency",
+          "langs",
+          "lang",
+          "translation",
+          "user"
+        ],
+        "properties": {
+          "countries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "example": "us"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "USA"
+                }
+              }
+            }
+          },
+          "country": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "us"
+              },
+              "name": {
+                "type": "string",
+                "example": "USA"
+              }
+            }
+          },
+          "currencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "example": "EUR"
+                },
+                "symbol": {
+                  "type": "string",
+                  "example": "€"
+                }
+              }
+            }
+          },
+          "currency": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "EUR"
+              },
+              "symbol": {
+                "type": "string",
+                "example": "€"
+              }
+            }
+          },
+          "langs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "example": "en"
+                },
+                "longCode": {
+                  "type": "string",
+                  "example": "en-US"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "English"
+                }
+              }
+            }
+          },
+          "lang": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "en"
+              },
+              "longCode": {
+                "type": "string",
+                "example": "en-US"
+              },
+              "name": {
+                "type": "string",
+                "example": "English"
+              }
+            }
+          },
+          "translation": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Translation"
+              }
+            }
+          }
+        }
+      },
+      "UserLoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "email@example.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "userPass"
+          }
+        }
+      },
+      "UserScheme": {
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "email",
+          "type",
+          "token",
+          "image",
+          "bio",
+          "addresses",
+          "settings"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "123456789abcdef"
+          },
+          "username": {
+            "type": "string",
+            "example": "User"
+          },
+          "email": {
+            "type": "string",
+            "example": "email@example.com"
+          },
+          "type": {
+            "type": "string",
+            "example": "user"
+          },
+          "token": {
+            "type": "string",
+            "example": "1234567890abcdefghijklmnopqrstuvwxyz$1234567890abcdefghijklmnopqrstuvwxyz$"
+          },
+          "image": {
+            "type": "string",
+            "example": "/static/users/user.jpg"
+          },
+          "bio": {
+            "type": "string",
+            "example": "I am programmer"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserAddress"
+            }
+          },
+          "settings": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string",
+                "example": "EUR"
+              },
+              "language": {
+                "type": "string",
+                "example": "sk"
+              }
+            }
+          }
+        }
+      },
+      "UserAddress": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "invoice"
+          },
+          "nameFirst": {
+            "type": "string",
+            "example": "User"
+          },
+          "nameLast": {
+            "type": "string",
+            "example": "Tester"
+          },
+          "street": {
+            "type": "string",
+            "example": "Street 1"
+          },
+          "street2": {
+            "type": "string",
+            "example": ""
+          },
+          "zip": {
+            "type": "string",
+            "example": "98765"
+          },
+          "city": {
+            "type": "string",
+            "example": "City of Town"
+          },
+          "country": {
+            "type": "string",
+            "example": "UK"
+          },
+          "phone": {
+            "type": "string",
+            "example": "987654321"
+          },
+          "state": {
+            "type": "string",
+            "example": ""
+          }
+        }
+      },
+      "Translation": {
+        "type": "object",
+        "required": [
+          "original",
+          "selector",
+          "string",
+          "type"
+        ],
+        "properties": {
+          "original": {
+            "type": "string",
+            "example": "Price"
+          },
+          "selector": {
+            "type": "string",
+            "example": "html > body > template > article.tile.is-child.box > p:nth-child(5) > span"
+          },
+          "string": {
+            "type": "string",
+            "example": "Cena"
+          },
+          "type": {
+            "type": "string",
+            "example": "text"
+          }
+        }
+      },
+      "UserRegistration": {
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "properties": {
+          "user": {
+            "type": "object",
+            "required": [
+              "username",
+              "email",
+              "password",
+              "settings"
+            ],
+            "properties": {
+              "username": {
+                "type": "string",
+                "example": "MyName"
+              },
+              "email": {
+                "type": "string",
+                "example": "user@domain.tld"
+              },
+              "password": {
+                "type": "string",
+                "example": "PasSW0rD"
+              },
+              "settings": {
+                "type": "object",
+                "required": [
+                  "language",
+                  "currency"
+                ],
+                "properties": {
+                  "language": {
+                    "type": "string",
+                    "example": "sk"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "EUR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Cart": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "abcdef1234567890"
+          },
+          "user": {
+            "type": "string",
+            "example": "abcdef1234567890"
+          },
+          "ip": {
+            "type": "string",
+            "example": "127.0.0.1"
+          },
+          "hash": {
+            "type": "string",
+            "example": "abcdef1234567890abcdef1234567890abcdef1234567890"
+          },
+          "order": {
+            "type": "string"
+          },
+          "dateCreated": {
+            "type": "string",
+            "example": "2020-01-07T15:15:27.425Z"
+          },
+          "dateUpdated": {
+            "type": "string",
+            "example": "2020-01-07T15:16:27.425Z"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          }
+        }
+      },
+      "CartUpdate": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "example": "abcdef1234567890"
+          },
+          "user": {
+            "type": "number",
+            "example": 1
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "abcdef1234567890"
+          },
+          "externalId": {
+            "type": "string",
+            "example": "POC1234"
+          },
+          "orderCode": {
+            "type": "string",
+            "example": "POC424P"
+          },
+          "variationGroupId": {
+            "type": "string",
+            "example": "POC424"
+          },
+          "slug": {
+            "type": "string",
+            "example": "product-name-slug"
+          },
+          "publisher": {
+            "type": "string",
+            "example": "user@domain.tld"
+          },
+          "sellers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Somebody Someone"
+                },
+                "email": {
+                  "type": "string",
+                  "example": "user@example.tld"
+                }
+              }
+            }
+          },
+          "type": {
+            "type": "string",
+            "example": "product"
+          },
+          "subtype": {
+            "type": "string",
+            "example": "physical"
+          },
+          "country": {
+            "type": "string",
+            "example": ""
+          },
+          "name": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "value": {
+                "en": "Product name in English",
+                "sk": "Product name in Slovak"
+              }
+            }
+          },
+          "descriptionShort": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "value": {
+                "en": "Product short description in English",
+                "sk": "Product short description in Slovak"
+              }
+            }
+          },
+          "descriptionLong": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "value": {
+                "en": "Product long description in English",
+                "sk": "Product long description in Slovak"
+              }
+            }
+          },
+          "price": {
+            "type": "number",
+            "example": 18.04
+          },
+          "tax": {
+            "type": "number",
+            "example": 1.8
+          },
+          "priceLevels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "priceLevelId": {
+                  "type": "string",
+                  "example": "specialclient"
+                },
+                "priceLevelType": {
+                  "type": "string",
+                  "example": ""
+                },
+                "price": {
+                  "type": "number",
+                  "example": 0.95
+                }
+              }
+            }
+          },
+          "properties": {
+            "type": "object",
+            "description": "Product properties",
+            "example": {
+              "value": {
+                "year": 2012,
+                "author": [
+                  "Marcel Zúbrik"
+                ],
+                "format": {
+                  "name": {
+                    "en": "Binding",
+                    "sk": "Väzba"
+                  },
+                  "value": {
+                    "en": "Hardcover",
+                    "sk": "Pevná väzba"
+                  }
+                },
+                "publisher": {
+                  "name": {
+                    "en": "Publisher",
+                    "sk": "Vydavateľ"
+                  },
+                  "value": "Penguin UK"
+                }
+              }
+            }
+          },
+          "data": {
+            "type": "object",
+            "description": "Additional data for product",
+            "example": {
+              "value": {
+                "related": {
+                  "products": [
+                    "OrderCode-54321",
+                    "OrderCode-54322"
+                  ]
+                },
+                "gallery": {
+                  "name": {
+                    "en": "Product gallery",
+                    "sk": "Galéria produktu"
+                  },
+                  "images": [
+                    "p1.jpg",
+                    "p2.jpg",
+                    "p3.jpg"
+                  ]
+                },
+                "variations": [
+                  {
+                    "_id": "abcdef1234567890",
+                    "externalId": "extid-abc1234",
+                    "orderCode": "OrderCode-54321",
+                    "...": "..."
+                  }
+                ]
+              }
+            }
+          },
+          "categories": {
+            "type": "array",
+            "description": "Array of category slugs",
+            "items": {
+              "type": "string"
+            },
+            "example": {
+              "value": [
+                "books-bestsellers",
+                "books-hardcover",
+                "books-genre-fiction"
+              ]
+            }
+          },
+          "stockAmount": {
+            "type": "number",
+            "example": 5
+          },
+          "expectedDate": {
+            "type": "string",
+            "description": "Date when product is expected to be available"
+          },
+          "expectedCount": {
+            "type": "number",
+            "description": "Number in which product is expected to be available"
+          },
+          "dates": {
+            "type": "object",
+            "description": "Important dates of product",
+            "properties": {
+              "dateCreated": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateUpdated": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateSynced": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              }
+            }
+          },
+          "note": {
+            "type": "string",
+            "description": "Notes related to product"
+          },
+          "activity": {
+            "type": "object",
+            "description": "Dates of when product starts and ends to be active",
+            "properties": {
+              "start": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "end": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              }
+            }
+          }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "abcdef1234567890"
+          },
+          "externalId": {
+            "type": "string",
+            "example": "CID1234"
+          },
+          "type": {
+            "type": "string",
+            "example": "products"
+          },
+          "subtype": {
+            "type": "string",
+            "example": "physical"
+          },
+          "slug": {
+            "type": "string",
+            "example": "best-books"
+          },
+          "pathSlug": {
+            "type": "string",
+            "example": "books-beletry-best-books"
+          },
+          "parentPath": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": {
+                "value": [
+                  "books",
+                  "beletry",
+                  "best-books"
+                ]
+              }
+            }
+          },
+          "parentPathSlug": {
+            "type": "string",
+            "example": "books-beletry"
+          },
+          "publisher": {
+            "type": "string",
+            "example": "user@domain.tld"
+          },
+          "name": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "value": {
+                "en": "Best books",
+                "sk": "Najlepšie knihy"
+              }
+            }
+          },
+          "descriptionShort": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "value": {
+                "en": "Category short description in English",
+                "sk": "Category short description in Slovak"
+              }
+            }
+          },
+          "descriptionLong": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "value": {
+                "en": "Category long description in English",
+                "sk": "Category long description in Slovak"
+              }
+            }
+          },
+          "tax": {
+            "type": "number",
+            "example": 1.8
+          },
+          "priceLevels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "priceLevelId": {
+                  "type": "string",
+                  "example": "specialclient"
+                },
+                "priceLevelType": {
+                  "type": "string",
+                  "example": ""
+                },
+                "price": {
+                  "type": "number",
+                  "example": 0.95
+                }
+              }
+            }
+          },
+          "properties": {
+            "type": "object",
+            "description": "Product properties",
+            "example": {
+              "value": {}
+            }
+          },
+          "data": {
+            "type": "object",
+            "description": "Additional data for category",
+            "example": {
+              "value": {
+                "mySpecialProperty": "valueOfIt"
+              }
+            }
+          },
+          "dates": {
+            "type": "object",
+            "description": "Important dates of category",
+            "properties": {
+              "dateCreated": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateUpdated": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateSynced": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              }
+            }
+          },
+          "note": {
+            "type": "string",
+            "description": "Notes related to category"
+          },
+          "activity": {
+            "type": "object",
+            "description": "Dates of when category starts and ends to be active",
+            "properties": {
+              "start": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "end": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              }
+            }
+          }
+        }
+      },
+      "ProductList": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "description": "List of child categories",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            }
+          },
+          "categoryDetail": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "filteredProductsCount": {
+            "type": "number",
+            "description": "Number of total products in category"
+          },
+          "results": {
+            "type": "array",
+            "description": "List of products in this category",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          }
+        }
+      },
+      "ListFilter": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "description": "Limit of products to display"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "example": {
+                "value": {
+                  "categories": {
+                    "$in": [
+                      "books"
+                    ]
+                  },
+                  "name.en": {
+                    "$regex": "test"
+                  }
+                }
+              }
+            }
+          },
+          "filteredProductsCount": {
+            "type": "number",
+            "description": "Number of total products in category"
+          },
+          "results": {
+            "type": "array",
+            "description": "List of products in this category",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "abcdef1234567890"
+          },
+          "externalId": {
+            "type": "string",
+            "example": "CID1234"
+          },
+          "status": {
+            "type": "string",
+            "example": "paid"
+          },
+          "user": {
+            "type": "object",
+            "example": {
+              "value": {
+                "id": "1234567890abcdef",
+                "externalId": "1234567890abcdefXX",
+                "username": "Tester",
+                "email": "email@example.com",
+                "type": "user",
+                "settings": {
+                  "language": "en",
+                  "currency": "EUR"
+                }
+              }
+            }
+          },
+          "ip": {
+            "type": "string",
+            "example": "1.2.3.4"
+          },
+          "dates": {
+            "type": "object",
+            "description": "Important dates of Order",
+            "properties": {
+              "dateCreated": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateChanged": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateSent": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "datePaid": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateExpeded": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "emailSent": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              }
+            }
+          },
+          "lang": {
+            "type": "string",
+            "example": "en"
+          },
+          "country": {
+            "type": "string",
+            "example": "sk"
+          },
+          "addresses": {
+            "type": "object",
+            "properties": {
+              "invoiceAddress": {
+                "$ref": "#/components/schemas/UserAddress"
+              },
+              "deliveryAddress": {
+                "$ref": "#/components/schemas/UserAddress"
+              }
+            }
+          },
+          "prices": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string",
+                "example": "sk"
+              },
+              "priceTotal": {
+                "type": "number"
+              },
+              "priceTotalNoTax": {
+                "type": "number"
+              },
+              "priceGoods": {
+                "type": "number"
+              },
+              "priceGoodsNoTax": {
+                "type": "number"
+              },
+              "priceDelivery": {
+                "type": "number"
+              },
+              "pricePayment": {
+                "type": "number"
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "description": "Ordered items",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          },
+          "data": {
+            "type": "object",
+            "description": "Data about delivery, payment and more",
+            "properties": {
+              "deliveryData": {
+                "type": "object"
+              },
+              "paymentData": {
+                "type": "object"
+              },
+              "couponData": {
+                "type": "object"
+              },
+              "requirements": {
+                "type": "object"
+              },
+              "optional": {
+                "type": "object"
+              }
+            }
+          },
+          "notes": {
+            "type": "object",
+            "properties": {
+              "customerNote": {
+                "type": "string"
+              },
+              "sellerNote": {
+                "type": "string"
+              }
+            }
+          },
+          "settings": {
+            "type": "object",
+            "description": "Available delivery and payment methods",
+            "properties": {
+              "deliveryMethods": {
+                "type": "object"
+              },
+              "paymentMethods": {
+                "type": "object"
+              }
+            }
+          },
+          "invoice": {
+            "type": "object",
+            "properties": {
+              "html": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "num": {
+                "type": "number"
+              },
+              "path": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Subscription": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "number"
+          },
+          "cycles": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          },
+          "orderOriginId": {
+            "type": "string"
+          },
+          "orderItemName": {
+            "type": "string"
+          },
+          "dates": {
+            "type": "object",
+            "description": "Important dates of Subscription",
+            "properties": {
+              "dateStart": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateOrderNext": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateEnd": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateCreated": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateUpdated": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              }
+            }
+          },
+          "price": {
+            "type": "number"
+          },
+          "data": {
+            "type": "object",
+            "description": "Additional data for subscription",
+            "properties": {
+              "product": {
+                "type": "object"
+              },
+              "order": {
+                "type": "object"
+              },
+              "remoteData": {
+                "type": "object"
+              },
+              "agreementId": {
+                "type": "string"
+              },
+              "agreement": {
+                "type": "object"
+              }
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Page": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "abcdef1234567890"
+          },
+          "externalId": {
+            "type": "string",
+            "example": "POC1234"
+          },
+          "variationGroupId": {
+            "type": "string",
+            "example": "POC424"
+          },
+          "slug": {
+            "type": "string",
+            "example": "page-name-slug"
+          },
+          "publisher": {
+            "type": "string",
+            "example": "user@domain.tld"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Somebody Someone"
+                },
+                "email": {
+                  "type": "string",
+                  "example": "user@example.tld"
+                }
+              }
+            }
+          },
+          "type": {
+            "type": "string",
+            "example": "page"
+          },
+          "subtype": {
+            "type": "string",
+            "example": "default"
+          },
+          "name": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "value": {
+                "en": "Page name in English",
+                "sk": "Page name in Slovak"
+              }
+            }
+          },
+          "descriptionShort": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "value": {
+                "en": "Page short description in English",
+                "sk": "Page short description in Slovak"
+              }
+            }
+          },
+          "descriptionLong": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "value": {
+                "en": "Page long description in English",
+                "sk": "Page long description in Slovak"
+              }
+            }
+          },
+          "properties": {
+            "type": "object",
+            "description": "Page properties"
+          },
+          "data": {
+            "type": "object",
+            "description": "Additional data for page",
+            "example": {
+              "value": {
+                "blocks": [
+                  {
+                    "0": {
+                      "en": "<p>English HTML block</p>",
+                      "sk": "<p>Slovak HTML block</p>"
+                    }
+                  }
+                ],
+                "tagList": [
+                  "example",
+                  "e-commerce",
+                  "extra tag"
+                ]
+              }
+            }
+          },
+          "categories": {
+            "type": "array",
+            "description": "Array of category slugs",
+            "items": {
+              "type": "string"
+            },
+            "example": {
+              "value": [
+                "article-category",
+                "another-article-category"
+              ]
+            }
+          },
+          "pages": {
+            "type": "array",
+            "description": "Array of parent pages",
+            "items": {
+              "type": "string"
+            },
+            "example": {
+              "value": [
+                "info",
+                "business",
+                "best-page"
+              ]
+            }
+          },
+          "dates": {
+            "type": "object",
+            "description": "Important dates of page",
+            "properties": {
+              "dateCreated": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateUpdated": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "dateSynced": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              }
+            }
+          },
+          "note": {
+            "type": "string",
+            "description": "Notes related to product"
+          },
+          "activity": {
+            "type": "object",
+            "description": "Dates of when page starts and ends to be active",
+            "properties": {
+              "start": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              },
+              "end": {
+                "type": "string",
+                "example": "2020-10-29T08:19:12.752+00:00"
+              }
+            }
+          }
+        }
+      },
+      "PageList": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "description": "List of child categories",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            }
+          },
+          "categoryDetail": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "filteredPagesCount": {
+            "type": "number",
+            "description": "Number of total pages in category"
+          },
+          "results": {
+            "type": "array",
+            "description": "List of pages in this category",
+            "items": {
+              "$ref": "#/components/schemas/Page"
+            }
+          }
+        }
+      },
+      "Schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "StripeSubscriptionPrepareResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "clientSecret": {
+                "type": "string",
+                "nullable": true,
+                "description": "Stripe client secret from setup intent, confirmation_secret, or payment_intent"
+              },
+              "existing": {
+                "type": "boolean"
+              },
+              "supplier": {
+                "type": "object",
+                "nullable": true
+              },
+              "finished": {
+                "type": "boolean"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          },
+          "paymentStatus": {
+            "type": "object",
+            "description": "Attached when called via orders.payment prepare"
+          }
+        }
+      },
+      "PaymentActionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          },
+          "paymentStatus": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "SubscriptionListResponse": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
+            }
+          }
+        }
+      },
+      "SubscriptionActionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "CookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "token",
+        "description": "JWT session cookie set after login"
+      },
+      "CsrfHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-xsrf-token",
+        "description": "CSRF token required for login, register, and email/username checks"
+      }
+    }
+  }
+}
