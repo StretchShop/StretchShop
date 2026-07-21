@@ -16,12 +16,18 @@ const { getRequiredSecret } = require("../../mixins/env.helpers");
 const ApiMethodsCore = require("./methods/core.methods");
 const ApiMethodsHelpers = require("./methods/helpers.methods");
 const ApiMethodsSettings = require("./methods/settings.methods");
+const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
 
 // settings
 const sppf = require("../../mixins/subproject.helper");
 const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(__dirname, "/../../resources");
 // API routes
 const apiV1 = require("../../resources/routes/apiV1");
+const baseOpenApiComponents = require("../../docs/openapi/swaggerhub-components.json");
+
+const openapiEnabled = process.env.OPENAPI_ENABLED === "true"
+	|| process.env.NODE_ENV === "development"
+	|| process.env.NODE_ENV === "dockerdev";
 
 let pathModif = null;
 // optional imports
@@ -41,10 +47,24 @@ module.exports = {
 		// methods
 		ApiMethodsCore,
 		ApiMethodsHelpers,
-		ApiMethodsSettings
+		ApiMethodsSettings,
+		openApiActionMetadata("api"),
 	],
 
 	settings: {
+		openapi: openapiEnabled ? {
+			info: {
+				title: baseOpenApiComponents.info?.title || "StretchShop main API",
+				description: baseOpenApiComponents.info?.description,
+				version: require("../../package.json").version,
+				contact: baseOpenApiComponents.info?.contact,
+				license: baseOpenApiComponents.info?.license,
+			},
+			tags: baseOpenApiComponents.tags,
+			components: baseOpenApiComponents.components,
+			server: { url: "/api/v1", description: "Main REST API" },
+		} : false,
+
 		// HTTPS server with certificate
 		https: (process.env.HTTPS_KEY && process.env.HTTPS_CERT) ? {
 			key: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_KEY)),
@@ -95,6 +115,18 @@ module.exports = {
 		port: process.env.PORT || 3000,
 
 		routes: [
+			...(openapiEnabled ? [{
+				path: "/openapi",
+				authentication: false,
+				authorization: false,
+				mappingPolicy: "restrict",
+				aliases: {
+					"GET /openapi.json": "openapi.generateDocs",
+					"GET /ui": "openapi.ui",
+					"GET /assets/:file": "openapi.assets",
+					"GET /oauth2-redirect": "openapi.oauth2Redirect",
+				},
+			}] : []),
 			{
 				path: "/health",
 				aliases: {
@@ -113,6 +145,9 @@ module.exports = {
 			 */
 			{
 				path: "/apis/v1/order/payment/webhook-raw",
+				openapi: openapiEnabled ? {
+					tags: ["developer"],
+				} : false,
 				bodyParsers: {
 					json: false,
 					urlencoded: false,

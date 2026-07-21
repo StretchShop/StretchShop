@@ -26,6 +26,7 @@ const OrderActionsProgress = require("./mixins/order-actions.progress.mixin");
 const OrderActionsLifecycle = require("./mixins/order-actions.lifecycle.mixin");
 const OrderActionsPayment = require("./mixins/order-actions.payment.mixin");
 const OrderActionsFulfillment = require("./mixins/order-actions.fulfillment.mixin");
+const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
 
 
 // settings
@@ -52,6 +53,7 @@ module.exports = {
 		OrderActionsLifecycle,
 		OrderActionsPayment,
 		OrderActionsFulfillment,
+		openApiActionMetadata("orders"),
 		// events
 		CacheCleanerMixin([
 			"cache.clean.orders"

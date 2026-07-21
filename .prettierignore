@@ -1,0 +1,3 @@
+# Hand-edited OpenAPI specs use inline JSON examples with trailing comments
+# that Prettier rewrites incorrectly.
+.temp/

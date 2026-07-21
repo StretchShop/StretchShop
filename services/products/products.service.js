@@ -17,6 +17,7 @@ const ProductsActionsQuery = require("./mixins/products.actions.query.mixin");
 const ProductsActionsMutation = require("./mixins/products.actions.mutation.mixin");
 
 const ProductsMethodsHelpers = require("./methods/helpers.methods");
+const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
 
 
 
@@ -54,6 +55,7 @@ module.exports = {
 		// actions
 		ProductsActionsQuery,
 		ProductsActionsMutation,
+		openApiActionMetadata("products"),
 		DbService("products"), // has to be the last to not override actions
 	],
 

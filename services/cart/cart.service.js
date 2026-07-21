@@ -12,6 +12,7 @@ const CartActionsShop = require("./mixins/cart.actions.shop.mixin");
 const CartActionsAdmin = require("./mixins/cart.actions.admin.mixin");
 
 const CartMethodsCore = require("./methods/core.methods");
+const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
 
 module.exports = {
 	name: "cart",
@@ -25,6 +26,7 @@ module.exports = {
 		// actions
 		CartActionsShop,
 		CartActionsAdmin,
+		openApiActionMetadata("cart"),
 		DbService("cart"), // has to be the last to not override actions
 	],
 

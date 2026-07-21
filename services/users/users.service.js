@@ -23,6 +23,7 @@ const UsersMethodsAdmin = require("./methods/admin.methods");
 // service mixins
 const UsersAuthMixin = require("./mixins/auth.mixin");
 const UsersEmailMixin = require("./mixins/email.mixin");
+const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
 
 
 module.exports = {
@@ -44,6 +45,7 @@ module.exports = {
 		// mixins
 		UsersAuthMixin,
 		UsersEmailMixin,
+		openApiActionMetadata("users"),
 		DbService("users"), // has to be the last to not override actions
 	],
 	/**
