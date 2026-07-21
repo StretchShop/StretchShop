@@ -17,6 +17,7 @@ const ApiMethodsCore = require("./methods/core.methods");
 const ApiMethodsHelpers = require("./methods/helpers.methods");
 const ApiMethodsSettings = require("./methods/settings.methods");
 const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
+const { isOpenApiEnabled } = require("../../mixins/openapi.enabled");
 
 // settings
 const sppf = require("../../mixins/subproject.helper");
@@ -25,9 +26,7 @@ const resourcesDirectory = process.env.PATH_RESOURCES || sppf.subprojectPathFix(
 const apiV1 = require("../../resources/routes/apiV1");
 const baseOpenApiComponents = require("../../docs/openapi/swaggerhub-components.json");
 
-const openapiEnabled = process.env.OPENAPI_ENABLED === "true"
-	|| process.env.NODE_ENV === "development"
-	|| process.env.NODE_ENV === "dockerdev";
+const openapiEnabled = isOpenApiEnabled();
 
 let pathModif = null;
 // optional imports
@@ -198,6 +197,10 @@ module.exports = {
 							{ 
 								from: /^[^.]*$/, // only requests without dot (.) in url
 								to: function(context) {
+									const pathname = context.parsedUrl.pathname || "";
+									if (pathname.startsWith("/openapi")) {
+										return pathname;
+									}
 									let path = "";
 									// if available, update path as required by business
 									if (pathModif && typeof pathModif.updatePath === "function") {

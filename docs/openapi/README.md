@@ -4,10 +4,12 @@ Live API docs are generated at runtime by [`@spailybot/moleculer-auto-openapi`](
 
 ## Endpoints
 
-When `OPENAPI_ENABLED=true` (default in development/dockerdev):
+When `OPENAPI_ENABLED=true`, or in `development` / `dockerdev` / `test`, or when `SITE_URL` points at `demo.stretchshop.app`:
 
 - Swagger UI: `GET /openapi/ui`
 - OpenAPI JSON: `GET /openapi/openapi.json`
+
+In Docker **micro** / **mixed** layouts, the API container must also load the `openapi` service (`SERVICES` must include `openapi`). Env alone is not enough — without it the gateway returns `503 ServiceUnavailableError`.
 
 ## Source of truth
 

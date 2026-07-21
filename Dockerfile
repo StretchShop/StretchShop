@@ -22,6 +22,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json moleculer.config.js ./
 COPY mixins ./mixins
 COPY services ./services
+COPY docs/openapi ./docs/openapi
 COPY resources ./resources
 COPY public ./public
 

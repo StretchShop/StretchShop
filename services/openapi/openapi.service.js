@@ -6,10 +6,9 @@ const { OpenApiMixin } = require("@spailybot/moleculer-auto-openapi");
 const pkg = require("../../package.json");
 
 const baseComponents = require("../../docs/openapi/swaggerhub-components.json");
+const { isOpenApiEnabled } = require("../../mixins/openapi.enabled");
 
-const openapiEnabled = process.env.OPENAPI_ENABLED === "true"
-	|| process.env.NODE_ENV === "development"
-	|| process.env.NODE_ENV === "dockerdev";
+const openapiEnabled = isOpenApiEnabled();
 
 module.exports = {
 	name: "openapi",
