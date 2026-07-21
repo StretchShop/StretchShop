@@ -8,17 +8,17 @@ const fetch = require("cross-fetch");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 module.exports = {
-	mixins: [ DbService("orders"), HelpersMixin, priceLevels ],
+	mixins: [DbService("orders"), HelpersMixin, priceLevels],
 	methods: {
 		checkCustomer(ctx, related) {
 			let self = this;
 			let lang = this.getOrderLang(related.order);
-			
+
 			// check if we have customer ID
 			return new Promise((resolve, reject) => {
 				this.logger.info("payments.stripe.mixin pSS() #3:", ctx.meta.user.data);
-				if ( ctx?.meta?.user?.data?.stripe?.id && 
-				ctx.meta.user.data.stripe.id.toString().trim()!="" ) {
+				if (ctx?.meta?.user?.data?.stripe?.id &&
+					ctx.meta.user.data.stripe.id.toString().trim() != "") {
 					this.logger.info("payments.stripe.mixin pSS() #3.1 true");
 					resolve(true);
 				}
@@ -73,7 +73,7 @@ module.exports = {
 					if (!ctx.meta.user.data.stripe) { ctx.meta.user.data["stripe"] = {}; }
 					ctx.meta.user.data.stripe = stripeCustomer;
 					this.logger.info("payments.stripe.mixin pSS() #3.7 updateProduct:", ctx.meta.user.data.stripe);
-					return ctx.call("users.updateUser", { user: ctx.meta.user } )
+					return ctx.call("users.updateUser", { user: ctx.meta.user })
 						.then(updatedUser => {
 							this.logger.info("payments.stripe.mixin pSS() #3.8 updatedUser & related.customer:", updatedUser, related.customer);
 							return related.customer;
@@ -117,7 +117,7 @@ module.exports = {
 				}
 			};
 			// if trial subscription, set trial end date from subscription dateStart
-			if (related?.subscription?.data?.product?.data?.subscription?.cyclesTrial > 0 && 
+			if (related?.subscription?.data?.product?.data?.subscription?.cyclesTrial > 0 &&
 				related?.subscription?.dates?.dateStart) {
 				let trialEndDate = new Date(related.subscription.dates.dateStart); // timestamp in seconds
 				if (trialEndDate && trialEndDate.getTime() > 0) {
@@ -132,6 +132,25 @@ module.exports = {
 				}
 			}
 
+			// Finite plans: schedule Stripe cancel from local dateEnd (derived from cycles)
+			const cycles = related?.subscription?.cycles
+				?? related?.subscription?.data?.product?.data?.subscription?.cycles;
+			const dateEnd = related?.subscription?.dates?.dateEnd;
+			if (cycles > 0 && dateEnd) {
+				const cancelAt = Math.round(new Date(dateEnd).getTime() / 1000);
+				const nowSec = Math.round(Date.now() / 1000);
+				const trialEndSec = stripeSubscription["trial_end"];
+				// Stripe requires cancel_at in the future and after trial_end when trial is set
+				if (cancelAt > nowSec && (!trialEndSec || cancelAt > trialEndSec)) {
+					stripeSubscription["cancel_at"] = cancelAt;
+				} else {
+					this.logger.warn(
+						"payments.stripe.mixin pSS() #4.1 skip cancel_at — not after now/trial_end:",
+						{ cancelAt, nowSec, trialEndSec, cycles, dateEnd }
+					);
+				}
+			}
+
 			this.logger.info("payments.stripe.mixin pSS() #4.1.1 stripeSubscription:", stripeSubscription);
 
 			return stripe.subscriptions.create(stripeSubscription)
@@ -140,10 +159,10 @@ module.exports = {
 					this.logger.info("payments.stripe.mixin pSS() #4.2 updateSubscription LI:", stripeSubscription?.latest_invoice);
 					this.logger.info("payments.stripe.mixin pSS() #4.2 updateSubscription LI.confirmation_secret:", stripeSubscription?.latest_invoice?.confirmation_secret);
 					// prepare to save stripe response into subscription
-					let updateSubscription = Object.assign({}, related.subscription);
+					let updateSubscription = { ...related.subscription };
 					if (!updateSubscription.data.stripe) { updateSubscription.data["stripe"] = {}; }
 					updateSubscription.data.stripe = stripeSubscription;
-					if ( updateSubscription && updateSubscription._id && !updateSubscription.id ) {
+					if (updateSubscription?._id && !updateSubscription.id) {
 						updateSubscription.id = updateSubscription._id;
 						delete updateSubscription._id;
 					}
@@ -152,7 +171,7 @@ module.exports = {
 						.then(updatedSubscription => {
 							this.logger.info("payments.stripe.mixin pSS() #4.3 updatedSubscription:", updatedSubscription);
 							// update order
-							let updateOrder = Object.assign({}, related.order);
+							let updateOrder = { ...related.order };
 							if (!updateOrder.id && updateOrder._id) {
 								updateOrder.id = updateOrder._id;
 							}
@@ -192,7 +211,7 @@ module.exports = {
 						})
 						.catch(err => {
 							this.logger.error("payments.stripe.mixin stripeCreateSubscription() err:", err);
-							return Promise.reject(new MoleculerClientError("error", 400, "", [{ field: "stripe subscription", message: "error"}]));
+							return Promise.reject(new MoleculerClientError("error", 400, "", [{ field: "stripe subscription", message: "error" }]));
 						});
 				});
 		},
@@ -228,9 +247,9 @@ module.exports = {
 									self.logger.info("payments.stripe.mixin agreeOrderSubscription() updatedOrder:", updatedOrder);
 									// update subscription to agreed status
 									let updateSubscription = Object.assign({}, subscription);
-									updateSubscription.status = "agreed"; 
+									updateSubscription.status = "agreed";
 									updateSubscription.dates["dateAgreedStripe"] = new Date();
-									if ( updateSubscription && updateSubscription._id && !updateSubscription.id ) {
+									if (updateSubscription && updateSubscription._id && !updateSubscription.id) {
 										updateSubscription.id = updateSubscription._id;
 										delete updateSubscription._id;
 									}

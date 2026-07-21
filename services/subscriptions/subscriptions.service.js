@@ -41,31 +41,31 @@ module.exports = {
 	 * Default settings
 	 */
 	settings: {
-		// cronJobs: [{
-		// 	name: "SubscriptionsCheck",
-		// 	cronTime: "5 0 * * *",
-		// 	onTick: function() {
+		cronJobs: [{
+			name: "SubscriptionsCheck",
+			cronTime: "5 0 * * *",
+			onTick: function() {
 
-		// 		this.logger.info("Starting to Clean up the Subscriptions");
+				this.logger.info("Starting to Clean up the Subscriptions");
 
-		// 		this.broker.call("subscriptions.checkSubscriptions")
-		// 			.then((data) => {
-		// 				this.logger.info("Subscriptions runned", data);
-		// 			});
-		// 	}
-		// }, {
-		// 	name: "SubscriptionsEndCheck",
-		// 	cronTime: "*/15 * * * *",
-		// 	onTick: function() {
+				this.broker.call("subscriptions.checkSubscriptions")
+					.then((data) => {
+						this.logger.info("Subscriptions runned", data);
+					});
+			}
+		}, {
+			name: "SubscriptionsEndCheck",
+			cronTime: "*/15 * * * *",
+			onTick: function() {
 
-		// 		this.logger.info("Starting to Check for ending Subscriptions");
+				this.logger.info("Starting to Check for ending Subscriptions");
 
-		// 		this.broker.call("subscriptions.stopEndingSubscriptions")
-		// 			.then((data) => {
-		// 				this.logger.info("Subscriptions runned", data);
-		// 			});
-		// 	}
-		// }],
+				this.broker.call("subscriptions.stopEndingSubscriptions")
+					.then((data) => {
+						this.logger.info("Subscriptions runned", data);
+					});
+			}
+		}],
 
 		/** Public fields */
 		fields: ["_id", "userId", "ip", "type", "period", "duration", "cycles", "cyclesTrial", "status", "orderOriginId", "orderItemName", "dates", "price", "data", "history"],
