@@ -51,6 +51,31 @@ module.exports = {
 			}
 		},
 
+		/**
+		 * HTTP-facing product find for admins only.
+		 * Internal services should keep using products.find.
+		 */
+		findAdmin: {
+			auth: "required",
+			params: {
+				populate: { type: "array", items: { type: "string"}, optional: true },
+				fields: { type: "array", items: { type: "string"}, optional: true },
+				offset: { type: "number", optional: true },
+				limit: { type: "number", optional: true },
+				sort: { type: "string", optional: true },
+				search: { type: "string", optional: true },
+				searchFields: { type: "string", optional: true },
+				query: { type: "object", optional: true }
+			},
+			cache: false,
+			handler(ctx) {
+				if (ctx.meta.user?.type !== "admin") {
+					return this.Promise.reject(new MoleculerClientError("Forbidden", 403));
+				}
+				return ctx.call("products.find", ctx.params);
+			}
+		},
+
 
 		/**
 		 * List products in GET with minimal params

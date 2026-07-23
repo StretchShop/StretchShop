@@ -124,12 +124,22 @@ module.exports = {
 
 				return this.adapter.findById(ctx.params.orderId)
 					.then(order => {
+						if (!order) {
+							return Promise.reject(new MoleculerClientError("Order not found", 404));
+						}
+						const userId = ctx.meta.user._id.toString();
+						const isAdmin = ctx.meta.user.type === "admin";
+						const isOwner = order.user?.id?.toString() === userId;
+						if (!isAdmin && !isOwner) {
+							return Promise.reject(new MoleculerClientError("Forbidden", 403));
+						}
+
 						order.status = "canceled";
 						order.dates.dateChanged = new Date();
 						if (order.dates["dateCanceled"]) { order.dates["dateCanceled"] = null; }
 						order.dates.dateCanceled = new Date();
 						if (order.data["canceledUserId"]) { order.dates["canceledUserId"] = null; }
-						order.data.canceledUserId = ctx.meta.user._id.toString();
+						order.data.canceledUserId = userId;
 						
 						let orderId = order._id.toString();
 						delete order.id;
@@ -159,6 +169,9 @@ module.exports = {
 							});
 					})
 					.catch(error => {
+						if (error instanceof MoleculerClientError) {
+							return Promise.reject(error);
+						}
 						self.logger.error("order.cancel - not found: ", error);
 						result.message = "error: " + JSON.stringify(error);
 						return result;

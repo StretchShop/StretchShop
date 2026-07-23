@@ -3,7 +3,6 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 const bcrypt = require("bcryptjs");
 const validateAddress = require("../../../mixins/validate.address.mixin");
-const priceLevels = require("../../../mixins/price.levels.mixin");
 
 module.exports = {
 	actions: {
@@ -24,11 +23,36 @@ module.exports = {
 			handler(ctx) {
 				const newData = ctx.params.user;
 				let loggedUser = ctx.meta.user;
+				const isAdmin = loggedUser?.type === "admin";
+				// Fields a normal user may update on their own profile
+				const SELF_ALLOWED = new Set([
+					"username", "email", "password", "addresses", "company",
+					"settings", "bio", "image", "data"
+				]);
+				// Never accept these from non-admins; admins may set type/subtype only
+				const PRIVILEGED_FIELDS = ["type", "subtype", "_id", "id", "dates", "ip", "superadmined"];
 
 				// admin can update other users, his actions are logged
 				// common users can update only themself according to authentication
 
 				return this.Promise.resolve()
+					.then(() => {
+						if (!isAdmin) {
+							for (const key of Object.keys(newData)) {
+								if (!SELF_ALLOWED.has(key) || PRIVILEGED_FIELDS.includes(key)) {
+									delete newData[key];
+								}
+							}
+						} else if (Object.prototype.hasOwnProperty.call(newData, "type") && newData.type != null) {
+							const allowedType =
+								newData.type === "admin" ||
+								newData.type === "user" ||
+								(typeof this.isValidUsertype === "function" && this.isValidUsertype(newData.type));
+							if (!allowedType) {
+								return Promise.reject(new MoleculerClientError("Invalid user type!", 422, "", [{ field: "type", message: "invalid"}]));
+							}
+						}
+					})
 					.then(() => {
 						if (newData.username) {
 							return this.adapter.findOne({ username: newData.username })
@@ -71,22 +95,11 @@ module.exports = {
 						}
 					})
 					.then(() => {
-						// if user type is not set in /resources/settings/business.js
-						if (newData.type && 
-							( 
-								!priceLevels || 
-								(typeof priceLevels.isValidUsertype !== "undefined" && priceLevels.isValidUsertype(newData.type) )
-							)
-						) {
-							return Promise.reject(new MoleculerClientError("Invalid user type!", 422, "", [{ field: "type", message: "invalid"}]));
-						}
-					})
-					.then(() => {
 						// get user only if it's logged and new data id&username&email is same as logged or logged user is admin
 						if ( this.userCanUpdate(loggedUser, newData) ) {
 							let findId = loggedUser._id;
-							if ( loggedUser.user && loggedUser.user._id && loggedUser.user._id>0 && loggedUser.user.type=="admin" && newData.user._id && newData.user._id>0 ) {
-								findId = loggedUser.user._id;
+							if (isAdmin && newData._id) {
+								findId = newData._id;
 							}
 							return this.adapter.findById(findId)
 								.then(found => {
@@ -95,28 +108,35 @@ module.exports = {
 									}
 									// loop found object, update it with new data
 									for (let property in newData) {
+										// _id/id select the target user; never write them onto the document
+										if (property === "_id" || property === "id") {
+											continue;
+										}
+										if (!isAdmin && PRIVILEGED_FIELDS.includes(property)) {
+											continue;
+										}
+										// non-admins: only allowlisted fields (already stripped, keep as belt-and-suspenders)
+										if (!isAdmin && !SELF_ALLOWED.has(property)) {
+											continue;
+										}
 										if ( Object.prototype.hasOwnProperty.call(newData,property) && Object.prototype.hasOwnProperty.call(found,property) ) {
 											found[property] = newData[property];
 										} else if ( Object.prototype.hasOwnProperty.call(newData,property) ) { // if property does not exist, set it
 											found[property] = newData[property];
 										}
 									}
-									if ( !newData.dates || !newData.dates.dateUpdated ) {
-										newData["dates"] = {
-											dateCreated: new Date(),
-											dateUpdated: new Date()
-										};
-									} else {
-										newData.dates.dateUpdated = new Date();
+									if (!found.dates) {
+										found.dates = {};
 									}
-									return this.adapter.updateById(ctx.meta.user._id, this.prepareForUpdate(found));
+									found.dates.dateUpdated = new Date();
+									return this.adapter.updateById(findId, this.prepareForUpdate(found));
 								})
 								.then(user => {
 									// get used usertypes and add new pricesLevel if needed
 									return this.adapter.collection.distinct("type")
 										.then(types => {
-											if ( types && types.indexOf(user.type)<0 ) {
-												priceLevels.addUsertypePriceLevel(user.type);
+											if ( types && types.indexOf(user.type)<0 && typeof this.addUsertypePriceLevel === "function" ) {
+												this.addUsertypePriceLevel(user.type);
 											}
 											return user;
 										});

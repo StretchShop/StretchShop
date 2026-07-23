@@ -40,7 +40,6 @@ module.exports = {
 		"POST /cart": "cart.updateCartItemAmount",
 		"PUT /cart": "cart.add",
 		"DELETE /cart": "cart.delete",
-		"POST /cart/find": "cart.find",
 		"DELETE /cart/:itemId": "cart.delete",
 		"DELETE /cart/:itemId/:amount": "cart.delete",
 
@@ -48,7 +47,7 @@ module.exports = {
 		"GET /products/:category": "products.productsListGet",
 		"POST /products/:category": "products.productsList", // needed for category with filter url
 		"POST /products/filter": "products.findWithCount",
-		"POST /products/find": "products.find",
+		"POST /products/find": "products.findAdmin",
 		"GET /products/:category/detail/:product": "products.detail",
 		"PUT /products": "products.import",
 		"DELETE /products": "products.delete",
