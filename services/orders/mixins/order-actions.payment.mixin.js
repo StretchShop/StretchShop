@@ -19,15 +19,45 @@ module.exports = {
 			},
 			handler(ctx) {
 				let self = this;
-				// get action to call - get its name from supplier & action params
 				const supplier = ctx.params.supplier.toLowerCase();
 				let action = ctx.params.action.charAt(0).toUpperCase();
 				action += ctx.params.action.slice(1);
 				let actionName = supplier + "Order" + action;
 				const availablePaymentActions = SettingsMixin.getOriginalSiteSettings("orders")["availablePaymentActions"];
 
+				const assertPaymentAccess = (order) => {
+					if (!order) {
+						return Promise.reject(new MoleculerClientError("Item not found!", 404));
+					}
+					const uid = ctx.meta.user?._id?.toString();
+					const isAdmin = ctx.meta.user?.type === "admin";
+					const isOwner = uid && order.user?.id?.toString() === uid;
+					if (isAdmin || isOwner) {
+						return Promise.resolve(order);
+					}
+					// Guest checkout: order_no_verif JWT must match order user
+					const guestToken = ctx.meta.cookies?.["order_no_verif"];
+					if (guestToken) {
+						try {
+							const decoded = jwt.verify(guestToken, this.settings.JWT_SECRET);
+							const guestId = decoded?.id?.toString();
+							const guestEmail = decoded?.email;
+							if (
+								(guestId && guestId === order.user?.id?.toString()) ||
+								(guestEmail && guestEmail === order.user?.email)
+							) {
+								return Promise.resolve(order);
+							}
+						} catch (e) {
+							this.logger.warn("orders.payment - invalid order_no_verif token");
+						}
+					}
+					return Promise.reject(new MoleculerClientError("Forbidden", 403));
+				};
+
 				if (action === "Prepare") {
 					return this.adapter.findById(ctx.params.orderId)
+						.then(order => assertPaymentAccess(order))
 						.then(order => {
 							const orderPaymentStatus = self.getOrderPaymentStatus(order);
 							console.log("orderPaymentStatus: ", JSON.stringify(orderPaymentStatus, null, 2));
@@ -50,22 +80,19 @@ module.exports = {
 							) {
 								actionName = supplier + "OrderPaymentintent";
 							} else if (
-								// if products paid or not exist and subscriptions not exist or failed
 								(
 									["paid", "shipped", "delivered"].includes(orderPaymentStatus.products?.status) ||
 									orderPaymentStatus.products?.count === 0
 								) &&
 								["saved", "failed"].includes(orderPaymentStatus.subscriptions?.status)
-							) { // products are already prepared, but subscription(s) not
+							) {
 								actionName = supplier + "OrderSubscription";
 							}
 
-							// using resources/settings/orders.js check if final payment action can be called
 							this.logger.info("order.payment #1 - calling payment: ", actionName);
 							this.logger.info("order.payment #1 - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
 							if (availablePaymentActions && availablePaymentActions.indexOf(actionName) > -1) {
 								this.logger.info("action & order & data: ", actionName, order, ctx.params.data);
-								// call action, that accepts already available order
 								return ctx.call("orders." + actionName, {
 									order,
 									data: ctx.params.data
@@ -81,23 +108,30 @@ module.exports = {
 							}
 						})
 						.catch(error => {
+							if (error instanceof MoleculerClientError) {
+								return Promise.reject(error);
+							}
 							this.logger.error("order.payment - find order error: ", error);
 							return this.Promise.reject(new MoleculerClientError("Item not found!", 404));
 						});
 				}
 
-				// using resources/settings/orders.js check if final payment action can be called
 				this.logger.info("order.payment #2 - calling payment: ", actionName);
 				this.logger.info("order.payment #2 - calling payment2: ", SettingsMixin.getOriginalSiteSettings("orders"));
 				if (availablePaymentActions && availablePaymentActions.indexOf(actionName) > -1) {
-					return ctx.call("orders." + actionName, {
-						orderId: ctx.params.orderId,
-						data: ctx.params.data
-					})
+					return this.adapter.findById(ctx.params.orderId)
+						.then(order => assertPaymentAccess(order))
+						.then(() => ctx.call("orders." + actionName, {
+							orderId: ctx.params.orderId,
+							data: ctx.params.data
+						}))
 						.then(result => {
 							return result;
 						})
 						.catch(error => {
+							if (error instanceof MoleculerClientError) {
+								return Promise.reject(error);
+							}
 							this.logger.error("order.payment - calling payment error: ", error);
 							return null;
 						});
@@ -182,11 +216,20 @@ module.exports = {
 				})
 					.then(suspendResult => {
 						this.logger.info("orders.paymentSuspend supplier call response: ", suspendResult);
+						if (!suspendResult) {
+							return Promise.reject(new MoleculerClientError(
+								"Payment suspend returned empty result",
+								422,
+								"PAYMENT_SUSPEND_EMPTY",
+								[]
+							));
+						}
 						return suspendResult;
 					})
 					.catch(error => {
 						this.logger.error("order.paymentSuspend - error: ", error, JSON.stringify(error));
-						return null;
+						// Propagate failure — callers must not treat suspend as confirmed
+						return Promise.reject(error);
 					});
 			}
 		},
@@ -209,6 +252,9 @@ module.exports = {
 				subscriptionId: { type: "string" }
 			},
 			handler(ctx) {
+				if (ctx.meta.user?.type !== "admin") {
+					return Promise.reject(new MoleculerClientError("Forbidden", 403));
+				}
 				let self = this;
 				let result = { success: false, message: null };
 				let subscriptionId = ctx.params.subscriptionId;

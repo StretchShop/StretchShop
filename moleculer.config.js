@@ -1,6 +1,35 @@
 "use strict";
 
-const { getCacherConfig } = require("./mixins/env.helpers");
+/**
+ * Keep this file free of project `require()`s (e.g. mixins/*).
+ * Moleculer hot-reload treats config dependencies as brokerRestart triggers;
+ * on macOS fs.watch often emits spurious "change" events when watchers are
+ * recreated after a restart, which causes an infinite restart loop.
+ */
+function getCacherConfig() {
+	const useRedis = process.env.NODE_ENV === "production" && !!process.env.TRANSPORTER?.trim();
+	if (useRedis) {
+		const redis = process.env.REDIS_URL;
+		if (!redis || !redis.toString().trim()) {
+			throw new Error("Missing required environment variable: REDIS_URL");
+		}
+		return {
+			type: "Redis",
+			options: {
+				prefix: process.env.CACHER_PREFIX || "stretchshop",
+				ttl: parseInt(process.env.CACHER_TTL || "3600", 10),
+				redis,
+				maxParamsLength: 100,
+			},
+		};
+	}
+	return {
+		type: "Memory",
+		options: {
+			maxParamsLength: 100,
+		},
+	};
+}
 
 module.exports = {
 	timeout: 10000,
@@ -17,18 +46,18 @@ module.exports = {
 	},
 	cacher: getCacherConfig(),
 
-	// Enable/disable built-in metrics function. More info: https://moleculer.services/docs/0.14/metrics.html
+	// Prometheus HTTP server on :3030 races with --hot reloads (ERR_SERVER_NOT_RUNNING / EADDRINUSE).
+	// Off in local/dev/test; set METRICS_ENABLED=true to force on, =false to force off.
 	metrics: {
-		enabled: true,
-		// Available built-in reporters: "Console", "CSV", "Event", "Prometheus", "Datadog", "StatsD"
+		enabled: process.env.METRICS_ENABLED === "true" || (
+			process.env.METRICS_ENABLED !== "false" &&
+			!["development", "dockerdev", "test"].includes(process.env.NODE_ENV)
+		),
 		reporter: {
 			type: "Prometheus",
 			options: {
-				// HTTP port
 				port: 3030,
-				// HTTP URL path
 				path: "/metrics",
-				// Default labels which are appended to all metrics labels
 				defaultLabels: registry => ({
 					namespace: registry.broker.namespace,
 					nodeID: registry.broker.nodeID
@@ -37,20 +66,14 @@ module.exports = {
 		}
 	},
 
-	// Enable built-in tracing function. More info: https://moleculer.services/docs/0.14/tracing.html
 	tracing: {
 		enabled: true,
-		// Available built-in exporters: "Console", "Datadog", "Event", "EventLegacy", "Jaeger", "Zipkin"
 		exporter: {
 			type: "Console", // Console exporter is only for development!
 			options: {
-				// Custom logger
 				logger: null,
-				// Using colors
 				colors: true,
-				// Width of row
 				width: 100,
-				// Gauge width in the row
 				gaugeWidth: 40
 			}
 		}

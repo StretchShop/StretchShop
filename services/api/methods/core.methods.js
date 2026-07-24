@@ -56,7 +56,7 @@ module.exports = {
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;
-			let cookieSecure = ((process.env.COOKIES_SECURE === "true" || process.env.COOKIES_SECURE == true) ? true : false);
+			let cookieSecure = require("../../../mixins/env.helpers").isCookiesSecure();
 			// CART cookie
 			if (!cookies.cart) {
 				const name = "cart";
@@ -130,21 +130,15 @@ module.exports = {
 		 * @returns {Boolean}
 		 */
 		checkCsrfToken(ctx, req) {
-			this.logger.info("api.checkCsrfToken - ctx.meta.headers.authorization: ", ctx.meta.headers.authorization);
 			if (ctx.meta.headers?.authorization) {
 				const cookies = this.parseCookies(req.headers.cookie);
 				const token = ctx.meta.headers.authorization.split("Token ");
-				// check if token was set in header and verify its integrity
-				this.logger.info("api.checkCsrfToken - token: ", token);
-				this.logger.info("api.checkCsrfToken - cookies.session: ", cookies.session);
 				if (token[1] && cookies.session) {
 					const cookieData = jwt.decode(cookies.session);
 					const verifyKey = ctx.meta.remoteAddress + "--" + cookieData?.issued;
-					this.logger.info("api.checkCsrfToken - verifyKey: ", verifyKey);
 					try {
 						const decoded = jwt.verify(token[1].trim(), verifyKey);
 						if (decoded) {
-							// compare if token from cookie is same as token from header
 							if (decoded.token === cookieData?.token) {
 								return true;
 							}
@@ -201,10 +195,24 @@ module.exports = {
 				ctx.meta.token = ctx.meta.cookies.token;
 				token = ctx.meta.token;
 			}
-			// no user action without csrf token
-			// if (!csrfResult && req.$action?.authType !== "csrfOnly") {
-			// 	return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
-			// }
+
+			// Require CSRF for cookie-authenticated / auth-required mutating requests
+			const method = (req.method || "").toUpperCase();
+			const isSafe = ["GET", "HEAD", "OPTIONS"].includes(method);
+			const aliasPath = req.$alias?.path || req.url || "";
+			const skipCsrf =
+				req.$action?.authType === "csrfOnly" ||
+				String(aliasPath).includes("payment/webhook") ||
+				String(aliasPath).includes("/webhook");
+			if (!isSafe && !skipCsrf) {
+				const needsCsrf =
+					req.$action?.auth === "required" ||
+					!!(ctx.meta?.cookies?.token) ||
+					String(aliasPath).includes("order/payment");
+				if (needsCsrf && !csrfResult) {
+					return this.Promise.reject(new E.UnAuthorizedError(E.ERR_INVALID_TOKEN));
+				}
+			}
 
 			// authorization core
 			return this.Promise.resolve(token)
@@ -244,12 +252,27 @@ module.exports = {
 
 		/**
 		 * parse form with uploaded files, copy files according to paths
-		 * supports ONLY JPG files for now
+		 * allowed: jpeg, png, webp, gif, pdf, zip
 		 */
 		parseUploadedFile(req, res, activePath) {
 			const self = this;
 			this.logger.info("api.parseUploadedFile() #1", typeof formidable);
-			const form = formidable.formidable({ multiples: true });;
+			const ALLOWED_MIME = new Set([
+				"image/jpeg",
+				"image/png",
+				"image/webp",
+				"image/gif",
+				"application/pdf",
+				"application/zip",
+			]);
+			const form = formidable.formidable({
+				multiples: true,
+				maxFileSize: 5 * 1024 * 1024,
+				filter({ mimetype }) {
+					self.logger.info("api.parseUploadedFile() MIMETYPE: ", mimetype);
+					return ALLOWED_MIME.has(mimetype);
+				},
+			});
 			this.logger.info("api.parseUploadedFile() #2", form);
 			return form.parse(req, (err, fields, files) => {
 				self.logger.info("api.parseUploadedFile() #2.5", err, fields, files);
@@ -266,13 +289,14 @@ module.exports = {
 
 						const r = self.prepareFilePathNameData(req, activePath, fields, files, property);
 
+						const uploaded = Array.isArray(files[property]) ? files[property][0] : files[property];
 						promises.push(
 							fs.ensureDir(r.copyBaseDir + "/" + r.targetDir)
 								.then(() => {
 									return self.moveFile(r.fileFrom, r.fileToSave).then(() => { // (result)
 										return {
 											id: property,
-											from: files[property].name,
+											from: uploaded.originalFilename || uploaded.name,
 											to: r.fileToUrl,
 											path: r.resultFullPath,
 											name: r.resultFileName,
@@ -283,7 +307,7 @@ module.exports = {
 								})
 								.catch(err => {
 									self.logger.error("api.parseuploadeFile() files ensudeDir ERROR", err);
-									return { "id": property, "from": files[property].name, "success": false, "error": err };
+									return { "id": property, "from": uploaded.originalFilename || uploaded.name, "success": false, "error": err };
 								})); // push with ensureDir end
 					}
 				}

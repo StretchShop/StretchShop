@@ -8,7 +8,8 @@
     "url": "https://github.com/StretchShop/StretchShop.git"
   },
   "scripts": {
-    "dev": "moleculer-runner --repl --hot services",
+    "dev": "moleculer-runner --repl services",
+    "dev:hot": "moleculer-runner --repl --hot services",
     "start": "moleculer-runner",
     "deps": "npm-check -u",
     "ci": "jest --watch",

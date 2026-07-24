@@ -33,7 +33,8 @@ module.exports = {
 				let entity = ctx.params.user;
 				this.logger.info("users.create entity", entity);
 
-				return this.validateEntity(entity)
+				return this.enforceRateLimit(ctx, "register", { limit: 3, windowMs: 60 * 60 * 1000 })
+					.then(() => this.validateEntity(entity))
 					.then(() => {
 						if (entity.username)
 							return this.adapter.findOne({ username: entity.username })
@@ -53,6 +54,9 @@ module.exports = {
 
 					})
 					.catch(err => {
+						if (err?.code === 429) {
+							return Promise.reject(err);
+						}
 						console.error("users.create error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Can't create user", 422, "", []));
 					})
@@ -131,7 +135,8 @@ module.exports = {
 			handler(ctx) {
 				const { email, password } = ctx.params.user;
 
-				return this.adapter.findOne({ email: email })
+				return this.enforceRateLimit(ctx, "login", { limit: 5, windowMs: 15 * 60 * 1000 })
+					.then(() => this.adapter.findOne({ email: email }))
 					.then(user => {
 						if (ctx.meta.user?.type == "admin" && ctx.params.admin) {
 							return this.superloginJWT(user, ctx);

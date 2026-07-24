@@ -171,8 +171,13 @@ module.exports = {
 
 				// Action aliases
 				aliases: {
-					"GET /order/paypal/:result": "orders.paypalResult"
+					// Action not implemented — exclude from OpenAPI startup warnings
+					"GET /order/paypal/:result": {
+						openapi: false,
+						action: "orders.paypalResult"
+					}
 				},
+				openapi: false,
 
 				onAfterCall(ctx, route, req, res, data) {
 					// Async function which return with Promise
@@ -214,32 +219,36 @@ module.exports = {
 				],
 				// Action aliases
 				aliases: {
-					"/": function (req, res) {
-						let publicPath = process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public");
+					"/": {
+						openapi: false,
+						handler(req, res) {
+							let publicPath = process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public");
 
-						// if available, update path as required by business
-						let publicPathReady = publicPath;
-						if (pathModif && typeof pathModif.updatePath === "function") {
-							publicPathReady = pathModif.updatePath(publicPath, req);
-						}
+							// if available, update path as required by business
+							let publicPathReady = publicPath;
+							if (pathModif && typeof pathModif.updatePath === "function") {
+								publicPathReady = pathModif.updatePath(publicPath, req);
+							}
 
-						let indexPath = publicPathReady + "/index.html";
-						if ( !fs.existsSync(indexPath) ) {
-							indexPath = publicPath + "/index.html";
+							let indexPath = publicPathReady + "/index.html";
+							if ( !fs.existsSync(indexPath) ) {
+								indexPath = publicPath + "/index.html";
+							}
+							// read index file
+							fs.readFile(indexPath)
+								.then( index => {
+									res.end(index);
+								})
+								.catch( (error) => {
+									console.error("Router / error: ", error);
+									res.set("Content-Type", "text/plain")
+										.status(404)
+										.send({ message: "Page index.html not found" });
+								});
 						}
-						// read index file
-						fs.readFile(indexPath)
-							.then( index => {
-								res.end(index);
-							})
-							.catch( (error) => {
-								console.error("Router / error: ", error);
-								res.set("Content-Type", "text/plain")
-									.status(404)
-									.send({ message: "Page index.html not found" });
-							});
 					},
 				},
+				openapi: false,
 				mappingPolicy: "restrict",
 			}
 		],

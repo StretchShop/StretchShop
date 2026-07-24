@@ -225,7 +225,8 @@ module.exports = {
 				username: { type: "string" }
 			},
 			handler(ctx) {
-				return this.adapter.count({ "query": { "username": ctx.params.username } })
+				return this.enforceRateLimit(ctx, "checkUsername", { limit: 20, windowMs: 60 * 1000 })
+					.then(() => this.adapter.count({ "query": { "username": ctx.params.username } }))
 					.then(count => {
 						if (count>0) {
 							return Promise.reject(new MoleculerClientError("User already exists", 422, "", [{ field: "username", message: "exists" }]));
@@ -233,6 +234,9 @@ module.exports = {
 						return {result: {userExists: false}};
 					})
 					.catch(err => {
+						if (err?.code === 429) {
+							return Promise.reject(err);
+						}
 						console.error("users.checkIfUserExists user already exists: ", err);
 						return this.Promise.reject(new MoleculerClientError("User already exists", 422, "", [{ field: "username", message: "exists" }]));
 					});
@@ -247,7 +251,8 @@ module.exports = {
 				email: { type: "email" }
 			},
 			handler(ctx) {
-				return this.adapter.count({ "query": { "email": ctx.params.email } })
+				return this.enforceRateLimit(ctx, "checkEmail", { limit: 20, windowMs: 60 * 1000 })
+					.then(() => this.adapter.count({ "query": { "email": ctx.params.email } }))
 					.then(count => {
 						if (count>0) {
 							return this.Promise.reject(new MoleculerClientError("Email already exists", 422, "", [{ field: "email", message: "exists" }]));
@@ -255,6 +260,9 @@ module.exports = {
 						return {result: {emailExists: false}};
 					})
 					.catch(err => {
+						if (err?.code === 429) {
+							return Promise.reject(err);
+						}
 						console.error("users.checkIfEmailExists email already exists: ", err);
 						return this.Promise.reject(new MoleculerClientError("Email already exists", 422, "", [{ field: "email", message: "exists" }]));
 					});
