@@ -24,6 +24,7 @@ const UsersMethodsAdmin = require("./methods/admin.methods");
 const UsersAuthMixin = require("./mixins/auth.mixin");
 const UsersEmailMixin = require("./mixins/email.mixin");
 const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
+const RateLimitMixin = require("../../mixins/rate-limit.mixin");
 
 
 module.exports = {
@@ -35,6 +36,7 @@ module.exports = {
 		HelpersMixin, 
 		priceLevels,
 		Cron,
+		RateLimitMixin,
 		// methods
 		UsersMethodsCore,
 		UsersMethodsCoreData,

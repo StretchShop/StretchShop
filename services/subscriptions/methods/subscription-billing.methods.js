@@ -49,27 +49,38 @@ module.exports = {
 		 * @param {Object} subscription 
 		 */
 		sendSubscriptionEmail(ctx, subscription, template) {
+			const siteName = ctx.meta.siteSettings?.name || process.env.SITE_NAME || "StretchShop";
 			// configuring email message
 			let emailSetup = {
 				settings: {
-					to: [subscription.data.order.user.email, process.env.SITE_SUPPORT_EMAIL]
+					to: [subscription.data.order.user.email, process.env.SITE_SUPPORT_EMAIL],
+					subject: siteName + " - Subscription update"
 				},
 				functionSettings: {
 					language: subscription.data.order.user.settings.language
 				},
 				template: template,
 				data: {
-					webname: ctx.meta.siteSettings?.name || process.env.SITE_NAME || "StretchShop",
+					webname: siteName,
 					username: subscription.data.order.user.username,
 					email: subscription.data.order.user.email, 
 					subscription: subscription, 
 					support_email: ctx.meta.siteSettings?.supportEmail || process.env.SITE_SUPPORT_EMAIL
 				}
 			};
-			// sending email
-			ctx.call("users.sendEmail", emailSetup).then(json => {
-				this.logger.info("users.cancelDelete - email sent:", json);
-			});
+			// Return the promise so callers can stop a batch after SMTP auth failure
+			return ctx.call("users.sendEmail", emailSetup)
+				.then(json => {
+					this.logger.info("subscriptions.sendSubscriptionEmail - email sent:", json);
+					return json;
+				})
+				.catch(err => {
+					this.logger.error(
+						"subscriptions.sendSubscriptionEmail - failed:",
+						err?.message || err
+					);
+					return Promise.reject(err);
+				});
 		},
 
 
@@ -146,22 +157,46 @@ module.exports = {
 									altMessage: "subscription suspended because no payment received"
 								})
 									.catch(err => {
-										this.logger.error("users.stopEndedActiveSubscriptions - subscriptions.suspend error:", err);
+										this.logger.error("subscriptions.stopEndedActiveSubscriptions - subscriptions.suspend error:", err);
+										return null;
 									})
-									.then(result => {
-										// send email to customer
-										self.sendSubscriptionEmail(
-											ctx, s, 
-											"subscription/suspended"
-										);
-										return result;
-									})
+									.then(result => ({ subscription: s, result }))
 							);
 						});
-						// return all runned subscriptions
+						// Suspend in parallel, then notify sequentially — only after confirmed
+						// payment-provider suspend, and abort further emails on SMTP auth failure.
 						return Promise.all(promises)
-							.then((result) => {
-								return result;
+							.then(async (pairs) => {
+								for (const { subscription, result } of pairs) {
+									// "suspend sent" = payment provider confirmed; local-only
+									// cleanup (relatedId missing) must not trigger customer email.
+									if (result?.success && result?.message === "suspend sent") {
+										try {
+											await self.sendSubscriptionEmail(
+												ctx,
+												subscription,
+												"subscription/suspended"
+											);
+										} catch (err) {
+											const msg = String(err?.message || err || "");
+											if (
+												err?.code === "EAUTH" ||
+												err?.code === "EAUTH_BLOCKED" ||
+												err?.emailTransportBlocked ||
+												err?.responseCode === 535 ||
+												err?.responseCode === 403 ||
+												/authentication failed|EAUTH|rate limited/i.test(msg)
+											) {
+												this.logger.warn(
+													"subscriptions.stopEndedActiveSubscriptions - " +
+													"stopping further emails after SMTP auth failure"
+												);
+												break;
+											}
+										}
+									}
+								}
+								return pairs.map(p => p.result);
 							})
 							.catch(err => {
 								this.logger.error("subscriptions.stopEndedActiveSubscriptions all error:", err);

@@ -72,46 +72,73 @@ module.exports = {
 		
 		JWT_SECRET: getRequiredSecret("JWT_SECRET", "jwt-stretchshop-secret"),
 
-		// Global CORS settings for all routes
-		cors: (process.env.NODE_ENV=="development" || process.env.NODE_ENV=="dockerdev" || process.env.CORS_ORIGIN?.trim() !== "") ? {
-			// Configures the Access-Control-Allow-Origin CORS header.
-			origin: () => {
-				if (process.env.CORS_ORIGIN?.trim() !== "") {
-					return process.env.CORS_ORIGIN;
-				} else if (process.env.NODE_ENV == "dockerdev") {
-					return "http://localhost:3000";
-				}
-				return "http://localhost:8080";
-			},
-			// origin: (process.env.NODE_ENV=="dockerdev") ? "http://localhost:3000" : "http://localhost:4200",
-			// Configures the Access-Control-Allow-Methods CORS header.
-			methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
-			// Configures the Access-Control-Allow-Headers CORS header.
-			allowedHeaders: [
-				"Content-Type", 
-				"Origin", 
-				"X-Requested-With", 
-				"Accept", 
-				"Authorization", 
-				"Timeout", 
-				"Cookie", 
-				"Set-Cookie", 
-				"cookie", 
-				"x-xsrf-token", 
-				"Access-Control-Allow-Origin",
-				"Resource-Type",
-			],
-			// Configures the Access-Control-Expose-Headers CORS header.
-			exposedHeaders: ["Content-Type", "Content-Disposition"],
-			// Configures the Access-Control-Allow-Credentials CORS header.
-			credentials: true,
-			// Configures the Access-Control-Max-Age CORS header.
-			maxAge: 3600
-		} : null,
+		// Global CORS settings for all routes — only when explicitly configured or in local/dev
+		cors: (() => {
+			const isDev = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dockerdev";
+			const corsOriginRaw = process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.trim() !== ""
+				? process.env.CORS_ORIGIN.trim()
+				: "";
+			if (!isDev && !corsOriginRaw) {
+				return null;
+			}
+			return {
+				origin: (origin) => {
+					const allowed = corsOriginRaw
+						? corsOriginRaw.split(",").map((s) => s.trim()).filter(Boolean)
+						: (process.env.NODE_ENV === "dockerdev"
+							? ["http://localhost:3000"]
+							: ["http://localhost:8080"]);
+					if (allowed.includes("*")) {
+						// credentials:true forbids "*", reflect request origin only when present
+						return origin || allowed.find((o) => o !== "*") || false;
+					}
+					if (origin && allowed.includes(origin)) {
+						return origin;
+					}
+					// No Origin header (same-origin / non-browser) — omit reflecting a wrong origin
+					return false;
+				},
+				methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE"],
+				allowedHeaders: [
+					"Content-Type",
+					"Origin",
+					"X-Requested-With",
+					"Accept",
+					"Authorization",
+					"Timeout",
+					"Cookie",
+					"Set-Cookie",
+					"cookie",
+					"x-xsrf-token",
+					"Access-Control-Allow-Origin",
+					"Resource-Type",
+				],
+				exposedHeaders: ["Content-Type", "Content-Disposition"],
+				credentials: true,
+				maxAge: 3600
+			};
+		})(),
 
 		ip: process.env.IP || "localhost",
 
 		port: process.env.PORT || 3000,
+
+		// Baseline security headers for all API responses
+		use: [
+			function securityHeaders(req, res, next) {
+				res.setHeader("X-Content-Type-Options", "nosniff");
+				res.setHeader("X-Frame-Options", "DENY");
+				res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+				res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+				res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+				if (process.env.COOKIES_SECURE === "true") {
+					res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+				}
+				if (typeof next === "function") {
+					next();
+				}
+			}
+		],
 
 		routes: [
 			...(openapiEnabled ? [{
@@ -171,8 +198,13 @@ module.exports = {
 
 				// Action aliases
 				aliases: {
-					"GET /order/paypal/:result": "orders.paypalResult"
+					// Action not implemented — exclude from OpenAPI startup warnings
+					"GET /order/paypal/:result": {
+						openapi: false,
+						action: "orders.paypalResult"
+					}
 				},
+				openapi: false,
 
 				onAfterCall(ctx, route, req, res, data) {
 					// Async function which return with Promise
@@ -214,32 +246,36 @@ module.exports = {
 				],
 				// Action aliases
 				aliases: {
-					"/": function (req, res) {
-						let publicPath = process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public");
+					"/": {
+						openapi: false,
+						handler(req, res) {
+							let publicPath = process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public");
 
-						// if available, update path as required by business
-						let publicPathReady = publicPath;
-						if (pathModif && typeof pathModif.updatePath === "function") {
-							publicPathReady = pathModif.updatePath(publicPath, req);
-						}
+							// if available, update path as required by business
+							let publicPathReady = publicPath;
+							if (pathModif && typeof pathModif.updatePath === "function") {
+								publicPathReady = pathModif.updatePath(publicPath, req);
+							}
 
-						let indexPath = publicPathReady + "/index.html";
-						if ( !fs.existsSync(indexPath) ) {
-							indexPath = publicPath + "/index.html";
+							let indexPath = publicPathReady + "/index.html";
+							if ( !fs.existsSync(indexPath) ) {
+								indexPath = publicPath + "/index.html";
+							}
+							// read index file
+							fs.readFile(indexPath)
+								.then( index => {
+									res.end(index);
+								})
+								.catch( (error) => {
+									console.error("Router / error: ", error);
+									res.set("Content-Type", "text/plain")
+										.status(404)
+										.send({ message: "Page index.html not found" });
+								});
 						}
-						// read index file
-						fs.readFile(indexPath)
-							.then( index => {
-								res.end(index);
-							})
-							.catch( (error) => {
-								console.error("Router / error: ", error);
-								res.set("Content-Type", "text/plain")
-									.status(404)
-									.send({ message: "Page index.html not found" });
-							});
 					},
 				},
+				openapi: false,
 				mappingPolicy: "restrict",
 			}
 		],

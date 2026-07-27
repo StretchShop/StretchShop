@@ -28,8 +28,13 @@ module.exports = {
 		"PUT /user": "users.updateUser",
 		"POST /user/verify": "users.verifyHash",
 		"POST /user/reset": "users.resetPassword",
-		"POST /user/image": function (req, res) {
-			this.processUpload(req, res);
+		// openapi:false — custom handlers are not action names; without this,
+		// moleculer-auto-openapi logs ERROR on every startup/hot-reload.
+		"POST /user/image": {
+			openapi: false,
+			handler(req, res) {
+				this.processUpload(req, res);
+			}
 		},
 		"DELETE /user/image/:type/:code/:image": "users.deleteUserImage",
 		"DELETE /user/profile": "users.deleteProfile",
@@ -40,7 +45,6 @@ module.exports = {
 		"POST /cart": "cart.updateCartItemAmount",
 		"PUT /cart": "cart.add",
 		"DELETE /cart": "cart.delete",
-		"POST /cart/find": "cart.find",
 		"DELETE /cart/:itemId": "cart.delete",
 		"DELETE /cart/:itemId/:amount": "cart.delete",
 
@@ -48,14 +52,17 @@ module.exports = {
 		"GET /products/:category": "products.productsListGet",
 		"POST /products/:category": "products.productsList", // needed for category with filter url
 		"POST /products/filter": "products.findWithCount",
-		"POST /products/find": "products.find",
+		"POST /products/find": "products.findAdmin",
 		"GET /products/:category/detail/:product": "products.detail",
 		"PUT /products": "products.import",
 		"DELETE /products": "products.delete",
 		"POST /products/count": "products.count",
 		"GET /products/rebuildpl/:id": "products.rebuildProductPriceLevels",
-		"POST /products/upload/:orderCode/:type": function (req, res) {
-			this.processUpload(req, res);
+		"POST /products/upload/:orderCode/:type": {
+			openapi: false,
+			handler(req, res) {
+				this.processUpload(req, res);
+			}
 		},
 
 		// Categories
@@ -63,11 +70,17 @@ module.exports = {
 		"PUT /categories": "categories.import",
 		"DELETE /categories": "categories.delete",
 		"POST /categories/find": "categories.findWithContent",
-		"POST /categories/upload/:slug/:type": function (req, res) {
-			this.processUpload(req, res);
+		"POST /categories/upload/:slug/:type": {
+			openapi: false,
+			handler(req, res) {
+				this.processUpload(req, res);
+			}
 		},
-		"POST /categories/upload/:slug": function (req, res) {
-			this.processUpload(req, res);
+		"POST /categories/upload/:slug": {
+			openapi: false,
+			handler(req, res) {
+				this.processUpload(req, res);
+			}
 		},
 
 		// Order
@@ -81,7 +94,11 @@ module.exports = {
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",
 		"POST /subscription/suspend/:subscriptionId": "subscriptions.suspend",
-		"POST /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
+		// Routed but not implemented — exclude from OpenAPI to avoid startup warnings
+		"POST /subscription/reactivate/:subscriptionId": {
+			openapi: false,
+			action: "subscriptions.reactivate"
+		},
 		// Payment endpoints for FE
 		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/stripe/paymentintent
 		"GET /order/payment/:supplier/:result": "orders.paymentResult",
@@ -101,11 +118,17 @@ module.exports = {
 		"PUT /pages": "pages.import",
 		"DELETE /pages": "pages.delete",
 		"POST /pages/count": "pages.count",
-		"POST /pages/upload/:slug/:type": function (req, res) {
-			this.processUpload(req, res);
+		"POST /pages/upload/:slug/:type": {
+			openapi: false,
+			handler(req, res) {
+				this.processUpload(req, res);
+			}
 		},
-		"POST /pages/upload/:slug/": function (req, res) {
-			this.processUpload(req, res);
+		"POST /pages/upload/:slug/": {
+			openapi: false,
+			handler(req, res) {
+				this.processUpload(req, res);
+			}
 		},
 
 		// Global
@@ -124,13 +147,15 @@ module.exports = {
 
 	// Call before every request
 	onBeforeCall(ctx, route, req) {
+		const { trustProxy } = require("../../mixins/env.helpers");
 		ctx.meta.host = req.headers.host;
 		ctx.meta.remoteAddress = req.connection.remoteAddress;
-		if (req.headers["x-forwarded-for"]) {
-			ctx.meta.remoteAddress = req.headers["x-forwarded-for"];
-		}
-		if (req.headers["x-real-ip"]) {
-			ctx.meta.remoteAddress = req.headers["x-real-ip"];
+		if (trustProxy()) {
+			if (req.headers["x-forwarded-for"]) {
+				ctx.meta.remoteAddress = String(req.headers["x-forwarded-for"]).split(",")[0].trim();
+			} else if (req.headers["x-real-ip"]) {
+				ctx.meta.remoteAddress = req.headers["x-real-ip"];
+			}
 		}
 		ctx.meta.remotePort = req.connection.remotePort;
 		// update localsDefault according to cookie value if possible

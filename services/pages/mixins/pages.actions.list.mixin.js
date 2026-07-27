@@ -149,10 +149,12 @@ module.exports = {
 				});
 
 				if (withPages) {
+					const { escapeRegex } = require("../../../mixins/mongo.security");
+					const safeSlug = escapeRegex(ctx.params.query.slug.toLowerCase());
 					// pages
 					return ctx.call("pages.findWithId", {
 						"query": {
-							"slug": { "$regex": ctx.params.query.slug.toLowerCase() }
+							"slug": { "$regex": safeSlug }
 						}
 					})
 						.then(pages => {
@@ -167,7 +169,7 @@ module.exports = {
 							// categories
 							return ctx.call("categories.find", {
 								"query": {
-									"slug": { "$regex": ctx.params.query.slug.toLowerCase() }
+									"slug": { "$regex": safeSlug }
 								}
 							})
 								.then(categories => {

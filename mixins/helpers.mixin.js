@@ -11,12 +11,12 @@ module.exports = {
 			separator = (typeof separator === "undefined") ? "/" : separator;
 			let resultString = "";
 
-			if ( str.length>0 ) {
+			if (str.length > 0) {
 				let resultArray = [];
 				let chunk = "";
-				for ( let i = 0; i<str.length; i=(i+chunkSize) ) {
-					chunk = str.substring(i,i+chunkSize);
-					if ( chunk.trim()!="" ) {
+				for (let i = 0; i < str.length; i = (i + chunkSize)) {
+					chunk = str.substring(i, i + chunkSize);
+					if (chunk.trim() != "") {
 						resultArray.push(chunk);
 					}
 				}
@@ -37,10 +37,10 @@ module.exports = {
 		stringReplaceParams(str, params) {
 			let resultString = str;
 			let paramsArray = Object.keys(params);
-			if ( paramsArray.length>0 ) {
-				paramsArray.forEach(function(key) {
-					let replaceFrom = ":"+key;
-					resultString = resultString.replace( replaceFrom, params[key] );
+			if (paramsArray.length > 0) {
+				paramsArray.forEach(function (key) {
+					let replaceFrom = ":" + key;
+					resultString = resultString.replace(replaceFrom, params[key]);
 				});
 			}
 			return resultString;
@@ -55,16 +55,16 @@ module.exports = {
 		 */
 		arrayReplaceParams(array, params) {
 			let resultArray = array;
-			if ( array.length>0 ) {
+			if (array.length > 0) {
 				let tempArray = [];
-				for ( let i = 0; i<array.length; i++ ) {
-					tempArray.push( this.stringReplaceParams(array[i], params) );
+				for (let i = 0; i < array.length; i++) {
+					tempArray.push(this.stringReplaceParams(array[i], params));
 				}
 				return tempArray;
 			}
 			return resultArray;
 		},
-			
+
 
 		/**
 		 * Rounds number with scale param for rounding
@@ -74,7 +74,7 @@ module.exports = {
 		 * https://plnkr.co/edit/uau8BlS1cqbvWPCHJeOy?p=preview
 		 */
 		roundNumber(num, scaleParam) {
-			let scale = (typeof scaleParam=="undefined") ? scaleParam : 2;
+			let scale = (typeof scaleParam == "undefined") ? scaleParam : 2;
 			if (Math.round(num) != num) {
 				if (Math.pow(0.1, scale) > num) {
 					return 0;
@@ -115,18 +115,18 @@ module.exports = {
 		 * @param {*} codeToPick 
 		 */
 		getValueByCode(arrayOfValues, codeToPick) {
-			let result = arrayOfValues[0]; 
-			if (arrayOfValues.length>0 && codeToPick!="") {
-				arrayOfValues.some(function(value){
-					if (value && value.code && value.code!="" && value.code==codeToPick) {
+			let result = arrayOfValues[0];
+			if (arrayOfValues.length > 0 && codeToPick != "") {
+				arrayOfValues.some(function (value) {
+					if (value && value.code && value.code != "" && value.code == codeToPick) {
 						result = value;
 						return true;
 					}
 				});
 			}
 			return result;
-		}, 
-		
+		},
+
 
 		/**
 		 * Sort object's params in alphabetical order
@@ -151,7 +151,7 @@ module.exports = {
 			for (key = 0; key < a.length; key++) {
 				if (typeof o[a[key]] === "object") {
 					// if object, sort its keys recursively
-					sorted[a[key]] = this.sortObject( o[a[key]] );
+					sorted[a[key]] = this.sortObject(o[a[key]]);
 				} else {
 					// assign value to key
 					sorted[a[key]] = o[a[key]];
@@ -167,14 +167,14 @@ module.exports = {
 		 * Get address of user by type (invoice, delivery)
 		 */
 		getUserAddress(user, type) {
-			let addType = (typeof type=="undefined") ? null : type;
+			let addType = (typeof type == "undefined") ? null : type;
 			let allowedTypes = ["invoice", "delivery"];
 			let result = null;
-			if (user && user.addresses && user.addresses.length>0) {
-				user.addresses.some(function(value){
-					if ( addType && allowedTypes.indexOf(addType)>-1 ) {
+			if (user && user.addresses && user.addresses.length > 0) {
+				user.addresses.some(function (value) {
+					if (addType && allowedTypes.indexOf(addType) > -1) {
 						// if type set check for match
-						if ( value.type == addType ) {
+						if (value.type == addType) {
 							// type matching - return address
 							result = value;
 							return true;
@@ -188,7 +188,7 @@ module.exports = {
 			}
 
 			return result;
-		}, 
+		},
 
 
 		/**
@@ -210,11 +210,11 @@ module.exports = {
 				result.taxDecimal = taxSettings.global.taxDecimal;
 			}
 			// use product tax, if set
-			if (product?.tax && product.tax!==null) {
+			if (product?.tax && product.tax !== null) {
 				result.taxDecimal = product.tax;
 			}
 			// count tax prices using taxDecimal
-			if (result.taxDecimal>0 && product && product.price >= 0) {
+			if (result.taxDecimal > 0 && product && product.price >= 0) {
 				result.tax = result.taxDecimal * product.price;
 				result.taxType = taxSettings.taxType;
 				if (taxSettings.taxType == "IT") {
@@ -240,11 +240,11 @@ module.exports = {
 				url: null,
 				query: null
 			};
-			
+
 			if (ctx) {
-				if (ctx.options && ctx.options.parentCtx && ctx.options.parentCtx.params && 
+				if (ctx.options && ctx.options.parentCtx && ctx.options.parentCtx.params &&
 					ctx.options.parentCtx.params.req) {
-					
+
 					// get url as string and array
 					if (ctx.options.parentCtx.params.req.parsedUrl) {
 						result.url = {
@@ -293,18 +293,25 @@ module.exports = {
 		 * @returns {Object}
 		 */
 		updateObject(original/*, …*/) {
+			const { DANGEROUS_KEYS } = require("./mongo.security");
 			if (original) {
-				for (let i=1; i<arguments.length; i++) {
+				for (let i = 1; i < arguments.length; i++) {
 					for (let prop in arguments[i]) {
+						if (DANGEROUS_KEYS.has(prop)) {
+							continue;
+						}
 						let val = arguments[i][prop];
 						if (typeof val === "object" && val !== null && val.constructor !== Array) {
+							if (!Object.hasOwn(original, prop) || typeof original[prop] !== "object" || original[prop] === null) {
+								original[prop] = {};
+							}
 							this.updateObject(original[prop], val);
 						} else {
 							try {
 								original[prop] = val;
 							} catch (e) {
 								console.error("\n\n------------------", original, prop);
-								console.error("\n\n ---!!! ---!!! ---!!! ---!!! ERROR ---!!! ---!!! ---!!! ---!!!\n"+ e +"\n\n");
+								console.error("\n\n ---!!! ---!!! ---!!! ---!!! ERROR ---!!! ---!!! ---!!! ---!!!\n" + e + "\n\n");
 							}
 						}
 					}
@@ -315,37 +322,52 @@ module.exports = {
 			}
 		},
 
-		
+
 		/**
 		 * 
 		 * @param {String} source 
 		 * @returns String
 		 */
 		removeJavascriptTag(source) {
-			let pattern = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gi;
-			return source.replaceAll(pattern, "");
+			if (source == null) {
+				return source;
+			}
+			try {
+				const createDOMPurify = require("dompurify");
+				const { JSDOM } = require("jsdom");
+				const purify = createDOMPurify(new JSDOM("").window);
+				return purify.sanitize(String(source), {
+					USE_PROFILES: { html: true },
+					FORBID_TAGS: ["script", "object", "embed", "form"],
+					FORBID_ATTR: ["onerror", "onclick", "onload", "onmouseover", "onfocus", "onblur"],
+				});
+			} catch (e) {
+				// Fallback: strip script tags if DOMPurify unavailable
+				let pattern = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gi;
+				return String(source).replaceAll(pattern, "");
+			}
 		},
 
 
 		unJsString(source) {
-			if ( source) {
-				if ( source.constructor === Object) {
+			if (source) {
+				if (source.constructor === Object) {
 					Object.keys(source).forEach(k => {
 						if (source[k]?.constructor === String) {
 							source[k] = this.removeJavascriptTag(source[k]);
-						} else if ( source.constructor === Object || source.constructor === Array ) {
+						} else if (source.constructor === Object || source.constructor === Array) {
 							source[k] = this.unJsString(source[k]);
 						}
 					});
-				} else if ( source.constructor === Array) {
+				} else if (source.constructor === Array) {
 					source.forEach((v, k) => {
 						if (v.constructor === String) {
 							source[k] = this.removeJavascriptTag(source[k]);
-						} else if ( source.constructor === Object || source.constructor === Array ) {
+						} else if (source.constructor === Object || source.constructor === Array) {
 							source[k] = this.unJsString(source[k]);
 						}
 					});
-				} else if ( source.constructor === String) {
+				} else if (source.constructor === String) {
 					source = this.removeJavascriptTag(source);
 				}
 			}

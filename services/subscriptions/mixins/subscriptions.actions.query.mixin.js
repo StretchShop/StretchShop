@@ -39,9 +39,16 @@ module.exports = {
 				let self = this;
 
 				if ( ctx.meta.user && ctx.meta.user._id ) {
+					const { sanitizeMongoQuery, allowlistQueryFields } = require("../../../mixins/mongo.security");
 					let filter = { query: {}, limit: 20};
 					if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
-						filter.query = ctx.params.query;
+						if (ctx.meta.user.type === "admin" && ctx.params.fullData === true) {
+							filter.query = sanitizeMongoQuery(ctx.params.query);
+						} else {
+							filter.query = allowlistQueryFields(ctx.params.query, [
+								"_id", "status", "type", "productCode"
+							]);
+						}
 					}
 					// update filter acording to user
 					if ( ctx.meta.user.type=="admin" && typeof ctx.params.fullData!=="undefined" && ctx.params.fullData==true ) {

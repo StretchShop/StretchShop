@@ -124,12 +124,22 @@ module.exports = {
 
 				return this.adapter.findById(ctx.params.orderId)
 					.then(order => {
+						if (!order) {
+							return Promise.reject(new MoleculerClientError("Order not found", 404));
+						}
+						const userId = ctx.meta.user._id.toString();
+						const isAdmin = ctx.meta.user.type === "admin";
+						const isOwner = order.user?.id?.toString() === userId;
+						if (!isAdmin && !isOwner) {
+							return Promise.reject(new MoleculerClientError("Forbidden", 403));
+						}
+
 						order.status = "canceled";
 						order.dates.dateChanged = new Date();
 						if (order.dates["dateCanceled"]) { order.dates["dateCanceled"] = null; }
 						order.dates.dateCanceled = new Date();
 						if (order.data["canceledUserId"]) { order.dates["canceledUserId"] = null; }
-						order.data.canceledUserId = ctx.meta.user._id.toString();
+						order.data.canceledUserId = userId;
 						
 						let orderId = order._id.toString();
 						delete order.id;
@@ -159,6 +169,9 @@ module.exports = {
 							});
 					})
 					.catch(error => {
+						if (error instanceof MoleculerClientError) {
+							return Promise.reject(error);
+						}
 						self.logger.error("order.cancel - not found: ", error);
 						result.message = "error: " + JSON.stringify(error);
 						return result;
@@ -193,9 +206,16 @@ module.exports = {
 
 				// check if we have logged user
 				if ( ctx.meta.user && ctx.meta.user._id ) { // we have user
+					const { sanitizeMongoQuery, allowlistQueryFields } = require("../../../mixins/mongo.security");
 					let filter = { query: {}, limit: 20};
 					if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
-						filter.query = ctx.params.query;
+						if (ctx.meta.user.type === "admin" && ctx.params.fullData === true) {
+							filter.query = sanitizeMongoQuery(ctx.params.query);
+						} else {
+							filter.query = allowlistQueryFields(ctx.params.query, [
+								"status", "_id", "invoice.num", "invoice.id"
+							]);
+						}
 					}
 					// update filter acording to user
 					if ( ctx.meta.user.type=="admin" && typeof ctx.params.fullData!=="undefined" && ctx.params.fullData==true ) {
