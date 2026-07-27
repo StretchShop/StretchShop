@@ -83,7 +83,8 @@ module.exports = {
 				}
 			}
 
-			// CSRF cookie
+			// CSRF cookie (intentionally readable by JS for double-submit Authorization header).
+			// Auth JWT remains HttpOnly; keep XSS surface minimal (sanitize HTML) and SameSite set.
 			if (!cookies.session) {
 				const csrfDate = new Date();
 				const name = "session";
@@ -137,7 +138,7 @@ module.exports = {
 					const cookieData = jwt.decode(cookies.session);
 					const verifyKey = ctx.meta.remoteAddress + "--" + cookieData?.issued;
 					try {
-						const decoded = jwt.verify(token[1].trim(), verifyKey);
+						const decoded = jwt.verify(token[1].trim(), verifyKey, { algorithms: ["HS256"] });
 						if (decoded) {
 							if (decoded.token === cookieData?.token) {
 								return true;

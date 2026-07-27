@@ -49,7 +49,7 @@ module.exports = {
 								newData.type === "user" ||
 								(typeof this.isValidUsertype === "function" && this.isValidUsertype(newData.type));
 							if (!allowedType) {
-								return Promise.reject(new MoleculerClientError("Invalid user type!", 422, "", [{ field: "type", message: "invalid"}]));
+								return Promise.reject(new MoleculerClientError("Invalid user type!", 422, "", [{ field: "type", message: "invalid" }]));
 							}
 						}
 					})
@@ -59,7 +59,7 @@ module.exports = {
 								.then(found => {
 									if (found && found._id.toString() !== ctx.meta.user._id.toString()) {
 										return Promise.reject(
-											new MoleculerClientError("Username is exist!", 422, "", [{ field: "username", message: "is exist"}])
+											new MoleculerClientError("Username is exist!", 422, "", [{ field: "username", message: "is exist" }])
 										);
 									}
 								});
@@ -70,7 +70,7 @@ module.exports = {
 							return this.adapter.findOne({ email: newData.email })
 								.then(found => {
 									if (found && found._id.toString() !== ctx.meta.user._id.toString())
-										return Promise.reject(new MoleculerClientError("Email is exist!", 422, "", [{ field: "email", message: "is exist"}]));
+										return Promise.reject(new MoleculerClientError("Email is exist!", 422, "", [{ field: "email", message: "is exist" }]));
 								});
 
 					})
@@ -78,32 +78,32 @@ module.exports = {
 						// validate address(es) and return error if they are not valid (missing some field)
 						let errors = [];
 						let keys = 0;
-						if (newData.addresses && newData.addresses.length>0) {
-							Object.keys(newData.addresses).forEach(function(key){
+						if (newData.addresses && newData.addresses.length > 0) {
+							Object.keys(newData.addresses).forEach(function (key) {
 								let address = newData.addresses[key];
 								let validatioResult = validateAddress(address);
-								if ( validatioResult.result && validatioResult.errors.length>0 ) {
+								if (validatioResult.result && validatioResult.errors.length > 0) {
 									keys = keys + 1;
-									validatioResult.errors.forEach(function(error){
+									validatioResult.errors.forEach(function (error) {
 										errors.push({ key: key, name: error.name, action: error.action });
 									});
 								}
 							});
 						}
-						if ( errors.length>0 ) {
+						if (errors.length > 0) {
 							return Promise.reject(new MoleculerClientError("Invalid address", 422, "", errors));
 						}
 					})
 					.then(() => {
 						// get user only if it's logged and new data id&username&email is same as logged or logged user is admin
-						if ( this.userCanUpdate(loggedUser, newData) ) {
+						if (this.userCanUpdate(loggedUser, newData)) {
 							let findId = loggedUser._id;
 							if (isAdmin && newData._id) {
 								findId = newData._id;
 							}
 							return this.adapter.findById(findId)
 								.then(found => {
-									if ( typeof newData["password"] !== "undefined" ) {
+									if (typeof newData["password"] !== "undefined") {
 										newData["password"] = bcrypt.hashSync(newData["password"], 10);
 									}
 									// loop found object, update it with new data
@@ -119,9 +119,9 @@ module.exports = {
 										if (!isAdmin && !SELF_ALLOWED.has(property)) {
 											continue;
 										}
-										if ( Object.prototype.hasOwnProperty.call(newData,property) && Object.prototype.hasOwnProperty.call(found,property) ) {
+										if (Object.prototype.hasOwnProperty.call(newData, property) && Object.prototype.hasOwnProperty.call(found, property)) {
 											found[property] = newData[property];
-										} else if ( Object.prototype.hasOwnProperty.call(newData,property) ) { // if property does not exist, set it
+										} else if (Object.prototype.hasOwnProperty.call(newData, property)) { // if property does not exist, set it
 											found[property] = newData[property];
 										}
 									}
@@ -135,14 +135,14 @@ module.exports = {
 									// get used usertypes and add new pricesLevel if needed
 									return this.adapter.collection.distinct("type")
 										.then(types => {
-											if ( types && types.indexOf(user.type)<0 && typeof this.addUsertypePriceLevel === "function" ) {
+											if (types && types.indexOf(user.type) < 0 && typeof this.addUsertypePriceLevel === "function") {
 												this.addUsertypePriceLevel(user.type);
 											}
 											return user;
 										});
 								});
 						}
-						return Promise.reject(new MoleculerClientError("User not valid", 422, "", [{ field: "user", message: "invalid"}]));
+						return Promise.reject(new MoleculerClientError("User not valid", 422, "", [{ field: "user", message: "invalid" }]));
 					})
 					.then(doc => this.transformDocuments(ctx, {}, doc))
 					.then(user => this.transformEntity(user, false, ctx))
@@ -226,12 +226,12 @@ module.exports = {
 			},
 			handler(ctx) {
 				return this.enforceRateLimit(ctx, "checkUsername", { limit: 20, windowMs: 60 * 1000 })
-					.then(() => this.adapter.count({ "query": { "username": ctx.params.username } }))
+					.then(() => this.adapter.count({ "query": { "username": { $regex: ctx.params.username, $options: "i" } } }))
 					.then(count => {
-						if (count>0) {
+						if (count > 0) {
 							return Promise.reject(new MoleculerClientError("User already exists", 422, "", [{ field: "username", message: "exists" }]));
 						}
-						return {result: {userExists: false}};
+						return { result: { userExists: false } };
 					})
 					.catch(err => {
 						if (err?.code === 429) {
@@ -254,10 +254,10 @@ module.exports = {
 				return this.enforceRateLimit(ctx, "checkEmail", { limit: 20, windowMs: 60 * 1000 })
 					.then(() => this.adapter.count({ "query": { "email": ctx.params.email } }))
 					.then(count => {
-						if (count>0) {
+						if (count > 0) {
 							return this.Promise.reject(new MoleculerClientError("Email already exists", 422, "", [{ field: "email", message: "exists" }]));
 						}
-						return {result: {emailExists: false}};
+						return { result: { emailExists: false } };
 					})
 					.catch(err => {
 						if (err?.code === 429) {
@@ -273,10 +273,10 @@ module.exports = {
 			auth: "required",
 			handler(ctx) {
 				this.logger.info("users.deleteProfile ctx.params:", {
-					params: ctx.params, 
+					params: ctx.params,
 					meta: ctx.meta
 				});
-				if ( ctx.meta.user && ctx.meta.user._id ) {
+				if (ctx.meta.user && ctx.meta.user._id) {
 					let self = this;
 					return this.getById(ctx.meta.user._id)
 						.then(user => {
@@ -292,7 +292,7 @@ module.exports = {
 						})
 						.then(user => {
 							user.dates.dateToBeErased = new Date();
-							user.dates.dateToBeErased.setDate( user.dates.dateToBeErased.getDate() + 14);
+							user.dates.dateToBeErased.setDate(user.dates.dateToBeErased.getDate() + 14);
 							user.dates.dateUpdated = new Date();
 							this.logger.info("users.deleteProfile user", user);
 
@@ -300,7 +300,7 @@ module.exports = {
 							let emailSetup = {
 								settings: {
 									to: user.email,
-									subject: process.env.SITE_NAME +" - Delete profile"
+									subject: process.env.SITE_NAME + " - Delete profile"
 								},
 								functionSettings: {
 									language: user.settings.language
@@ -310,7 +310,7 @@ module.exports = {
 									webname: ctx.meta.siteSettings.name,
 									username: user.username,
 									email: user.email,
-									date: user.dates.dateToBeErased, 
+									date: user.dates.dateToBeErased,
 									support_email: ctx.meta.siteSettings.supportEmail
 								}
 							};
@@ -325,7 +325,7 @@ module.exports = {
 						});
 				}
 			}
-		}, 
+		},
 
 
 		/**
@@ -334,7 +334,7 @@ module.exports = {
 		cancelDelete: {
 			auth: "required",
 			handler(ctx) {
-				if ( ctx.meta.user && ctx.meta.user._id ) {
+				if (ctx.meta.user && ctx.meta.user._id) {
 					let self = this;
 					return this.getById(ctx.meta.user._id)
 						.then(user => {
@@ -356,7 +356,7 @@ module.exports = {
 							let emailSetup = {
 								settings: {
 									to: user.email,
-									subject: process.env.SITE_NAME +" - Canceled deleting your Profile"
+									subject: process.env.SITE_NAME + " - Canceled deleting your Profile"
 								},
 								functionSettings: {
 									language: user.settings.language
@@ -365,7 +365,7 @@ module.exports = {
 								data: {
 									webname: ctx.meta.siteSettings.name,
 									username: user.username,
-									email: user.email, 
+									email: user.email,
 									support_email: ctx.meta.siteSettings.supportEmail
 								}
 							};
@@ -380,6 +380,6 @@ module.exports = {
 						});
 				}
 			}
-		}, 
+		},
 	}
 };

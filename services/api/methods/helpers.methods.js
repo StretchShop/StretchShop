@@ -231,14 +231,16 @@ module.exports = {
 
 
 		buildGlobalSearchQuery(query, langs) {
+			const { escapeRegex } = require("../../../mixins/mongo.security");
 			let fields = [ "name", "descriptionShort", "descriptionLong" ];
 			let orArray = [];
+			const safeQuery = escapeRegex(query);
 
 			if ( langs && langs.length > 0 ) {
 				fields.forEach(f => {
 					langs.forEach(l => {
 						let line = {};
-						line[f+"."+l] = { "$regex": query, "$options": "i"  };
+						line[f+"."+l] = { "$regex": safeQuery, "$options": "i"  };
 						orArray.push(line);
 					});
 				});

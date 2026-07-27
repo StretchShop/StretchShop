@@ -39,7 +39,7 @@ module.exports = {
 					const guestToken = ctx.meta.cookies?.["order_no_verif"];
 					if (guestToken) {
 						try {
-							const decoded = jwt.verify(guestToken, this.settings.JWT_SECRET);
+							const decoded = jwt.verify(guestToken, this.settings.JWT_SECRET, { algorithms: ["HS256"] });
 							const guestId = decoded?.id?.toString();
 							const guestEmail = decoded?.email;
 							if (
@@ -160,6 +160,13 @@ module.exports = {
 				paymentId: { type: "string", optional: true }
 			},
 			handler(ctx) {
+				const resultName = String(ctx.params.result || "").toLowerCase();
+				// Admin-only payment result actions must not rely on client ba_token secrets
+				if (resultName.includes("admin")) {
+					if (ctx.meta.user?.type !== "admin") {
+						return Promise.reject(new MoleculerClientError("Forbidden", 403));
+					}
+				}
 				let supplier = ctx.params.supplier.toLowerCase();
 				let actionName = supplier + "Result";
 				let params = {
@@ -167,17 +174,14 @@ module.exports = {
 					PayerID: ctx.params.PayerID,
 					paymentId: ctx.params.paymentId
 				};
-				// token params
+				// Provider return tokens only (never treat ba_token as authorization)
 				if (ctx.params.token) {
 					params.token = ctx.params.token;
-				}
-				if (ctx.params.ba_token) {
-					params.ba_token = ctx.params.ba_token;
 				}
 
 				// using resources/settings/orders.js check if final payment action can be called
 				if (this.settings.order.availablePaymentActions &&
-					this.settings.order.availablePaymentActions.indexOf(actionName) > -1) {
+					this.settings.order.availablePaymentActions.includes(actionName)) {
 					return ctx.call("orders." + actionName, params)
 						.then(result => {
 							return result;

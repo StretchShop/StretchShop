@@ -152,13 +152,15 @@ module.exports = {
 								filter = ctx.params.filter;
 							}
 
+							const { sanitizeMongoQuery } = require("../../../mixins/mongo.security");
 							// add queries to $and array
 							let query = {"$and": []};
 							if (filter.query !== undefined && filter.query) {
-								for (let q in filter.query) {
-									if (Object.hasOwn(filter.query, q)) {
+								const safeClientQuery = sanitizeMongoQuery(filter.query);
+								for (let q in safeClientQuery) {
+									if (Object.hasOwn(safeClientQuery, q)) {
 										let obj = {};
-										obj[q] = filter.query[q];
+										obj[q] = safeClientQuery[q];
 										query["$and"].push(obj);
 									}
 								}
@@ -260,10 +262,11 @@ module.exports = {
 				minimalData: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
+				const { sanitizeMongoQuery } = require("../../../mixins/mongo.security");
 				// fix filter if needed
 				let filter = { query: {}, limit: 100};
 				if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
-					filter.query = ctx.params.query;
+					filter.query = sanitizeMongoQuery(ctx.params.query);
 				}
 				// if categories sent, use them
 				let categories = [];

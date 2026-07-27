@@ -271,7 +271,7 @@ module.exports = {
 			},
 			handler(ctx) {
 				return new this.Promise((resolve, reject) => {
-					jwt.verify(ctx.params.token, this.settings.JWT_SECRET, (err, decoded) => {
+					jwt.verify(ctx.params.token, this.settings.JWT_SECRET, { algorithms: ["HS256"] }, (err, decoded) => {
 						if (err) {
 							return reject(err);
 						}

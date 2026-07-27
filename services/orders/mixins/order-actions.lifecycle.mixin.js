@@ -206,9 +206,16 @@ module.exports = {
 
 				// check if we have logged user
 				if ( ctx.meta.user && ctx.meta.user._id ) { // we have user
+					const { sanitizeMongoQuery, allowlistQueryFields } = require("../../../mixins/mongo.security");
 					let filter = { query: {}, limit: 20};
 					if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
-						filter.query = ctx.params.query;
+						if (ctx.meta.user.type === "admin" && ctx.params.fullData === true) {
+							filter.query = sanitizeMongoQuery(ctx.params.query);
+						} else {
+							filter.query = allowlistQueryFields(ctx.params.query, [
+								"status", "_id", "invoice.num", "invoice.id"
+							]);
+						}
 					}
 					// update filter acording to user
 					if ( ctx.meta.user.type=="admin" && typeof ctx.params.fullData!=="undefined" && ctx.params.fullData==true ) {

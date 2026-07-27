@@ -46,8 +46,8 @@ module.exports = {
 	},
 	cacher: getCacherConfig(),
 
-	// Prometheus HTTP server on :3030 races with --hot reloads (ERR_SERVER_NOT_RUNNING / EADDRINUSE).
-	// Off in local/dev/test; set METRICS_ENABLED=true to force on, =false to force off.
+	// Prometheus HTTP server — bind to localhost by default; enable only when configured.
+	// Set METRICS_ENABLED=true to force on, =false to force off. METRICS_HOST defaults to 127.0.0.1.
 	metrics: {
 		enabled: process.env.METRICS_ENABLED === "true" || (
 			process.env.METRICS_ENABLED !== "false" &&
@@ -56,8 +56,10 @@ module.exports = {
 		reporter: {
 			type: "Prometheus",
 			options: {
-				port: 3030,
+				port: parseInt(process.env.METRICS_PORT || "3030", 10),
 				path: "/metrics",
+				// Restrict exposure; scrape via localhost or sidecar, not the public interface
+				host: process.env.METRICS_HOST || "127.0.0.1",
 				defaultLabels: registry => ({
 					namespace: registry.broker.namespace,
 					nodeID: registry.broker.nodeID
