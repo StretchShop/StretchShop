@@ -27,7 +27,11 @@ module.exports = {
 				subscription: subscription
 			})
 				.then(suspendResult => {
-					// return suspendResult
+					if (!suspendResult) {
+						return Promise.reject({
+							message: "paymentSuspend returned empty result — suspend not confirmed"
+						});
+					}
 
 					subscription.history.push(
 						this.newHistoryRecord("suspended", altUser, {
@@ -72,13 +76,15 @@ module.exports = {
 
 				})
 				.catch(errorResult => {
-					errorResult.error = "suspendBillingAgreement";
-					this.logger.error("subscriptions.suspend - "+errorResult.error+" error: ", JSON.stringify(errorResult));
+					const err = (errorResult && typeof errorResult === "object") ? errorResult : { message: String(errorResult) };
+					err.error = "suspendBillingAgreement";
+					this.logger.error("subscriptions.suspend - "+err.error+" error: ", JSON.stringify(err));
 					self.addToHistory(ctx, subscription._id, self.newHistoryRecord("error", "user", { 
-						errorMsg: errorResult.error+" error", 
-						error: errorResult
+						errorMsg: err.error+" error", 
+						error: err
 					}));
-					return errorResult;
+					// Reject so callers (e.g. 15-min cron) do not treat this as a successful suspend
+					return Promise.reject(err);
 				});
 		}
 	}

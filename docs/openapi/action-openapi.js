@@ -679,30 +679,6 @@ module.exports = {
           }
         }
       }
-    },
-    "find": {
-      "summary": "Find cart",
-      "operationId": "cartFind",
-      "tags": [
-        "user"
-      ],
-      "responses": {
-        "200": {
-          "description": "Found cart",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Cart"
-              }
-            }
-          }
-        }
-      },
-      "security": [
-        {
-          "CookieAuth": []
-        }
-      ]
     }
   },
   "products": {
@@ -764,10 +740,10 @@ module.exports = {
       }
     },
     "find": {
-      "summary": "List products by Moleculer default action",
-      "operationId": "ProductPostFind",
+      "summary": "List products by Moleculer default action (internal)",
+      "operationId": "ProductFindInternal",
       "tags": [
-        "visitor"
+        "developer"
       ],
       "responses": {
         "200": {
@@ -781,6 +757,30 @@ module.exports = {
           }
         }
       }
+    },
+    "findAdmin": {
+      "summary": "Admin product find (HTTP)",
+      "operationId": "ProductPostFind",
+      "tags": [
+        "admin"
+      ],
+      "responses": {
+        "200": {
+          "description": "List of products",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductList"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "CookieAuth": []
+        }
+      ]
     },
     "detail": {
       "summary": "Get detail of product",

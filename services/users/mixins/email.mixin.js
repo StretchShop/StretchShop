@@ -29,6 +29,18 @@ module.exports = {
 			},
 			handler(ctx) {
 				let self = this;
+
+				// After SMTP auth failure, skip further attempts until cooldown expires
+				// (avoids log floods / provider rate limits when credentials are wrong).
+				if (this._emailBlockedUntil && Date.now() < this._emailBlockedUntil) {
+					const waitSec = Math.ceil((this._emailBlockedUntil - Date.now()) / 1000);
+					const err = new Error(`SMTP temporarily disabled after authentication failure (retry in ${waitSec}s)`);
+					err.code = "EAUTH_BLOCKED";
+					err.emailTransportBlocked = true;
+					this.logger.warn("users.sendEmail - skipped:", err.message);
+					return Promise.reject(err);
+				}
+
 				ctx.params.settings = (typeof ctx.params.settings !== "undefined") ?  ctx.params.settings : null;
 				ctx.params.functionSettings = (typeof ctx.params.functionSettings !== "undefined") ?  ctx.params.functionSettings : null;
 				// set language of template
@@ -47,11 +59,12 @@ module.exports = {
 					.then((templates)=>{
 						let transporter = nodemailer.createTransport(this.settings.mailSettings.smtp);
 
-						// updates only setting that are set and other remain from default options
-						let mailOptions = this.settings.mailSettings.defaultOptions;
+						// Clone defaults — never mutate shared mailSettings.defaultOptions
+						// (otherwise subject/body from one email leak into later sends).
+						let mailOptions = Object.assign({}, this.settings.mailSettings.defaultOptions);
 						if ( ctx.params.settings ) {
 							for (let newProperty in ctx.params.settings) {
-								if ( Object.prototype.hasOwnProperty.call(ctx.params.settings,newProperty) && Object.prototype.hasOwnProperty.call(ctx.params.settings,newProperty) ) {
+								if ( Object.prototype.hasOwnProperty.call(ctx.params.settings,newProperty) ) {
 									mailOptions[newProperty] = ctx.params.settings[newProperty];
 								}
 							}
@@ -69,8 +82,24 @@ module.exports = {
 							transporter.sendMail(mailOptions, (error, info) => {
 								if (error) {
 									self.logger.error("users.sendEmail sendMail error: ", error);
+									if (error.code === "EAUTH" || error.responseCode === 535 || error.responseCode === 403) {
+										let cooldownMs = 5 * 60 * 1000;
+										const match = /Check again in (\d+) seconds/i.exec(
+											String(error.response || error.message || "")
+										);
+										if (match) {
+											cooldownMs = (parseInt(match[1], 10) + 30) * 1000;
+										}
+										self._emailBlockedUntil = Date.now() + cooldownMs;
+										self.logger.warn(
+											"users.sendEmail - SMTP auth failed; blocking further sends for " +
+											Math.ceil(cooldownMs / 1000) + "s"
+										);
+									}
 									return reject(error);
 								}
+								// Clear block after a successful send
+								self._emailBlockedUntil = null;
 								if ( info && info.messageId ) {
 									self.logger.info("users.sendEmail sendMail MessageId: ", info.messageId);
 								}
@@ -80,15 +109,15 @@ module.exports = {
 							});
 						});
 
-						return emailSentResponse.then(result => {
-							return result;
-						})
+						return emailSentResponse
 							.catch(err => {
-								this.logger.error("users.sendEmail - emailSentResponse error:", err);
+								this.logger.error("users.sendEmail - emailSentResponse error:", err.message || err);
+								return Promise.reject(err);
 							});
 					})
 					.catch(err => {
-						this.logger.error("users.sendEmail - template error:", err);
+						this.logger.error("users.sendEmail - template/send error:", err.message || err);
+						return Promise.reject(err);
 					});
 			}
 
@@ -137,14 +166,20 @@ module.exports = {
 							found = found[0];
 						}
 						if ( found && found.password && found.password.toString().trim()!="" ) {
-							let wannabeHash = this.buildHashSourceFromEntity(found.password, found.dates.dateCreated.toISOString(), false);
+							const dateCreated = found.dates.dateCreated;
+							const dateCreatedIso = (dateCreated instanceof Date)
+								? dateCreated.toISOString()
+								: new Date(dateCreated).toISOString();
+							let wannabeHash = this.buildHashSourceFromEntity(found.password, dateCreatedIso, false);
 							return bcrypt.compare(wannabeHash, hash)
 								.then((result) => { 
 									this.logger.info("users.verifyHash compared:", result);
 
 									if (result) {
-										found.dates.dateActivated = new Date();
-										return this.adapter.updateById(found._id, this.prepareForUpdate(found))
+										// Write Date objects only — prepareForUpdate JSON-stringifies Dates
+										return this.adapter.updateById(found._id, {
+											"$set": { "dates.dateActivated": new Date() }
+										})
 											.then(doc => {
 												return this.transformDocuments(ctx, {}, doc);
 											})
@@ -164,6 +199,9 @@ module.exports = {
 						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed"}]));
 					})
 					.catch(err => {
+						if (err instanceof MoleculerClientError) {
+							return Promise.reject(err);
+						}
 						console.error("users.verifyHash activation failed: ", err);
 						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed"}]));
 					});
@@ -193,11 +231,10 @@ module.exports = {
 			},
 			handler(ctx) {
 				this.logger.info("users.resetPassword params.email: ", ctx.params.email);
-				return this.adapter.findOne({ email: ctx.params.email })
+				return this.enforceRateLimit(ctx, "resetPassword", { limit: 3, windowMs: 60 * 60 * 1000 })
+					.then(() => this.adapter.findOne({ email: ctx.params.email }))
 					.then((found) => {
 						if ( found ) {
-							delete found.dates.dateActivated;
-							found.dates.dateUpdated = new Date();
 							if ( !found.settings ) {
 								found.settings = {
 									language: ctx.meta.localsDefault.lang,
@@ -205,33 +242,47 @@ module.exports = {
 								};
 							}
 
-							let forUpdateUser = this.prepareForUpdate(found);
-							// set date of last update (and settings if not set)
-							return this.adapter.updateById(found._id, forUpdateUser)
-								.then(updated => {
-									// remove activation date
-									return this.adapter.updateById(found._id, {
-										"$unset": { "dates.dateActivated":1 }})
-										.then(removedActivation => {
-											let entity = { user : updated };
-											// send email separately asynchronously not waiting for response
-											let emailData = {
-												"entity": entity,
-												"keepItForLater": this.buildHashSourceFromEntity(entity.user.password, entity.user.dates.dateCreated),
-												"url": ctx.meta.siteSettings.url+"/"+entity.user.settings.language,
-												"language": entity.user.settings.language,
-												"templateName": "auth/pwdreset"
-											};
-											this.sendVerificationEmail(emailData, ctx);
-											this.logger.info("users.resetPassword - Email sent");
-		
-											return entity.user;
-										});
+							const now = new Date();
+							// Targeted update with real Date objects.
+							// Do NOT use prepareForUpdate here — JSON.stringify turns Dates into
+							// strings, and verifyHash's Date $gt query then never matches.
+							const update = {
+								"$set": {
+									"dates.dateUpdated": now,
+									"dates.dateLastVerify": now,
+									settings: found.settings
+								},
+								"$unset": { "dates.dateActivated": 1 }
+							};
+
+							return this.adapter.updateById(found._id, update)
+								.then(() => {
+									const dateCreated = found.dates.dateCreated;
+									const dateCreatedIso = (dateCreated instanceof Date)
+										? dateCreated.toISOString()
+										: new Date(dateCreated).toISOString();
+									const entity = { user: found };
+									// send email separately asynchronously not waiting for response
+									let emailData = {
+										"entity": entity,
+										"keepItForLater": this.buildHashSourceFromEntity(found.password, dateCreatedIso),
+										"url": ctx.meta.siteSettings.url+"/"+found.settings.language,
+										"language": found.settings.language,
+										"templateName": "auth/pwdreset"
+									};
+									this.sendVerificationEmail(emailData, ctx);
+									this.logger.info("users.resetPassword - Email sent");
+									// Never return password hash or full DB document
+									return { success: true };
 								});
 						}
-						return Promise.reject(new MoleculerClientError("Account reset failed - try again", 422, "", [{ field: "email", message: "not found"}]));
+						// Same generic response whether or not the email exists
+						return { success: true };
 					})
 					.catch(err => {
+						if (err?.code === 429) {
+							return Promise.reject(err);
+						}
 						console.error("users.resetPassword account reset failed: ", err);
 						return Promise.reject(new MoleculerClientError("Account reset failed - try again", 422, "", [{ field: "email", message: "not found"}]));
 					});

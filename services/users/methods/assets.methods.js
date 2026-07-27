@@ -2,6 +2,8 @@
 
 const { MoleculerClientError } = require("moleculer").Errors;
 const fs = require("fs-extra");
+const path = require("path");
+const { resolveSafePath } = require("../../../mixins/path.security");
 
 module.exports = {
 	actions: {
@@ -25,6 +27,27 @@ module.exports = {
 					params: ctx.params, 
 					id: ctx.meta.user._id
 				});
+
+				const unlinkSafe = (dirPath, imageName) => {
+					let filePath;
+					try {
+						filePath = resolveSafePath(dirPath, imageName);
+					} catch (e) {
+						return Promise.reject(e instanceof MoleculerClientError ? e : new MoleculerClientError("Invalid image", 400));
+					}
+					return new Promise((resolve, reject) => {
+						fs.unlink(filePath, (err) => {
+							if (err) {
+								this.logger.error("users.deleteUserImage error:", err);
+								reject({ success: false, message: "delete failed" });
+								return;
+							}
+							this.logger.info("users.deleteUserImage - DELETED file: ", filePath);
+							resolve({ success: true, message: "file deleted" });
+						});
+					});
+				};
+
 				// if user is logged in and has email
 				if ( ctx.meta.user && ctx.meta.user.email ) {
 					if ( ctx.params.type=="products" ) {
@@ -43,28 +66,19 @@ module.exports = {
 									}
 									if (deleteProductImage===true) {
 										let productCodePath = self.stringChunk(products[0].orderCode, process.env.CHUNKSIZE_USER || 6);
-										let path = ctx.meta.siteSettings.assets.folder +"/"+ process.env.ASSETS_PATH + ctx.params.type +"/"+ productCodePath +"/"+ ctx.params.image;
-										return new Promise((resolve, reject) => {
-											fs.unlink(path, (err) => {
-												if (err) {
-													this.logger.error("users.deleteUserImage error:", err);
-													reject( {success: false, message: "delete failed"} );
-												}
-												this.logger.info("users.deleteUserImage - DELETED file: ", path);
-												resolve( {success: true, message: "file deleted"} );
-											});
-										})
-											.then(result => {
-												return result;
-											})
-											.catch(error => {
-												return error;
-											});
+										let dirPath = path.join(
+											ctx.meta.siteSettings.assets.folder,
+											process.env.ASSETS_PATH || "",
+											ctx.params.type,
+											productCodePath
+										);
+										return unlinkSafe(dirPath, ctx.params.image)
+											.then(result => result)
+											.catch(error => error);
 									}
 								}
 							});
 					} else if ( ctx.params.type=="categories" ) {
-						//--
 						return ctx.call("categories.find", {
 							"query": { "slug": ctx.params.code }
 						})
@@ -79,29 +93,19 @@ module.exports = {
 										deleteCategoryImage = true;
 									}
 									if (deleteCategoryImage===true) {
-										let productCodePath = categories[0].slug;
-										let path = ctx.meta.siteSettings.assets.folder +"/"+ process.env.ASSETS_PATH + ctx.params.type +"/"+ productCodePath +"/"+ ctx.params.image;
-										return new Promise((resolve, reject) => {
-											fs.unlink(path, (err) => {
-												if (err) {
-													this.logger.error("users.deleteUserImage error:", err);
-													reject( {success: false, message: "delete failed"} );
-												}
-												this.logger.info("users.deleteUserImage - DELETED file: ", path);
-												resolve( {success: true, message: "file deleted"} );
-											});
-										})
-											.then(result => {
-												return result;
-											})
-											.catch(error => {
-												return error;
-											});
+										let dirPath = path.join(
+											ctx.meta.siteSettings.assets.folder,
+											process.env.ASSETS_PATH || "",
+											ctx.params.type,
+											categories[0].slug
+										);
+										return unlinkSafe(dirPath, ctx.params.image)
+											.then(result => result)
+											.catch(error => error);
 									}
 								}
 							});
 					} else if ( ctx.params.type=="pages" ) {
-						//--
 						return ctx.call("pages.find", {
 							"query": { "slug": ctx.params.code }
 						})
@@ -116,24 +120,16 @@ module.exports = {
 										deletePageImage = true;
 									}
 									if (deletePageImage===true) {
-										let pageCodePath = pages[0].slug;
-										let path = ctx.meta.siteSettings.assets.folder +"/"+ process.env.ASSETS_PATH + ctx.params.type +"/cover/"+ pageCodePath +"/"+ ctx.params.image;
-										return new Promise((resolve, reject) => {
-											fs.unlink(path, (err) => {
-												if (err) {
-													this.logger.error("users.deleteUserImage error:", err);
-													reject( {success: false, message: "delete failed"} );
-												}
-												this.logger.info("users.deleteUserImage - DELETED file: ", path);
-												resolve( {success: true, message: "file deleted"} );
-											});
-										})
-											.then(result => {
-												return result;
-											})
-											.catch(error => {
-												return error;
-											});
+										let dirPath = path.join(
+											ctx.meta.siteSettings.assets.folder,
+											process.env.ASSETS_PATH || "",
+											ctx.params.type,
+											"cover",
+											pages[0].slug
+										);
+										return unlinkSafe(dirPath, ctx.params.image)
+											.then(result => result)
+											.catch(error => error);
 									}
 								}
 							});

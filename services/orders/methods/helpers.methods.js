@@ -34,7 +34,7 @@ module.exports = {
 						path: "/",
 						signed: true,
 						expires: exp,
-						secure: (!!process.env.COOKIES_SECURE),
+						secure: require("../../../mixins/env.helpers").isCookiesSecure(),
 						httpOnly: true
 					}
 				};

@@ -140,7 +140,7 @@ module.exports = {
 					url: "/categories/upload/:slug",
 					destination: "categories",
 					fileName: [":slug"],
-					validUserTypes: ["user","admin"],
+					validUserTypes: ["author", "admin"],
 					checkAuthorAction: "categories.checkAuthor",
 					checkAuthorActionParams: {
 						"slug": req.$params.slug,
@@ -188,24 +188,28 @@ module.exports = {
 		 * @returns Object
 		 */
 		prepareFilePathNameData(req, activePath, fields, files, property) {
-			this.logger.info("api.parseUploadedFile() files-"+property+": ", files[property], files[property][0]);
-			let fileFrom = files[property][0].filepath;
+			const { sanitizeUploadFilename } = require("../../../mixins/path.security");
+			// formidable with multiples:true always wraps values in arrays
+			const uploaded = Array.isArray(files[property]) ? files[property][0] : files[property];
+			this.logger.info("api.parseUploadedFile() files-"+property+": ", files[property], uploaded);
+			let fileFrom = uploaded.filepath;
 			let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let urlBaseDir = process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let targetDir = activePath.stringToChunk;
 			if (activePath.chunkSize>0) {
 				targetDir = this.stringChunk(activePath.stringToChunk, activePath.chunkSize);
 			}
-			// set new filename
-			let re = /(?:\.([^.]+))?$/;
-			let fileExt = re.exec(files[property].originalFilename);
+			// set new filename — always sanitize; never trust client path segments
+			const originalName = uploaded.originalFilename || uploaded.name || "upload.jpg";
+			const { base: safeOriginal, ext } = sanitizeUploadFilename(originalName);
 			let fileNameReplaced = this.arrayReplaceParams( activePath.fileName, req.$params );
 			fileNameReplaced = this.arrayReplaceParams( fileNameReplaced, fields );
-			let resultFileName = files[property].originalFilename;
+			let resultFileName = safeOriginal;
 			if (fileNameReplaced.join("-") === "----WYSIWYGEDITOR----") {
 				targetDir = targetDir + "/editor";
-			} else if ( fileNameReplaced.join("-") !== "----ORIGINAL----" ) { // if not set to keep original name - only for WYSIWYG editor
-				resultFileName = fileNameReplaced.join("-")+"."+fileExt[1];
+			} else if ( fileNameReplaced.join("-") !== "----ORIGINAL----" ) {
+				const joined = fileNameReplaced.join("-").replace(/[^\w\-]/g, "_").slice(0, 80) || "file";
+				resultFileName = joined + "." + ext;
 			}
 			let resultFullPath = targetDir+"/"+resultFileName;
 			// set result paths
@@ -227,14 +231,16 @@ module.exports = {
 
 
 		buildGlobalSearchQuery(query, langs) {
+			const { escapeRegex } = require("../../../mixins/mongo.security");
 			let fields = [ "name", "descriptionShort", "descriptionLong" ];
 			let orArray = [];
+			const safeQuery = escapeRegex(query);
 
 			if ( langs && langs.length > 0 ) {
 				fields.forEach(f => {
 					langs.forEach(l => {
 						let line = {};
-						line[f+"."+l] = { "$regex": query, "$options": "i"  };
+						line[f+"."+l] = { "$regex": safeQuery, "$options": "i"  };
 						orArray.push(line);
 					});
 				});

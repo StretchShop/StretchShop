@@ -121,7 +121,7 @@ module.exports = {
 						path: "/",
 						signed: true,
 						expires: exp,
-						secure: ((process.env.COOKIES_SECURE && process.env.COOKIES_SECURE==true) ? true : false),
+						secure: require("../../../mixins/env.helpers").isCookiesSecure(),
 						httpOnly: true
 					}
 				};
@@ -430,14 +430,17 @@ module.exports = {
 			let email = emailData.entity.user.email.toString().replace(re, "--").replace("@", "---");
 			// create activation link
 			let confirmLink = emailData.url+"/user/verify/"+encodeURIComponent(email)+"/"+hash; // using email to identify and hash to verify
+			const isPasswordReset = emailData.templateName === "auth/pwdreset";
 			// setup object for sending email
 			let emailSetup = {
 				settings: {
 					to: emailData.entity.user.email,
-					subject: process.env.SITE_NAME +" - Welcome - please activate"
+					subject: isPasswordReset
+						? process.env.SITE_NAME +" - Password reset"
+						: process.env.SITE_NAME +" - Welcome - please activate"
 				},
 				functionSettings: {
-					language: emailData.lang
+					language: emailData.language || emailData.lang
 				},
 				template: emailData.templateName,
 				data: {

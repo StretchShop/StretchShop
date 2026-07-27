@@ -51,10 +51,22 @@ function getCacherConfig() {
 	};
 }
 
+/** True only when COOKIES_SECURE is the string "true". */
+function isCookiesSecure() {
+	return process.env.COOKIES_SECURE === "true";
+}
+
+/** Trust X-Forwarded-For / X-Real-IP only when explicitly enabled. */
+function trustProxy() {
+	return process.env.TRUST_PROXY === "true";
+}
+
 module.exports = {
 	isProduction,
 	isNonProductionEnv,
 	getRequiredSecret,
 	useRedisCacher,
 	getCacherConfig,
+	isCookiesSecure,
+	trustProxy,
 };
