@@ -28,6 +28,8 @@ module.exports = {
 		"PUT /user": "users.updateUser",
 		"POST /user/verify": "users.verifyHash",
 		"POST /user/reset": "users.resetPassword",
+		"POST /user/impersonate": "users.loginAs",
+		"POST /user/impersonate/restore": "users.restoreAdmin",
 		// openapi:false — custom handlers are not action names; without this,
 		// moleculer-auto-openapi logs ERROR on every startup/hot-reload.
 		"POST /user/image": {
@@ -173,6 +175,8 @@ module.exports = {
 		// writing cookies
 		if (ctx.meta.makeCookies) {
 			const cookieSecure = ((process.env.COOKIES_SECURE==="true" || process.env.COOKIES_SECURE==true) ? true : false);
+			const useCookiesLib = !!(process.env.HTTPS_KEY && process.env.HTTPS_CERT);
+			const setCookieHeaders = [];
 
 			Object.keys(ctx.meta.makeCookies).forEach(function(key) {
 				if (cookieSecure) {
@@ -185,22 +189,35 @@ module.exports = {
 					ctx.meta.makeCookies[key].options["path"] = "/";
 				}
 
-				if ( process.env.HTTPS_KEY && process.env.HTTPS_CERT ) {
+				if ( useCookiesLib ) {
 					res.cookies.set(
-						key, 
-						ctx.meta.makeCookies[key].value, 
+						key,
+						ctx.meta.makeCookies[key].value,
 						ctx.meta.makeCookies[key].options
 					);
 				} else {
-					res.setHeader("Set-Cookie",
-						stringifySetCookie({
-							name: key,
-							value: String(ctx.meta.makeCookies[key].value),
-							...ctx.meta.makeCookies[key].options
-						})
-					);
+					// Collect headers — a single setHeader("Set-Cookie", ...) overwrites previous cookies.
+					setCookieHeaders.push(stringifySetCookie({
+						name: key,
+						value: String(ctx.meta.makeCookies[key].value),
+						...ctx.meta.makeCookies[key].options
+					}));
 				}
 			});
+
+			if (setCookieHeaders.length > 0) {
+				const existing = res.getHeader("Set-Cookie");
+				const merged = [];
+				if (existing) {
+					if (Array.isArray(existing)) {
+						merged.push(...existing);
+					} else {
+						merged.push(existing);
+					}
+				}
+				merged.push(...setCookieHeaders);
+				res.setHeader("Set-Cookie", merged);
+			}
 		} else if (ctx.meta.doRedirect) {
 			res.setHeader("Location", ctx.meta.doRedirect);
 		} else {

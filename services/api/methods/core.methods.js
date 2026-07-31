@@ -224,9 +224,13 @@ module.exports = {
 									user = user[0];
 								}
 								if (user) {
-									user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "subtype", "addresses", "settings", "data", "dates", "restrictions"]);
+									user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "subtype", "addresses", "settings", "data", "dates", "restrictions", "actAs", "adminId", "superadmined"]);
 									ctx.meta.token = token;
 									ctx.meta.userID = user._id;
+									if (user.actAs) {
+										ctx.meta.actAs = true;
+										ctx.meta.adminId = user.adminId;
+									}
 									return user;
 								}
 							})
