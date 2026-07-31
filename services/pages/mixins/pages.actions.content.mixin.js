@@ -15,8 +15,8 @@ module.exports = {
 			handler(ctx) {
 				let queryObject = ctx.params.query;
 				let self = this;
-				Object.keys(queryObject).forEach(function(key) {
-					if (key==="_id" && typeof queryObject[key] === "string") {
+				Object.keys(queryObject).forEach(function (key) {
+					if (key === "_id" && typeof queryObject[key] === "string") {
 						queryObject[key] = self.fixStringToId(queryObject[key]);
 					}
 				});
@@ -44,26 +44,26 @@ module.exports = {
 		detail: {
 			// auth: "",
 			params: {
-				page: { type: "string", min: 2 }, 
-				category: { type: "string", optional: true }, 
-				lang: { type: "string", min: 2, optional: true } 
+				page: { type: "string", min: 2 },
+				category: { type: "string", optional: true },
+				lang: { type: "string", min: 2, optional: true }
 			},
 			// cache: {
 			// 	keys: ["#cartID"]
 			// },
 			handler(ctx) {
 				let lang = "en";
-				if ( ctx.params.lang && ctx.params.lang.trim()!="" ) {
+				if (ctx.params.lang && ctx.params.lang.trim() != "") {
 					lang = ctx.params.lang;
 				}
 
 				const tv = this.getTemplateVars(lang, ctx.params.page);
-				
+
 				return this.getPageDetail(ctx, tv)
-				.catch(err => {
-					this.logger.error('pages.detail error:', err);
-					return err;
-				});
+					.catch(err => {
+						this.logger.error('pages.detail error:', err);
+						return err;
+					});
 			}
 		},
 
@@ -112,10 +112,10 @@ module.exports = {
 				let promises = [];
 				let self = this;
 
-				if (ctx.meta.user.type=="admin") {
-					if ( pages && pages.length>0 ) {
+				if (ctx.meta.user.type == "admin") {
+					if (pages && pages.length > 0) {
 						// loop pages to import
-						pages.forEach(function(entity) {
+						pages.forEach(function (entity) {
 							promises.push(
 								// add page results into result variable
 								self.adapter.findById(entity.id)
@@ -133,10 +133,10 @@ module.exports = {
 					return Promise.all(promises).then(prom => {
 						return prom;
 					})
-					.catch(err => {
-						console.error('pages.import promises error: ', err);
-						return this.Promise.reject(new MoleculerClientError("Pages import all error", 422, "", []));
-					});
+						.catch(err => {
+							console.error('pages.import promises error: ', err);
+							return this.Promise.reject(new MoleculerClientError("Pages import all error", 422, "", []));
+						});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
 				}
@@ -166,10 +166,10 @@ module.exports = {
 				let promises = [];
 				let self = this;
 
-				if (ctx.meta.user.type=="admin") {
-					if ( pages && pages.length>0 ) {
+				if (ctx.meta.user.type == "admin") {
+					if (pages && pages.length > 0) {
 						// loop pages to import
-						pages.forEach(function(entity) {
+						pages.forEach(function (entity) {
 							promises.push(
 								// add page results into result variable
 								self.adapter.findById(entity.id)
@@ -177,16 +177,16 @@ module.exports = {
 										if (found) { // page found, delete it
 											let slug = found?.slug?.toString().trim();
 											self.logger.info("pages.delete - DELETING page: ", found);
-											return ctx.call("pages.remove", {id: found._id} )
+											return ctx.call("pages.remove", { id: found._id })
 												.then((deletedCount) => {
 
 													// delete page assets
-													const pageBaseDir = self.settings.paths.assets +"/"+ process.env.ASSETS_PATH +"pages/";
+													const pageBaseDir = self.settings.paths.assets + "/" + process.env.ASSETS_PATH + "pages/";
 													self.logger.info("pages.delete - deleted page - before assets deleted for page slug: ", slug);
 													if (slug) {
-														const coverDir = pageBaseDir +"cover/"+ slug;
+														const coverDir = pageBaseDir + "cover/" + slug;
 														rmSync(coverDir, { recursive: true, force: true });
-														const editorDir = pageBaseDir +"editor/"+ slug;
+														const editorDir = pageBaseDir + "editor/" + slug;
 														rmSync(editorDir, { recursive: true, force: true });
 													}
 
@@ -207,7 +207,7 @@ module.exports = {
 													return this.Promise.reject(new MoleculerClientError("Pages deleteR error", 422, "", []));
 												}); // returns number of removed items
 										} else {
-											self.logger.error("pages.delete - entity.id "+entity.id+" not found");
+											self.logger.error("pages.delete - entity.id " + entity.id + " not found");
 										}
 									})
 									.catch(err => {
@@ -221,10 +221,10 @@ module.exports = {
 					return Promise.all(promises).then(() => {
 						return promises;
 					})
-					.catch(err => {
-						console.error('pages.delete promises error: ', err);
-						return this.Promise.reject(new MoleculerClientError("Pages delete all error", 422, "", []));
-					});
+						.catch(err => {
+							console.error('pages.delete promises error: ', err);
+							return this.Promise.reject(new MoleculerClientError("Pages delete all error", 422, "", []));
+						});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
 				}
@@ -246,7 +246,7 @@ module.exports = {
 				return;
 			}
 		},
-		
+
 
 		// check page authorship
 		checkAuthor: {
@@ -255,7 +255,7 @@ module.exports = {
 				data: { type: "object" }
 			},
 			handler(ctx) {
-				if (ctx.params.data && ctx.params.data.slug && ctx.params.data.publisher) {
+				if (ctx.params.data?.slug && ctx.params.data.publisher) {
 					return this.adapter.find({
 						"query": {
 							"slug": ctx.params.data.slug,
@@ -263,7 +263,7 @@ module.exports = {
 						}
 					})
 						.then(pages => {
-							if (pages && pages.length>0 && pages[0].slug==ctx.params.data.slug) {
+							if (pages && pages.length > 0 && pages[0].slug == ctx.params.data.slug) {
 								return true;
 							}
 						})
@@ -284,6 +284,6 @@ module.exports = {
 	 * Methods
 	 */
 	methods: {
-		
+
 	}
 };

@@ -67,8 +67,9 @@ module.exports = {
 			handler(ctx) {
 				let self = this;
 				let entity = ctx.params.entity;
+				const lookupId = this.idToString(entity.id || entity._id);
 
-				return this.adapter.findById(entity.id)
+				return this.adapter.findById(lookupId)
 					.then(found => {
 						if (found) { // entity found, update it
 							if ( entity ) {
@@ -92,7 +93,7 @@ module.exports = {
 									entity.dates.dateUpdated = new Date();
 									entity.dates.dateSynced = new Date();
 									self.logger.info("subscription.save found - update entity:", entity);
-									let entityId = entity.id;
+									let entityId = lookupId;
 									delete entity.id;
 									delete entity._id;
 									const update = {
@@ -187,14 +188,16 @@ module.exports = {
 			},
 			handler(ctx) {
 				let self = this;
+				const lookupId = this.idToString(ctx.params.updateObject.id);
 
-				return this.adapter.findById(ctx.params.updateObject.id)
+				return this.adapter.findById(lookupId)
 					.then(found => {
 						if (found) {
 							let original = {...found};
 							original.data = structuredClone(original.data);
 							delete original._id;
-							let updatedOriginal = self.updateObject(original, ctx.params.updateObject);
+							const updateObject = { ...ctx.params.updateObject, id: lookupId };
+							let updatedOriginal = self.updateObject(original, updateObject);
 							
 							// add history record if set
 							if (ctx.params.historyRecordToAdd) {

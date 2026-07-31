@@ -149,10 +149,9 @@ module.exports = {
 
 				if (
 					(
-						!this.settings.orderTemp.user ||
-						(typeof this.settings.orderTemp.user.id === "undefined" || this.settings.orderTemp.user.id === null || this.settings.orderTemp.user.id == "")
+						this.settings.orderTemp.user?.id === undefined
 					) &&
-					(ctx.params.orderParams.addresses && ctx.params.orderParams.addresses.invoiceAddress && ctx.params.orderParams.addresses.invoiceAddress.email)
+					ctx.params.orderParams.addresses?.invoiceAddress?.email
 				) {
 					// create user if not found and return him in ctx
 					return this.manageUser(ctx)
@@ -175,7 +174,7 @@ module.exports = {
 			let updateResult = this.settings.emptyUpdateResult;
 			let order = this.createEmptyOrder(ctx);
 			// if user lang available, set it
-			if (ctx.meta.user && ctx.meta.user.settings && ctx.meta.user.settings.language) {
+			if (ctx.meta.user?.settings?.language) {
 				order.lang = this.getValueByCode(ctx.meta.localsDefault.langs, ctx.meta.user.settings.language);
 			}
 			// update order items

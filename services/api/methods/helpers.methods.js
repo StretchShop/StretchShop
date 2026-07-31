@@ -9,7 +9,7 @@ module.exports = {
 		parseCookies(cookiesString) {
 			let list = {};
 
-			cookiesString && cookiesString.split(";").forEach(function( cookie ) {
+			cookiesString && cookiesString.split(";").forEach(function (cookie) {
 				let parts = cookie.split("=");
 				list[parts.shift().trim()] = decodeURI(parts.join("="));
 			});
@@ -36,7 +36,7 @@ module.exports = {
 		copyFile(path, newPath, flags) {
 			return new Promise((res, rej) => {
 				const readStream = fs.createReadStream(path),
-					writeStream = fs.createWriteStream(newPath, {flags});
+					writeStream = fs.createWriteStream(newPath, { flags });
 
 				readStream.on("error", rej);
 				writeStream.on("error", rej);
@@ -72,9 +72,9 @@ module.exports = {
 
 
 		getProductFileNameByType(params) {
-			if ( params.type && params.type=="gallery" ) {
+			if (params.type && params.type == "gallery") {
 				return ["p:number"];
-			} else if ( params.type && params.type=="editor" ) {
+			} else if (params.type && params.type == "editor") {
 				return ["----WYSIWYGEDITOR----"];
 			} else {
 				return [":orderCode", "default"];
@@ -90,7 +90,7 @@ module.exports = {
 					destination: "users/profile",
 					fileName: ["profile"],
 					validUserTypes: ["user", "admin"],
-					stringToChunk: (req.$ctx.meta.user && req.$ctx.meta.user._id) ? req.$ctx.meta.user._id.toString() : "",
+					stringToChunk: req.$ctx.meta.user?._id ? req.$ctx.meta.user._id.toString() : "",
 					chunkSize: process.env.CHUNKSIZE_USER || 6,
 					postAction: "users.updateMyProfileImage"
 				},
@@ -166,10 +166,10 @@ module.exports = {
 				}
 			];
 
-			for ( let i=0; i<paths.length; i++ ) {
-				let requestPathPattern = "/"+req.$alias.path;
-				if ( paths[i].url == requestPathPattern ) {
-					return paths[i];
+			for (const element of paths) {
+				let requestPathPattern = "/" + req.$alias.path;
+				if (element.url == requestPathPattern) {
+					return element;
 				}
 			}
 
@@ -191,34 +191,34 @@ module.exports = {
 			const { sanitizeUploadFilename } = require("../../../mixins/path.security");
 			// formidable with multiples:true always wraps values in arrays
 			const uploaded = Array.isArray(files[property]) ? files[property][0] : files[property];
-			this.logger.info("api.parseUploadedFile() files-"+property+": ", files[property], uploaded);
+			this.logger.info("api.parseUploadedFile() files-" + property + ": ", files[property], uploaded);
 			let fileFrom = uploaded.filepath;
-			let copyBaseDir = req.$ctx.service.settings.assets.folder+"/"+process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
+			let copyBaseDir = req.$ctx.service.settings.assets.folder + "/" + process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let urlBaseDir = process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let targetDir = activePath.stringToChunk;
-			if (activePath.chunkSize>0) {
+			if (activePath.chunkSize > 0) {
 				targetDir = this.stringChunk(activePath.stringToChunk, activePath.chunkSize);
 			}
 			// set new filename — always sanitize; never trust client path segments
 			const originalName = uploaded.originalFilename || uploaded.name || "upload.jpg";
 			const { base: safeOriginal, ext } = sanitizeUploadFilename(originalName);
-			let fileNameReplaced = this.arrayReplaceParams( activePath.fileName, req.$params );
-			fileNameReplaced = this.arrayReplaceParams( fileNameReplaced, fields );
+			let fileNameReplaced = this.arrayReplaceParams(activePath.fileName, req.$params);
+			fileNameReplaced = this.arrayReplaceParams(fileNameReplaced, fields);
 			let resultFileName = safeOriginal;
 			if (fileNameReplaced.join("-") === "----WYSIWYGEDITOR----") {
 				targetDir = targetDir + "/editor";
-			} else if ( fileNameReplaced.join("-") !== "----ORIGINAL----" ) {
+			} else if (fileNameReplaced.join("-") !== "----ORIGINAL----") {
 				const joined = fileNameReplaced.join("-").replace(/[^\w\-]/g, "_").slice(0, 80) || "file";
 				resultFileName = joined + "." + ext;
 			}
-			let resultFullPath = targetDir+"/"+resultFileName;
+			let resultFullPath = targetDir + "/" + resultFileName;
 			// set result paths
-			let fileToSave = copyBaseDir+"/"+resultFullPath;
-			let fileToUrl = urlBaseDir+"/"+resultFullPath;
+			let fileToSave = copyBaseDir + "/" + resultFullPath;
+			let fileToUrl = urlBaseDir + "/" + resultFullPath;
 			this.logger.info("api.parseuploadeFile() files-vars: ", fileFrom, fileToSave, fileToUrl, targetDir);
 
 			return {
-				copyBaseDir, 
+				copyBaseDir,
 				targetDir,
 				fileFrom,
 				fileToSave,
@@ -232,15 +232,15 @@ module.exports = {
 
 		buildGlobalSearchQuery(query, langs) {
 			const { escapeRegex } = require("../../../mixins/mongo.security");
-			let fields = [ "name", "descriptionShort", "descriptionLong" ];
+			let fields = ["name", "descriptionShort", "descriptionLong"];
 			let orArray = [];
 			const safeQuery = escapeRegex(query);
 
-			if ( langs && langs.length > 0 ) {
+			if (langs && langs.length > 0) {
 				fields.forEach(f => {
 					langs.forEach(l => {
 						let line = {};
-						line[f+"."+l] = { "$regex": safeQuery, "$options": "i"  };
+						line[f + "." + l] = { "$regex": safeQuery, "$options": "i" };
 						orArray.push(line);
 					});
 				});

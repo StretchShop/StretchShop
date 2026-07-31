@@ -1,6 +1,6 @@
 "use strict";
 
-let cookie = require("cookie");
+const { stringifySetCookie } = require("cookie");
 const SettingsMixin = require("./../../mixins/settings.mixin");
 
 
@@ -192,12 +192,12 @@ module.exports = {
 						ctx.meta.makeCookies[key].options
 					);
 				} else {
-					res.setHeader("Set-Cookie", 
-						cookie.serialize(
-							key, 
-							String(ctx.meta.makeCookies[key].value), 
-							ctx.meta.makeCookies[key].options
-						)
+					res.setHeader("Set-Cookie",
+						stringifySetCookie({
+							name: key,
+							value: String(ctx.meta.makeCookies[key].value),
+							...ctx.meta.makeCookies[key].options
+						})
 					);
 				}
 			});

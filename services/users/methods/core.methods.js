@@ -2,8 +2,8 @@
 
 const { MoleculerClientError } = require("moleculer").Errors;
 
-const bcrypt 		= require("bcryptjs");
-const jwt 			= require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 // settings
 const SettingsMixin = require("../../../mixins/settings.mixin");
@@ -23,9 +23,9 @@ module.exports = {
 			const bsi = SettingsMixin.getSiteSettings('business', true);
 
 			// set full lang
-			if ( coreData.lang && coreData.langs ) {
+			if (coreData.lang && coreData.langs) {
 				for (const element of coreData.langs) {
-					if (element.code==coreData.lang) {
+					if (element.code == coreData.lang) {
 						element["default"] = true;
 						coreData.lang = element;
 						break;
@@ -33,9 +33,9 @@ module.exports = {
 				}
 			}
 			// set full currency
-			if ( coreData.currency && coreData.currencies ) {
+			if (coreData.currency && coreData.currencies) {
 				for (const element of coreData.currencies) {
-					if (element.code==coreData.currency) {
+					if (element.code == coreData.currency) {
 						element["default"] = true;
 						coreData.currency = element;
 						break;
@@ -43,9 +43,9 @@ module.exports = {
 				}
 			}
 			// set full country
-			if ( coreData.country && coreData.countries ) {
+			if (coreData.country && coreData.countries) {
 				for (const element of coreData.countries) {
-					if (element.code==coreData.country) {
+					if (element.code == coreData.country) {
 						element["default"] = true;
 						coreData.country = element;
 						break;
@@ -53,15 +53,15 @@ module.exports = {
 				}
 			}
 
-			coreData.navigation = { 
+			coreData.navigation = {
 				main: SettingsMixin.getSiteSettings('navigation-main'),
 				footer: SettingsMixin.getSiteSettings('navigation-footer')
 			};
 
 			// get lang from translLang if set
-			if ( ctx.params.transLang && ctx.params.transLang!="" && coreData.langs ) {
+			if (ctx.params.transLang && ctx.params.transLang != "" && coreData.langs) {
 				// if valid language
-				if ( this.isValidTranslationLanguage(ctx.params.transLang, coreData.langs) ) {
+				if (this.isValidTranslationLanguage(ctx.params.transLang, coreData.langs)) {
 					coreData.lang = coreData.lang = this.getValueByCode(coreData.langs, ctx.params.transLang);
 				}
 			}
@@ -111,7 +111,7 @@ module.exports = {
 				exp: Math.floor(exp.getTime() / 1000)
 			}, this.settings.JWT_SECRET);
 
-			if ( ctx.meta.cookies ) {
+			if (ctx.meta.cookies) {
 				if (!ctx.meta.makeCookies) {
 					ctx.meta.makeCookies = {};
 				}
@@ -125,7 +125,7 @@ module.exports = {
 						httpOnly: true
 					}
 				};
-				if ( process.env.COOKIES_SAME_SITE ) {
+				if (process.env.COOKIES_SAME_SITE) {
 					ctx.meta.makeCookies["token"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
 				}
 				// this.logger.info("users.generateJWT - ctx.meta.makeCookies:", ctx.meta.makeCookies);
@@ -147,18 +147,18 @@ module.exports = {
 
 			// if user was not found
 			if (!user) {
-				return this.Promise.reject(new MoleculerClientError("Email is invalid!", 422, "", [{ field: "email", message: "not exists"}]));
+				return this.Promise.reject(new MoleculerClientError("Email is invalid!", 422, "", [{ field: "email", message: "not exists" }]));
 			}
 			// if user is not active
-			if ( !user.dates.dateActivated || user.dates.dateActivated.toString().trim()=="" || user.dates.dateActivated>new Date() ) {
-				return this.Promise.reject(new MoleculerClientError("User not activated", 422, "", [{ field: "email", message: "not activated"}]));
+			if (!user.dates.dateActivated || user.dates.dateActivated.toString().trim() == "" || user.dates.dateActivated > new Date()) {
+				return this.Promise.reject(new MoleculerClientError("User not activated", 422, "", [{ field: "email", message: "not activated" }]));
 			}
 
 			// TODO - save log about user was controlled by admin
 			const adminTokenOrig = ctx.meta.cookies["token"];
 			const decoded = jwt.decode(adminTokenOrig);
 
-			if (decoded && decoded.id) {
+			if (decoded?.id) {
 				return this.adapter.findById(decoded.id)
 					.then(adminUser => {
 						const today = new Date();
@@ -167,44 +167,18 @@ module.exports = {
 
 						superadmined = true;
 						admin = adminUser;
-			
-						// // use if you want to save admin token to return back
-						// const generatedJwt = jwt.sign({
-						// 	id: adminUser._id,
-						// 	username: adminUser.username,
-						// 	exp: Math.floor(exp.getTime() / 1000)
-						// }, self.settings.JWT_SECRET);
-			
-						// if ( ctx.meta.cookies ) {
-						// 	if (!ctx.meta.makeCookies) {
-						// 		ctx.meta.makeCookies = {};
-						// 	}
-						// 	ctx.meta.makeCookies["supertoken"] = {
-						// 		value: generatedJwt,
-						// 		options: {
-						// 			path: "/",
-						// 			signed: true,
-						// 			expires: exp,
-						// 			secure: ((process.env.COOKIES_SECURE && process.env.COOKIES_SECURE==true) ? true : false),
-						// 			httpOnly: true
-						// 		}
-						// 	};
-						// 	if ( process.env.COOKIES_SAME_SITE ) {
-						// 		ctx.meta.makeCookies["supertoken"].options["sameSite"] = process.env.COOKIES_SAME_SITE;
-						// 	}
-						// }
 
 						return user;
 					})
 					.then(auser => this.transformDocuments(ctx, {}, auser))
 					.then(auser => {
-						if ( ctx.meta.cart ) {
+						if (ctx.meta.cart) {
 							ctx.meta.cart.user = auser._id;
 						}
 						return this.transformEntity(auser, false, ctx);
 					})
 					.then(auser => {
-						if (superadmined===true) {
+						if (superadmined === true) {
 							auser.user.superadmined = true;
 						}
 
@@ -212,7 +186,7 @@ module.exports = {
 						let emailSetup = {
 							settings: {
 								to: user.email,
-								subject: process.env.SITE_NAME +" - Administration of your account"
+								subject: process.env.SITE_NAME + " - Administration of your account"
 							},
 							functionSettings: {
 								language: user.settings.language
@@ -236,7 +210,7 @@ module.exports = {
 					});
 			}
 
-			return this.Promise.reject(new MoleculerClientError("No valid admin", 422, "", [{ field: "email", message: "not valid"}]));
+			return this.Promise.reject(new MoleculerClientError("No valid admin", 422, "", [{ field: "email", message: "not valid" }]));
 
 		},
 
@@ -260,10 +234,10 @@ module.exports = {
 
 
 		removePrivateData(user) {
-			if (user.data && user.data.constructor === Object) {
+			if (user.data?.constructor === Object) {
 				const FEvalidData = ["contentDependencies"];
 				Object.keys(user.data).forEach(k => {
-					if (FEvalidData.indexOf(k) === -1) {
+					if (!FEvalidData.includes(k)) {
 						delete user.data[k];
 					}
 				});
@@ -305,22 +279,22 @@ module.exports = {
 		 * @return {Boolean}
 		 */
 		userCanUpdate(loggedUser, userUpdate) {
-			this.logger.info("users.userCanUpdate params: ", { 
-				loggedUser: loggedUser, 
+			this.logger.info("users.userCanUpdate params: ", {
+				loggedUser: loggedUser,
 				userUpdate: userUpdate
 			});
 			// check if loggedUser data has _id
-			if ( loggedUser && loggedUser._id && loggedUser._id.toString().trim()!="" ) {
+			if (loggedUser && loggedUser._id && loggedUser._id.toString().trim() != "") {
 				// if loggedUser is admin and userUpdate data contain _id of user to update - can update any user
-				if ( loggedUser.type=="admin" && userUpdate._id && userUpdate._id.toString().trim()!="" ) {
+				if (loggedUser.type == "admin" && userUpdate._id && userUpdate._id.toString().trim() != "") {
 					return true;
 				}
 				// if loggedUser is admin but userUpdate has no _id - update himself
-				if ( loggedUser.type==="admin" && !userUpdate._id ) {
+				if (loggedUser.type === "admin" && !userUpdate._id) {
 					return true;
 				}
 				// if loggedUser is not admin - update himself
-				if ( loggedUser.type!=="admin" && !userUpdate._id ) {
+				if (loggedUser.type !== "admin" && !userUpdate._id) {
 					return true;
 				}
 			}
@@ -340,9 +314,9 @@ module.exports = {
 		mergeTwoAddresses(addressOrig, addressNew) {
 			let resultAddress = addressOrig;
 
-			if ( addressNew ) {
+			if (addressNew) {
 				for (let property in addressNew) {
-					if ( Object.prototype.hasOwnProperty.call(resultAddress,property) && Object.prototype.hasOwnProperty.call(addressNew,property)) {
+					if (Object.hasOwn(resultAddress, property) && Object.hasOwn(addressNew, property)) {
 						resultAddress[property] = addressNew[property];
 					}
 				}
@@ -364,29 +338,29 @@ module.exports = {
 		 */
 		extractTranslation(transData, langCode, blockName) {
 			let extractedTranslation = []; // { type: "text", selector: "...", string:   }
-			if ( transData?.dictionary?.records &&
-				transData.dictionary.records.length>0 && langCode ) {
+			if (transData?.dictionary?.records &&
+				transData.dictionary.records.length > 0 && langCode) {
 				for (const element of transData.dictionary.records) {
 					let translationRecordString = "";
 					// #1 - get translate with same langCode
-					for (let j=0; j<element.translates.length; j++) {
-						if (element.translates[j].langCode===langCode) {
+					for (let j = 0; j < element.translates.length; j++) {
+						if (element.translates[j].langCode === langCode) {
 							// GET translation string
 							translationRecordString = element.translates[j].translation;
 						} // END if translates langCode
 					} // END for traslates
 					// #2 - get types and selectors from occurences
-					for (let j=0; j<element.occurrences.length; j++) {
+					for (let j = 0; j < element.occurrences.length; j++) {
 						// TODO - if blockName set, select only specific block
 						if (element.occurrences[j].type) {
-							if ((blockName !== undefined && blockName!="" &&
-							element.occurrences[j].blockName &&
-							element.occurrences[j].blockName==blockName) ||
-							blockName === undefined) {
+							if ((blockName !== undefined && blockName != "" &&
+								element.occurrences[j].blockName &&
+								element.occurrences[j].blockName == blockName) ||
+								blockName === undefined) {
 								// GET translation TYPE
 								let translationRecordType = element.occurrences[j].type;
-								if ( element.occurrences[j].translationStrings?.length ) {
-									for (let k=0; k<element.occurrences[j].translationStrings.length; k++) {
+								if (element.occurrences[j].translationStrings?.length) {
+									for (let k = 0; k < element.occurrences[j].translationStrings.length; k++) {
 										let translationRecordSelector = element.occurrences[j].translationStrings[k].selector;
 										let translationRecordOrig = element.occurrences[j].translationStrings[k].stringOrig;
 										let translationRecordPath = element.occurrences[j].path?.toString().trim().split("/src/")[1] || "";
@@ -411,8 +385,8 @@ module.exports = {
 
 		isValidTranslationLanguage(lang, langsArray) {
 			let isValidTransLang = false;
-			for (let i = 0; i<langsArray.length; i++) {
-				if (langsArray[i].code==lang) {
+			for (const element of langsArray) {
+				if (element.code == lang) {
 					isValidTransLang = true;
 					break;
 				}
@@ -422,29 +396,29 @@ module.exports = {
 
 
 		sendVerificationEmail(emailData, ctx) {
-			let re = new RegExp("\\.", "g");
+			let re = /\./g;
 			// get url from hashed string without first 7 chars ("$2b$10$")
 			let hash = emailData.keepItForLater.toString().substring(7);
 			hash = encodeURIComponent(hash).replace(re, "--");
 			// get email string
 			let email = emailData.entity.user.email.toString().replace(re, "--").replace("@", "---");
 			// create activation link
-			let confirmLink = emailData.url+"/user/verify/"+encodeURIComponent(email)+"/"+hash; // using email to identify and hash to verify
+			let confirmLink = emailData.url + "/user/verify/" + encodeURIComponent(email) + "/" + hash; // using email to identify and hash to verify
 			const isPasswordReset = emailData.templateName === "auth/pwdreset";
 			// setup object for sending email
 			let emailSetup = {
 				settings: {
 					to: emailData.entity.user.email,
 					subject: isPasswordReset
-						? process.env.SITE_NAME +" - Password reset"
-						: process.env.SITE_NAME +" - Welcome - please activate"
+						? process.env.SITE_NAME + " - Password reset"
+						: process.env.SITE_NAME + " - Welcome - please activate"
 				},
 				functionSettings: {
 					language: emailData.language || emailData.lang
 				},
 				template: emailData.templateName,
 				data: {
-					webname: process.env.SITE_NAME, 
+					webname: process.env.SITE_NAME,
 					username: emailData.entity.user.username,
 					email: emailData.entity.user.email,
 					confirm_link: confirmLink
@@ -463,8 +437,8 @@ module.exports = {
 
 
 		prepareForUpdate(object) { // TODO - unify into mixin
-			let objectToSave = JSON.parse(JSON.stringify(object));
-			if ( typeof objectToSave._id !== "undefined" && objectToSave._id ) {
+			let objectToSave = structuredClone(object);
+			if (objectToSave._id !== undefined && objectToSave._id) {
 				delete objectToSave._id;
 			}
 			return { "$set": objectToSave };
@@ -473,8 +447,8 @@ module.exports = {
 
 		buildHashSourceFromEntity(string1, string2, hashedParam) {
 			// don't hash only if hashedParam is false
-			let hashed = (typeof hashedParam!=="undefined" && hashedParam===false) ? false : true;
-			let comboString = string1.substr(12,10)+string2+string1.substr(30);
+			let hashed = !((hashedParam !== undefined && hashedParam === false));
+			let comboString = string1.substr(12, 10) + string2 + string1.substr(30);
 			if (!hashed) {
 				return comboString;
 			}

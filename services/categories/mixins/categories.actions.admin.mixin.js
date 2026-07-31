@@ -19,16 +19,16 @@ module.exports = {
 				let promises = [];
 				let self = this;
 
-				if (ctx.meta.user.type=="admin") {
-					if ( categories && categories.length>0 ) {
+				if (ctx.meta.user.type == "admin") {
+					if (categories && categories.length > 0) {
 						// loop categories to import
-						categories.forEach(function(entity) {
+						categories.forEach(function (entity) {
 							promises.push(
 								// add category results into result variable
 								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // category found, update it
-											if ( entity ) {
+											if (entity) {
 												entity = self.fixEntityDates(entity);
 											}
 
@@ -39,7 +39,7 @@ module.exports = {
 													}
 													entity.dates.dateUpdated = new Date();
 													entity.dates.dateSynced = new Date();
-													
+
 													self.logger.info("categories.import found - update entity:", entity);
 													let entityId = entity.id;
 													delete entity.id;
@@ -60,7 +60,7 @@ module.exports = {
 													return self.adapter.updateById(entityId, update)
 														.then(doc => self.transformDocuments(ctx, {}, doc))
 														.then(json => self.entityChanged("updated", json, ctx)
-														.then(() => json))
+															.then(() => json))
 														.catch(err => {
 															console.error('categories.import update error: ', err);
 															return this.Promise.reject(new MoleculerClientError("Category import update error", 422, "", []));
@@ -74,9 +74,9 @@ module.exports = {
 											return self.validateEntity(entity)
 												.then(() => {
 													// set generic variables
-													if ( !entity.slug || entity.slug.trim() == "") {
+													if (!entity.slug || entity.slug.trim() == "") {
 														let lang = ctx.meta.localsDefault.lang;
-														if ( ctx.meta.localsDefault.lang.code ) {
+														if (ctx.meta.localsDefault.lang.code) {
 															lang = ctx.meta.localsDefault.lang.code;
 														}
 														entity.slug = slug(entity.name[lang], { lower: true }); // + "-" + (Math.random() * Math.pow(36, 6) | 0).toString(36);
@@ -89,17 +89,17 @@ module.exports = {
 														.then(slugFound => {
 															if (slugFound && slugFound.constructor !== Array) {
 																self.logger.error("categories.import notFound - insert - slugFound entity:", entity);
-																return { "error" : "Slug "+entity.slug+" already used." };
+																return { "error": "Slug " + entity.slug + " already used." };
 															}
 
-															if ( !entity.parentPathSlug || entity.parentPathSlug.trim() == "") {
+															if (!entity.parentPathSlug || entity.parentPathSlug.trim() == "") {
 																entity.parentPathSlug = slug(entity.parentPath.join("-"), { lower: true });
 															}
 															entity.pathSlug = entity.slug;
-															if ( entity.slug && entity.parentPathSlug ) {
-																entity.pathSlug = entity.parentPathSlug +"-"+ entity.slug;
+															if (entity.slug && entity.parentPathSlug) {
+																entity.pathSlug = entity.parentPathSlug + "-" + entity.slug;
 															}
-															if (ctx.meta.user && ctx.meta.user.email) {
+															if (ctx.meta.user?.email) {
 																entity.publisher = ctx.meta.user.email.toString();
 															}
 															if (!entity.dates) {
@@ -122,7 +122,7 @@ module.exports = {
 															return self.adapter.insert(entity)
 																.then(doc => self.transformDocuments(ctx, {}, doc))
 																.then(json => self.entityChanged("created", json, ctx)
-																.then(() => json))
+																	.then(() => json))
 																.catch(err => {
 																	console.error('categories.import insert error: ', err);
 																	return this.Promise.reject(new MoleculerClientError("Category import insert error", 422, "", []));
@@ -150,17 +150,17 @@ module.exports = {
 					return Promise.all(promises).then(prom => {
 						return prom;
 					})
-					.catch(err => {
-						console.error('categories.import promises error: ', err);
-						return this.Promise.reject(new MoleculerClientError("Category import all error", 422, "", []));
-					});
+						.catch(err => {
+							console.error('categories.import promises error: ', err);
+							return this.Promise.reject(new MoleculerClientError("Category import all error", 422, "", []));
+						});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
-				}	
+				}
 			}
 		},
 
-		
+
 		/**
 		 * Delete category data by id
 		 *
@@ -182,17 +182,17 @@ module.exports = {
 				let promises = [];
 				let self = this;
 
-				if (ctx.meta.user.type=="admin") {
-					if ( categories && categories.length>0 ) {
+				if (ctx.meta.user.type == "admin") {
+					if (categories && categories.length > 0) {
 						// loop products to import
-						categories.forEach(function(entity) {
+						categories.forEach(function (entity) {
 							promises.push(
 								// add product results into result variable
 								self.adapter.findById(entity.id)
 									.then(found => {
 										if (found) { // product found, update it
 											self.logger.info("categories.delete - DELETING category: ", found);
-											return ctx.call("categories.remove", {id: found._id} )
+											return ctx.call("categories.remove", { id: found._id })
 												.then((deletedCount) => {
 													// after call action
 													ctx.meta.afterCallAction = {
@@ -209,9 +209,9 @@ module.exports = {
 												.catch(err => {
 													console.error('categories.delete remove error: ', err);
 													return this.Promise.reject(new MoleculerClientError("Category delete error", 422, "", []));
-												}); 
+												});
 										} else {
-											self.logger.error("categories.delete - entity.id "+entity.id+" not found");
+											self.logger.error("categories.delete - entity.id " + entity.id + " not found");
 										}
 									})
 									.catch(err => {
@@ -226,10 +226,10 @@ module.exports = {
 					return Promise.all(promises).then(() => {
 						return promises;
 					})
-					.catch(err => {
-						console.error('categories.delete promises error: ', err);
-						return this.Promise.reject(new MoleculerClientError("Category delete all error", 422, "", []));
-					});
+						.catch(err => {
+							console.error('categories.delete promises error: ', err);
+							return this.Promise.reject(new MoleculerClientError("Category delete all error", 422, "", []));
+						});
 				} else { // not admin user
 					return Promise.reject(new MoleculerClientError("Permission denied", 403, "", []));
 				}
@@ -238,27 +238,27 @@ module.exports = {
 
 
 
-		// check page authorship
+		// check category authorship
 		checkAuthor: {
 			auth: "required",
 			params: {
 				data: { type: "object" }
 			},
 			handler(ctx) {
-				if (ctx.params.data && ctx.params.data.slug && ctx.params.data.publisher) {
+				if (ctx.params.data?.slug && ctx.params.data.publisher) {
 					return this.adapter.find({
 						"query": {
 							"slug": ctx.params.data.slug,
 							"publisher": ctx.params.data.publisher
 						}
 					})
-						.then(pages => {
-							if (pages && pages.length>0 && pages[0].slug==ctx.params.data.slug) {
+						.then(categories => {
+							if (categories && categories.length > 0 && categories[0].slug == ctx.params.data.slug) {
 								return true;
 							}
 						})
 						.catch(err => {
-							this.logger.error("pages.checkAuthor() - error: ", err);
+							this.logger.error("categories.checkAuthor() - error: ", err);
 							return false;
 						});
 				}
@@ -275,7 +275,7 @@ module.exports = {
 				params: { type: "object" }
 			},
 			handler(ctx) {
-				if (ctx.params.params && ctx.params.params.slug) {
+				if (ctx.params.params?.slug) {
 					this.logger.info("page.updateCategoryImage - has slug: ", ctx.params.params.slug);
 					return;
 				}
