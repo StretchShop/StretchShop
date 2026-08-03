@@ -24,19 +24,19 @@ module.exports = {
 			let self = this;
 
 			if (found) { // page found, update it
-				if ( entity ) {
-					if ( entity.dates ) {
-						Object.keys(entity.dates).forEach(function(key) {
+				if (entity) {
+					if (entity.dates) {
+						Object.keys(entity.dates).forEach(function (key) {
 							let date = entity.dates[key];
-							if ( date && date!=null && date.trim()!="" ) {
+							if (date && date != null && date.trim() != "") {
 								entity.dates[key] = new Date(entity.dates[key]);
 							}
 						});
 					}
-					if ( entity.activity ) {
-						Object.keys(entity.activity).forEach(function(key) {
+					if (entity.activity) {
+						Object.keys(entity.activity).forEach(function (key) {
 							let date = entity.activity[key];
-							if ( date && date!=null && date.trim()!="" ) {
+							if (date && date != null && date.trim() != "") {
 								entity.activity[key] = new Date(entity.activity[key]);
 							}
 						});
@@ -118,9 +118,9 @@ module.exports = {
 			let self = this;
 
 			// set generic variables
-			if ( !entity.slug || entity.slug.trim() == "") {
+			if (!entity.slug || entity.slug.trim() == "") {
 				let lang = ctx.meta.localsDefault.lang;
-				if ( ctx.meta.localsDefault.lang.code ) {
+				if (ctx.meta.localsDefault.lang.code) {
 					lang = ctx.meta.localsDefault.lang.code;
 				}
 				entity.slug = slug(entity.name[lang], { lower: true });
@@ -134,11 +134,11 @@ module.exports = {
 				.then(slugFound => {
 					if (slugFound && slugFound.constructor !== Array) {
 						self.logger.error("pages.import notFound - insert - slugFound entity:", entity);
-						return { "error" : "Slug "+entity.slug+" already used." };
+						return { "error": "Slug " + entity.slug + " already used." };
 					}
 
 					// TODO - check if slug paths don't already exist
-					if (ctx.meta.user && ctx.meta.user.email) {
+					if (ctx.meta.user?.email) {
 						entity.publisher = ctx.meta.user.email.toString();
 					}
 					if (!entity.dates) {
@@ -163,7 +163,7 @@ module.exports = {
 						.then(json => self.entityChanged("created", json, ctx).then(() => json));
 				});
 		},
-		
+
 
 
 		/**
@@ -180,46 +180,46 @@ module.exports = {
 
 			// get template for that page
 			return self.getCorrectFile(tv.filepath)
-				.then( (template) => {
-					let result = { 
-						body: template, 
-						data: null, 
-						global: {}, 
-						staticData: null 
+				.then((template) => {
+					let result = {
+						body: template,
+						data: null,
+						global: {},
+						staticData: null
 					};
 					// get template static metadata
 					// TODO - check if exists, if not, set default value {}
-					return self.readFile(tv.parentDir + tv.pageName+".json")
-						.then( (staticData) => {
+					return self.readFile(tv.parentDir + tv.pageName + ".json")
+						.then((staticData) => {
 							// return static metadata
 							staticData = JSON.parse(staticData);
 							result.staticData = staticData;
 							return result;
 						})
-						.catch( err => {
+						.catch(err => {
 							this.logger.error("pages.detail - readFile error: ", err);
 						})
-						.then( result => {
+						.then(result => {
 							// check if WYSIWYG editor placeholder exists in string
 							let regex = /<!-- {{editor_WYSIWYG}} \/\/-->/gmi, regExResult, occurences = [];
-							while ( (regExResult = regex.exec(result.body)) ) {
+							while ((regExResult = regex.exec(result.body))) {
 								occurences.push(regExResult.index);
 							}
 							// if WYSIWYG exists, check for record in page table
-							if ( occurences.length>0 ) {
+							if (occurences.length > 0) {
 								return this.processPageWysiwygContent(ctx, result);
 							}
 
 							// check if page requires user to have some product
-							if ( 
-								!(ctx.meta && ctx.meta.user && ctx.meta.user.type === "admin") && 
-								result && result.staticData?.data?.requirements?.userdata?.products?.length > 0 
+							if (
+								!(ctx.meta && ctx.meta.user && ctx.meta.user.type === "admin") &&
+								result && result.staticData?.data?.requirements?.userdata?.products?.length > 0
 							) {
 								// if we have user, check his contentDependencies
-								if ( ctx.meta.user && ctx.meta.user.data?.contentDependencies?.list?.length > 0 ) {
+								if (ctx.meta.user && ctx.meta.user.data?.contentDependencies?.list?.length > 0) {
 									// get intersection of user and page contentDependencies 
 									const filteredArray = result.staticData.data.requirements.userdata.products.filter(value => ctx.meta.user.data.contentDependencies.list.includes(value));
-									if ( filteredArray.length <= 0 ) {
+									if (filteredArray.length <= 0) {
 										return Promise.reject(new MoleculerClientError("Page not found!", 403, "", [{ field: "page", message: "forbidden", data: { orderCodes: filteredArray } }]));
 									}
 								} else {
@@ -229,11 +229,11 @@ module.exports = {
 							}
 
 							// no WYSIWYG in template, just try to use most you can
-							if ( result && result.staticData && result.staticData.pages && result.staticData.pages.length>0 ) {
+							if (result && result.staticData && result.staticData.pages && result.staticData.pages.length > 0) {
 								// get related pages
 								return ctx.call("pages.find", {
 									"query": {
-										"slug": {"$in": result.staticData.pages}
+										"slug": { "$in": result.staticData.pages }
 									}
 								})
 									.then(relatedPages => {
@@ -245,7 +245,7 @@ module.exports = {
 							return result;
 						});
 				})
-				.catch( error => {
+				.catch(error => {
 					this.logger.error("pages.detail - error:", error);
 				});
 		},
@@ -272,22 +272,22 @@ module.exports = {
 			})
 				.then(page => {
 					// if WYSIWYG found, take first record
-					if ( page && page.length>0 && typeof page[0] !== "undefined" ) {
+					if (page && page.length > 0 && typeof page[0] !== "undefined") {
 						page = page[0];
 					}
 
 					// check if page requires user to have some product
-					if ( 
-						!(ctx.meta && ctx.meta.user && ctx.meta.user.type === "admin") && 
-						page.data?.requirements?.userdata?.products?.length > 0 
+					if (
+						!(ctx.meta && ctx.meta.user && ctx.meta.user.type === "admin") &&
+						page.data?.requirements?.userdata?.products?.length > 0
 					) {
 						// if we have user, check his contentDependencies
 						this.logger.info("pages core processPageWysiwygContent() user:", ctx.meta.user);
-						if ( ctx.meta.user && ctx.meta.user.data?.contentDependencies?.list?.length > 0 ) {
+						if (ctx.meta.user && ctx.meta.user.data?.contentDependencies?.list?.length > 0) {
 							// get intersection of user and page contentDependencies 
 							const filteredArray = page.data.requirements.userdata.products.filter(value => ctx.meta.user.data.contentDependencies.list.includes(value));
 							this.logger.info("pages core processPageWysiwygContent() filteredArray:", filteredArray);
-							if ( filteredArray.length <= 0 ) {
+							if (filteredArray.length <= 0) {
 								return Promise.reject(new MoleculerClientError("Page not found!", 403, "", [{ field: "page", message: "forbidden", data: { orderCodes: filteredArray } }]));
 							}
 						} else {
@@ -297,33 +297,33 @@ module.exports = {
 					}
 
 					// check dates
-					if ( ctx.meta.user && ctx.meta.user.type!="admin" && 
-						ctx.meta.user.email!=page.publisher && page.activity && 
-						((page.activity.start && page.activity.start!=null) || 
-						(page.activity.end && page.activity.end))
+					if (ctx.meta.user && ctx.meta.user.type != "admin" &&
+						ctx.meta.user.email != page.publisher && page.activity &&
+						((page.activity.start && page.activity.start != null) ||
+							(page.activity.end && page.activity.end))
 					) {
 						let now = new Date();
 						if (page.activity.start) {
 							let startDate = new Date(page.activity.start);
 							if (startDate > now) { // not started
 								this.logger.info("page.detail - page not active (start)");
-								return Promise.reject(new MoleculerClientError("Page not found!", 400, "", [{ field: "page", message: "not found"}]));
+								return Promise.reject(new MoleculerClientError("Page not found!", 400, "", [{ field: "page", message: "not found" }]));
 							}
 						}
 						if (page.activity.end) {
 							let endDate = new Date(page.activity.end);
 							if (endDate < now) { // ended
 								this.logger.info("page.detail - page not active (end)");
-								return Promise.reject(new MoleculerClientError("Page not found!", 400, "", [{ field: "page", message: "not found"}]));
+								return Promise.reject(new MoleculerClientError("Page not found!", 400, "", [{ field: "page", message: "not found" }]));
 							}
 						}
 					}
 
 					// if WYSIWYG found, place first block
-					if (page && page.data && page.data.blocks && page.data.blocks.length>0) {
+					if (page && page.data && page.data.blocks && page.data.blocks.length > 0) {
 						result.body = result.body.replace(
 							"<!-- {{editor_WYSIWYG}} //-->",
-							"<div data-editable data-name=\"content\">"+page.data.blocks[0][ctx.params.lang]+"</div>"
+							"<div data-editable data-name=\"content\">" + page.data.blocks[0][ctx.params.lang] + "</div>"
 						);
 					} else {
 						result.body = result.body.replace(
@@ -339,10 +339,10 @@ module.exports = {
 					this.logger.error('pages processPageWysiwygContent() Error:', err);
 					return err;
 				})
-				.then( result => {
+				.then(result => {
 					return this.processPageDetailResult(ctx, result);
 				})
-				.then( result => {
+				.then(result => {
 					let resultWithFunctions = self.checkAndRunPageFunctions(ctx, result.data, ctx.params.lang);
 					if (resultWithFunctions && typeof resultWithFunctions.then == "function") {
 						return resultWithFunctions.then(functions => {
@@ -372,14 +372,14 @@ module.exports = {
 			// preparing to get parent category for breadcrumbs
 			let category = null;
 			// check what data for categories will be used
-			let hasStaticCategories = ( result.staticData && result.staticData.categories && result.staticData.categories.length>0 );
-			if ( hasStaticCategories ) {
+			let hasStaticCategories = (result.staticData && result.staticData.categories && result.staticData.categories.length > 0);
+			if (hasStaticCategories) {
 				category = result.staticData.categories[0];
 			}
-			let hasCategories = ( result.data && result.data.categories && result.data.categories.length>0 );
-			if ( hasCategories ) {
+			let hasCategories = (result.data && result.data.categories && result.data.categories.length > 0);
+			if (hasCategories) {
 				category = result.data.categories[0];
-			} 
+			}
 			if (typeof result.global === "undefined") {
 				result.global = {};
 			}
@@ -388,23 +388,23 @@ module.exports = {
 			//
 			let pagesTemp = [];
 			// check what pages will be used
-			let hasStaticPages = ( result.staticData && result.staticData.pages && result.staticData.pages.length>0 );
-			if ( hasStaticPages ) {
+			let hasStaticPages = (result.staticData && result.staticData.pages && result.staticData.pages.length > 0);
+			if (hasStaticPages) {
 				pagesTemp = result.staticData.pages;
 			}
-			let hasPages = ( result.data && result.data.pages && result.data.pages.length>0 );
-			if ( hasPages ) {
+			let hasPages = (result.data && result.data.pages && result.data.pages.length > 0);
+			if (hasPages) {
 				pagesTemp = result.data.pages;
-			} 
+			}
 			// fill related items
 			let pages = [];
 			let categories = [];
 			let urls = [];
-			if (pagesTemp.length>0) {
+			if (pagesTemp.length > 0) {
 				pagesTemp.forEach(p => {
-					if (p.substring(0,8)=="https://" || p.substring(0,7)=="http://" || p.substring(0,7)=="./" || p.charAt(0)=="/") {
+					if (p.substring(0, 8) == "https://" || p.substring(0, 7) == "http://" || p.substring(0, 7) == "./" || p.charAt(0) == "/") {
 						urls.push(p);
-					} else if (p.charAt(0)==":") {
+					} else if (p.charAt(0) == ":") {
 						categories.push(p.substring(1));
 					} else {
 						pages.push(p);
@@ -419,14 +419,14 @@ module.exports = {
 				})
 					.then(parentCategoryDetail => {
 						result = this.pageGlobalResultHelper_ParentCat(
-							result, 
-							parentCategoryDetail, 
+							result,
+							parentCategoryDetail,
 							[hasCategories, hasStaticCategories]
 						);
 						// get related pages
 						return ctx.call("pages.find", {
 							"query": {
-								"slug": {"$in": pages}
+								"slug": { "$in": pages }
 							}
 						})
 							.then(relatedPages => {
@@ -435,7 +435,7 @@ module.exports = {
 								// get related categories
 								return ctx.call("categories.find", {
 									"query": {
-										"slug": {"$in": categories}
+										"slug": { "$in": categories }
 									}
 								})
 									.then(relatedCategories => {
@@ -450,8 +450,8 @@ module.exports = {
 					});
 			} else {
 				return this.pageGlobalResultHelper_ParentCat(
-					result, 
-					null, 
+					result,
+					null,
 					[hasCategories, hasStaticCategories]
 				);
 			}
@@ -470,31 +470,31 @@ module.exports = {
 			let self = this;
 			return ctx.call("products.find", {
 				"query": {
-					"orderCode": {"$in": orderCodes}
+					"orderCode": { "$in": orderCodes }
 				}
 			})
 				.then(products => {
-					if ( products && products.length>0 ) {
+					if (products && products.length > 0) {
 						let categoriesSlugs = [];
-						products.forEach(function(product, i) {
+						products.forEach(function (product, i) {
 							products[i] = self.priceByUser(product, ctx.meta.user);
-							if ( product.categories && product.categories.length>0 ) {
+							if (product.categories && product.categories.length > 0) {
 								categoriesSlugs.push(...product.categories);
 							}
 						});
 						return ctx.call("categories.findActive", {
 							"query": {
-								"pathSlug": {"$in": categoriesSlugs}
+								"pathSlug": { "$in": categoriesSlugs }
 							}
 						})
 							.then(categories => {
 								let catSlugsMap = {};
-								for ( let i=0; i<categories.length; i++ ) {
+								for (let i = 0; i < categories.length; i++) {
 									catSlugsMap[categories[i].pathSlug] = categories[i];
 								}
-								for ( let i=0; i<products.length; i++ ) {
+								for (let i = 0; i < products.length; i++) {
 									products[i]["categoriesData"] = {};
-									for ( let j=0; j<products[i].categories.length; j++ ) {
+									for (let j = 0; j < products[i].categories.length; j++) {
 										let catKey = products[i]["categories"];
 										let catVal = catSlugsMap[catKey];
 										products[i]["categoriesData"][catKey] = catVal;

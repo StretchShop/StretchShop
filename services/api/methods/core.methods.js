@@ -126,7 +126,6 @@ module.exports = {
 		 * Check if CSRF token is valid
 		 *
 		 * @param {Context} ctx
-		 * @param {Object} route
 		 * @param {IncomingRequest} req
 		 * @returns {Boolean}
 		 */
@@ -221,13 +220,17 @@ module.exports = {
 					if (token && token.toString().trim() !== "") {
 						return ctx.call("users.resolveToken", { token: token })
 							.then(user => {
-								if (typeof user !== "undefined" && user && user.length > 0) {
+								if (user !== undefined && user && user.length > 0) {
 									user = user[0];
 								}
 								if (user) {
-									user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "subtype", "addresses", "settings", "data", "dates"]);
+									user = _.pick(user, ["_id", "externalId", "username", "email", "image", "type", "subtype", "addresses", "settings", "data", "dates", "restrictions", "actAs", "adminId", "superadmined"]);
 									ctx.meta.token = token;
 									ctx.meta.userID = user._id;
+									if (user.actAs) {
+										ctx.meta.actAs = true;
+										ctx.meta.adminId = user.adminId;
+									}
 									return user;
 								}
 							})
@@ -237,6 +240,35 @@ module.exports = {
 					}
 				})
 				.then(user => {
+					// compare the current request api endpoint path with the user restrictions
+					if (user?.restrictions && user.restrictions.length > 0) {
+						const reqMethod = (req.method || "").toUpperCase();
+						this.logger.info("api.authenticate() reqMethod: ", reqMethod);
+
+						// compare all user restrictions with the current request api endpoint path
+						// if current api endpoint path includes any of the user restrictions, throw an error
+						const restricted = user.restrictions.some(restriction => {
+							let restrictionPath = "";
+							let restrictionMethod = "*";
+							if (restriction.includes(" ")) {
+								restrictionPath = restriction.split(" ")[1];
+								restrictionMethod = restriction.split(" ")[0];
+							} else {
+								restrictionPath = restriction;
+							}
+							this.logger.info("api.authenticate() restrictionMethod & path: ", restrictionMethod, restrictionPath);
+							return !!((restrictionMethod === "*" && req.parsedUrl.includes(restrictionPath)) ||
+								(restrictionMethod === reqMethod && req.parsedUrl.includes(restrictionPath)));
+						});
+						if (restricted) {
+							this.logger.warn("api.authenticate() RESTRICTION_VIOLATION: ", user.restrictions, req.parsedUrl);
+							// return an error to the client
+							throw new ApiGateway.Errors.UnAuthorizedError("RESTRICTION_VIOLATION");
+						}
+					}
+					return user;
+				})
+				.then(user => {
 					if (req.$action?.auth == "required" && !user) {
 						throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
 					}
@@ -244,9 +276,10 @@ module.exports = {
 				})
 				.catch(err => {
 					if (!(err instanceof ApiGateway.Errors.UnAuthorizedError)) {
-						this.logger.warn("Authentication failed");
+						this.logger.warn("Authentication failed", err);
+						throw new ApiGateway.Errors.UnAuthorizedError("AUTHENTICATION_FAILED");
 					}
-					throw new ApiGateway.Errors.UnAuthorizedError("NO_RIGHTS");
+					throw err;
 				});
 		},
 
@@ -381,25 +414,19 @@ module.exports = {
 							})
 								.then(result => {
 									this.logger.info("api.processUpload author:", result);
-									if (result == true) {
-										// user is author
-										self.parseUploadedFile(req, res, activePath);
-									} else {
+									if (result === true && req.$ctx.meta.user?.type &&
+										activePath.validUserTypes.includes(req.$ctx.meta.user.type)) {
 										/**
-										 * for other users
+										 * User is author
 										 * can process form, move file and launch related action, because:
 										 * 1. path is valid
 										 * 2. user is authentificated
 										 * 3. user can upload to that path
 										 */
-										if (req.$ctx.meta.user.type &&
-											activePath.validUserTypes.indexOf(req.$ctx.meta.user.type) > -1) {
-											self.parseUploadedFile(req, res, activePath);
-										}
+										self.parseUploadedFile(req, res, activePath);
 									}
 								});
-						} else if (activePath.validUserTypes && // check if user or admin
-							activePath.validUserTypes.includes(req.$ctx.meta.user.type)) {
+						} else if (activePath.validUserTypes?.includes?.(req.$ctx.meta.user.type)) { // check if user or admin
 							self.parseUploadedFile(req, res, activePath);
 						}
 					}

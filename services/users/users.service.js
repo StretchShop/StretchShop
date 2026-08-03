@@ -33,7 +33,7 @@ module.exports = {
 		CacheCleanerMixin([
 			"cache.clean.users",
 		]),
-		HelpersMixin, 
+		HelpersMixin,
 		priceLevels,
 		Cron,
 		RateLimitMixin,
@@ -57,7 +57,7 @@ module.exports = {
 		cronJobs: [{
 			name: "UsersCleaner",
 			cronTime: "20 1 * * *",
-			onTick: function() {
+			onTick: function () {
 
 				this.logger.info("users.crons - Starting to Remove Users that want to Delete their Profile");
 
@@ -76,7 +76,7 @@ module.exports = {
 		JWT_SECRET: getRequiredSecret("JWT_SECRET", "jwt-stretchshop-secret"),
 
 		/** Public fields */
-		fields: ["_id", "username", "email", "type", "subtype", "bio", "image", "company", "addresses", "settings", "data", "dates", "superadmined"],
+		fields: ["_id", "username", "email", "type", "subtype", "bio", "image", "company", "addresses", "settings", "data", "dates", "superadmined", "restrictions"],
 
 		/** Validator schema for entity */
 		entityValidator: {
@@ -87,49 +87,65 @@ module.exports = {
 			subtype: { type: "string", optional: true },
 			bio: { type: "string", optional: true },
 			image: { type: "string", optional: true },
-			dates: { type: "object", optional: true, props: {
-				dateCreated: { type: "date", optional: true }, 
-				dateLastLogin: { type: "date", optional: true },
-				dateUpdated: { type: "date", optional: true }, 
-				dateLastVerify: { type: "date", optional: true },
-				dateActivated: { type: "date", optional: true },
-				dateToBeErased: { type: "date", optional: true }
-			} },
-			company: { type: "object", optional: true, props: {
-				name: { type: "string", optional: true },
-				orgId: { type: "string", optional: true },
-				taxId: { type: "string", optional: true },
-				taxVatId: { type: "string", optional: true }
-			} },
-			addresses: { type: "array", optional: true, items:
-				{ type: "object", props: {
-					type: { type: "string" }, // invoice, delivery, ...
-					nameFirst: { type: "string", min: 3 },
-					nameLast: { type: "string", min: 3 },
-					street: { type: "string", min: 5 },
-					street2: { type: "string", optional: true },
-					zip: { type: "string", min: 5 },
-					city: { type: "string", min: 5 },
-					state: { type: "string", optional: true },
-					country: { type: "string", min: 2 },
-					phone: { type: "string", min: 2 }
-				} }
+			dates: {
+				type: "object", optional: true, props: {
+					dateCreated: { type: "date", optional: true },
+					dateLastLogin: { type: "date", optional: true },
+					dateUpdated: { type: "date", optional: true },
+					dateLastVerify: { type: "date", optional: true },
+					dateActivated: { type: "date", optional: true },
+					dateToBeErased: { type: "date", optional: true }
+				}
 			},
-			ip: { type: "object", optional: true, props: {
-				ipRegistration: { type: "string", optional: true },
-				ipLastLogin: { type: "string", optional: true }
-			} },
-			settings: { type: "object", optional: true, props: {
-				language: { type: "string", optional: true },
-				currency: { type: "string", optional: true }
-			} }
+			company: {
+				type: "object", optional: true, props: {
+					name: { type: "string", optional: true },
+					orgId: { type: "string", optional: true },
+					taxId: { type: "string", optional: true },
+					taxVatId: { type: "string", optional: true }
+				}
+			},
+			addresses: {
+				type: "array", optional: true, items:
+				{
+					type: "object", props: {
+						type: { type: "string" }, // invoice, delivery, ...
+						nameFirst: { type: "string", min: 3 },
+						nameLast: { type: "string", min: 3 },
+						street: { type: "string", min: 5 },
+						street2: { type: "string", optional: true },
+						zip: { type: "string", min: 5 },
+						city: { type: "string", min: 5 },
+						state: { type: "string", optional: true },
+						country: { type: "string", min: 2 },
+						phone: { type: "string", min: 2 }
+					}
+				}
+			},
+			ip: {
+				type: "object", optional: true, props: {
+					ipRegistration: { type: "string", optional: true },
+					ipLastLogin: { type: "string", optional: true }
+				}
+			},
+			settings: {
+				type: "object", optional: true, props: {
+					language: { type: "string", optional: true },
+					currency: { type: "string", optional: true }
+				}
+			},
+			restrictions: {
+				type: "array", optional: true, items: {
+					type: "string"
+				}
+			}
 		},
 
 		mailSettings: {
 			defaultOptions: {
-				from: process.env.EMAIL_DEFAULTS_FROM || process.env.SITE_NAME +"\" support\" <support@example.tld>",
+				from: process.env.EMAIL_DEFAULTS_FROM || process.env.SITE_NAME + "\" support\" <support@example.tld>",
 				to: "",
-				subject: process.env.EMAIL_DEFAULTS_SUBJECT || process.env.SITE_NAME +" - ",
+				subject: process.env.EMAIL_DEFAULTS_SUBJECT || process.env.SITE_NAME + " - ",
 				text: "Hello world!", // plain text body
 				html: "<b>Hello world!</b>" // html body
 			},

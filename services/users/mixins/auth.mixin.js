@@ -129,8 +129,7 @@ module.exports = {
 					email: { type: "email", min: 2 },
 					password: { type: "string", min: 2 }
 				}},
-				remember: { type: "boolean", optional: true },
-				admin: { type: "boolean", optional: true }
+				remember: { type: "boolean", optional: true }
 			},
 			handler(ctx) {
 				const { email, password } = ctx.params.user;
@@ -138,10 +137,6 @@ module.exports = {
 				return this.enforceRateLimit(ctx, "login", { limit: 5, windowMs: 15 * 60 * 1000 })
 					.then(() => this.adapter.findOne({ email: email }))
 					.then(user => {
-						if (ctx.meta.user?.type == "admin" && ctx.params.admin) {
-							return this.superloginJWT(user, ctx);
-						}
-
 						if (!user) {
 							return this.Promise.reject(new MoleculerClientError("Email or password is invalid!", 422, "", [{ field: "email", message: "wrong credentials"}]));
 						}
@@ -186,12 +181,12 @@ module.exports = {
 
 
 		/**
-		 * Login as some user
+		 * Impersonate a non-admin user (admin only).
 		 *
 		 * @actions
-		 * @param {Object} email - User credentials
+		 * @param {String} email - Target user email
 		 *
-		 * @returns {Object} Logged in user with token
+		 * @returns {Object} Impersonated user with token + superadmined flag
 		 */
 		loginAs: {
 			auth: "required",
@@ -199,43 +194,43 @@ module.exports = {
 				email: { type: "email", min: 2 }
 			},
 			handler(ctx) {
-				if (ctx.meta.user.type=="admin") {
-					const email = ctx.params.email;
-
-					return this.Promise.resolve()
-						.then(() => this.adapter.findOne({ email: email }))
-						.then(user => {
-							if (!user) {
-								return this.Promise.reject(new MoleculerClientError("Email is invalid!", 422, "", [{ field: "email", message: "not exists"}]));
-							}
-							if ( !user.dates.dateActivated || user.dates.dateActivated.toString().trim()=="" || user.dates.dateActivated>new Date() ) {
-								return this.Promise.reject(new MoleculerClientError("User not activated", 422, "", [{ field: "email", message: "not activated"}]));
-							}
-							// save last date and ip of login
-							user.dates["dateLastLogin"] = new Date();
-							if (!user.ip) {
-								user.ip = {
-									ipRegistration: null,
-									ipLastLogin: null
-								};
-							}
-							user.ip["ipLastLogin"] = ctx.meta.remoteAddress+":"+ctx.meta.remotePort;
-							return this.adapter.updateById(user._id, this.prepareForUpdate(user));
-						})
-						// Transform user entity (remove password and all protected fields)
-						.then(doc => this.transformDocuments(ctx, {}, doc))
-						.then(user => {
-							if ( ctx.meta.cart ) {
-								ctx.meta.cart.user = user._id;
-							}
-							return this.transformEntity(user, true, ctx);
-						})
-						.catch(err => {
-							console.error("users.login error: ", err);
-							return this.Promise.reject(new MoleculerClientError("Login failed", 422, "", []));
-						});
+				if (ctx.meta.user?.type !== "admin") {
+					return this.Promise.reject(new MoleculerClientError("Not authorized!", 403, "", [{ field: "login", message: "unauthorized"}]));
 				}
-				return this.Promise.reject(new MoleculerClientError("Not authorized!", 422, "", [{ field: "login", message: "unauthorized"}]));
+
+				return this.enforceRateLimit(ctx, "impersonate", { limit: 10, windowMs: 15 * 60 * 1000 })
+					.then(() => this.adapter.findOne({ email: ctx.params.email }))
+					.then(user => this.superloginJWT(user, ctx))
+					.catch(err => {
+						if (err instanceof MoleculerClientError) {
+							return this.Promise.reject(err);
+						}
+						console.error("users.loginAs error: ", err);
+						return this.Promise.reject(new MoleculerClientError("Login failed", 422, "", []));
+					});
+			}
+		},
+
+
+		/**
+		 * Restore admin session after impersonation.
+		 *
+		 * @actions
+		 * @returns {Object} Admin user with token
+		 */
+		restoreAdmin: {
+			auth: "required",
+			params: {},
+			handler(ctx) {
+				return this.enforceRateLimit(ctx, "restoreAdmin", { limit: 20, windowMs: 15 * 60 * 1000 })
+					.then(() => this.restoreAdminSession(ctx))
+					.catch(err => {
+						if (err instanceof MoleculerClientError) {
+							return this.Promise.reject(err);
+						}
+						console.error("users.restoreAdmin error: ", err);
+						return this.Promise.reject(new MoleculerClientError("Restore failed", 422, "", []));
+					});
 			}
 		},
 
@@ -245,9 +240,24 @@ module.exports = {
 				ctx.meta.user = null;
 				ctx.meta.token = null;
 				ctx.meta.userID = null;
-				if (ctx.meta.cookies["token"]) {
+				if (ctx.meta.cookies?.["token"]) {
 					delete ctx.meta.cookies["token"];
 				}
+				if (!ctx.meta.makeCookies) {
+					ctx.meta.makeCookies = {};
+				}
+				const clearOpts = {
+					path: "/",
+					signed: true,
+					expires: new Date(0),
+					secure: require("../../../mixins/env.helpers").isCookiesSecure(),
+					httpOnly: true
+				};
+				if (process.env.COOKIES_SAME_SITE) {
+					clearOpts.sameSite = process.env.COOKIES_SAME_SITE;
+				}
+				ctx.meta.makeCookies["token"] = { value: "", options: clearOpts };
+				ctx.meta.makeCookies["admin_token"] = { value: "", options: { ...clearOpts } };
 				return true;
 			}
 		},
@@ -285,6 +295,11 @@ module.exports = {
 							return this.adapter.findById(decoded.id)
 								.then(found => {
 									if (found?.dates?.dateActivated && (new Date(found.dates.dateActivated).getTime() < Date.now()) ) {
+										if (decoded.actAs) {
+											found.actAs = true;
+											found.adminId = decoded.adminId ? String(decoded.adminId) : undefined;
+											found.superadmined = true;
+										}
 										return found;
 									}
 								});
@@ -322,6 +337,13 @@ module.exports = {
 						})
 						.then(user => {
 							return this.transformEntity(user, true, ctx);
+						})
+						.then(entity => {
+							if (ctx.meta.user?.actAs || ctx.meta.actAs) {
+								entity.user.superadmined = true;
+								entity.user.adminId = ctx.meta.user?.adminId || ctx.meta.adminId;
+							}
+							return entity;
 						})
 						.catch((error) => {
 							this.logger.error("users.me error", error);

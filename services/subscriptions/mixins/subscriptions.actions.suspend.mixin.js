@@ -92,16 +92,11 @@ module.exports = {
 							} else {
 								result.error = "relatedId not found";
 
-								this.logger.warn("subscriptions.update OOOOO - updateObject:", 
-									{
-										id: this.fixStringToId(found._id),
-										status: "suspend cleanup"
-									}
-								);
+								const subscriptionId = this.idToString(found._id) || ctx.params.subscriptionId;
 
 								return ctx.call("subscriptions.update", {
 									updateObject: {
-										id: this.fixStringToId(found._id),
+										id: subscriptionId,
 										status: "suspend cleanup"
 									},
 									historyRecordToAdd: self.newHistoryRecord("suspend cleanup", altUser, { 

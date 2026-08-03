@@ -16,10 +16,10 @@ module.exports = {
 				let promises = [];
 				let self = this;
 
-				if (ctx.meta.user.type=="admin") {
-					if ( products && products.length>0 ) {
+				if (ctx.meta.user.type == "admin") {
+					if (products && products.length > 0) {
 						// loop products to import
-						products.forEach(function(entity) {
+						products.forEach(function (entity) {
 							promises.push(
 								// add product results into result variable
 								self.adapter.findById(entity.id)
@@ -71,10 +71,10 @@ module.exports = {
 				let promises = [];
 				let self = this;
 
-				if (ctx.meta.user.type=="admin") {
-					if ( products && products.length>0 ) {
+				if (ctx.meta.user.type == "admin") {
+					if (products && products.length > 0) {
 						// loop products to import
-						products.forEach(function(entity) {
+						products.forEach(function (entity) {
 							promises.push(
 								// add product results into result variable
 								self.adapter.findById(entity.id)
@@ -82,11 +82,11 @@ module.exports = {
 										if (found) { // product found, delete it
 											const orderCode = found?.orderCode?.toString().trim();
 											self.logger.info("products.delete - DELETING product: ", found);
-											return ctx.call("products.remove", {id: found._id} )
+											return ctx.call("products.remove", { id: found._id })
 												.then((deletedCount) => {
 
 													// delete product assets
-													const pageBaseDir = self.settings.paths.assets +"/"+ process.env.ASSETS_PATH +"pages/";
+													const pageBaseDir = self.settings.paths.assets + "/" + process.env.ASSETS_PATH + "pages/";
 													self.logger.info("product.delete - deleted product - before assets deleted for product slug: ", orderCode);
 													if (orderCode) {
 														const chunkedCode = self.stringChunk(orderCode, process.env.CHUNKSIZE_PRODUCT || 3);
@@ -111,7 +111,7 @@ module.exports = {
 													return this.Promise.reject(new MoleculerClientError("Products delete remove error", 422, "", []));
 												}); // returns number of removed items
 										} else {
-											self.logger.error("products.delete - entity.id "+entity.id+" not found");
+											self.logger.error("products.delete - entity.id " + entity.id + " not found");
 										}
 									})
 									.catch(err => {
@@ -158,7 +158,7 @@ module.exports = {
 					meta: ctx.meta
 				});
 				if (ctx.params.params && ctx.params.params.orderCode) {
-					if (ctx.params.params.type=="gallery") {
+					if (ctx.params.params.type == "gallery") {
 						this.adapter.find({
 							"query": {
 								"orderCode": ctx.params.params.orderCode
@@ -166,15 +166,15 @@ module.exports = {
 						})
 							.then(product => {
 								if (product) {
-									if ( product[0] ) {
+									if (product[0]) {
 										product = product[0];
 									}
-								// let extension =
-								// self.adapter.updateById(product._id, {
-								//  "$set": {
-								//    data.gallery.images: ["p1.jpg", ...]
-								//  }
-								// });
+									// let extension =
+									// self.adapter.updateById(product._id, {
+									//  "$set": {
+									//    data.gallery.images: ["p1.jpg", ...]
+									//  }
+									// });
 								}
 							})
 							.catch(err => {
@@ -194,14 +194,14 @@ module.exports = {
 		 * @param {Object} data - product data to check
 		 * 
 		 * @returns {Boolean}
-		 */ 
+		 */
 		checkAuthor: {
 			auth: "required",
 			params: {
 				data: { type: "object" }
 			},
 			handler(ctx) {
-				if (ctx.params.data && ctx.params.data.orderCode && ctx.params.data.publisher) {
+				if (ctx.params.data?.orderCode && ctx.params.data.publisher) {
 					return this.adapter.find({
 						"query": {
 							"orderCode": ctx.params.data.orderCode,
@@ -209,7 +209,7 @@ module.exports = {
 						}
 					})
 						.then(products => {
-							if (products && products.length>0 && products[0].orderCode==ctx.params.data.orderCode) {
+							if (products && products.length > 0 && products[0].orderCode == ctx.params.data.orderCode) {
 								return true;
 							}
 						})
@@ -236,7 +236,7 @@ module.exports = {
 				id: { type: "string" }
 			},
 			handler(ctx) {
-				if ( ctx.meta.user && ctx.meta.user.type=="admin" ) { // TODO - add user verification for author
+				if (ctx.meta.user && ctx.meta.user.type == "admin") { // TODO - add user verification for author
 					let ids = [];
 					ids.push(ctx.params.id);
 					return ctx.call("products.rebuildProducts", {
@@ -259,7 +259,7 @@ module.exports = {
 			}
 		},
 
-		
+
 		/**
 		 * Internal action to rebuild products
 		 * DON'T MAKE this action AVAILABLE from your API
@@ -281,9 +281,9 @@ module.exports = {
 			},
 			handler(ctx) {
 				let chunkSize = 100;
-				let limit = (typeof ctx.params.limit !== "undefined") ?  ctx.params.limit : null;
-				let offset = (typeof ctx.params.offset !== "undefined") ?  ctx.params.offset : 0;
-				let ids = (typeof ctx.params.ids !== "undefined") ?  ctx.params.ids : null;
+				let limit = (typeof ctx.params.limit !== "undefined") ? ctx.params.limit : null;
+				let offset = (typeof ctx.params.offset !== "undefined") ? ctx.params.offset : 0;
+				let ids = (typeof ctx.params.ids !== "undefined") ? ctx.params.ids : null;
 				let self = this;
 				let result = {
 					count: 0,
@@ -293,7 +293,7 @@ module.exports = {
 
 				let filter = { query: {} };
 				// add ids
-				if (ids) { 
+				if (ids) {
 					let idsObjs = [];
 					ids.forEach(id => {
 						idsObjs.push(self.fixStringToId(id));
@@ -304,7 +304,7 @@ module.exports = {
 				}
 				// filter
 				// add limit and offset
-				if (limit && limit!=null) {
+				if (limit && limit != null) {
 					filter.limit = limit;
 				}
 				filter.offset = offset;
@@ -318,7 +318,7 @@ module.exports = {
 						filter.limit = chunkSize;
 
 						// start selecting the chunks
-						for (let i=0; i<chunksCount; i++) {
+						for (let i = 0; i < chunksCount; i++) {
 							// filter - set where chunk should start
 							filter.offset = chunkSize * i;
 							// create chunk data block
@@ -335,7 +335,7 @@ module.exports = {
 						}
 						return Promise.all(promisesChunks)
 							.then(chunks => {
-								for (let i=0; i<chunks.length; i++) {
+								for (let i = 0; i < chunks.length; i++) {
 									result.products = result.products.concat(chunks[i]);
 								}
 								return result;

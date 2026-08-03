@@ -301,8 +301,9 @@ module.exports = {
 							continue;
 						}
 						let val = arguments[i][prop];
-						if (typeof val === "object" && val !== null && val.constructor !== Array) {
-							if (!Object.hasOwn(original, prop) || typeof original[prop] !== "object" || original[prop] === null) {
+						// Deep-merge plain objects only; ObjectId/Date/Buffer are leaf values.
+						if (typeof val === "object" && val !== null && val.constructor === Object) {
+							if (!Object.hasOwn(original, prop) || typeof original[prop] !== "object" || original[prop] === null || original[prop].constructor !== Object) {
 								original[prop] = {};
 							}
 							this.updateObject(original[prop], val);
