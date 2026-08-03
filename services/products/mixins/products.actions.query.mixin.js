@@ -8,8 +8,8 @@ module.exports = {
 	actions: {
 		find: { // with price & tax 
 			params: {
-				populate: { type: "array", items: { type: "string"}, optional: true },
-				fields: { type: "array", items: { type: "string"}, optional: true },
+				populate: { type: "array", items: { type: "string" }, optional: true },
+				fields: { type: "array", items: { type: "string" }, optional: true },
 				offset: { type: "number", optional: true },
 				limit: { type: "number", optional: true },
 				sort: { type: "string", optional: true },
@@ -32,12 +32,12 @@ module.exports = {
 				}
 				this.logger.info("products.find filter after FRI:", JSON.stringify(filter));
 				return this.adapter.find(filter)
-					.then( results => {
-						if (results && results.length>0) {
+					.then(results => {
+						if (results && results.length > 0) {
 							results.forEach(result => {
 								result = self.priceByUser(result, ctx.meta.user);
 								result = self.getProductTaxData(
-									result, 
+									result,
 									SettingsMixin.getSiteSettings("business")?.taxData
 								);
 							});
@@ -58,8 +58,8 @@ module.exports = {
 		findAdmin: {
 			auth: "required",
 			params: {
-				populate: { type: "array", items: { type: "string"}, optional: true },
-				fields: { type: "array", items: { type: "string"}, optional: true },
+				populate: { type: "array", items: { type: "string" }, optional: true },
+				fields: { type: "array", items: { type: "string" }, optional: true },
 				offset: { type: "number", optional: true },
 				limit: { type: "number", optional: true },
 				sort: { type: "string", optional: true },
@@ -93,8 +93,8 @@ module.exports = {
 				limit: { type: "string", optional: true }
 			},
 			handler(ctx) {
-				let params = { 
-					category: ctx.params.category, 
+				let params = {
+					category: ctx.params.category,
 					filter: {}
 				};
 				if (ctx.params.limit && parseInt(ctx.params.limit) > 0) {
@@ -137,24 +137,24 @@ module.exports = {
 						// 1. category exists
 						if (category) {
 							let categoriesToListProductsIn = [ctx.params.category];
-							if (category.subsSlugs && category.subsSlugs.length>0) {
+							if (category.subsSlugs && category.subsSlugs.length > 0) {
 								categoriesToListProductsIn = category.subsSlugs;
 								categoriesToListProductsIn.push(ctx.params.category);
 							}
-							if ( categoriesToListProductsIn.length<1 ) {
+							if (categoriesToListProductsIn.length < 1) {
 								categoriesToListProductsIn = [categoriesToListProductsIn];
 							}
 							category["taxData"] = SettingsMixin.getSiteSettings("business")?.taxData?.global;
 
 							// fix filter if needed
-							let filter = { query: {}, limit: 30};
+							let filter = { query: {}, limit: 30 };
 							if (ctx.params.filter !== undefined && ctx.params.filter) {
 								filter = ctx.params.filter;
 							}
 
 							const { sanitizeMongoQuery } = require("../../../mixins/mongo.security");
 							// add queries to $and array
-							let query = {"$and": []};
+							let query = { "$and": [] };
 							if (filter.query !== undefined && filter.query) {
 								const safeClientQuery = sanitizeMongoQuery(filter.query);
 								for (let q in safeClientQuery) {
@@ -173,7 +173,7 @@ module.exports = {
 							filter.query = query;
 
 							// set max of results
-							if (filter.limit>100) {
+							if (filter.limit > 100) {
 								filter.limit = 100;
 							}
 							// sort
@@ -198,7 +198,7 @@ module.exports = {
 									})
 										.then(categoriesList => {
 											result["categories"] = categoriesList;
-											if ( JSON.stringify(filter.query) != "{\"categories\":{\"$in\":"+JSON.stringify(categoriesToListProductsIn)+"}}" ) {
+											if (JSON.stringify(filter.query) != "{\"categories\":{\"$in\":" + JSON.stringify(categoriesToListProductsIn) + "}}") {
 												return ctx.call("products.count", filter)
 													.then(filteredProductsCount => {
 														result["filteredProductsCount"] = filteredProductsCount;
@@ -264,18 +264,20 @@ module.exports = {
 			handler(ctx) {
 				const { sanitizeMongoQuery } = require("../../../mixins/mongo.security");
 				// fix filter if needed
-				let filter = { query: {}, limit: 100};
+				let filter = { query: {}, limit: 100 };
 				if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
-					filter.query = sanitizeMongoQuery(ctx.params.query);
+					filter.query = sanitizeMongoQuery(ctx.params.query, {
+						allowedOperators: ["$in"]
+					});
 				}
-				// if categories sent, use them
+				// categories come from the sanitized query (not the raw params)
 				let categories = [];
-				if ( ctx.params.query?.categories && typeof ctx.params.query?.categories["$in"] !== "undefined") {
-					categories = ctx.params.query?.categories["$in"];
+				if (Array.isArray(filter.query.categories?.["$in"])) {
+					categories = filter.query.categories["$in"];
 				}
 
 				// add queries to $and array
-				let query = {"$and": []};
+				let query = { "$and": [] };
 				if (typeof filter.query !== "undefined" && filter.query) {
 					for (let q in filter.query) {
 						if (Object.hasOwn(filter.query, q)) {
@@ -289,14 +291,14 @@ module.exports = {
 				filter.query = query;
 
 				// set offset
-				if (ctx.params.offset !== undefined && ctx.params.offset>0) {
+				if (ctx.params.offset !== undefined && ctx.params.offset > 0) {
 					filter.offset = ctx.params.offset;
 				}
 				// set max of results
 				if (ctx.params.limit !== undefined && ctx.params.limit) {
 					filter.limit = ctx.params.limit;
 				}
-				if (filter.limit>100) {
+				if (filter.limit > 100) {
 					filter.limit = 100;
 				}
 				// sort
@@ -313,16 +315,16 @@ module.exports = {
 							"results": categoryProducts
 						};
 
-						if (typeof ctx.params.minimalData !== "undefined" && ctx.params.minimalData==true) {
+						if (typeof ctx.params.minimalData !== "undefined" && ctx.params.minimalData == true) {
 							return result;
 						} else {
 							return ctx.call("products.getMinMaxPrice", {
 								categories: categories
 							})
 								.then(minMaxPrice => {
-									if ( minMaxPrice.length>0 ) {
+									if (minMaxPrice.length > 0) {
 										minMaxPrice = minMaxPrice[0];
-										if ( typeof minMaxPrice._id !== "undefined" ) {
+										if (typeof minMaxPrice._id !== "undefined") {
 											delete minMaxPrice._id;
 										}
 									}
@@ -358,12 +360,12 @@ module.exports = {
 
 
 		/**
-     * Mongo specific search with _id included
-     *
-     * @param {Object} query - original query with _id
-     *
-     * @returns {Object}
-     */
+		 * Mongo specific search with _id included
+		 *
+		 * @param {Object} query - original query with _id
+		 *
+		 * @returns {Object}
+		 */
 		findWithId: {
 			params: {
 				query: { type: "object" }
@@ -374,20 +376,20 @@ module.exports = {
 			handler(ctx) {
 				let queryObject = ctx.params.query;
 				let self = this;
-				Object.keys(queryObject).forEach(function(key) {
-					if (key==="_id" && typeof queryObject[key] === "string") {
+				Object.keys(queryObject).forEach(function (key) {
+					if (key === "_id" && typeof queryObject[key] === "string") {
 						queryObject[key] = self.fixStringToId(queryObject[key]);
 					}
 				});
 				return this.adapter.find({
 					"query": queryObject
 				})
-					.then( results => {
-						if (results && results.length>0) {
+					.then(results => {
+						if (results && results.length > 0) {
 							results.forEach(result => {
 								result = self.priceByUser(result, ctx.meta.user);
 								result = self.getProductTaxData(
-									result, 
+									result,
 									SettingsMixin.getSiteSettings("business")?.taxData
 								);
 							});
@@ -420,7 +422,7 @@ module.exports = {
 			// },
 			handler(ctx) {
 				let edit = false;
-				if (ctx.params.edit && ctx.params.edit=="true") {
+				if (ctx.params.edit && ctx.params.edit == "true") {
 					edit = true;
 				}
 				return this.adapter.findById(ctx.params.product)
@@ -429,7 +431,7 @@ module.exports = {
 							return this.detailActionAddBasicData(ctx, found, edit);
 						} else { // no product found
 							this.logger.info("products.detail - product not found");
-							return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found"}]));
+							return Promise.reject(new MoleculerClientError("Product not found!", 400, "", [{ field: "product", message: "not found" }]));
 						}
 					})
 					.catch(err => {
@@ -438,14 +440,14 @@ module.exports = {
 					})
 					.then(found => {
 						// optional data
-						if (found && typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim()!="") {
+						if (found && typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim() != "") {
 							// get Variations of this product
 							return this.detailActionAddVariatonData(ctx, found);
 						}
 						return found;
 					})
 					.then(found => {
-						if (found && typeof found.data!=="undefined" && found.data.related && found.data.related.products && found.data.related.products.length>0) {
+						if (found && typeof found.data !== "undefined" && found.data.related && found.data.related.products && found.data.related.products.length > 0) {
 							// get products Related to this product
 							return this.detailActionAddRelatedData(ctx, found);
 						}
@@ -474,14 +476,18 @@ module.exports = {
 			handler(ctx) {
 				const categories = ctx.params.categories;
 				return this.adapter.collection.aggregate([
-					{ "$match": {
-						"categories": {"$in": categories}
-					}},
-					{ "$group": {
-						"_id": null,
-						"max": { "$max": "$price" },
-						"min": { "$min": "$price" }
-					}}
+					{
+						"$match": {
+							"categories": { "$in": categories }
+						}
+					},
+					{
+						"$group": {
+							"_id": null,
+							"max": { "$max": "$price" },
+							"min": { "$min": "$price" }
+						}
+					}
 				]).toArray()
 					.then(minMaxPrice => {
 						return minMaxPrice;
@@ -514,13 +520,17 @@ module.exports = {
 				let categories = ctx.params.categories;
 				this.logger.debug("product.getCategoryProductsProperties categories: ", categories);
 				return this.adapter.collection.aggregate([
-					{ "$match": {
-						"categories": {"$in": categories}
-					}},
-					{ "$group": {
-						"_id": null,
-						"properties": { "$addToSet": "$properties" },
-					}},
+					{
+						"$match": {
+							"categories": { "$in": categories }
+						}
+					},
+					{
+						"$group": {
+							"_id": null,
+							"properties": { "$addToSet": "$properties" },
+						}
+					},
 					{ "$limit": 600 }
 				]).toArray()
 					.then(catProps => {

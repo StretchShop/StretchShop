@@ -19,19 +19,19 @@ module.exports = {
 			},
 			handler(ctx) {
 				let coreData = this.getCoreDataBase(ctx);
-				
+
 				delete coreData.settings.business.account;
 				// have user, add translations
-				if ( ctx.meta.user && ctx.meta.user._id ) {
+				if (ctx.meta.user?._id) {
 					return ctx.call("users.me")
 						.then(user => {
-							if (user && user.user) {
+							if (user?.user) {
 								user.user = this.removePrivateData(user.user);
 								coreData.user = user.user;
 								// if no transLang use user.settings.lang
-								if ( (ctx.params.transLang || ctx.params.transLang.trim()=="") && 
-								coreData.user.settings && coreData.user.settings.lang && 
-								this.isValidTranslationLanguage(coreData.user.settings.lang, coreData.langs) ) {
+								if ((ctx.params.transLang || ctx.params.transLang.trim() == "") &&
+									coreData.user.settings?.lang &&
+									this.isValidTranslationLanguage(coreData.user.settings.lang, coreData.langs)) {
 									coreData.lang = this.getValueByCode(coreData.langs, coreData.user.settings.lang);
 								}
 							}
@@ -41,7 +41,7 @@ module.exports = {
 							})
 								.then(translation => {
 									coreData.translation = translation;
-									if (ctx.params.transLang!=coreData.lang.code) {
+									if (ctx.params.transLang != coreData.lang.code) {
 										coreData.lang = this.getValueByCode(coreData.langs, ctx.params.transLang);
 									}
 									coreData = this.specialValuesFromContext(ctx, coreData);
@@ -53,8 +53,8 @@ module.exports = {
 						});
 				} else { // no user
 					// get translation if language not default
-					if ( coreData.lang.code && coreData.langs &&
-					this.isValidTranslationLanguage(coreData.lang.code, coreData.langs) ) {
+					if (coreData.lang.code && coreData.langs &&
+						this.isValidTranslationLanguage(coreData.lang.code, coreData.langs)) {
 						return ctx.call("users.readTranslation", {
 							lang: coreData.lang.code,
 							blockName: ctx.params.transBlockName

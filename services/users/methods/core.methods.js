@@ -7,6 +7,8 @@ const jwt = require("jsonwebtoken");
 
 // settings
 const SettingsMixin = require("../../../mixins/settings.mixin");
+// only the version string — never expose full package.json (deps, scripts, etc.)
+const { version: stretchShopVersion } = require("../../../package.json");
 
 
 module.exports = {
@@ -66,7 +68,9 @@ module.exports = {
 				}
 			}
 
-			let additional = {};
+			let additional = {
+				version: stretchShopVersion || null
+			};
 			// get additional settings eg. from 3rd parties like google
 			if (process.env.GOOGLE_TAG) {
 				additional.googleTag = process.env.GOOGLE_TAG.trim();
