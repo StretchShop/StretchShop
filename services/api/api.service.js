@@ -264,6 +264,7 @@ module.exports = {
 							// read index file
 							fs.readFile(indexPath)
 								.then( index => {
+									res.setHeader("Content-Type", "text/html; charset=utf-8");
 									res.end(index);
 								})
 								.catch( (error) => {

@@ -25,12 +25,10 @@ module.exports = {
 				}
 				let filter = ctx.params;
 				let self = this;
-				this.logger.info("products.find filter before FRI:", JSON.stringify(filter));
 				this.fixRequestIds(filter);
 				if (filter.query?.["$and"] && Array.isArray(filter.query["$and"]) && filter.query["$and"].length <= 1) {
 					filter.query = filter.query["$and"][0];
 				}
-				this.logger.info("products.find filter after FRI:", JSON.stringify(filter));
 				return this.adapter.find(filter)
 					.then(results => {
 						if (results && results.length > 0) {
@@ -97,7 +95,7 @@ module.exports = {
 					category: ctx.params.category,
 					filter: {}
 				};
-				if (ctx.params.limit && parseInt(ctx.params.limit) > 0) {
+				if (ctx.params.limit && Number.parseInt(ctx.params.limit) > 0) {
 					params.filter = {
 						limit: ctx.params.limit
 					};
@@ -265,11 +263,13 @@ module.exports = {
 				const { sanitizeMongoQuery } = require("../../../mixins/mongo.security");
 				// fix filter if needed
 				let filter = { query: {}, limit: 100 };
-				if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
+				this.logger.info("products.findWithCount filter before sanitizeMongoQuery:", JSON.stringify(ctx.params.query));
+				if (ctx.params.query !== undefined && ctx.params.query) {
 					filter.query = sanitizeMongoQuery(ctx.params.query, {
-						allowedOperators: ["$in"]
+						allowedOperators: ["$in", "$and", "$or", "$regex"]
 					});
 				}
+				this.logger.info("products.findWithCount filter after sanitizeMongoQuery:", JSON.stringify(filter.query));
 				// categories come from the sanitized query (not the raw params)
 				let categories = [];
 				if (Array.isArray(filter.query.categories?.["$in"])) {
@@ -278,7 +278,7 @@ module.exports = {
 
 				// add queries to $and array
 				let query = { "$and": [] };
-				if (typeof filter.query !== "undefined" && filter.query) {
+				if (filter.query !== undefined && filter.query) {
 					for (let q in filter.query) {
 						if (Object.hasOwn(filter.query, q)) {
 							let obj = {};
@@ -315,7 +315,7 @@ module.exports = {
 							"results": categoryProducts
 						};
 
-						if (typeof ctx.params.minimalData !== "undefined" && ctx.params.minimalData == true) {
+						if (ctx.params.minimalData !== undefined && ctx.params.minimalData == true) {
 							return result;
 						} else {
 							return ctx.call("products.getMinMaxPrice", {
@@ -324,7 +324,7 @@ module.exports = {
 								.then(minMaxPrice => {
 									if (minMaxPrice.length > 0) {
 										minMaxPrice = minMaxPrice[0];
-										if (typeof minMaxPrice._id !== "undefined") {
+										if (minMaxPrice._id !== undefined) {
 											delete minMaxPrice._id;
 										}
 									}
@@ -440,14 +440,14 @@ module.exports = {
 					})
 					.then(found => {
 						// optional data
-						if (found && typeof found.variationGroupId !== "undefined" && found.variationGroupId && found.variationGroupId.trim() != "") {
+						if (found?.variationGroupId !== undefined && found.variationGroupId && found.variationGroupId.trim() != "") {
 							// get Variations of this product
 							return this.detailActionAddVariatonData(ctx, found);
 						}
 						return found;
 					})
 					.then(found => {
-						if (found && typeof found.data !== "undefined" && found.data.related && found.data.related.products && found.data.related.products.length > 0) {
+						if (found?.data !== undefined && found.data.related?.products && found.data.related.products.length > 0) {
 							// get products Related to this product
 							return this.detailActionAddRelatedData(ctx, found);
 						}

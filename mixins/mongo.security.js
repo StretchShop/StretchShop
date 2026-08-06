@@ -18,8 +18,10 @@ const FORBIDDEN_OPERATORS = new Set([
 	"$function",
 	"$accumulator",
 	"$jsonSchema",
-	"$regex",
 ]);
+
+/** Regex metacharacters stripped from `$regex` values. */
+const REGEX_META_CHARS = /[.*+?^${}()|[\]\\]/g;
 
 /**
  * @param {*} value
@@ -56,6 +58,12 @@ function sanitizeOperatorValue(op, value) {
 	if (op === "$exists") {
 		return typeof value === "boolean" ? value : undefined;
 	}
+	if (op === "$regex") {
+		if (typeof value !== "string") {
+			return undefined;
+		}
+		return new RegExp(value.replace(REGEX_META_CHARS, ""), "i");
+	}
 	// Unknown allowlisted op: only accept scalars / scalar arrays
 	if (isSafeScalar(value)) {
 		return value;
@@ -72,7 +80,8 @@ function sanitizeOperatorValue(op, value) {
  *
  * By default every `$…` key is removed. Pass `allowedOperators` to keep
  * specific operators whose values pass type checks (e.g. `$in` with an
- * array of strings/numbers). Dangerous operators are always dropped.
+ * array of strings/numbers). Logical `$or`/`$and`/`$nor` values are
+ * recursively sanitized. Dangerous operators are always dropped.
  *
  * @param {*} value
  * @param {{ allowedOperators?: string[] }} [options]
@@ -98,6 +107,26 @@ function sanitizeMongoQuery(value, options = {}) {
 		}
 		if (key.startsWith("$")) {
 			if (!allowedOperators.has(key) || FORBIDDEN_OPERATORS.has(key)) {
+				continue;
+			}
+			// Logical ops hold arrays of nested query objects — sanitize recursively
+			if (key === "$or" || key === "$and" || key === "$nor") {
+				if (!Array.isArray(value[key])) {
+					continue;
+				}
+				const clauses = value[key]
+					.map((item) => sanitizeMongoQuery(item, options))
+					.filter((item) =>
+						item != null &&
+						typeof item === "object" &&
+						!Array.isArray(item) &&
+						!(item instanceof Date) &&
+						!(item instanceof RegExp) &&
+						Object.keys(item).length > 0
+					);
+				if (clauses.length > 0) {
+					out[key] = clauses;
+				}
 				continue;
 			}
 			const cleaned = sanitizeOperatorValue(key, value[key]);

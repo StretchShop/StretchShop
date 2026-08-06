@@ -27,7 +27,7 @@ module.exports = {
 						return this.entityChanged("created", json, ctx)
 							.then(() => {
 								this.logger.info("order.create - created do afterSaveActions:", json);
-								self.orderAfterSaveActions(ctx, {order: json});
+								self.orderAfterSaveActions(ctx, { order: json });
 								return json;
 							});
 					})
@@ -61,7 +61,7 @@ module.exports = {
 				return this.adapter.findById(entity.id)
 					.then(found => {
 						if (found) { // entity found, update it
-							if ( entity ) {
+							if (entity) {
 								entity = this.countOrderPrices("all", null, entity);
 								// update dates
 								entity.dates.dateChanged = new Date();
@@ -79,7 +79,7 @@ module.exports = {
 										return this.entityChanged("updated", json, ctx)
 											.then(() => {
 												this.logger.info("order.update - updated order:", json);
-												self.orderAfterSaveActions(ctx, {order: json});
+												self.orderAfterSaveActions(ctx, { order: json });
 												return json;
 											});
 									})
@@ -140,7 +140,7 @@ module.exports = {
 						order.dates.dateCanceled = new Date();
 						if (order.data["canceledUserId"]) { order.dates["canceledUserId"] = null; }
 						order.data.canceledUserId = userId;
-						
+
 						let orderId = order._id.toString();
 						delete order.id;
 						delete order._id;
@@ -205,10 +205,10 @@ module.exports = {
 				let self = this;
 
 				// check if we have logged user
-				if ( ctx.meta.user && ctx.meta.user._id ) { // we have user
+				if (ctx.meta.user?._id) { // we have user
 					const { sanitizeMongoQuery, allowlistQueryFields } = require("../../../mixins/mongo.security");
-					let filter = { query: {}, limit: 20};
-					if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
+					let filter = { query: {}, limit: 20 };
+					if (ctx.params.query !== undefined && ctx.params.query) {
 						if (ctx.meta.user.type === "admin" && ctx.params.fullData === true) {
 							filter.query = sanitizeMongoQuery(ctx.params.query);
 						} else {
@@ -218,30 +218,30 @@ module.exports = {
 						}
 					}
 					// update filter acording to user
-					if ( ctx.meta.user.type=="admin" && typeof ctx.params.fullData!=="undefined" && ctx.params.fullData==true ) {
+					if (ctx.meta.user.type == "admin" && ctx.params.fullData !== undefined && ctx.params.fullData) {
 						// admin can browse all orders
 					} else {
 						filter.query["user.id"] = ctx.meta.user._id.toString();
 					}
-					filter.query["$or"] = [{"status":"saved"}, {"status":"sent"}, {"status":"paid"}, {"status":"expeded"}];
+					filter.query["$or"] = [{ "status": "saved" }, { "status": "sent" }, { "status": "paid" }, { "status": "expeded" }];
 					// set offset
-					if (ctx.params.offset && ctx.params.offset>0) {
+					if (ctx.params.offset && ctx.params.offset > 0) {
 						filter.offset = ctx.params.offset;
 					}
 					// set max of results
-					if (typeof ctx.params.limit !== "undefined" && ctx.params.limit) {
+					if (ctx.params.limit !== undefined && ctx.params.limit) {
 						filter.limit = ctx.params.limit;
 					}
-					if (filter.limit>10) {
+					if (filter.limit > 10) {
 						filter.limit = 10;
 					}
 					// sort
 					filter.sort = "-dates.dateCreated";
-					if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
+					if (ctx.params.sort !== undefined && ctx.params.sort) {
 						filter.sort = ctx.params.sort;
 					}
 
-					if ( filter?.query?._id && filter.query._id.trim()!="" ) {
+					if (filter?.query?._id && filter.query._id.trim() != "") {
 						filter.query._id = this.fixStringToId(filter.query._id);
 						filter.limit = 1;
 					}
@@ -249,9 +249,9 @@ module.exports = {
 					// send query
 					return ctx.call("orders.find", filter)
 						.then(found => {
-							if (found?.constructor===Array) { // order found in datasource, return it
+							if (found?.constructor === Array) { // order found in datasource, return it
 								// remove html render of invoice if more than 1 result
-								if (found.length>1) {
+								if (found.length > 1) {
 									for (const element of found) {
 										if (element?.invoice?.html) {
 											delete element.invoice.html;
@@ -275,16 +275,16 @@ module.exports = {
 									})
 									.catch(error => {
 										self.logger.error("orders.listOrders count error", error);
-										return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found"}]));
+										return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found" }]));
 									});
 							} else { // no order found in datasource
 								self.logger.error("orders.listOrders find error", found);
-								return Promise.reject(new MoleculerClientError("Orders not found!.", 400, "", [{ field: "orders", message: "not found"}]));
+								return Promise.reject(new MoleculerClientError("Orders not found!.", 400, "", [{ field: "orders", message: "not found" }]));
 							}
 						})
 						.catch(error => {
 							self.logger.error("orders.listOrders find error", error);
-							return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found"}]));
+							return Promise.reject(new MoleculerClientError("Orders not found!", 400, "", [{ field: "orders", message: "not found" }]));
 						});
 				}
 
@@ -298,10 +298,10 @@ module.exports = {
 		 * 
 		 * @actions
 		 * 
-     * @param {String} supplier - supplier name (eg. stripe)
-     * @param {String} action - action name (eg. geturl)
-     * @param {String} orderId - id of order to pay
-     * @param {Object} data - data specific for payment
+		 * @param {String} supplier - supplier name (eg. stripe)
+		 * @param {String} action - action name (eg. geturl)
+		 * @param {String} orderId - id of order to pay
+		 * @param {Object} data - data specific for payment
 		 * 
 		 * @returns {Object} Unified result from related action
 		 */
