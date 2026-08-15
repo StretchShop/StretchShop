@@ -25,7 +25,18 @@ module.exports = {
 			this.logger.info("orders.orderAfterSaveActions() - this.settings.order.sendingOrder: ", this.settings.order.sendingOrder);
 			if ( this.settings.order.sendingOrder && this.settings.order.sendingOrder.url && this.settings.order.sendingOrder.url.toString().trim()!="" ) {
 				let auth = "Basic " + Buffer.from(this.settings.order.sendingOrder.login + ":" + this.settings.order.sendingOrder.password).toString("base64");
-				return fetch(this.settings.order.sendingOrder.url+"?action=order", {
+				let sendingUrl;
+				try {
+					sendingUrl = new URL(this.settings.order.sendingOrder.url);
+				} catch(e) {
+					this.logger.error("orders.orderAfterSaveActions() - invalid sendingOrder URL:", e);
+					return orderProcessedResult;
+				}
+				if (sendingUrl.protocol !== "https:") {
+					this.logger.error("orders.orderAfterSaveActions() - sendingOrder URL must use https protocol");
+					return orderProcessedResult;
+				}
+				return fetch(sendingUrl.origin + sendingUrl.pathname + "?action=order", {
 					method: "post",
 					body:    JSON.stringify({"shopId": process.env.SITE_NAME,"order":orderProcessedResult.order}),
 					headers: { "Content-Type": "application/json", "Authorization": auth },
