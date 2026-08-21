@@ -88,7 +88,19 @@ module.exports = {
 
 							// FIX - NO relatedId with Stripe 
 							if (relatedId && relatedId !== null) {
-								return self.suspendSubscription(ctx, found, relatedId);
+								return self.suspendSubscription(ctx, found, relatedId)
+									.then(result => {
+										if (
+											self.isUserInitiatedSubscriptionCancel(altUser) &&
+											result?.success &&
+											result?.message === "suspend sent"
+										) {
+											const subscriptionForEmail = result.data?.subscription || found;
+											return self.notifyUserSubscriptionCancelled(ctx, subscriptionForEmail)
+												.then(() => result);
+										}
+										return result;
+									});
 							} else {
 								result.error = "relatedId not found";
 

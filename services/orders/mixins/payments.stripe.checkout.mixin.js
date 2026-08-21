@@ -203,7 +203,7 @@ module.exports = {
 			cache: false,
 			auth: "required",
 			params: {
-				orderId: { type: "object" },
+				orderId: { type: "string", min: 3 },
 				data: { type: "object", optional: true }
 			},
 			handler(ctx) {
@@ -215,14 +215,20 @@ module.exports = {
 				if (ctx.params.orderId && ctx.params.orderId.trim() != "") {
 					return this.adapter.findById(ctx.params.orderId)
 						.then(order => {
+							if (!order) {
+								return this.Promise.reject(new MoleculerClientError("Item not found!", 404));
+							}
 							const orderPaymentStatus = self.getOrderPaymentStatus(order);
-							console.log("orderPaymentStatus: ", orderPaymentStatus);
-							if (data.lastPrepared === "products") {
+							self.logger.info("payments.stripe.mixin stripeOrderNotification() orderPaymentStatus:", orderPaymentStatus);
+							if (data?.lastPrepared === "products") {
 								// update order product status to "prepared"
 							} else {
 								// check if subscription status matches status in order
 								// update order subscription status to "prepared"
 							}
+							result.success = true;
+							result.paymentStatus = orderPaymentStatus;
+							return result;
 						})
 						.catch(error => {
 							this.logger.error("order.payment - find order error: ", error);

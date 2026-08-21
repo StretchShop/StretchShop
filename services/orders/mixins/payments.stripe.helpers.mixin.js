@@ -54,7 +54,7 @@ module.exports = {
 		 */
 		getPaidTotalStripe(paymentData) {
 			// calculate total amount paid for Stripe
-			for (const element of paymentData.lastResponseResult) {
+			for (const element of paymentData.lastResponseResult || []) {
 				if ( // subscription (regular payments)
 					element.status && 
 					element.status == "paid" && 
@@ -71,6 +71,11 @@ module.exports = {
 					paymentData.paidAmountTotal += parseFloat(
 						element.amount_received / 100
 					);
+				} else if (
+					element.status === "succeeded" &&
+					typeof element.amount === "number"
+				) {
+					paymentData.paidAmountTotal += parseFloat(element.amount);
 				}
 			}
 		},

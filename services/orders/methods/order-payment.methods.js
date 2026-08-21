@@ -29,6 +29,14 @@ module.exports = {
 					this.updatePaidOrderData(updatedOrder, paymentData);
 				}
 			}
+			if (order.dates?.emailPaidSent && order.invoice?.id) {
+				this.logger.info("orders.orderPaymentReceived() - skip invoice/email, already sent", { orderId: order._id });
+				return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+					.then(orderUpdated => {
+						this.entityChanged("updated", orderUpdated, ctx);
+						return orderUpdated.invoice;
+					});
+			}
 			// order should already have updated amount paid in 
 			return this.generateInvoice(order, ctx)
 				.then(invoice => {
@@ -106,6 +114,49 @@ module.exports = {
 		},
 
 
+		getPaymentResultDedupeKey(element) {
+			if (!element || typeof element !== "object") {
+				return null;
+			}
+			const object = element.originalData?.data?.object || element;
+			return object.payment_intent || element.payment_intent || element.id || null;
+		},
+
+
+		extractPaymentAmount(element) {
+			if (!element || typeof element !== "object") {
+				return 0;
+			}
+			if (element.status !== "succeeded") {
+				return 0;
+			}
+			if (element.amount_received != null) {
+				return parseFloat(element.amount_received) / 100;
+			}
+			if (typeof element.amount === "number") {
+				return parseFloat(element.amount) || 0;
+			}
+			return 0;
+		},
+
+
+		calculatePaidAmountTotal(paymentData) {
+			let total = 0;
+			const seen = new Set();
+			for (const element of paymentData?.lastResponseResult || []) {
+				const key = this.getPaymentResultDedupeKey(element);
+				if (key) {
+					if (seen.has(key)) {
+						continue;
+					}
+					seen.add(key);
+				}
+				total += this.extractPaymentAmount(element);
+			}
+			return total;
+		},
+
+
 		/**
 		 * 
 		 * @param {Object} order 
@@ -118,27 +169,22 @@ module.exports = {
 			order.status = "paid";
 			order.data.paymentData.lastStatus = paymentData.status;
 			order.data.paymentData.lastDate = new Date();
-			order.data.paymentData.paidAmountTotal = 0;
 			if ( !order.data.paymentData.lastResponseResult ) {
 				order.data.paymentData.lastResponseResult = [];
 			}
-			order.data.paymentData.lastResponseResult.push(paymentData);
-			// calculate total amount paid
-			for (const element of order.data.paymentData.lastResponseResult) {
-				if (element.state && 
-					element.state == "approved" && 
-					element.transactions) {
-					for (let j=0; j<element.transactions.length; j++) {
-						if (element.transactions[j].amount && 
-							element.transactions[j].amount.total) {
-							order.data.paymentData.paidAmountTotal += parseFloat(
-								element.transactions[j].amount.total
-							);
-						}
-					}
-				}
+			const paymentId = paymentData?.id;
+			const alreadyLogged = paymentId && order.data.paymentData.lastResponseResult.some(
+				(element) => element && element.id === paymentId
+			);
+			if (paymentData && !alreadyLogged) {
+				order.data.paymentData.lastResponseResult.push(paymentData);
 			}
-			// calculate how much to pay
+			order.data.paymentData.paidAmountTotal = this.calculatePaidAmountTotal(order.data.paymentData);
+			if (!order.data.paymentData.paidAmountTotal && paymentData?.status === "succeeded") {
+				order.data.paymentData.paidAmountTotal = parseFloat(
+					paymentData?.amount || order.prices?.priceTotal || 0
+				) || 0;
+			}
 			order.prices.priceTotalToPay = order.prices.priceTotal - order.data.paymentData.paidAmountTotal;
 
 			return order;

@@ -4,6 +4,24 @@ const { MoleculerClientError } = require("moleculer").Errors;
 
 module.exports = {
 	methods: {
+		isUserInitiatedSubscriptionCancel(altUser) {
+			return !altUser || altUser === "user";
+		},
+
+		notifyUserSubscriptionCancelled(ctx, subscription) {
+			const siteName = ctx.meta?.siteSettings?.name || process.env.SITE_NAME || "StretchShop";
+			return this.sendSubscriptionEmail(ctx, subscription, "subscription/cancelled", {
+				subject: siteName + " - Subscription cancelled"
+			})
+				.catch(err => {
+					this.logger.error(
+						"subscriptions.notifyUserSubscriptionCancelled - email failed:",
+						err?.message || err
+					);
+					return false;
+				});
+		},
+
 		suspendSubscription: function(ctx, subscription, relatedId) {
 			let self = this;
 			let result = { success: false, url: null, message: "error" };

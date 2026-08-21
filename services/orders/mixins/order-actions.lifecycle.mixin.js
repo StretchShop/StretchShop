@@ -79,7 +79,15 @@ module.exports = {
 										return this.entityChanged("updated", json, ctx)
 											.then(() => {
 												this.logger.info("order.update - updated order:", json);
-												self.orderAfterSaveActions(ctx, { order: json });
+												// Confirmation email / cart-clear already ran when the order
+												// was first accepted. Later updates (Stripe paymentIntent,
+												// webhooks, subscription IDs) must not send it again.
+												const alreadyAccepted = json.dates?.emailSent || [
+													"saved", "sent", "paid", "expeded", "prepared", "finished"
+												].includes(json.status);
+												if (!alreadyAccepted) {
+													self.orderAfterSaveActions(ctx, { order: json });
+												}
 												return json;
 											});
 									})
@@ -256,7 +264,7 @@ module.exports = {
 										if (element?.invoice?.html) {
 											delete element.invoice.html;
 											delete element.data;
-											delete element.user.data.stripe;
+											delete element.user?.data?.stripe;
 										}
 									}
 								}

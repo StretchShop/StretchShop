@@ -4,12 +4,73 @@ const { MoleculerClientError } = require("moleculer").Errors;
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const emailTemplate = require("../../../mixins/email.mixin");
+const SettingsMixin = require("../../../mixins/settings.mixin");
+
+function joinUrl(base, path) {
+	if (!path) {
+		return base || "";
+	}
+	if (/^https?:\/\//i.test(path)) {
+		return path;
+	}
+	if (!base) {
+		return path;
+	}
+	return String(base).replace(/\/+$/, "") + "/" + String(path).replace(/^\/+/, "");
+}
+
+function resolveEmailAssetUrl(fileOrPath, ctx) {
+	if (!fileOrPath) {
+		return "";
+	}
+	if (/^https?:\/\//i.test(fileOrPath)) {
+		return fileOrPath;
+	}
+	const site = ctx.meta?.siteSettings || {};
+	const assetsBase = process.env.ASSETS_URL || site.url || process.env.SITE_URL || "";
+	if (!String(fileOrPath).includes("/")) {
+		return joinUrl(assetsBase, "assets/_site/" + fileOrPath);
+	}
+	return joinUrl(assetsBase, fileOrPath);
+}
+
+/**
+ * Shared values for the language-specific main email layout (logo, contacts, site).
+ */
+function buildEmailLayoutData(ctx) {
+	const site = ctx.meta?.siteSettings || {};
+	const business = SettingsMixin.getSiteSettings("business") || {};
+	const company = business.invoiceData?.company || {};
+	const webname = site.name || process.env.SITE_NAME || "StretchShop";
+	const supportEmail = site.supportEmail || process.env.SITE_SUPPORT_EMAIL || company.contacts?.email || "";
+	const siteUrl = site.url || process.env.SITE_URL || "";
+	const logoFile = site.imgLogo || process.env.SITE_IMG_LOGO || "logo.svg";
+	const headerFile = site.imgSiteEmailHeader || process.env.SITE_IMG_EMAIL_HEADER || logoFile;
+
+	return {
+		webname: webname,
+		support_email: supportEmail,
+		layout: {
+			webname: webname,
+			siteUrl: siteUrl,
+			supportEmail: supportEmail,
+			logoUrl: resolveEmailAssetUrl(headerFile, ctx),
+			headerImageUrl: resolveEmailAssetUrl(headerFile, ctx),
+			year: new Date().getFullYear(),
+			company: company
+		}
+	};
+}
 
 module.exports = {
 	actions: {
 		/**
 		 * Send email based on template and data for it
 		 * Auth is required!
+		 *
+		 * Renders `template-{lang}.{html,txt}` and wraps the compiled body in
+		 * `main-{lang}.{html,txt}` (header with logo, footer with contacts).
+		 * Falls back to `main-en` when a language layout is missing.
 		 *
 		 * @actions
 		 *
@@ -41,30 +102,41 @@ module.exports = {
 					return Promise.reject(err);
 				}
 
-				ctx.params.settings = (typeof ctx.params.settings !== "undefined") ?  ctx.params.settings : null;
-				ctx.params.functionSettings = (typeof ctx.params.functionSettings !== "undefined") ?  ctx.params.functionSettings : null;
+				ctx.params.settings = (typeof ctx.params.settings !== "undefined") ? ctx.params.settings : null;
+				ctx.params.functionSettings = (typeof ctx.params.functionSettings !== "undefined") ? ctx.params.functionSettings : null;
 				// set language of template
 				let langCode = (ctx.meta.localsDefault && ctx.meta.localsDefault.lang) || "null";
-				if ( ctx.params.functionSettings && typeof ctx.params.functionSettings.language !== "undefined" && ctx.params.functionSettings.language ) {
+				if (ctx.params.functionSettings && typeof ctx.params.functionSettings.language !== "undefined" && ctx.params.functionSettings.language) {
 					langCode = ctx.params.functionSettings.language;
 				}
-				if ( (langCode == "null" || !langCode) && ctx.params.data && ctx.params.data.order && ctx.params.data.order.lang ) {
+				if ((langCode == "null" || !langCode) && ctx.params.data && ctx.params.data.order && ctx.params.data.order.lang) {
 					langCode = ctx.params.data.order.lang;
 				}
-				if ( typeof langCode.code !== "undefined" ) {
+				if (typeof langCode.code !== "undefined") {
 					langCode = langCode.code;
 				}
-				// load templates
-				return emailTemplate(ctx.params.template+"-"+langCode, ctx.params.data)
-					.then((templates)=>{
+				const layoutDefaults = buildEmailLayoutData(ctx);
+				const templateData = { ...layoutDefaults, ...(ctx.params.data || {}) };
+				if (!templateData.webname) {
+					templateData.webname = layoutDefaults.webname;
+				}
+				if (!templateData.support_email) {
+					templateData.support_email = layoutDefaults.support_email;
+				}
+				templateData.layout = { ...layoutDefaults.layout, ...(templateData.layout || {}) };
+				// load body templates and wrap them in the language-specific main layout
+				return emailTemplate(ctx.params.template + "-" + langCode, templateData, undefined, {
+					layout: "main-" + langCode
+				})
+					.then((templates) => {
 						let transporter = nodemailer.createTransport(this.settings.mailSettings.smtp);
 
 						// Clone defaults — never mutate shared mailSettings.defaultOptions
 						// (otherwise subject/body from one email leak into later sends).
 						let mailOptions = Object.assign({}, this.settings.mailSettings.defaultOptions);
-						if ( ctx.params.settings ) {
+						if (ctx.params.settings) {
 							for (let newProperty in ctx.params.settings) {
-								if ( Object.prototype.hasOwnProperty.call(ctx.params.settings,newProperty) ) {
+								if (Object.prototype.hasOwnProperty.call(ctx.params.settings, newProperty)) {
 									mailOptions[newProperty] = ctx.params.settings[newProperty];
 								}
 							}
@@ -78,7 +150,7 @@ module.exports = {
 						}
 						this.logger.info("users.sendEmail - Trying to send email with these options:", mailOptions);
 
-						let emailSentResponse = new Promise(function(resolve, reject) {
+						let emailSentResponse = new Promise(function (resolve, reject) {
 							transporter.sendMail(mailOptions, (error, info) => {
 								if (error) {
 									self.logger.error("users.sendEmail sendMail error: ", error);
@@ -100,7 +172,7 @@ module.exports = {
 								}
 								// Clear block after a successful send
 								self._emailBlockedUntil = null;
-								if ( info && info.messageId ) {
+								if (info && info.messageId) {
 									self.logger.info("users.sendEmail sendMail MessageId: ", info.messageId);
 								}
 								// Preview only available when sending through an Ethereal account
@@ -146,33 +218,33 @@ module.exports = {
 				let email = ctx.params.email.toString().replace("---", "@").replace(re, ".");
 				const TIME_TO_PAST = 60 * 60 * 1000 * 2; // 2 hours
 				let oldDate = new Date();
-				oldDate.setTime( (new Date().getTime()) - TIME_TO_PAST );
-				let hash = "$2b$10$"+decodeURIComponent(ctx.params.hash).toString().replace(re, ".");
-				
-				this.logger.info("users.verifyHash: ", { 
-					email: email, 
-					"dates.dateActivated": {"$exists": false},
-					"dates.dateLastVerify": {"$gt": oldDate} 
+				oldDate.setTime((new Date().getTime()) - TIME_TO_PAST);
+				let hash = "$2b$10$" + decodeURIComponent(ctx.params.hash).toString().replace(re, ".");
+
+				this.logger.info("users.verifyHash: ", {
+					email: email,
+					"dates.dateActivated": { "$exists": false },
+					"dates.dateLastVerify": { "$gt": oldDate }
 				});
 				return this.adapter.find({
-					query: { 
-						email: email, 
-						"dates.dateActivated": {"$exists": false},
-						"dates.dateLastVerify": {"$gt": oldDate} 
+					query: {
+						email: email,
+						"dates.dateActivated": { "$exists": false },
+						"dates.dateLastVerify": { "$gt": oldDate }
 					}
 				})
 					.then((found) => {
-						if ( found && found.constructor === Array && found.length>0 ) {
+						if (found && found.constructor === Array && found.length > 0) {
 							found = found[0];
 						}
-						if ( found && found.password && found.password.toString().trim()!="" ) {
+						if (found && found.password && found.password.toString().trim() != "") {
 							const dateCreated = found.dates.dateCreated;
 							const dateCreatedIso = (dateCreated instanceof Date)
 								? dateCreated.toISOString()
 								: new Date(dateCreated).toISOString();
 							let wannabeHash = this.buildHashSourceFromEntity(found.password, dateCreatedIso, false);
 							return bcrypt.compare(wannabeHash, hash)
-								.then((result) => { 
+								.then((result) => {
 									this.logger.info("users.verifyHash compared:", result);
 
 									if (result) {
@@ -191,19 +263,19 @@ module.exports = {
 													.then(() => json);
 											});
 									} else {
-										return Promise.reject(new MoleculerClientError("Activation failed!", 422, "", [{ field: "activation", message: "failed"}]));
+										return Promise.reject(new MoleculerClientError("Activation failed!", 422, "", [{ field: "activation", message: "failed" }]));
 									}
 
 								});
 						}
-						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed"}]));
+						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed" }]));
 					})
 					.catch(err => {
 						if (err instanceof MoleculerClientError) {
 							return Promise.reject(err);
 						}
 						console.error("users.verifyHash activation failed: ", err);
-						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed"}]));
+						return Promise.reject(new MoleculerClientError("Activation failed - try again", 422, "", [{ field: "activation", message: "failed" }]));
 					});
 				/**
 				 * - verify hash (by email) & date stored in dates.dateLastVerify (2 hours),
@@ -234,8 +306,8 @@ module.exports = {
 				return this.enforceRateLimit(ctx, "resetPassword", { limit: 3, windowMs: 60 * 60 * 1000 })
 					.then(() => this.adapter.findOne({ email: ctx.params.email }))
 					.then((found) => {
-						if ( found ) {
-							if ( !found.settings ) {
+						if (found) {
+							if (!found.settings) {
 								found.settings = {
 									language: ctx.meta.localsDefault.lang,
 									currency: ctx.meta.localsDefault.currency
@@ -266,7 +338,7 @@ module.exports = {
 									let emailData = {
 										"entity": entity,
 										"keepItForLater": this.buildHashSourceFromEntity(found.password, dateCreatedIso),
-										"url": ctx.meta.siteSettings.url+"/"+found.settings.language,
+										"url": ctx.meta.siteSettings.url + "/" + found.settings.language,
 										"language": found.settings.language,
 										"templateName": "auth/pwdreset"
 									};
@@ -284,7 +356,7 @@ module.exports = {
 							return Promise.reject(err);
 						}
 						console.error("users.resetPassword account reset failed: ", err);
-						return Promise.reject(new MoleculerClientError("Account reset failed - try again", 422, "", [{ field: "email", message: "not found"}]));
+						return Promise.reject(new MoleculerClientError("Account reset failed - try again", 422, "", [{ field: "email", message: "not found" }]));
 					});
 				/**
 				 * - verify hash (by email) & date stored in dates.dateLastVerify (2 hours),

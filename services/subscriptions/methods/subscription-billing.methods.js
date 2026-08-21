@@ -48,27 +48,37 @@ module.exports = {
 		 * @param {Object} ctx 
 		 * @param {Object} subscription 
 		 */
-		sendSubscriptionEmail(ctx, subscription, template) {
+		sendSubscriptionEmail(ctx, subscription, template, options) {
+			options = options || {};
 			const siteName = ctx.meta.siteSettings?.name || process.env.SITE_NAME || "StretchShop";
-			// configuring email message
-			let emailSetup = {
+			const user = subscription?.data?.order?.user || {};
+			const to = user.email || process.env.SITE_SUPPORT_EMAIL;
+			if (!to) {
+				this.logger.warn("subscriptions.sendSubscriptionEmail - no recipient, skip", {
+					subscriptionId: subscription?._id || subscription?.id,
+					template
+				});
+				return Promise.resolve(false);
+			}
+			const emailSetup = {
 				settings: {
-					to: [subscription.data.order.user.email, process.env.SITE_SUPPORT_EMAIL],
-					subject: siteName + " - Subscription update"
+					to: process.env.SITE_SUPPORT_EMAIL && user.email
+						? [user.email, process.env.SITE_SUPPORT_EMAIL]
+						: to,
+					subject: options.subject || (siteName + " - Subscription update")
 				},
 				functionSettings: {
-					language: subscription.data.order.user.settings.language
+					language: user.settings?.language
 				},
 				template: template,
 				data: {
 					webname: siteName,
-					username: subscription.data.order.user.username,
-					email: subscription.data.order.user.email, 
-					subscription: subscription, 
+					username: user.username,
+					email: user.email,
+					subscription: subscription,
 					support_email: ctx.meta.siteSettings?.supportEmail || process.env.SITE_SUPPORT_EMAIL
 				}
 			};
-			// Return the promise so callers can stop a batch after SMTP auth failure
 			return ctx.call("users.sendEmail", emailSetup)
 				.then(json => {
 					this.logger.info("subscriptions.sendSubscriptionEmail - email sent:", json);

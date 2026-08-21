@@ -118,7 +118,8 @@ module.exports = {
 					dateSent: { type: "date" },
 					datePaid: { type: "date" },
 					dateExpeded: { type: "date" },
-					emailSent: { type: "date" }
+					emailSent: { type: "date" },
+					emailPaidSent: { type: "date", optional: true }
 				}
 			},
 			lang: { type: "string", min: 2 },
