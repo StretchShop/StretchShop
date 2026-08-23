@@ -140,9 +140,12 @@ module.exports = {
 									date: new Date(),
 									userId: ctx.meta.user._id.toString()
 								});
-								// do actions that happen after payment
+								// invoice PDF, paid email, persist order, entityChanged
 								return this.orderPaymentReceived(ctx, order, "admin")
 									.then(result => {
+										if (typeof this.afterPaidActions === "function") {
+											this.afterPaidActions(order, ctx);
+										}
 										return result;
 									})
 									.catch(err => {
@@ -267,8 +270,14 @@ module.exports = {
 				}
 			},
 			handler(ctx) {
+				if (ctx.meta.user?.type !== "admin") {
+					return this.Promise.reject(new MoleculerClientError("Forbidden", 403, "", []));
+				}
 				if (!ctx.params.orderIds || ctx.params.orderIds.length === 0) {
 					return this.Promise.reject(new MoleculerClientError("Orders not found", 404, "", []));
+				}
+				if (ctx.params.action.name !== "status") {
+					return this.Promise.reject(new MoleculerClientError("Invalid action", 400, "", []));
 				}
 				ctx.params.orderIds = ctx.params.orderIds.map(id => this.fixStringToId(id));
 				return this.adapter.find({ query: { _id: { $in: ctx.params.orderIds } } })
@@ -276,32 +285,19 @@ module.exports = {
 						if (found.length === 0) {
 							return this.Promise.reject(new MoleculerClientError("Orders not found", 404, "", []));
 						}
-						let update = {};
-						if (ctx.params.action.name === "status") {
-							update["$set"] = {};
-							update["$set"]["status"] = ctx.params.action.value;
-							update["$set"]["dates.dateChanged"] = new Date();
-							if (ctx.params.action.value === "expeded") {
-								update["$set"]["dates.dateExpeded"] = new Date();
-							}
-							if (ctx.params.action.value === "paid") {
-								update["$set"]["dates.datePaid"] = new Date();
-							}
-							if (ctx.params.action.value === "cancelled") {
-								update["$set"]["dates.dateCancelled"] = new Date();
-							}
-						} else {
-							return this.Promise.reject(new MoleculerClientError("Invalid action", 400, "", []));
+						return this.processBatchOrderStatusChange(
+							ctx,
+							found,
+							ctx.params.action.value,
+							ctx.params.orderIds
+						);
+					})
+					.catch(error => {
+						if (error instanceof MoleculerClientError) {
+							return this.Promise.reject(error);
 						}
-						this.logger.info("order.batch - update: ", { _id: { $in: ctx.params.orderIds } }, update);
-						return this.adapter.updateMany({ _id: { $in: ctx.params.orderIds } }, update)
-							.then(result => {
-								return result;
-							})
-							.catch(error => {
-								this.logger.error("order.batch - error: ", error);
-								return this.Promise.reject(new MoleculerClientError("Order batch error", 422, "", []));
-							});
+						this.logger.error("order.batch - error: ", error);
+						return this.Promise.reject(new MoleculerClientError("Order batch error", 422, "", []));
 					});
 			}
 		},

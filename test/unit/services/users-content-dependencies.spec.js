@@ -103,6 +103,22 @@ describe("Test users content dependency actions", () => {
 		});
 	});
 
+	describe("users.addContentDependencies", () => {
+		it("should add product codes without removing existing ones", async () => {
+			await broker.call("users.updateContentDependencies", {
+				userId: testUserId,
+				productCodes: ["KEEP-ME"],
+			});
+
+			const result = await broker.call("users.addContentDependencies", {
+				userId: testUserId,
+				productCodes: ["KEEP-ME", "NEW-CODE"],
+			});
+
+			expect(result.data.contentDependencies.list).toEqual(["KEEP-ME", "NEW-CODE"]);
+		});
+	});
+
 	describe("users.updateDictionary", () => {
 		afterEach(() => {
 			jest.restoreAllMocks();

@@ -362,5 +362,121 @@ module.exports = {
 		},
 
 
+		normalizeBatchOrderStatus(status) {
+			return status === "cancelled" ? "canceled" : status;
+		},
+
+
+		getDedicatedOrderStatusAction(status) {
+			return {
+				paid: "orders.paid",
+				expeded: "orders.expede",
+				canceled: "orders.cancel"
+			}[status] || null;
+		},
+
+
+		summarizeDedicatedStatusResult(orderId, result) {
+			return {
+				orderId,
+				success: result?.success !== false,
+				result
+			};
+		},
+
+
+		/**
+		 * Run a single-order status action for each order.
+		 * `orders.paid` is sequential so invoice numbers stay unique.
+		 *
+		 * @param {Object} ctx
+		 * @param {Array} orders
+		 * @param {String} actionName
+		 * @returns {Promise<Array>}
+		 */
+		runDedicatedOrderStatusActions(ctx, orders, actionName) {
+			const runOne = (order) => {
+				const orderId = this.idToString(order._id);
+				return ctx.call(actionName, { orderId })
+					.then(result => this.summarizeDedicatedStatusResult(orderId, result))
+					.catch(error => {
+						this.logger.error("orders.runDedicatedOrderStatusActions() - error:", actionName, orderId, error);
+						return {
+							orderId,
+							success: false,
+							message: error?.message || "error"
+						};
+					});
+			};
+
+			if (actionName === "orders.paid") {
+				return orders.reduce((chain, order) => {
+					return chain.then(results => {
+						return runOne(order).then(item => {
+							results.push(item);
+							return results;
+						});
+					});
+				}, Promise.resolve([]));
+			}
+
+			return Promise.all(orders.map(runOne));
+		},
+
+
+		notifyOrdersUpdated(ctx, orders) {
+			return Promise.all(orders.map(order => {
+				return this.adapter.findById(order._id)
+					.then(doc => this.transformDocuments(ctx, {}, doc))
+					.then(json => {
+						return this.entityChanged("updated", json, ctx)
+							.then(() => ({
+								orderId: this.idToString(json._id || json.id),
+								success: true,
+								order: json
+							}));
+					})
+					.catch(error => {
+						this.logger.error("orders.notifyOrdersUpdated() - error:", order._id, error);
+						return {
+							orderId: this.idToString(order._id),
+							success: false,
+							message: error?.message || "error"
+						};
+					});
+			}));
+		},
+
+
+		/**
+		 * Apply a batch status change: reuse paid / expede / cancel endpoints
+		 * (invoice, paid email, payment fields, entityChanged), otherwise
+		 * update status and notify entityChanged.
+		 *
+		 * @param {Object} ctx
+		 * @param {Array} orders
+		 * @param {String} status
+		 * @param {Array} orderIds
+		 * @returns {Promise<Array>}
+		 */
+		processBatchOrderStatusChange(ctx, orders, status, orderIds) {
+			const normalized = this.normalizeBatchOrderStatus(status);
+			const dedicatedAction = this.getDedicatedOrderStatusAction(normalized);
+			if (dedicatedAction) {
+				return this.runDedicatedOrderStatusActions(ctx, orders, dedicatedAction);
+			}
+
+			const update = {
+				"$set": {
+					status: normalized,
+					"dates.dateChanged": new Date()
+				}
+			};
+			this.logger.info("orders.processBatchOrderStatusChange() - update:", { _id: { $in: orderIds } }, update);
+			return this.adapter.updateMany({ _id: { $in: orderIds } }, update)
+				.then(() => this.notifyOrdersUpdated(ctx, orders));
+		},
+
+
 	}
 };

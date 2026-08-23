@@ -1303,23 +1303,22 @@ module.exports = {
     },
     "reactivate": {
       "summary": "Reactivate suspended subscription",
-      "description": "Not implemented — route exists but handler is missing.",
+      "description": "Reactivates a suspended or canceled subscription. Resumes a paused Stripe billing agreement, or creates a new Stripe subscription when the previous one was canceled.",
       "tags": [
-        "admin"
+        "user"
       ],
-      "deprecated": true,
       "security": [
         {
           "CookieAuth": []
         }
       ],
       "responses": {
-        "501": {
-          "description": "Not implemented",
+        "200": {
+          "description": "Reactivate result",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Error"
+                "$ref": "#/components/schemas/SubscriptionActionResponse"
               }
             }
           }

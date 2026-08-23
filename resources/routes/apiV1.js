@@ -97,11 +97,8 @@ module.exports = {
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",
 		"POST /subscription/suspend/:subscriptionId": "subscriptions.suspend",
-		// Routed but not implemented — exclude from OpenAPI to avoid startup warnings
-		"POST /subscription/reactivate/:subscriptionId": {
-			openapi: false,
-			action: "subscriptions.reactivate"
-		},
+		"POST /subscription/batch": "subscriptions.batch",
+		"POST /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
 		// Payment endpoints for FE
 		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/stripe/paymentintent
 		"GET /order/payment/:supplier/:result": "orders.paymentResult",

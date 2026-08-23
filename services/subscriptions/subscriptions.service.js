@@ -15,6 +15,7 @@ const SubscriptionsActionsCron = require("./mixins/subscriptions.actions.cron.mi
 const SubscriptionsActionsCrud = require("./mixins/subscriptions.actions.crud.mixin");
 const SubscriptionsActionsBilling = require("./mixins/subscriptions.actions.billing.mixin");
 const SubscriptionsActionsSuspend = require("./mixins/subscriptions.actions.suspend.mixin");
+const SubscriptionsActionsBatch = require("./mixins/subscriptions.actions.batch.mixin");
 
 const SubscriptionsMethodsCore = require("./methods/core.methods");
 const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
@@ -46,7 +47,7 @@ module.exports = {
 		cronJobs: [{
 			name: "SubscriptionsCheck",
 			cronTime: "5 0 * * *",
-			onTick: function() {
+			onTick: function () {
 
 				this.logger.info("Starting to Clean up the Subscriptions");
 
@@ -58,7 +59,7 @@ module.exports = {
 		}, {
 			name: "SubscriptionsEndCheck",
 			cronTime: "*/15 * * * *",
-			onTick: function() {
+			onTick: function () {
 
 				this.logger.info("Starting to Check for ending Subscriptions");
 

@@ -275,6 +275,95 @@ module.exports = {
 						return null;
 					});
 			}
+		},
+
+
+		/**
+		 * Resume a paused Stripe subscription, or create a new one when the
+		 * previous billing agreement was canceled (Stripe cannot resume canceled).
+		 *
+		 * @actions
+		 *
+		 * @param {String} billingRelatedId - Stripe subscription id
+		 * @param {Object} subscription - local subscription (metadata, cancel_at)
+		 *
+		 * @returns {Object} Stripe subscription (and recreate flags)
+		 */
+		stripeReactivateBillingAgreement: {
+			cache: false,
+			params: {
+				billingRelatedId: { type: "string" },
+				subscription: { type: "object", optional: true }
+			},
+			handler(ctx) {
+				const self = this;
+				const billingRelatedId = ctx.params.billingRelatedId;
+				const localSubscription = ctx.params.subscription || null;
+
+				self.logger.info("payments.stripe.mixin stripeReactivateBillingAgreement:", billingRelatedId);
+
+				return stripe.subscriptions.retrieve(billingRelatedId, {
+					expand: ["default_payment_method", "customer"]
+				})
+					.catch(error => {
+						self.logger.warn("payments.stripe.mixin stripeReactivateBillingAgreement retrieve failed:", error?.message || error);
+						if (localSubscription?.data?.stripe?.id) {
+							return localSubscription.data.stripe;
+						}
+						return Promise.reject(error);
+					})
+					.then(stripeSub => {
+						if (!stripeSub?.id) {
+							return Promise.reject(new MoleculerClientError("Stripe subscription not found", 404, "STRIPE_SUB_NOT_FOUND", []));
+						}
+						if (["active", "trialing"].includes(stripeSub.status) && !stripeSub.pause_collection) {
+							return { existing: true, resumed: false, recreated: false, subscription: stripeSub };
+						}
+						if (stripeSub.pause_collection || stripeSub.status === "paused") {
+							return stripe.subscriptions.resume(billingRelatedId, {
+								billing_cycle_anchor: "now"
+							})
+								.then(resumed => {
+									self.logger.info("payments.stripe.mixin stripeReactivateBillingAgreement resumed:", resumed?.id);
+									return { existing: false, resumed: true, recreated: false, subscription: resumed };
+								});
+						}
+						const createParams = self.buildStripeSubscriptionRecreateParams(stripeSub, localSubscription);
+						if (!createParams.customer || !createParams.items.length) {
+							return Promise.reject(new MoleculerClientError(
+								"Cannot recreate Stripe subscription — missing customer or price",
+								422,
+								"STRIPE_RECREATE_INCOMPLETE",
+								[]
+							));
+						}
+						if (!createParams.default_payment_method) {
+							return Promise.reject(new MoleculerClientError(
+								"No payment method on file to reactivate subscription",
+								422,
+								"NO_PAYMENT_METHOD",
+								[]
+							));
+						}
+						return stripe.subscriptions.create(createParams)
+							.then(created => {
+								self.logger.info("payments.stripe.mixin stripeReactivateBillingAgreement recreated:", created?.id);
+								return { existing: false, resumed: false, recreated: true, subscription: created };
+							});
+					})
+					.catch(error => {
+						self.logger.error("payments.stripe.mixin stripeReactivateBillingAgreement error:", JSON.stringify(error));
+						if (error instanceof MoleculerClientError) {
+							return Promise.reject(error);
+						}
+						return Promise.reject(new MoleculerClientError(
+							error?.message || "Stripe reactivate failed",
+							422,
+							"STRIPE_REACTIVATE_FAILED",
+							[]
+						));
+					});
+			}
 		}
 
 	},

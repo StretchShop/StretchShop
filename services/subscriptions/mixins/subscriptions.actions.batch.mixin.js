@@ -4,7 +4,7 @@ const { MoleculerClientError } = require("moleculer").Errors;
 
 module.exports = {
 	actions: {
-		suspend: {
+		batch: {
 			cache: false,
 			auth: "required",
 			params: {
@@ -128,96 +128,6 @@ module.exports = {
 									});
 							}
 						}
-					});
-			}
-		},
-
-
-		reactivate: {
-			cache: false,
-			auth: "required",
-			params: {
-				subscriptionId: { type: "string" },
-				altUser: { type: "string", optional: true },
-				altMessage: { type: "string", optional: true }
-			},
-			handler(ctx) {
-				const result = { success: false, url: null, message: "error" };
-				const altUser = (ctx.params.altUser && ctx.params.altUser.trim() !== "") ? ctx.params.altUser : "user";
-				const altMessage = ctx.params.altMessage ? ctx.params.altMessage : "";
-				const self = this;
-				const filter = {
-					query: {
-						_id: this.fixStringToId(ctx.params.subscriptionId)
-					},
-					limit: 1
-				};
-
-				if (ctx.meta.user?.type !== "admin") {
-					filter.query["userId"] = ctx.meta.user._id.toString();
-				}
-
-				return ctx.call("subscriptions.find", filter)
-					.then(found => {
-						this.logger.info("subscriptions.reactivate found:", filter, found);
-						if (!found?.[0]) {
-							return this.Promise.reject(new MoleculerClientError("Subscription not found", 404, "", []));
-						}
-						found = found[0];
-						const reactivatable = [
-							"suspend sent", "suspend request", "suspend cleanup",
-							"stopped", "canceled", "paused"
-						];
-						if (found.status === "active" || found.status === "trialing") {
-							result.success = true;
-							result.message = "already active";
-							result.data = { subscription: found };
-							return result;
-						}
-						if (!reactivatable.includes(found.status)) {
-							return this.Promise.reject(new MoleculerClientError(
-								"Subscription cannot be reactivated from status " + found.status,
-								422,
-								"INVALID_STATUS",
-								[]
-							));
-						}
-
-						found.status = "reactivate request";
-						found.dates = found.dates || {};
-						found.dates.dateUpdated = new Date();
-						found.history = found.history || [];
-						found.history.push(
-							this.newHistoryRecord(found.status, altUser, {
-								relatedOrder: null,
-								message: altMessage
-							})
-						);
-
-						return self.resolveSubscriptionBillingRelatedId(ctx, found)
-							.then(relatedId => {
-								this.logger.info("subscriptions.reactivate relatedId:", relatedId);
-								if (!relatedId) {
-									return this.Promise.reject(new MoleculerClientError(
-										"Stripe billing id not found — cannot reactivate",
-										422,
-										"RELATED_ID_NOT_FOUND",
-										[]
-									));
-								}
-								return self.reactivateSubscription(ctx, found, relatedId)
-									.then(reactivateResult => {
-										if (
-											self.isUserInitiatedSubscriptionCancel(altUser) &&
-											reactivateResult?.success
-										) {
-											const subscriptionForEmail = reactivateResult.data?.subscription || found;
-											return self.notifyUserSubscriptionReactivated(ctx, subscriptionForEmail)
-												.then(() => reactivateResult);
-										}
-										return reactivateResult;
-									});
-							});
 					});
 			}
 		},

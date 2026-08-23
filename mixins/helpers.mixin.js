@@ -432,6 +432,15 @@ module.exports = {
 				return Promise.resolve(null);
 			}
 			return ctx.call("users.removeContentDependencies", params);
+		},
+
+
+		restoreSubscriptionContentDependencies(ctx, subscription) {
+			const params = this.getContentDependencyRemovalParamsFromSubscription(subscription);
+			if (!params) {
+				return Promise.resolve(null);
+			}
+			return ctx.call("users.addContentDependencies", params);
 		}
 
 

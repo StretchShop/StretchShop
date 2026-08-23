@@ -39,5 +39,4 @@ Save a SwaggerHub export as `docs/openapi/swaggerhub-export.json` to compare pat
 ## Notable gaps vs SwaggerHub
 
 - Raw Stripe webhook: `POST /apis/v1/order/payment/webhook-raw/{supplier}` (documented in generated spec)
-- `POST /subscription/reactivate/{subscriptionId}` — routed but not implemented (marked deprecated)
 - Stripe subscription prepare responses include `clientSecret` and `paymentStatus`
