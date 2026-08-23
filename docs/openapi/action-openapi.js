@@ -254,56 +254,6 @@ module.exports = {
         }
       ]
     },
-    "loginAs": {
-      "summary": "Impersonate user",
-      "description": "Admin-only: start a short-lived session as a non-admin user. Preserves admin cookie for restore.\n",
-      "operationId": "userImpersonate",
-      "tags": [
-        "admin"
-      ],
-      "responses": {
-        "200": {
-          "description": "Impersonation started",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserScheme"
-              }
-            }
-          }
-        }
-      },
-      "security": [
-        {
-          "CookieAuth": []
-        }
-      ]
-    },
-    "restoreAdmin": {
-      "summary": "Restore admin session",
-      "description": "Restore the admin session after impersonation using the admin_token cookie.\n",
-      "operationId": "userImpersonateRestore",
-      "tags": [
-        "admin"
-      ],
-      "responses": {
-        "200": {
-          "description": "Admin session restored",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserScheme"
-              }
-            }
-          }
-        }
-      },
-      "security": [
-        {
-          "CookieAuth": []
-        }
-      ]
-    },
     "checkIfEmailExists": {
       "summary": "Email check",
       "operationId": "checkemail",
@@ -789,30 +739,11 @@ module.exports = {
         }
       }
     },
-    "find": {
-      "summary": "List products by Moleculer default action (internal)",
-      "operationId": "ProductFindInternal",
-      "tags": [
-        "developer"
-      ],
-      "responses": {
-        "200": {
-          "description": "List of products",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProductList"
-              }
-            }
-          }
-        }
-      }
-    },
     "findAdmin": {
-      "summary": "Admin product find (HTTP)",
+      "summary": "List products by Moleculer default action",
       "operationId": "ProductPostFind",
       "tags": [
-        "admin"
+        "visitor"
       ],
       "responses": {
         "200": {
