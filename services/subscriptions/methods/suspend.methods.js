@@ -185,11 +185,26 @@ module.exports = {
 				});
 		},
 
-		updateOriginOrderStripeSubscriptionId(ctx, subscription, stripeSubscriptionId) {
+		notifyUserSubscriptionPaused(ctx, subscription) {
+			const siteName = ctx.meta?.siteSettings?.name || process.env.SITE_NAME || "StretchShop";
+			return this.sendSubscriptionEmail(ctx, subscription, "subscription/paused", {
+				subject: siteName + " - Subscription paused"
+			})
+				.catch(err => {
+					this.logger.error(
+						"subscriptions.notifyUserSubscriptionPaused - email failed:",
+						err?.message || err
+					);
+					return false;
+				});
+		},
+
+		updateOriginOrderStripeSubscriptionId(ctx, subscription, stripeSubscriptionId, supplierStatus) {
 			if (!subscription?.orderOriginId || !stripeSubscriptionId) {
 				return Promise.resolve(null);
 			}
 			const subscriptionId = this.idToString(subscription._id || subscription.id);
+			const status = supplierStatus || "active";
 			return ctx.call("orders.find", {
 				query: { _id: this.fixStringToId(subscription.orderOriginId) },
 				limit: 1
@@ -206,7 +221,7 @@ module.exports = {
 								order.data.subscription.ids[i].supplier = {};
 							}
 							order.data.subscription.ids[i].supplier.id = stripeSubscriptionId;
-							order.data.subscription.ids[i].supplier.status = "active";
+							order.data.subscription.ids[i].supplier.status = status;
 							order.data.subscription.ids[i].updated = new Date();
 							changed = true;
 						}
@@ -262,6 +277,7 @@ module.exports = {
 					subscription.dates = subscription.dates || {};
 					subscription.dates.dateUpdated = new Date();
 					subscription.dates.dateStopped = null;
+					subscription.dates.datePaused = null;
 					subscription.id = this.idToString(subscription._id || subscription.id);
 					delete subscription._id;
 
@@ -303,6 +319,74 @@ module.exports = {
 					const err = (errorResult && typeof errorResult === "object") ? errorResult : { message: String(errorResult) };
 					err.error = "reactivateBillingAgreement";
 					this.logger.error("subscriptions.reactivate - " + err.error + " error: ", JSON.stringify(err));
+					this.addToHistory(ctx, subscription._id || subscription.id, this.newHistoryRecord("error", "user", {
+						errorMsg: err.error + " error",
+						error: err
+					}));
+					return Promise.reject(err);
+				});
+		},
+
+		pauseSubscription(ctx, subscription, relatedId) {
+			const result = { success: false, url: null, message: "error" };
+			const altUser = (ctx.params.altUser && ctx.params.altUser.trim() !== "") ? ctx.params.altUser : "user";
+			const altMessage = ctx.params.altMessage ? ctx.params.altMessage : "";
+			const supplier = this.getSubscriptionPaymentSupplier(subscription);
+
+			return ctx.call("orders.paymentPause", {
+				supplier,
+				relatedId,
+				subscription
+			})
+				.then(pauseResult => {
+					if (!pauseResult?.id) {
+						return Promise.reject({
+							message: "paymentPause returned empty result — pause not confirmed"
+						});
+					}
+
+					subscription.history = subscription.history || [];
+					subscription.history.push(
+						this.newHistoryRecord("paused", altUser, {
+							relatedOrder: null,
+							message: altMessage,
+							stripeId: pauseResult.id
+						})
+					);
+
+					if (!subscription.data) {
+						subscription.data = {};
+					}
+					subscription.data.stripe = pauseResult;
+					subscription.status = "paused";
+					subscription.dates = subscription.dates || {};
+					subscription.dates.dateUpdated = new Date();
+					subscription.dates.datePaused = new Date();
+					subscription.id = this.idToString(subscription._id || subscription.id);
+					delete subscription._id;
+
+					result.success = true;
+					result.message = "pause sent";
+					result.data = {
+						subscription,
+						agreement: pauseResult
+					};
+
+					return ctx.call("subscriptions.save", {
+						entity: subscription
+					})
+						.then(updated => {
+							this.logger.info("subscriptions.pause - subscriptions.save:", updated);
+							result.data.subscription = updated;
+							delete result.data.subscription.history;
+							return this.updateOriginOrderStripeSubscriptionId(ctx, updated, pauseResult.id, "paused")
+								.then(() => result);
+						});
+				})
+				.catch(errorResult => {
+					const err = (errorResult && typeof errorResult === "object") ? errorResult : { message: String(errorResult) };
+					err.error = "pauseBillingAgreement";
+					this.logger.error("subscriptions.pause - " + err.error + " error: ", JSON.stringify(err));
 					this.addToHistory(ctx, subscription._id || subscription.id, this.newHistoryRecord("error", "user", {
 						errorMsg: err.error + " error",
 						error: err

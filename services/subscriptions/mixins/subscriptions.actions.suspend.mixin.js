@@ -168,13 +168,16 @@ module.exports = {
 							"suspend sent", "suspend request", "suspend cleanup",
 							"stopped", "canceled", "paused"
 						];
-						if (found.status === "active" || found.status === "trialing") {
+						if (
+							(found.status === "active" || found.status === "trialing") &&
+							!found.data?.stripe?.pause_collection
+						) {
 							result.success = true;
 							result.message = "already active";
 							result.data = { subscription: found };
 							return result;
 						}
-						if (!reactivatable.includes(found.status)) {
+						if (!reactivatable.includes(found.status) && !found.data?.stripe?.pause_collection) {
 							return this.Promise.reject(new MoleculerClientError(
 								"Subscription cannot be reactivated from status " + found.status,
 								422,
@@ -216,6 +219,93 @@ module.exports = {
 												.then(() => reactivateResult);
 										}
 										return reactivateResult;
+									});
+							});
+					});
+			}
+		},
+
+
+		pause: {
+			cache: false,
+			auth: "required",
+			params: {
+				subscriptionId: { type: "string" },
+				altUser: { type: "string", optional: true },
+				altMessage: { type: "string", optional: true }
+			},
+			handler(ctx) {
+				const result = { success: false, url: null, message: "error" };
+				const altUser = (ctx.params.altUser && ctx.params.altUser.trim() !== "") ? ctx.params.altUser : "user";
+				const altMessage = ctx.params.altMessage ? ctx.params.altMessage : "";
+				const self = this;
+				const filter = {
+					query: {
+						_id: this.fixStringToId(ctx.params.subscriptionId)
+					},
+					limit: 1
+				};
+
+				if (ctx.meta.user?.type !== "admin") {
+					filter.query["userId"] = ctx.meta.user._id.toString();
+				}
+
+				return ctx.call("subscriptions.find", filter)
+					.then(found => {
+						this.logger.info("subscriptions.pause found:", filter, found);
+						if (!found?.[0]) {
+							return this.Promise.reject(new MoleculerClientError("Subscription not found", 404, "", []));
+						}
+						found = found[0];
+						if (found.status === "paused") {
+							result.success = true;
+							result.message = "already paused";
+							result.data = { subscription: found };
+							return result;
+						}
+						const pausable = ["active", "trialing", "agreed"];
+						if (!pausable.includes(found.status)) {
+							return this.Promise.reject(new MoleculerClientError(
+								"Subscription cannot be paused from status " + found.status,
+								422,
+								"INVALID_STATUS",
+								[]
+							));
+						}
+
+						found.status = "pause request";
+						found.dates = found.dates || {};
+						found.dates.dateUpdated = new Date();
+						found.history = found.history || [];
+						found.history.push(
+							this.newHistoryRecord(found.status, altUser, {
+								relatedOrder: null,
+								message: altMessage
+							})
+						);
+
+						return self.resolveSubscriptionBillingRelatedId(ctx, found)
+							.then(relatedId => {
+								this.logger.info("subscriptions.pause relatedId:", relatedId);
+								if (!relatedId) {
+									return this.Promise.reject(new MoleculerClientError(
+										"Stripe billing id not found — cannot pause",
+										422,
+										"RELATED_ID_NOT_FOUND",
+										[]
+									));
+								}
+								return self.pauseSubscription(ctx, found, relatedId)
+									.then(pauseResult => {
+										if (
+											self.isUserInitiatedSubscriptionCancel(altUser) &&
+											pauseResult?.success
+										) {
+											const subscriptionForEmail = pauseResult.data?.subscription || found;
+											return self.notifyUserSubscriptionPaused(ctx, subscriptionForEmail)
+												.then(() => pauseResult);
+										}
+										return pauseResult;
 									});
 							});
 					});

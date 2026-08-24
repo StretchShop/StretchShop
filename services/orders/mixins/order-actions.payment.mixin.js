@@ -239,6 +239,45 @@ module.exports = {
 		},
 
 
+		paymentPause: {
+			cache: false,
+			auth: "required",
+			params: {
+				supplier: { type: "string", min: 3 },
+				relatedId: { type: "string", min: 3 },
+				subscription: { type: "object" }
+			},
+			handler(ctx) {
+				const supplier = ctx.params.supplier || "stripe";
+
+				this.logger.info("orders.paymentPause params: ", {
+					supplier,
+					relatedId: ctx.params.relatedId
+				});
+
+				return ctx.call("orders." + supplier + "PauseBillingAgreement", {
+					billingRelatedId: ctx.params.relatedId
+				})
+					.then(pauseResult => {
+						this.logger.info("orders.paymentPause supplier call response: ", pauseResult?.id);
+						if (!pauseResult) {
+							return Promise.reject(new MoleculerClientError(
+								"Payment pause returned empty result",
+								422,
+								"PAYMENT_PAUSE_EMPTY",
+								[]
+							));
+						}
+						return pauseResult;
+					})
+					.catch(error => {
+						this.logger.error("order.paymentPause - error: ", error, JSON.stringify(error));
+						return Promise.reject(error);
+					});
+			}
+		},
+
+
 		paymentReactivate: {
 			cache: false,
 			auth: "required",

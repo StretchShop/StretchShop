@@ -86,6 +86,70 @@ describe("subscriptions.reactivate", () => {
 		expect(service.restoreSubscriptionContentDependencies).toHaveBeenCalled();
 	});
 
+	it("calls orders.paymentPause and saves a paused subscription", async () => {
+		const saved = { _id: "local-1", status: "paused", data: { product: { orderCode: "P1" } } };
+		const service = createService({
+			pauseSubscription: suspendMethods.methods.pauseSubscription,
+			updateOriginOrderStripeSubscriptionId: jest.fn().mockResolvedValue(null),
+			addToHistory: jest.fn(),
+		});
+		const ctx = {
+			params: { altUser: "user", altMessage: "" },
+			call: jest.fn((action) => {
+				if (action === "orders.paymentPause") {
+					return Promise.resolve({
+						id: "sub_stripe",
+						status: "active",
+						pause_collection: { behavior: "void" },
+					});
+				}
+				if (action === "subscriptions.save") {
+					return Promise.resolve(saved);
+				}
+				return Promise.resolve(null);
+			}),
+		};
+		const subscription = {
+			_id: "local-1",
+			history: [],
+			dates: {},
+			data: { order: { data: { paymentData: { codename: "online_stripe" } } } },
+		};
+
+		const result = await service.pauseSubscription.call(service, ctx, subscription, "sub_stripe");
+
+		expect(ctx.call).toHaveBeenCalledWith("orders.paymentPause", expect.objectContaining({
+			supplier: "stripe",
+			relatedId: "sub_stripe",
+		}));
+		expect(result.success).toBe(true);
+		expect(result.message).toBe("pause sent");
+		expect(service.updateOriginOrderStripeSubscriptionId).toHaveBeenCalledWith(
+			ctx, saved, "sub_stripe", "paused"
+		);
+	});
+
+	it("sends subscription/paused mail", async () => {
+		const service = createService({
+			notifyUserSubscriptionPaused: suspendMethods.methods.notifyUserSubscriptionPaused,
+		});
+		const sendEmail = jest.fn().mockResolvedValue(true);
+		const ctx = {
+			meta: { siteSettings: { name: "Test Shop", supportEmail: "support@example.com" } },
+			call: sendEmail,
+		};
+		await service.notifyUserSubscriptionPaused(ctx, {
+			_id: "sub-1",
+			data: { order: { user: { email: "buyer@example.com", username: "buyer" } } },
+		});
+		expect(sendEmail).toHaveBeenCalledWith("users.sendEmail", expect.objectContaining({
+			template: "subscription/paused",
+			settings: expect.objectContaining({
+				subject: "Test Shop - Subscription paused",
+			}),
+		}));
+	});
+
 	it("sends subscription/reactivated mail", async () => {
 		const service = createService();
 		const sendEmail = jest.fn().mockResolvedValue(true);
@@ -103,6 +167,18 @@ describe("subscriptions.reactivate", () => {
 				subject: "Test Shop - Subscription reactivated",
 			}),
 		}));
+	});
+
+	it("rejects missing subscriptions from the pause action", async () => {
+		const service = createService({ adapter: {} });
+		service.logger = { info() {}, error() {} };
+		const handler = suspendMixin.actions.pause.handler;
+		const ctx = {
+			meta: { user: { type: "admin", _id: "admin-1" } },
+			params: { subscriptionId: "missing" },
+			call: jest.fn().mockResolvedValue([]),
+		};
+		await expect(handler.call(service, ctx)).rejects.toBeInstanceOf(MoleculerClientError);
 	});
 
 	it("rejects missing subscriptions from the action", async () => {

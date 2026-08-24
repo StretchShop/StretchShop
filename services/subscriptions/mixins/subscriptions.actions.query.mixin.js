@@ -40,19 +40,20 @@ module.exports = {
 
 				if ( ctx.meta.user && ctx.meta.user._id ) {
 					const { sanitizeMongoQuery, allowlistQueryFields } = require("../../../mixins/mongo.security");
+					const queryOptions = { allowedOperators: ["$in", "$gte", "$lte", "$gt", "$lt", "$regex"] };
 					let filter = { query: {}, limit: 20};
 					if (typeof ctx.params.query !== "undefined" && ctx.params.query) {
 						if (ctx.meta.user.type === "admin" && ctx.params.fullData === true) {
-							filter.query = sanitizeMongoQuery(ctx.params.query);
+							filter.query = sanitizeMongoQuery(ctx.params.query, queryOptions);
 						} else {
 							filter.query = allowlistQueryFields(ctx.params.query, [
-								"_id", "status", "type", "productCode"
-							]);
+								"_id", "status", "type", "productCode", "orderItemName", "dates.dateCreated"
+							], queryOptions);
 						}
 					}
 					// update filter acording to user
-					if ( ctx.meta.user.type=="admin" && typeof ctx.params.fullData!=="undefined" && ctx.params.fullData==true ) {
-						// admin can browse all orders
+					if ( ctx.meta.user.type=="admin" ) {
+						// admin can browse all subscriptions
 					} else {
 						filter.query["userId"] = ctx.meta.user._id.toString();
 					}
@@ -73,9 +74,39 @@ module.exports = {
 						filter.sort = ctx.params.sort;
 					}
 
-					if ( filter.query && filter.query._id && filter.query._id.trim()!="" ) {
-						filter.query._id = this.fixStringToId(filter.query._id);
+					const idQuery = filter.query._id;
+					if (typeof idQuery === "string" && idQuery.trim() !== "") {
+						filter.query._id = this.fixStringToId(idQuery.trim());
 						filter.limit = 1;
+					} else if (idQuery && Array.isArray(idQuery.$in)) {
+						const ids = idQuery.$in
+							.filter((id) => typeof id === "string" && id.trim() !== "")
+							.map((id) => this.fixStringToId(id.trim()));
+						if (ids.length > 0) {
+							filter.query._id = { $in: ids };
+						} else {
+							delete filter.query._id;
+						}
+					} else if (idQuery) {
+						delete filter.query._id;
+					}
+
+					const dateQuery = filter.query["dates.dateCreated"];
+					if (dateQuery && typeof dateQuery === "object" && !Array.isArray(dateQuery)) {
+						["$gte", "$gt", "$lte", "$lt"].forEach((op) => {
+							if (dateQuery[op] == null) {
+								return;
+							}
+							const parsed = new Date(dateQuery[op]);
+							if (Number.isNaN(parsed.getTime())) {
+								delete dateQuery[op];
+							} else {
+								dateQuery[op] = parsed;
+							}
+						});
+						if (Object.keys(dateQuery).length === 0) {
+							delete filter.query["dates.dateCreated"];
+						}
 					}
 
 					return ctx.call("subscriptions.find", filter)
@@ -93,11 +124,23 @@ module.exports = {
 									delete s.history;
 								});
 							}
-							return ctx.call("subscriptions.count", filter)
-								.then(count => {
+							return Promise.all([
+								ctx.call("subscriptions.count", filter),
+								self.getDistinctSubscriptionValues().catch(error => {
+									self.logger.error("subscriptions.listSubscriptions distinct error", error);
+									return {
+										status: [],
+										type: [],
+										period: [],
+										orderItemName: []
+									};
+								})
+							])
+								.then(([count, distinct]) => {
 									return {
 										total: count,
-										results: subscriptions
+										results: subscriptions,
+										distinct
 									};
 								})
 								.catch(error => {

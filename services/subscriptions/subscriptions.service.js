@@ -36,6 +36,7 @@ module.exports = {
 		SubscriptionsActionsCrud,
 		SubscriptionsActionsBilling,
 		SubscriptionsActionsSuspend,
+		SubscriptionsActionsBatch,
 		openApiActionMetadata("subscriptions"),
 		DbService("subscriptions"), // has to be the last to not override actions
 	],

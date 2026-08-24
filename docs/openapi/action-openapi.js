@@ -1301,9 +1301,33 @@ module.exports = {
         }
       }
     },
+    "pause": {
+      "summary": "Pause subscription",
+      "description": "Pauses Stripe invoice collection without canceling the billing agreement. Resume with subscriptions.reactivate.",
+      "tags": [
+        "user"
+      ],
+      "security": [
+        {
+          "CookieAuth": []
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Pause result",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionActionResponse"
+              }
+            }
+          }
+        }
+      }
+    },
     "reactivate": {
-      "summary": "Reactivate suspended subscription",
-      "description": "Reactivates a suspended or canceled subscription. Resumes a paused Stripe billing agreement, or creates a new Stripe subscription when the previous one was canceled.",
+      "summary": "Reactivate suspended or paused subscription",
+      "description": "Resumes a paused Stripe billing agreement, or creates a new Stripe subscription when the previous one was canceled.",
       "tags": [
         "user"
       ],
@@ -1319,6 +1343,33 @@ module.exports = {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SubscriptionActionResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "batch": {
+      "summary": "Batch update subscriptions",
+      "description": "Admin-only. Canceled/stopped reuse subscriptions.suspend. Paused reuses subscriptions.pause. Active reuses subscriptions.reactivate (resumes paused Stripe subscriptions).",
+      "tags": [
+        "admin"
+      ],
+      "security": [
+        {
+          "CookieAuth": []
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Batch results",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SubscriptionActionResponse"
+                }
               }
             }
           }

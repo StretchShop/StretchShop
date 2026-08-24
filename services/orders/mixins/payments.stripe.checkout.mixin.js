@@ -279,6 +279,66 @@ module.exports = {
 
 
 		/**
+		 * Pause Stripe subscription collection without canceling the billing agreement.
+		 *
+		 * @actions
+		 *
+		 * @param {String} billingRelatedId - Stripe subscription id
+		 *
+		 * @returns {Object} Stripe subscription
+		 */
+		stripePauseBillingAgreement: {
+			cache: false,
+			params: {
+				billingRelatedId: { type: "string" }
+			},
+			handler(ctx) {
+				const self = this;
+				const billingRelatedId = ctx.params.billingRelatedId;
+				self.logger.info("payments.stripe.mixin stripePauseBillingAgreement:", billingRelatedId);
+
+				return stripe.subscriptions.retrieve(billingRelatedId)
+					.then(stripeSub => {
+						if (!stripeSub?.id) {
+							return Promise.reject(new MoleculerClientError("Stripe subscription not found", 404, "STRIPE_SUB_NOT_FOUND", []));
+						}
+						if (["canceled", "incomplete_expired"].includes(stripeSub.status)) {
+							return Promise.reject(new MoleculerClientError(
+								"Canceled Stripe subscription cannot be paused",
+								422,
+								"STRIPE_PAUSE_CANCELED",
+								[]
+							));
+						}
+						if (stripeSub.pause_collection || stripeSub.status === "paused") {
+							self.logger.info("payments.stripe.mixin stripePauseBillingAgreement already paused:", stripeSub.id);
+							return stripeSub;
+						}
+						return stripe.subscriptions.update(billingRelatedId, {
+							pause_collection: { behavior: "void" }
+						})
+							.then(paused => {
+								self.logger.info("payments.stripe.mixin stripePauseBillingAgreement paused:", paused?.id);
+								return paused;
+							});
+					})
+					.catch(error => {
+						self.logger.error("payments.stripe.mixin stripePauseBillingAgreement error:", JSON.stringify(error));
+						if (error instanceof MoleculerClientError) {
+							return Promise.reject(error);
+						}
+						return Promise.reject(new MoleculerClientError(
+							error?.message || "Stripe pause failed",
+							422,
+							"STRIPE_PAUSE_FAILED",
+							[]
+						));
+					});
+			}
+		},
+
+
+		/**
 		 * Resume a paused Stripe subscription, or create a new one when the
 		 * previous billing agreement was canceled (Stripe cannot resume canceled).
 		 *
@@ -320,7 +380,7 @@ module.exports = {
 							return { existing: true, resumed: false, recreated: false, subscription: stripeSub };
 						}
 						if (stripeSub.pause_collection || stripeSub.status === "paused") {
-							return stripe.subscriptions.resume(billingRelatedId, {
+							return stripe.subscriptions.resume(stripeSub.id, {
 								billing_cycle_anchor: "now"
 							})
 								.then(resumed => {

@@ -97,6 +97,7 @@ module.exports = {
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",
 		"POST /subscription/suspend/:subscriptionId": "subscriptions.suspend",
+		"POST /subscription/pause/:subscriptionId": "subscriptions.pause",
 		"POST /subscription/batch": "subscriptions.batch",
 		"POST /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
 		// Payment endpoints for FE
