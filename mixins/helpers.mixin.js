@@ -4,6 +4,18 @@ module.exports = {
 	methods: {
 
 		/**
+		 * Reject unless ctx.meta.user.type is admin.
+		 * Returns a rejected 403 promise, or null when the caller is an admin.
+		 */
+		requireAdmin(ctx) {
+			const { MoleculerClientError } = require("moleculer").Errors;
+			if (ctx?.meta?.user?.type !== "admin") {
+				return this.Promise.reject(new MoleculerClientError("Forbidden", 403, "ERR_FORBIDDEN", []));
+			}
+			return null;
+		},
+
+		/**
 		 * simple function to split string into
 		 */
 		stringChunk(str, chunkSize, separator) {

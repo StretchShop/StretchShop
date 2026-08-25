@@ -73,7 +73,7 @@ module.exports = {
 
 				this.logger.info("Starting to Clean up the Orders");
 
-				this.broker.call("orders.cleanOrders")
+				this.actions.cleanOrders()
 					.then((data) => {
 						this.logger.info("Orders Cleaned up", data);
 					});

@@ -21,6 +21,12 @@ module.exports = {
 		"/coverage/",
 	],
 	coverageDirectory: "coverage",
+	coverageThreshold: {
+		global: {
+			statements: 60,
+			lines: 60,
+		},
+	},
 	forceExit: true,
 	testTimeout: 30000,
 };

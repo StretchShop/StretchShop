@@ -3,6 +3,7 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 const fulfillmentMethods = require("../../../services/orders/methods/order-fulfillment.methods");
 const fulfillmentMixin = require("../../../services/orders/mixins/order-actions.fulfillment.mixin");
+const HelpersMixin = require("../../../mixins/helpers.mixin");
 
 function createService(overrides) {
 	return {
@@ -23,6 +24,7 @@ function createService(overrides) {
 		runDedicatedOrderStatusActions: fulfillmentMethods.methods.runDedicatedOrderStatusActions,
 		notifyOrdersUpdated: fulfillmentMethods.methods.notifyOrdersUpdated,
 		processBatchOrderStatusChange: fulfillmentMethods.methods.processBatchOrderStatusChange,
+		requireAdmin: HelpersMixin.methods.requireAdmin,
 		...overrides,
 	};
 }
@@ -108,6 +110,24 @@ describe("orders.batch status side effects", () => {
 		);
 		expect(service.entityChanged).toHaveBeenCalledWith("updated", updated, {});
 		expect(results).toEqual([{ orderId: "ord-1", success: true, order: updated }]);
+	});
+
+	it("rejects non-admin paid and expede callers with 403", async () => {
+		const service = createService();
+		const userCtx = {
+			meta: { user: { type: "user", _id: "u1" } },
+			params: { orderId: "ord-1" },
+		};
+
+		await expect(fulfillmentMixin.actions.paid.handler.call(service, userCtx))
+			.rejects.toMatchObject({ code: 403 });
+		await expect(fulfillmentMixin.actions.expede.handler.call(service, userCtx))
+			.rejects.toMatchObject({ code: 403 });
+		expect(service.adapter.findById).not.toHaveBeenCalled();
+	});
+
+	it("keeps cleanup actions private so they are not callable over the bus", () => {
+		expect(fulfillmentMixin.actions.cleanOrders.visibility).toBe("private");
 	});
 
 	it("rejects non-admin callers", async () => {

@@ -162,4 +162,46 @@ describe("Test 'api' helper methods", () => {
 			});
 		});
 	});
+
+	describe("checkCsrfToken", () => {
+		const jwt = require("jsonwebtoken");
+
+		function csrfPair({ secret = serviceApi.settings.JWT_SECRET, issued = Date.now(), tokenHash = "csrf-token-hash" } = {}) {
+			const session = jwt.sign(
+				{ ip: "127.0.0.1", issued, token: tokenHash },
+				secret,
+				{ algorithm: "HS256" }
+			);
+			const authorization = jwt.sign(
+				{ token: tokenHash },
+				`127.0.0.1--${issued}`,
+				{ algorithm: "HS256" }
+			);
+			return { session, authorization };
+		}
+
+		it("accepts a session cookie verified with JWT_SECRET", () => {
+			const { session, authorization } = csrfPair();
+			const ctx = {
+				meta: {
+					headers: { authorization: `Token ${authorization}` },
+					remoteAddress: "127.0.0.1",
+				},
+			};
+			const req = { headers: { cookie: `session=${session}` } };
+			expect(serviceApi.checkCsrfToken(ctx, req)).toBe(true);
+		});
+
+		it("rejects a session cookie signed with a different secret", () => {
+			const { session, authorization } = csrfPair({ secret: "forged-secret" });
+			const ctx = {
+				meta: {
+					headers: { authorization: `Token ${authorization}` },
+					remoteAddress: "127.0.0.1",
+				},
+			};
+			const req = { headers: { cookie: `session=${session}` } };
+			expect(serviceApi.checkCsrfToken(ctx, req)).toBe(false);
+		});
+	});
 });

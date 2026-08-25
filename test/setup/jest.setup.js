@@ -6,6 +6,10 @@ if (!process.env.JWT_SECRET) {
 	process.env.JWT_SECRET = "test-jwt-secret";
 }
 
+if (!process.env.COOKIES_KEY) {
+	process.env.COOKIES_KEY = "test-cookies-key";
+}
+
 if (!process.env.STRIPE_SECRET_KEY) {
 	process.env.STRIPE_SECRET_KEY = "sk_test_dummy";
 }

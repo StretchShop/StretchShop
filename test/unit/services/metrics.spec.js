@@ -27,6 +27,45 @@ describe("Test 'metrics' service", () => {
 		expect(result.uptime).toEqual(expect.any(Number));
 	});
 
+	it("pings transporter and redis independently of mongo", async () => {
+		const originalTransporter = process.env.TRANSPORTER;
+		process.env.TRANSPORTER = "nats://localhost:4222";
+
+		const ok = await serviceMetrics.pingTransporter({
+			broker: { call: jest.fn().mockResolvedValue([]) },
+		});
+		expect(ok).toBe("ok");
+
+		const failed = await serviceMetrics.pingTransporter({
+			broker: { call: jest.fn().mockRejectedValue(new Error("down")) },
+		});
+		expect(failed).toBe("error");
+
+		const redisOk = await serviceMetrics.pingRedis({
+			broker: {
+				nodeID: "n1",
+				cacher: {
+					prefix: "stretchshop",
+					get: jest.fn().mockResolvedValue(1),
+					set: jest.fn().mockResolvedValue(true),
+					del: jest.fn().mockResolvedValue(true),
+				},
+			},
+		});
+		expect(redisOk).toBe("ok");
+
+		const redisMissing = await serviceMetrics.pingRedis({
+			broker: { nodeID: "n1", cacher: null },
+		});
+		expect(redisMissing).toBe("error");
+
+		if (originalTransporter === undefined) {
+			delete process.env.TRANSPORTER;
+		} else {
+			process.env.TRANSPORTER = originalTransporter;
+		}
+	});
+
 	it("should include mongo check when MONGO_URI is configured", async () => {
 		const originalMongoUri = process.env.MONGO_URI;
 		process.env.MONGO_URI = "mongodb://invalid-host:27017/health-test";
