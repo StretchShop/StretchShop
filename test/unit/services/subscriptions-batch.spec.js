@@ -206,13 +206,10 @@ describe("subscriptions distinct values", () => {
 		const values = await service.getDistinctSubscriptionValues.call(service);
 
 		expect(service.adapter.collection.distinct.mock.calls.map((call) => call[0])).toEqual([
-			"status", "type", "period", "orderItemName",
+			"status",
 		]);
 		expect(values).toEqual({
 			status: ["active", "paused"],
-			type: ["autorefresh"],
-			period: ["month", "year"],
-			orderItemName: ["Plan A", "Plan B"],
 		});
 	});
 

@@ -10,6 +10,7 @@ const {
 describe("env.helpers", () => {
 	const originalNodeEnv = process.env.NODE_ENV;
 	const originalJwtSecret = process.env.JWT_SECRET;
+	const originalCookiesKey = process.env.COOKIES_KEY;
 	const originalTransporter = process.env.TRANSPORTER;
 	const originalRedisUrl = process.env.REDIS_URL;
 
@@ -19,6 +20,11 @@ describe("env.helpers", () => {
 			delete process.env.JWT_SECRET;
 		} else {
 			process.env.JWT_SECRET = originalJwtSecret;
+		}
+		if (originalCookiesKey === undefined) {
+			delete process.env.COOKIES_KEY;
+		} else {
+			process.env.COOKIES_KEY = originalCookiesKey;
 		}
 		if (originalTransporter === undefined) {
 			delete process.env.TRANSPORTER;
@@ -55,6 +61,22 @@ describe("env.helpers", () => {
 		process.env.NODE_ENV = "test";
 		delete process.env.JWT_SECRET;
 		expect(getRequiredSecret("JWT_SECRET", "dev-fallback")).toBe("dev-fallback");
+	});
+
+	it("should reject well-known JWT secrets in production", () => {
+		process.env.NODE_ENV = "production";
+		process.env.JWT_SECRET = "jwt-stretchshop-secret";
+		expect(() => getRequiredSecret("JWT_SECRET", "fallback")).toThrow(
+			"Insecure value for required environment variable: JWT_SECRET"
+		);
+	});
+
+	it("should reject well-known COOKIES_KEY values in production", () => {
+		process.env.NODE_ENV = "production";
+		process.env.COOKIES_KEY = "Lvj1MalbaTe6k";
+		expect(() => getRequiredSecret("COOKIES_KEY", "fallback")).toThrow(
+			"Insecure value for required environment variable: COOKIES_KEY"
+		);
 	});
 
 	it("should use memory cacher outside production microservices", () => {

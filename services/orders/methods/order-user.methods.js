@@ -3,7 +3,6 @@
 require("dotenv").config();
 const passGenerator = require("generate-password");
 const fetch = require("cross-fetch");
-const jwt = require("jsonwebtoken");
 const handlebars = require("handlebars");
 const { writeFileSync, ensureDir, createWriteStream } = require("fs-extra");
 const pathResolve = require("path").resolve;
@@ -49,7 +48,7 @@ module.exports = {
 				// user is set from "order_no_verif" cookie
 				// that means, there is no registered & activated & logged user 
 				// user is being created in process of order
-				let orderNoVerif = jwt.decode(ctx.meta.cookies["order_no_verif"]);
+				let orderNoVerif = this.verifyOrderGuestToken(ctx.meta.cookies["order_no_verif"]);
 				if ( orderNoVerif?.id && orderNoVerif.email ) {
 					user = {
 						id: orderNoVerif.id,
@@ -198,8 +197,7 @@ module.exports = {
 				self.logger.info("orders.manageUser() #2");
 				// if order temp user is set in cookie, use him
 				return new Promise(function(resolve) {
-					let orderNoVerif = jwt.decode(ctx.meta.cookies["order_no_verif"]);
-					self.logger.info("orders.manageUser() #2 - orderNoVerif:", orderNoVerif);
+					let orderNoVerif = self.verifyOrderGuestToken(ctx.meta.cookies["order_no_verif"]);
 					if ( orderNoVerif?.id && orderNoVerif.email ) {
 						let user = {
 							id: orderNoVerif.id,
@@ -209,7 +207,7 @@ module.exports = {
 						};
 						ctx.params.orderParams["user"] = user;
 						self.settings.orderTemp["user"] = user;
-						self.logger.info("orders.manageUser() #2 - 'order_no_verif' user:", user);
+						self.logger.info("orders.manageUser() #2 - 'order_no_verif' user id:", user.id);
 					}
 					resolve(ctx);
 				})

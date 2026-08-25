@@ -10,7 +10,8 @@ const path = require("path");
 // global mixins
 const HelpersMixin = require("../../mixins/helpers.mixin");
 const SettingsMixin = require("../../mixins/settings.mixin");
-const { getRequiredSecret } = require("../../mixins/env.helpers");
+const { MoleculerClientError } = require("moleculer").Errors;
+const { getRequiredSecret, isProduction } = require("../../mixins/env.helpers");
 
 // methods
 const ApiMethodsCore = require("./methods/core.methods");
@@ -81,10 +82,17 @@ module.exports = {
 			if (!isDev && !corsOriginRaw) {
 				return null;
 			}
+			const allowedOrigins = corsOriginRaw
+				? corsOriginRaw.split(",").map((s) => s.trim()).filter(Boolean)
+				: [];
+			if (isProduction() && allowedOrigins.includes("*")) {
+				console.warn("CORS_ORIGIN=* is not allowed in production; CORS disabled. Set explicit origin(s).");
+				return null;
+			}
 			return {
 				origin: (origin) => {
-					const allowed = corsOriginRaw
-						? corsOriginRaw.split(",").map((s) => s.trim()).filter(Boolean)
+					const allowed = allowedOrigins.length
+						? allowedOrigins
 						: (process.env.NODE_ENV === "dockerdev"
 							? ["http://localhost:3000"]
 							: ["http://localhost:8080"]);
@@ -402,16 +410,19 @@ module.exports = {
 				type: { type: "string", min: 3 }
 			},
 			handler(ctx) {
-				// if user is admin and settings are editable
+				const denied = this.requireAdmin(ctx);
+				if (denied) {
+					return denied;
+				}
 				const business = SettingsMixin.getSiteSettings("business", true);
 				this.logger.info("settings: ", business, ctx.meta.user.type == "admin",
 					business.editableSettings !== "undefined",
 					business.editableSettings.core === true, ctx);
-				if (ctx.meta.user.type == "admin" &&
-					business.editableSettings !== "undefined" &&
+				if (business.editableSettings !== "undefined" &&
 					business.editableSettings.core === true) {
 					return SettingsMixin.getSiteSettings(ctx.params.type);
 				}
+				return this.Promise.reject(new MoleculerClientError("Forbidden", 403, "ERR_FORBIDDEN", []));
 			}
 		},
 
@@ -424,13 +435,15 @@ module.exports = {
 				data: { type: "object", optional: true }
 			},
 			handler(ctx) {
-				// if user is admin and settings are editable
+				const denied = this.requireAdmin(ctx);
+				if (denied) {
+					return denied;
+				}
 				const business = SettingsMixin.getSiteSettings("business", true);
 				this.logger.info("settings: ", business, ctx.meta.user.type == "admin",
 					business.editableSettings !== "undefined",
 					business.editableSettings === true, ctx);
-				if (ctx.meta.user.type == "admin" &&
-					business.editableSettings !== "undefined" &&
+				if (business.editableSettings !== "undefined" &&
 					business.editableSettings === true) {
 					// if data is set, update and return
 					if (typeof ctx.params.data !== "undefined" && ctx.params.data.constructor === Object) {
@@ -439,6 +452,7 @@ module.exports = {
 						return SettingsMixin.getSiteSettings(ctx.params.type);
 					}
 				}
+				return this.Promise.reject(new MoleculerClientError("Forbidden", 403, "ERR_FORBIDDEN", []));
 			}
 		}
 

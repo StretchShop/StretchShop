@@ -5,8 +5,8 @@ class PaymentModel {
 		this.currency = data.currency;
 		this.status = data.status;
 		this.paymentMethod = data.paymentMethod;
-    this.metadata = data.metadata;
-    this.originalData = data.originalData;
+		this.metadata = data.metadata;
+		this.originalData = data.originalData;
 		this.createdAt = data.createdAt;
 	}
 
@@ -36,3 +36,5 @@ class PaymentModel {
 		};
 	}
 }
+
+module.exports = PaymentModel;

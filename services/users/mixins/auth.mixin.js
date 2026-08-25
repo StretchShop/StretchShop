@@ -29,9 +29,11 @@ module.exports = {
 				} }
 			},
 			handler(ctx) {
-				this.logger.info("users.create INCOMING", ctx.params.user);
 				let entity = ctx.params.user;
-				this.logger.info("users.create entity", entity);
+				this.logger.info("users.create INCOMING", {
+					email: entity?.email,
+					username: entity?.username
+				});
 
 				return this.enforceRateLimit(ctx, "register", { limit: 3, windowMs: 60 * 60 * 1000 })
 					.then(() => this.validateEntity(entity))
@@ -87,7 +89,11 @@ module.exports = {
 							.then(user => this.transformEntity(user, false, ctx))
 							.then(entity => {
 								this.entityChanged("created", entity, ctx).then(() => entity);
-								this.logger.info("users.create - User Created: ", entity);
+								this.logger.info("users.create - User Created: ", {
+									id: entity?.user?._id,
+									email: entity?.user?.email,
+									username: entity?.user?.username
+								});
 
 								// send email separately asynchronously not waiting for response
 								let emailData = {

@@ -36,6 +36,8 @@ Save a SwaggerHub export as `docs/openapi/swaggerhub-export.json` to compare pat
 - `CookieAuth` — JWT `token` cookie (logged-in routes)
 - `CsrfHeader` — `x-xsrf-token` header (login, register, email/username checks)
 
+Guest checkout uses a separate HttpOnly cookie `order_no_verif` (JWT scoped to the order). It is not the same as the user `token` cookie. See the [API](https://github.com/StretchShop/StretchShop/wiki/API) wiki page.
+
 ## Notable gaps vs SwaggerHub
 
 - Raw Stripe webhook: `POST /apis/v1/order/payment/webhook-raw/{supplier}` (documented in generated spec)

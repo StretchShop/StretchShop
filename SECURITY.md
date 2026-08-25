@@ -31,6 +31,10 @@ If you discover a security vulnerability in StretchShop, please follow the steps
 
 We do not actively support any versions of StretchShop as it is still a small project in active development. But we do gladly welcome any help. If you would like to help us with active support, please contact us.
 
+## Production configuration
+
+When `NODE_ENV=production`, the process will not start without real `JWT_SECRET` and `COOKIES_KEY` values. Well-known placeholders (including the samples in `.env.example`) are rejected. Production microservices also require `REDIS_URL` when `TRANSPORTER` is set. See [Environment setup](https://github.com/StretchShop/StretchShop/wiki/Environment-setup) and `.env.example`.
+
 ## Security Best Practices
 
 To help maintain security in StretchShop:
@@ -38,6 +42,8 @@ To help maintain security in StretchShop:
 - Regularly update to the latest version.
 - Use Dependabot or similar tools to monitor your dependencies for vulnerabilities.
 - Avoid sharing sensitive data or credentials in public forums or repositories.
+- Set `CORS_ORIGIN` to explicit shop origins (not `*`) outside local development.
+- Enable `TRUST_PROXY` only behind a reverse proxy you control. Prometheus metrics bind to localhost by default (`METRICS_HOST`).
 
 ## Contact
 

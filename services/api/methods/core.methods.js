@@ -89,7 +89,7 @@ module.exports = {
 				const csrfDate = new Date();
 				const name = "session";
 				const hash = crypto.createHash("sha256");
-				const sessionCookieString = ctx.meta.remoteAddress + "--" + csrfDate.getTime() + "--" + bsKeys.invoiceData?.company?.name + "--" + crypto.randomBytes(20).toString('hex');
+				const sessionCookieString = ctx.meta.remoteAddress + "--" + csrfDate.getTime() + "--" + bsKeys.invoiceData?.company?.name + "--" + crypto.randomBytes(20).toString("hex");
 				hash.update(sessionCookieString);
 				const hashValue = hash.digest("hex");
 				const value = jwt.sign({
@@ -134,7 +134,13 @@ module.exports = {
 				const cookies = this.parseCookies(req.headers.cookie);
 				const token = ctx.meta.headers.authorization.split("Token ");
 				if (token[1] && cookies.session) {
-					const cookieData = jwt.decode(cookies.session);
+					let cookieData;
+					try {
+						cookieData = jwt.verify(cookies.session, this.settings.JWT_SECRET, { algorithms: ["HS256"] });
+					} catch {
+						this.logger.warn("CSRF session cookie verification failed");
+						return false;
+					}
 					const verifyKey = ctx.meta.remoteAddress + "--" + cookieData?.issued;
 					try {
 						const decoded = jwt.verify(token[1].trim(), verifyKey, { algorithms: ["HS256"] });

@@ -10,6 +10,7 @@ module.exports = {
 		 */
 		cleanUsers: {
 			cache: false,
+			visibility: "private",
 			handler(ctx) {
 				let promises = [];
 				const d = new Date(); // Less than today
