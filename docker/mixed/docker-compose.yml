@@ -68,8 +68,9 @@ services:
     volumes:
       - ./db:/data/db
       - ./dbconf:/etc/mongo
-    ports:
-      - "27017:27017"
+    # Do not publish Mongo to the host in production.
+    # ports:
+    #   - "27017:27017"
     command: mongod --auth
     networks:
       - internal
@@ -77,8 +78,9 @@ services:
 
   nats-server:
     image: nats:2.10-alpine
-    ports:
-      - "4222:4222"
+    # Do not publish NATS to the host in production.
+    # ports:
+    #   - "4222:4222"
     networks:
       - internal
 
@@ -93,7 +95,6 @@ services:
   traefik:
     image: traefik:v3.3.5
     command:
-      - "--api.insecure=true" # only if you are using nginx or something else to protect the traefik dashboard
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
     ports:

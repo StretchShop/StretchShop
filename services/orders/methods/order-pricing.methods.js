@@ -245,21 +245,20 @@ module.exports = {
 				if ( !order.prices ) {
 					order.prices = {};
 				}
+				// Recalculate item totals only. Keep existing delivery/payment fees —
+				// those are set by checkOrderData() and must survive later recounts
+				// (e.g. orders.updateOrder after Stripe payment-intent).
 				order.prices = {
 					...order.prices,
-					...{
-						priceItems: 0,
-						priceItemsNoTax: 0,
-						priceItemsTax: 0,
-						priceTotal: 0,
-						priceTotalNoTax: 0,
-						priceTaxTotal: 0,
-						priceDelivery: 0,
-						priceDeliveryTaxData: null,
-						pricePayment: 0,
-						pricePaymentTaxData: null,
-						priceSubsFirstPayTotal: 0
-					}
+					priceItems: 0,
+					priceItemsNoTax: 0,
+					priceItemsTax: 0,
+					priceTotal: 0,
+					priceTotalNoTax: 0,
+					priceTaxTotal: 0,
+					priceDelivery: order.prices.priceDelivery || 0,
+					pricePayment: order.prices.pricePayment || 0,
+					priceSubsFirstPayTotal: 0
 				};
 				order.items
 					.filter(function(item){

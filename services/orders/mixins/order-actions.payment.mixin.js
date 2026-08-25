@@ -239,6 +239,85 @@ module.exports = {
 		},
 
 
+		paymentPause: {
+			cache: false,
+			auth: "required",
+			params: {
+				supplier: { type: "string", min: 3 },
+				relatedId: { type: "string", min: 3 },
+				subscription: { type: "object" }
+			},
+			handler(ctx) {
+				const supplier = ctx.params.supplier || "stripe";
+
+				this.logger.info("orders.paymentPause params: ", {
+					supplier,
+					relatedId: ctx.params.relatedId
+				});
+
+				return ctx.call("orders." + supplier + "PauseBillingAgreement", {
+					billingRelatedId: ctx.params.relatedId
+				})
+					.then(pauseResult => {
+						this.logger.info("orders.paymentPause supplier call response: ", pauseResult?.id);
+						if (!pauseResult) {
+							return Promise.reject(new MoleculerClientError(
+								"Payment pause returned empty result",
+								422,
+								"PAYMENT_PAUSE_EMPTY",
+								[]
+							));
+						}
+						return pauseResult;
+					})
+					.catch(error => {
+						this.logger.error("order.paymentPause - error: ", error, JSON.stringify(error));
+						return Promise.reject(error);
+					});
+			}
+		},
+
+
+		paymentReactivate: {
+			cache: false,
+			auth: "required",
+			params: {
+				supplier: { type: "string", min: 3 },
+				relatedId: { type: "string", min: 3 },
+				subscription: { type: "object" }
+			},
+			handler(ctx) {
+				const supplier = ctx.params.supplier || "stripe";
+
+				this.logger.info("orders.paymentReactivate params: ", {
+					supplier,
+					relatedId: ctx.params.relatedId
+				});
+
+				return ctx.call("orders." + supplier + "ReactivateBillingAgreement", {
+					billingRelatedId: ctx.params.relatedId,
+					subscription: ctx.params.subscription
+				})
+					.then(reactivateResult => {
+						this.logger.info("orders.paymentReactivate supplier call response: ", reactivateResult?.subscription?.id, reactivateResult?.recreated, reactivateResult?.resumed);
+						if (!reactivateResult) {
+							return Promise.reject(new MoleculerClientError(
+								"Payment reactivate returned empty result",
+								422,
+								"PAYMENT_REACTIVATE_EMPTY",
+								[]
+							));
+						}
+						return reactivateResult;
+					})
+					.catch(error => {
+						this.logger.error("order.paymentReactivate - error: ", error, JSON.stringify(error));
+						return Promise.reject(error);
+					});
+			}
+		},
+
+
 		/**
 		 * Mark order as trial
 		 * 

@@ -93,14 +93,13 @@ module.exports = {
 		"POST /order/invoice/pay/:orderId": "orders.paid",
 		"POST /order/invoice/cancel/:orderId": "orders.cancel",
 		"POST /order/invoice/expeded/:orderId": "orders.expede",
+		"POST /order/batch": "orders.batch",
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",
 		"POST /subscription/suspend/:subscriptionId": "subscriptions.suspend",
-		// Routed but not implemented — exclude from OpenAPI to avoid startup warnings
-		"POST /subscription/reactivate/:subscriptionId": {
-			openapi: false,
-			action: "subscriptions.reactivate"
-		},
+		"POST /subscription/pause/:subscriptionId": "subscriptions.pause",
+		"POST /subscription/batch": "subscriptions.batch",
+		"POST /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
 		// Payment endpoints for FE
 		"POST /order/payment/:supplier/:action": "orders.payment", // eg. /order/payment/stripe/paymentintent
 		"GET /order/payment/:supplier/:result": "orders.paymentResult",
@@ -174,22 +173,22 @@ module.exports = {
 	onAfterCall(ctx, route, req, res, data) {
 		// writing cookies
 		if (ctx.meta.makeCookies) {
-			const cookieSecure = ((process.env.COOKIES_SECURE==="true" || process.env.COOKIES_SECURE==true) ? true : false);
+			const cookieSecure = ((process.env.COOKIES_SECURE === "true" || process.env.COOKIES_SECURE == true) ? true : false);
 			const useCookiesLib = !!(process.env.HTTPS_KEY && process.env.HTTPS_CERT);
 			const setCookieHeaders = [];
 
-			Object.keys(ctx.meta.makeCookies).forEach(function(key) {
+			Object.keys(ctx.meta.makeCookies).forEach(function (key) {
 				if (cookieSecure) {
 					ctx.meta.makeCookies[key].options["secure"] = true;
 				}
-				if ( ctx.meta.makeCookies[key].options && ctx.meta.makeCookies[key].options.expires ) {
+				if (ctx.meta.makeCookies[key].options && ctx.meta.makeCookies[key].options.expires) {
 					ctx.meta.makeCookies[key].options.expires = new Date(ctx.meta.makeCookies[key].options.expires);
 				}
 				if (!ctx.meta.makeCookies[key].options.path) {
 					ctx.meta.makeCookies[key].options["path"] = "/";
 				}
 
-				if ( useCookiesLib ) {
+				if (useCookiesLib) {
 					res.cookies.set(
 						key,
 						ctx.meta.makeCookies[key].value,
@@ -246,7 +245,7 @@ module.exports = {
 	bodyParsers: {
 		json: {
 			strict: false,
-			limit: 1024*1024*10
+			limit: 1024 * 1024 * 10
 		},
 		urlencoded: {
 			extended: false

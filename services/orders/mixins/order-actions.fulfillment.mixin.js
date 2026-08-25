@@ -12,6 +12,7 @@ module.exports = {
 	actions: {
 		cleanOrders: {
 			cache: false,
+			visibility: "private",
 			handler(ctx) {
 				let promises = [];
 				const d = new Date();
@@ -24,10 +25,10 @@ module.exports = {
 				})
 					.then(found => {
 						found.forEach(order => {
-							promises.push( 
-								ctx.call("orders.remove", {id: order._id} )
+							promises.push(
+								ctx.call("orders.remove", { id: order._id })
 									.then(removed => {
-										return "Removed orders: " +JSON.stringify(removed);
+										return "Removed orders: " + JSON.stringify(removed);
 									})
 									.catch(err => {
 										console.error("order.cleanOrders remove error: ", err);
@@ -49,14 +50,14 @@ module.exports = {
 						return this.Promise.reject(new MoleculerClientError("Order clean find error", 422, "", []));
 					});
 			}
-		}, 
+		},
 
 		/**
 		 * Download invoice PDF
 		 * 
 		 * @actions
 		 * 
-     * @param {String} invoice - id of invoice
+		 * @param {String} invoice - id of invoice
 		 * 
 		 * @returns {ReadStream} Stream of invoice PDF file
 		 */
@@ -67,7 +68,7 @@ module.exports = {
 				invoice: { type: "string", min: 3 }
 			},
 			handler(ctx) {
-				this.logger.info("orders.invoiceDownload - id #"+ctx.params.invoice+" request by user: ", ctx.meta.user);
+				this.logger.info("orders.invoiceDownload - id #" + ctx.params.invoice + " request by user: ", ctx.meta.user);
 				const sepIndex = ctx.params.invoice.indexOf(".");
 				if (sepIndex < 1) {
 					return Promise.reject(new MoleculerClientError("Invalid invoice", 400));
@@ -98,8 +99,8 @@ module.exports = {
 				this.logger.info("orders.invoiceDownload - path:", { path: filePath, resolvedPath: filePath });
 				try {
 					return createReadStream(filePath);
-				} catch(e) {
-					this.logger.error("orders.invoiceDownload - id #"+ctx.params.invoice+" error:", JSON.stringify(e));
+				} catch (e) {
+					this.logger.error("orders.invoiceDownload - id #" + ctx.params.invoice + " error:", JSON.stringify(e));
 					return null;
 				}
 			}
@@ -112,7 +113,7 @@ module.exports = {
 		 * 
 		 * @actions
 		 * 
-     * @param {String} orderId - id of order to pay
+		 * @param {String} orderId - id of order to pay
 		 * 
 		 * @returns {Object} Unified result from related action
 		 */
@@ -123,50 +124,55 @@ module.exports = {
 				orderId: { type: "string", min: 3 }
 			},
 			handler(ctx) {
-				// only admin can generate invoices
-				if ( ctx.meta.user.type=="admin" ) {
-					if ( ctx.params.orderId.trim() != "" ) {
-						this.logger.info("orders.paid - marking order as paid, id: ", ctx.params.orderId);
-						return this.adapter.findById(ctx.params.orderId)
-							.then(order => {
-								// specific for admin
-								order.status = "paid";
-								order.dates.datePaid = new Date();
-								if (!order.data.paymentData.paidAmountTotal) { order.data.paymentData["paidAmountTotal"] = 0; }
-								order.data.paymentData.paidAmountTotal = order.prices.priceTotal;
-								if (!order.data.paymentData.lastResponseResult) { order.data.paymentData["lastResponseResult"] = []; }
-								order.data.paymentData.lastResponseResult.push({
-									description: "Marked as Paid by Admin by Generating Invoice",
-									date: new Date(),
-									userId: ctx.meta.user._id.toString()
-								});
-								// do actions that happen after payment
-								return this.orderPaymentReceived(ctx, order, "admin")
-									.then(result => {
-										return result;
-									})
-									.catch(err => {
-										console.error("order.paid paymentReceived error: ", err);
-										return this.Promise.reject(new MoleculerClientError("Order payR error", 422, "", []));
-									});
-							})
-							.catch(err => {
-								console.error("order.paid find error: ", err);
-								return this.Promise.reject(new MoleculerClientError("Order pay find error", 422, "", []));
-							});
-					}
+				const denied = this.requireAdmin(ctx);
+				if (denied) {
+					return denied;
 				}
+				if (ctx.params.orderId.trim() != "") {
+					this.logger.info("orders.paid - marking order as paid, id: ", ctx.params.orderId);
+					return this.adapter.findById(ctx.params.orderId)
+						.then(order => {
+							// specific for admin
+							order.status = "paid";
+							order.dates.datePaid = new Date();
+							if (!order.data.paymentData.paidAmountTotal) { order.data.paymentData["paidAmountTotal"] = 0; }
+							order.data.paymentData.paidAmountTotal = order.prices.priceTotal;
+							if (!order.data.paymentData.lastResponseResult) { order.data.paymentData["lastResponseResult"] = []; }
+							order.data.paymentData.lastResponseResult.push({
+								description: "Marked as Paid by Admin by Generating Invoice",
+								date: new Date(),
+								userId: ctx.meta.user._id.toString()
+							});
+							// invoice PDF, paid email, persist order, entityChanged
+							return this.orderPaymentReceived(ctx, order, "admin")
+								.then(result => {
+									if (typeof this.afterPaidActions === "function") {
+										this.afterPaidActions(order, ctx);
+									}
+									return result;
+								})
+								.catch(err => {
+									console.error("order.paid paymentReceived error: ", err);
+									return this.Promise.reject(new MoleculerClientError("Order payR error", 422, "", []));
+								});
+						})
+						.catch(err => {
+							console.error("order.paid find error: ", err);
+							return this.Promise.reject(new MoleculerClientError("Order pay find error", 422, "", []));
+						});
+				}
+				return this.Promise.reject(new MoleculerClientError("Order not found", 404, "", []));
 			}
-		}, 
+		},
 
-		
+
 		/**
 		 * Admin only action
 		 * Change order state to expeded
 		 * 
 		 * @actions
 		 * 
-     * @param {String} orderId - id of order to expede
+		 * @param {String} orderId - id of order to expede
 		 * 
 		 * @returns {Object} Unified result from related action
 		 */
@@ -177,59 +183,129 @@ module.exports = {
 				orderId: { type: "string", min: 3 }
 			},
 			handler(ctx) {
+				const denied = this.requireAdmin(ctx);
+				if (denied) {
+					return denied;
+				}
 				let result = { success: false, order: null, message: null };
 				const self = this;
-				// only admin can mark order as expeded
-				if ( ctx.meta.user.type=="admin" ) {
-					if ( ctx.params.orderId.trim() != "" ) {
-						return this.adapter.findById(ctx.params.orderId)
-							.then(order => {
-								// specific for admin
-								order.status = "expeded";
-								order.dates.dateChanged = new Date();
-								order.dates.dateExpeded = new Date();
-								order.data.paymentData.lastResponseResult.push({
-									description: "Marked as Expeded by Admin",
-									date: new Date(),
-									userId: ctx.meta.user._id.toString()
-								});
-
-								let orderId = order._id.toString();
-								delete order.id;
-								delete order._id;
-								const update = {
-									"$set": order
-								};
-
-								// update order document
-								return self.adapter.updateById(orderId, update)
-									.then(doc => {
-										return this.transformDocuments(ctx, {}, doc);
-									})
-									.then(json => {
-										return this.entityChanged("updated", json, ctx)
-											.then(() => {
-												self.logger.info("order.expede - expede success: ");
-												result.success = true;
-												result.order = json;
-												return result;
-											});
-									})
-									.catch(error => {
-										self.logger.error("order.expede - update error: ", error);
-										result.message = "error: " + JSON.stringify(error);
-										return result;
-									});
-							})
-							.catch(error => {
-								self.logger.error("order.expede - not found: ", error);
-								result.message = "error: " + JSON.stringify(error);
+				if (ctx.params.orderId.trim() != "") {
+					return this.adapter.findById(ctx.params.orderId)
+						.then(order => {
+							if (!order) {
+								result.message = "error: Order not found";
 								return result;
+							}
+							// specific for admin
+							order.status = "expeded";
+							order.dates.dateChanged = new Date();
+							order.dates.dateExpeded = new Date();
+							if (!order.data) { order.data = {}; }
+							if (!order.data.paymentData) { order.data.paymentData = {}; }
+							if (!order.data.paymentData.lastResponseResult) {
+								order.data.paymentData.lastResponseResult = [];
+							}
+							order.data.paymentData.lastResponseResult.push({
+								description: "Marked as Expeded by Admin",
+								date: new Date(),
+								userId: ctx.meta.user._id.toString()
 							});
+
+							let orderId = order._id.toString();
+							delete order.id;
+							delete order._id;
+							const update = {
+								"$set": order
+							};
+
+							// update order document
+							return self.adapter.updateById(orderId, update)
+								.then(doc => {
+									return this.transformDocuments(ctx, {}, doc);
+								})
+								.then(json => {
+									return this.entityChanged("updated", json, ctx)
+										.then(() => {
+											self.logger.info("order.expede - expede success: ");
+											result.success = true;
+											result.order = json;
+											return result;
+										});
+								})
+								.catch(error => {
+									self.logger.error("order.expede - update error: ", error);
+									result.message = "error: " + (error?.message || JSON.stringify(error));
+									return result;
+								});
+						})
+						.catch(error => {
+							self.logger.error("order.expede - not found: ", error);
+							result.message = "error: " + (error?.message || JSON.stringify(error));
+							return result;
+						});
+				}
+				return this.Promise.reject(new MoleculerClientError("Order not found", 404, "", []));
+			}
+		},
+
+		/**
+		 * Admin only action
+		 * Batch update orders
+		 * 
+		 * @actions
+		 * 
+		 * @param {Array} orderIds - ids of orders to update
+		 * @param {Object} action - action to perform
+		 * @param {String} action.name - name of action
+		 * @param {String} action.value - value of action
+		 * 
+		 * @returns {Array} results of updates
+		 */
+		batch: {
+			cache: false,
+			auth: "required",
+			params: {
+				orderIds: { type: "array", items: { type: "string", min: 3 } },
+				action: {
+					type: "object", required: true,
+					properties: {
+						name: { type: "string", enum: ["status"] },
+						value: { type: "string", min: 3 }
 					}
 				}
+			},
+			handler(ctx) {
+				if (ctx.meta.user?.type !== "admin") {
+					return this.Promise.reject(new MoleculerClientError("Forbidden", 403, "", []));
+				}
+				if (!ctx.params.orderIds || ctx.params.orderIds.length === 0) {
+					return this.Promise.reject(new MoleculerClientError("Orders not found", 404, "", []));
+				}
+				if (ctx.params.action.name !== "status") {
+					return this.Promise.reject(new MoleculerClientError("Invalid action", 400, "", []));
+				}
+				ctx.params.orderIds = ctx.params.orderIds.map(id => this.fixStringToId(id));
+				return this.adapter.find({ query: { _id: { $in: ctx.params.orderIds } } })
+					.then(found => {
+						if (found.length === 0) {
+							return this.Promise.reject(new MoleculerClientError("Orders not found", 404, "", []));
+						}
+						return this.processBatchOrderStatusChange(
+							ctx,
+							found,
+							ctx.params.action.value,
+							ctx.params.orderIds
+						);
+					})
+					.catch(error => {
+						if (error instanceof MoleculerClientError) {
+							return this.Promise.reject(error);
+						}
+						this.logger.error("order.batch - error: ", error);
+						return this.Promise.reject(new MoleculerClientError("Order batch error", 422, "", []));
+					});
 			}
-		}, 
+		},
 
 
 		/**

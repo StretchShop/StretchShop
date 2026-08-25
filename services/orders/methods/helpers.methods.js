@@ -44,7 +44,24 @@ module.exports = {
 			}
 		},
 
-
+		/**
+		 * Verify guest checkout cookie. Returns payload or null.
+		 */
+		verifyOrderGuestToken(token) {
+			if (!token || typeof token !== "string") {
+				return null;
+			}
+			try {
+				const decoded = jwt.verify(token, this.settings.JWT_SECRET, { algorithms: ["HS256"] });
+				if (decoded?.id && decoded.email) {
+					return decoded;
+				}
+				return null;
+			} catch {
+				this.logger.warn("orders - invalid order_no_verif token");
+				return null;
+			}
+		},
 
 		/**
 		 * Prepare values for template (eg. invoice PDF) 

@@ -79,7 +79,15 @@ module.exports = {
 										return this.entityChanged("updated", json, ctx)
 											.then(() => {
 												this.logger.info("order.update - updated order:", json);
-												self.orderAfterSaveActions(ctx, { order: json });
+												// Confirmation email / cart-clear already ran when the order
+												// was first accepted. Later updates (Stripe paymentIntent,
+												// webhooks, subscription IDs) must not send it again.
+												const alreadyAccepted = json.dates?.emailSent || [
+													"saved", "sent", "paid", "expeded", "prepared", "finished"
+												].includes(json.status);
+												if (!alreadyAccepted) {
+													self.orderAfterSaveActions(ctx, { order: json });
+												}
 												return json;
 											});
 									})
@@ -207,23 +215,28 @@ module.exports = {
 				// check if we have logged user
 				if (ctx.meta.user?._id) { // we have user
 					const { sanitizeMongoQuery, allowlistQueryFields } = require("../../../mixins/mongo.security");
+					const queryOptions = { allowedOperators: ["$in", "$gte", "$lte", "$gt", "$lt", "$not"] };
 					let filter = { query: {}, limit: 20 };
 					if (ctx.params.query !== undefined && ctx.params.query) {
+						this.logger.info("orders.listOrders filter #1:", ctx.params.query);
 						if (ctx.meta.user.type === "admin" && ctx.params.fullData === true) {
-							filter.query = sanitizeMongoQuery(ctx.params.query);
+							filter.query = sanitizeMongoQuery(ctx.params.query, queryOptions);
 						} else {
 							filter.query = allowlistQueryFields(ctx.params.query, [
-								"status", "_id", "invoice.num", "invoice.id"
-							]);
+								"status", "_id", "invoice.num", "invoice.id", "dates.dateCreated"
+							], queryOptions);
 						}
 					}
 					// update filter acording to user
-					if (ctx.meta.user.type == "admin" && ctx.params.fullData !== undefined && ctx.params.fullData) {
+
+					if (ctx.meta.user.type == "admin") {
 						// admin can browse all orders
 					} else {
 						filter.query["user.id"] = ctx.meta.user._id.toString();
 					}
-					filter.query["$or"] = [{ "status": "saved" }, { "status": "sent" }, { "status": "paid" }, { "status": "expeded" }];
+					if (!filter.query["status"] || filter.query["status"] === undefined) {
+						filter.query["status"] = { "$not": /cart/i };
+					}
 					// set offset
 					if (ctx.params.offset && ctx.params.offset > 0) {
 						filter.offset = ctx.params.offset;
@@ -232,8 +245,8 @@ module.exports = {
 					if (ctx.params.limit !== undefined && ctx.params.limit) {
 						filter.limit = ctx.params.limit;
 					}
-					if (filter.limit > 10) {
-						filter.limit = 10;
+					if (filter.limit > 100) {
+						filter.limit = 20;
 					}
 					// sort
 					filter.sort = "-dates.dateCreated";
@@ -241,10 +254,45 @@ module.exports = {
 						filter.sort = ctx.params.sort;
 					}
 
-					if (filter?.query?._id && filter.query._id.trim() != "") {
-						filter.query._id = this.fixStringToId(filter.query._id);
+					const idQuery = filter.query._id;
+					if (typeof idQuery === "string" && idQuery.trim() !== "") {
+						filter.query._id = this.fixStringToId(idQuery.trim());
 						filter.limit = 1;
+					} else if (idQuery && Array.isArray(idQuery.$in)) {
+						const ids = idQuery.$in
+							.filter((id) => typeof id === "string" && id.trim() !== "")
+							.map((id) => this.fixStringToId(id.trim()));
+						if (ids.length > 0) {
+							filter.query._id = { $in: ids };
+						} else {
+							delete filter.query._id;
+						}
+					} else if (idQuery) {
+						delete filter.query._id;
 					}
+
+					const dateQuery = filter.query["dates.dateCreated"];
+					if (dateQuery && typeof dateQuery === "object" && !Array.isArray(dateQuery)) {
+						["$gte", "$gt", "$lte", "$lt"].forEach((op) => {
+							if (dateQuery[op] == null) {
+								return;
+							}
+							const parsed = new Date(dateQuery[op]);
+							if (Number.isNaN(parsed.getTime())) {
+								delete dateQuery[op];
+							} else {
+								dateQuery[op] = parsed.toISOString();
+							}
+						});
+						if (Object.keys(dateQuery).length === 0) {
+							delete filter.query["dates.dateCreated"];
+						} else {
+							filter.query["dates.dateCreated"] = dateQuery;
+						}
+					}
+
+					this.logger.info("orders.listOrders filter:", filter);
+					console.log("orders.listOrders filter #2:", JSON.stringify(filter, null, 2));
 
 					// send query
 					return ctx.call("orders.find", filter)
@@ -256,7 +304,7 @@ module.exports = {
 										if (element?.invoice?.html) {
 											delete element.invoice.html;
 											delete element.data;
-											delete element.user.data.stripe;
+											delete element.user?.data?.stripe;
 										}
 									}
 								}

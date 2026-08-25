@@ -988,6 +988,27 @@
         }
       }
     },
+    "/cart/find": {
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Find cart",
+        "operationId": "cartFind",
+        "responses": {
+          "200": {
+            "description": "Found cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cart/{itemId}": {
       "delete": {
         "tags": [
@@ -1186,9 +1207,9 @@
     "/products/find": {
       "post": {
         "tags": [
-          "admin"
+          "visitor"
         ],
-        "summary": "Admin product find",
+        "summary": "List products by Moleculer default action",
         "operationId": "ProductPostFind",
         "parameters": [
           {

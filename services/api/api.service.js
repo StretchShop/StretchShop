@@ -10,7 +10,8 @@ const path = require("path");
 // global mixins
 const HelpersMixin = require("../../mixins/helpers.mixin");
 const SettingsMixin = require("../../mixins/settings.mixin");
-const { getRequiredSecret } = require("../../mixins/env.helpers");
+const { MoleculerClientError } = require("moleculer").Errors;
+const { getRequiredSecret, isProduction } = require("../../mixins/env.helpers");
 
 // methods
 const ApiMethodsCore = require("./methods/core.methods");
@@ -40,7 +41,7 @@ try {
 module.exports = {
 	name: "api",
 	mixins: [
-		ApiGateway, 
+		ApiGateway,
 		HelpersMixin,
 		SettingsMixin,
 		// methods
@@ -69,7 +70,7 @@ module.exports = {
 			key: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_KEY)),
 			cert: fs.readFileSync(path.resolve(__dirname, process.env.HTTPS_CERT))
 		} : null,
-		
+
 		JWT_SECRET: getRequiredSecret("JWT_SECRET", "jwt-stretchshop-secret"),
 
 		// Global CORS settings for all routes — only when explicitly configured or in local/dev
@@ -81,10 +82,17 @@ module.exports = {
 			if (!isDev && !corsOriginRaw) {
 				return null;
 			}
+			const allowedOrigins = corsOriginRaw
+				? corsOriginRaw.split(",").map((s) => s.trim()).filter(Boolean)
+				: [];
+			if (isProduction() && allowedOrigins.includes("*")) {
+				console.warn("CORS_ORIGIN=* is not allowed in production; CORS disabled. Set explicit origin(s).");
+				return null;
+			}
 			return {
 				origin: (origin) => {
-					const allowed = corsOriginRaw
-						? corsOriginRaw.split(",").map((s) => s.trim()).filter(Boolean)
+					const allowed = allowedOrigins.length
+						? allowedOrigins
 						: (process.env.NODE_ENV === "dockerdev"
 							? ["http://localhost:3000"]
 							: ["http://localhost:8080"]);
@@ -192,7 +200,7 @@ module.exports = {
 				},
 			},
 			// get routes from external file - merged with subproject if applicable
-			sppf.subprojectMergeRoutes(apiV1, path.resolve(resourcesDirectory+"/routes/apiV1") ),
+			sppf.subprojectMergeRoutes(apiV1, path.resolve(resourcesDirectory + "/routes/apiV1")),
 			{
 				path: "/backdirect",
 
@@ -208,7 +216,7 @@ module.exports = {
 
 				onAfterCall(ctx, route, req, res, data) {
 					// Async function which return with Promise
-					if (data && data.redirect && data.redirect.trim()!="") {
+					if (data && data.redirect && data.redirect.trim() != "") {
 						res.statusCode = 302;
 						res.setHeader("Location", data.redirect);
 						return null;
@@ -223,12 +231,12 @@ module.exports = {
 				path: "/",
 				use: [
 					// handle fallback for HTML5 history API
-					require("connect-history-api-fallback")({ 
+					require("connect-history-api-fallback")({
 						index: "index.html",
 						rewrites: [
-							{ 
+							{
 								from: /^[^.]*$/, // only requests without dot (.) in url
-								to: function(context) {
+								to: function (context) {
 									const pathname = context.parsedUrl.pathname || "";
 									if (pathname.startsWith("/openapi")) {
 										return pathname;
@@ -258,16 +266,16 @@ module.exports = {
 							}
 
 							let indexPath = publicPathReady + "/index.html";
-							if ( !fs.existsSync(indexPath) ) {
+							if (!fs.existsSync(indexPath)) {
 								indexPath = publicPath + "/index.html";
 							}
 							// read index file
 							fs.readFile(indexPath)
-								.then( index => {
+								.then(index => {
 									res.setHeader("Content-Type", "text/html; charset=utf-8");
 									res.end(index);
 								})
-								.catch( (error) => {
+								.catch((error) => {
 									console.error("Router / error: ", error);
 									res.set("Content-Type", "text/plain")
 										.status(404)
@@ -297,7 +305,7 @@ module.exports = {
 			name: process.env.SITE_NAME || "StretchShop",
 			supportEmail: process.env.SITE_SUPPORT_EMAIL || "support@stretchshop.app",
 			imgLogo: process.env.SITE_IMG_LOGO || "/assets/_site/logo.svg",
-			imgSiteEmailHeader: process.env.SITE_IMG_EMAIL_HEADER || "/assets/_site/site-email-header-image.png"
+			imgSiteEmailHeader: process.env.SITE_IMG_EMAIL_HEADER || "/assets/_site/logo-words-horizontal.svg"
 		},
 
 		// logRequestParams: "info",
@@ -325,7 +333,7 @@ module.exports = {
 				const errObj = _.pick(err, ["name", "message", "code", "type", "data"]);
 				res.end(JSON.stringify(errObj, null, 2));
 			}
-			this.logResponse(req, res, err? err.ctx : null);
+			this.logResponse(req, res, err ? err.ctx : null);
 		}
 
 	},
@@ -353,7 +361,7 @@ module.exports = {
 
 				const filter = this.buildGlobalSearchQuery(ctx.params.query, langs);
 				this.logger.info("api.service - global search - filter:", filter);
-				
+
 				promises.push(
 					ctx.call("products.find", filter)
 						.then((products) => {
@@ -402,16 +410,19 @@ module.exports = {
 				type: { type: "string", min: 3 }
 			},
 			handler(ctx) {
-				// if user is admin and settings are editable
+				const denied = this.requireAdmin(ctx);
+				if (denied) {
+					return denied;
+				}
 				const business = SettingsMixin.getSiteSettings("business", true);
-				this.logger.info("settings: ", business,  ctx.meta.user.type=="admin", 
-					business.editableSettings !== "undefined", 
+				this.logger.info("settings: ", business, ctx.meta.user.type == "admin",
+					business.editableSettings !== "undefined",
 					business.editableSettings.core === true, ctx);
-				if ( ctx.meta.user.type=="admin" && 
-				business.editableSettings !== "undefined" && 
-				business.editableSettings.core === true ) {
+				if (business.editableSettings !== "undefined" &&
+					business.editableSettings.core === true) {
 					return SettingsMixin.getSiteSettings(ctx.params.type);
 				}
+				return this.Promise.reject(new MoleculerClientError("Forbidden", 403, "ERR_FORBIDDEN", []));
 			}
 		},
 
@@ -424,14 +435,16 @@ module.exports = {
 				data: { type: "object", optional: true }
 			},
 			handler(ctx) {
-				// if user is admin and settings are editable
+				const denied = this.requireAdmin(ctx);
+				if (denied) {
+					return denied;
+				}
 				const business = SettingsMixin.getSiteSettings("business", true);
-				this.logger.info("settings: ", business,  ctx.meta.user.type=="admin", 
-					business.editableSettings !== "undefined", 
+				this.logger.info("settings: ", business, ctx.meta.user.type == "admin",
+					business.editableSettings !== "undefined",
 					business.editableSettings === true, ctx);
-				if ( ctx.meta.user.type=="admin" && 
-				business.editableSettings !== "undefined" && 
-				business.editableSettings === true ) {
+				if (business.editableSettings !== "undefined" &&
+					business.editableSettings === true) {
 					// if data is set, update and return
 					if (typeof ctx.params.data !== "undefined" && ctx.params.data.constructor === Object) {
 						return SettingsMixin.setSiteSettings(ctx.params.type, ctx.params.data);
@@ -439,6 +452,7 @@ module.exports = {
 						return SettingsMixin.getSiteSettings(ctx.params.type);
 					}
 				}
+				return this.Promise.reject(new MoleculerClientError("Forbidden", 403, "ERR_FORBIDDEN", []));
 			}
 		}
 

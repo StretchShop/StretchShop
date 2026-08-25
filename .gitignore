@@ -12,7 +12,10 @@ db
 public/**/*
 !public/index.html
 
-resources/emails/
+resources/emails/*
+!resources/emails/user/
+resources/emails/user/*
+!resources/emails/user/main-*
 resources/navigation/
 resources/pages/
 

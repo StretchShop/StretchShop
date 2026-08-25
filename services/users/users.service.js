@@ -61,7 +61,7 @@ module.exports = {
 
 				this.logger.info("users.crons - Starting to Remove Users that want to Delete their Profile");
 
-				this.broker.call("users.cleanUsers")
+				this.actions.cleanUsers()
 					.then((data) => {
 						this.logger.info("users.crons - Users Cleaned up", data);
 					})

@@ -5,5 +5,6 @@ module.exports = {
 		require("./subscription-core.methods"),
 		require("./subscription-billing.methods"),
 		require("./suspend.methods"),
+		require("./batch.methods"),
 	]
 };

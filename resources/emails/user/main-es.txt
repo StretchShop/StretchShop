@@ -1,0 +1,16 @@
+{{layout.webname}}
+{{#if layout.siteUrl}}{{layout.siteUrl}}{{/if}}
+
+{{{body}}}
+
+--
+{{#if layout.company.name}}{{layout.company.name}}{{else}}{{layout.webname}}{{/if}}
+{{#if layout.company.address}}{{layout.company.address.street}}
+{{layout.company.address.zip}} {{layout.company.address.city}}
+{{layout.company.address.country}}
+{{/if}}{{#if layout.company.contacts.phone}}Teléfono: {{layout.company.contacts.phone}}
+{{/if}}{{#if layout.company.contacts.email}}Correo: {{layout.company.contacts.email}}
+{{else}}{{#if layout.supportEmail}}Correo: {{layout.supportEmail}}
+{{/if}}{{/if}}{{#if layout.company.contacts.web}}{{layout.company.contacts.web}}{{else}}{{#if layout.siteUrl}}{{layout.siteUrl}}{{/if}}{{/if}}
+
+© {{layout.year}} {{layout.webname}}. Todos los derechos reservados.

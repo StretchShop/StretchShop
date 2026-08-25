@@ -1439,6 +1439,35 @@
             "items": {
               "$ref": "#/components/schemas/Subscription"
             }
+          },
+          "distinct": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "period": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "orderItemName": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       },

@@ -166,5 +166,56 @@ module.exports = {
 					});
 			}
 		},
+
+
+		/**
+		 * add specific product codes to user contentDependencies settings
+		 *
+		 * @actions
+		 *
+		 * @param {String} userId - user ID
+		 * @param {Array} productCodes - strings array of product codes to add
+		 */
+		addContentDependencies: {
+			visibility: "protected",
+			params: {
+				userId: { type: "string" },
+				productCodes: { type: "array", items: { type: "string" } }
+			},
+			handler(ctx) {
+				const { userId, productCodes } = ctx.params;
+
+				return this.adapter.findById(this.fixStringToId(userId))
+					.then((foundUser) => {
+						if (!foundUser) {
+							return Promise.reject(new MoleculerClientError("User not found", 404));
+						}
+						if (!foundUser.data) {
+							foundUser.data = { contentDependencies: { list: [] } };
+						}
+						if (!foundUser.data.contentDependencies) {
+							foundUser.data.contentDependencies = { list: [] };
+						}
+						if (!foundUser.data.contentDependencies.list) {
+							foundUser.data.contentDependencies.list = [];
+						}
+						foundUser.data.contentDependencies.list = this.mergeContentDependencyCodes(
+							foundUser.data.contentDependencies.list,
+							productCodes
+						);
+						return foundUser;
+					})
+					.then((updatedUser) => {
+						return this.adapter.updateById(updatedUser._id, this.prepareForUpdate(updatedUser));
+					})
+					.catch(err => {
+						this.logger.error("users.addContentDependencies error:", err);
+						if (err instanceof MoleculerClientError) {
+							return Promise.reject(err);
+						}
+						return Promise.reject(new MoleculerClientError("Can't add content dependencies", 422, "", []));
+					});
+			}
+		},
 	}
 };

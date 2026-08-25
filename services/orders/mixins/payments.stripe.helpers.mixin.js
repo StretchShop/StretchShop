@@ -54,7 +54,7 @@ module.exports = {
 		 */
 		getPaidTotalStripe(paymentData) {
 			// calculate total amount paid for Stripe
-			for (const element of paymentData.lastResponseResult) {
+			for (const element of paymentData.lastResponseResult || []) {
 				if ( // subscription (regular payments)
 					element.status && 
 					element.status == "paid" && 
@@ -71,6 +71,11 @@ module.exports = {
 					paymentData.paidAmountTotal += parseFloat(
 						element.amount_received / 100
 					);
+				} else if (
+					element.status === "succeeded" &&
+					typeof element.amount === "number"
+				) {
+					paymentData.paidAmountTotal += parseFloat(element.amount);
 				}
 			}
 		},
@@ -236,6 +241,82 @@ module.exports = {
 
 		getStripeSubscriptionExpandFields() {
 			return ["latest_invoice.confirmation_secret", "pending_setup_intent"];
+		},
+
+
+		getStripeCustomerId(stripeSub) {
+			if (!stripeSub?.customer) {
+				return null;
+			}
+			return typeof stripeSub.customer === "string"
+				? stripeSub.customer
+				: stripeSub.customer.id || null;
+		},
+
+
+		getStripeDefaultPaymentMethodId(stripeSub) {
+			const fromSub = typeof stripeSub?.default_payment_method === "string"
+				? stripeSub.default_payment_method
+				: stripeSub?.default_payment_method?.id;
+			if (fromSub) {
+				return fromSub;
+			}
+			const customer = stripeSub?.customer;
+			if (customer && typeof customer === "object") {
+				const fromCustomer = customer.invoice_settings?.default_payment_method;
+				return typeof fromCustomer === "string" ? fromCustomer : fromCustomer?.id || null;
+			}
+			return null;
+		},
+
+
+		/**
+		 * Params to create a new Stripe subscription after the previous one was canceled.
+		 * Canceled Stripe subscriptions cannot be resumed.
+		 */
+		buildStripeSubscriptionRecreateParams(stripeSub, localSubscription) {
+			const customer = this.getStripeCustomerId(stripeSub);
+			const items = (stripeSub?.items?.data || [])
+				.filter(item => item?.price?.id)
+				.map(item => ({ price: item.price.id }));
+			const paymentMethod = this.getStripeDefaultPaymentMethodId(stripeSub);
+			const params = {
+				customer,
+				items,
+				metadata: {
+					subscriptionId: localSubscription?._id?.toString()
+						|| localSubscription?.id?.toString()
+						|| stripeSub?.metadata?.subscriptionId
+						|| "",
+					orderId: localSubscription?.orderOriginId?.toString()
+						|| stripeSub?.metadata?.orderId
+						|| "",
+					productId: localSubscription?.data?.product?._id?.toString()
+						|| stripeSub?.metadata?.productId
+						|| "",
+					reactivatedFrom: stripeSub?.id || ""
+				},
+				expand: this.getStripeSubscriptionExpandFields()
+			};
+			if (paymentMethod) {
+				params.default_payment_method = paymentMethod;
+			} else {
+				params.payment_behavior = "default_incomplete";
+				params.payment_settings = {
+					save_default_payment_method: "on_subscription"
+				};
+			}
+			const cycles = localSubscription?.cycles
+				?? localSubscription?.data?.product?.data?.subscription?.cycles;
+			const dateEnd = localSubscription?.dates?.dateEnd;
+			if (cycles > 0 && dateEnd) {
+				const cancelAt = Math.round(new Date(dateEnd).getTime() / 1000);
+				const nowSec = Math.round(Date.now() / 1000);
+				if (cancelAt > nowSec) {
+					params.cancel_at = cancelAt;
+				}
+			}
+			return params;
 		}
 
 	}

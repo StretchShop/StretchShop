@@ -111,13 +111,18 @@ module.exports = {
 				this.logger.info("WEBHOOK : event?.data?.object?.status:", event?.data?.object?.status);
 				this.logger.info("WEBHOOK : paymentData.status = event?.data?.object?.status");
 
+				const rawAmount = event?.data?.object?.amount_received
+					?? event?.data?.object?.amount
+					?? event?.data?.object?.amount_paid
+					?? event?.data?.object?.plan?.amount;
 				const paymentData = {
 					id: event?.data?.object?.id,
-					amount: !event?.data?.object?.amount ? event?.data?.object?.plan?.amount / 100 : event?.data?.object?.amount / 100,
+					amount: rawAmount != null ? rawAmount / 100 : 0,
 					currency: event?.data?.object?.currency,
 					status: event?.data?.object?.status,
 					paymentMethod: event?.data?.object?.payment_method_details?.type,
 					createdAt: event?.data?.object?.created,
+					payment_intent: event?.data?.object?.payment_intent || null,
 					metadata: metadata,
 					originalData: event
 				};
@@ -161,7 +166,19 @@ module.exports = {
 
 			// Handle the event
 			switch (event.type) {
-				case "charge.succeeded":
+				case "charge.succeeded": {
+					if (event?.data?.object?.payment_intent) {
+						this.logger.info("WEBHOOK : charge.succeeded skipped; payment_intent.succeeded handles product payment", {
+							orderId: order?._id,
+							paymentIntent: event.data.object.payment_intent
+						});
+						break;
+					}
+					this.logger.info("WEBHOOK : " + event.type + " ---------- ");
+					this.logger.info(event.type + " DATA : ", event.data, paymentData);
+					return self.orderPaymentReceived(ctx, order, paymentData, "stripe", "products");
+				}
+
 				case "payment_intent.succeeded": { // payment of PRODUCTS succeeded
 					this.logger.info("WEBHOOK : " + event.type + " ---------- ");
 					const data = event.data;
@@ -257,14 +274,10 @@ module.exports = {
 
 
 				case "charge.updated": {
-					this.logger.info("WEBHOOK : " + event.type + " ---------- ");
-					const data = event.data;
-
-					this.logger.info("charge.updated DATA : ", data, paymentData);
-
-					// update order status according to payment data
-					self.orderPaymentReceived(ctx, order, paymentData, "stripe", "products");
-
+					this.logger.info("WEBHOOK : charge.updated ignored for paid-email flow", {
+						orderId: order?._id,
+						chargeId: event?.data?.object?.id
+					});
 					break;
 				}
 

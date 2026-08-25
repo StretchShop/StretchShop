@@ -81,9 +81,19 @@ module.exports = {
 				return self.orderAfterAcceptedActions(ctx, orderProcessedResult.order)
 					.then(success => {
 						if ( success ) {
+							if (!orderProcessedResult.order.dates) {
+								orderProcessedResult.order.dates = {};
+							}
 							orderProcessedResult.order.dates.emailSent = new Date();
-							// save after it
-							return orderProcessedResult;
+							const orderId = this.idToString(orderProcessedResult.order._id || orderProcessedResult.order.id);
+							return this.adapter.updateById(orderId, {
+								"$set": { "dates.emailSent": orderProcessedResult.order.dates.emailSent }
+							})
+								.then(() => orderProcessedResult)
+								.catch(err => {
+									this.logger.error("orders.orderAfterSaveActions() - persist emailSent failed:", err);
+									return orderProcessedResult;
+								});
 						}
 					});
 			}
@@ -153,6 +163,11 @@ module.exports = {
 		orderAfterAcceptedActions(ctx, order) {
 			if (!order) {
 				return false;
+			}
+
+			if (order.dates?.emailSent) {
+				this.logger.info("orders.orderAfterAcceptedActions() - skip, already processed:", order._id);
+				return Promise.resolve(true);
 			}
 
 			this.logger.info("orders.orderAfterAcceptedActions() - order:", order._id);

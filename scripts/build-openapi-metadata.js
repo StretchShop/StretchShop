@@ -61,7 +61,9 @@ const API_V1_ALIASES = {
 	"POST /order/invoice/expeded/:orderId": "orders.expede",
 	"POST /subscription/list": "subscriptions.listSubscriptions",
 	"POST /subscription/suspend/:subscriptionId": "subscriptions.suspend",
+	"POST /subscription/pause/:subscriptionId": "subscriptions.pause",
 	"POST /subscription/reactivate/:subscriptionId": "subscriptions.reactivate",
+	"POST /subscription/batch": "subscriptions.batch",
 	"POST /order/payment/:supplier/:action": "orders.payment",
 	"GET /order/payment/:supplier/:result": "orders.paymentResult",
 	"POST /order/payment/webhook/:supplier": "orders.paymentWebhook",
@@ -113,7 +115,9 @@ const COOKIE_ACTIONS = new Set([
 	"orders.paymentResult",
 	"subscriptions.listSubscriptions",
 	"subscriptions.suspend",
+	"subscriptions.pause",
 	"subscriptions.reactivate",
+	"subscriptions.batch",
 	"api.settings",
 	"api.settingsUpdate",
 	"users.recaptcha",
@@ -257,18 +261,54 @@ function addPaymentOverrides(actionOpenApi) {
 		},
 	};
 
-	actionOpenApi.subscriptions.reactivate = {
-		summary: "Reactivate suspended subscription",
-		description: "Not implemented — route exists but handler is missing.",
-		tags: ["admin"],
-		deprecated: true,
+	actionOpenApi.subscriptions.pause = {
+		summary: "Pause subscription",
+		description: "Pauses Stripe invoice collection without canceling the billing agreement. Resume with subscriptions.reactivate.",
+		tags: ["user"],
 		security: [{ CookieAuth: [] }],
 		responses: {
-			501: {
-				description: "Not implemented",
+			200: {
+				description: "Pause result",
 				content: {
 					"application/json": {
-						schema: { $ref: "#/components/schemas/Error" },
+						schema: { $ref: "#/components/schemas/SubscriptionActionResponse" },
+					},
+				},
+			},
+		},
+	};
+
+	actionOpenApi.subscriptions.reactivate = {
+		summary: "Reactivate suspended or paused subscription",
+		description: "Resumes a paused Stripe billing agreement, or creates a new Stripe subscription when the previous one was canceled.",
+		tags: ["user"],
+		security: [{ CookieAuth: [] }],
+		responses: {
+			200: {
+				description: "Reactivate result",
+				content: {
+					"application/json": {
+						schema: { $ref: "#/components/schemas/SubscriptionActionResponse" },
+					},
+				},
+			},
+		},
+	};
+
+	actionOpenApi.subscriptions.batch = {
+		summary: "Batch update subscriptions",
+		description: "Admin-only. Canceled/stopped reuse subscriptions.suspend. Paused reuses subscriptions.pause. Active reuses subscriptions.reactivate (resumes paused Stripe subscriptions).",
+		tags: ["admin"],
+		security: [{ CookieAuth: [] }],
+		responses: {
+			200: {
+				description: "Batch results",
+				content: {
+					"application/json": {
+						schema: {
+							type: "array",
+							items: { $ref: "#/components/schemas/SubscriptionActionResponse" },
+						},
 					},
 				},
 			},
@@ -337,6 +377,15 @@ async function main() {
 				results: {
 					type: "array",
 					items: { $ref: "#/components/schemas/Subscription" },
+				},
+				distinct: {
+					type: "object",
+					properties: {
+						status: { type: "array", items: { type: "string" } },
+						type: { type: "array", items: { type: "string" } },
+						period: { type: "array", items: { type: "string" } },
+						orderItemName: { type: "array", items: { type: "string" } },
+					},
 				},
 			},
 		},
