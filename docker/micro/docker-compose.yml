@@ -8,7 +8,8 @@ services:
     image: wradgio/stretchshop_demo:latest
     env_file: docker-compose.env
     environment:
-      SERVICES: api,metrics,openapi
+      # Add `,openapi` to SERVICES if you set OPENAPI_ENABLED=true
+      SERVICES: api,metrics
       PORT: 3000
     links:
         - mongo

@@ -14,6 +14,12 @@ const HelpersMixin = require("../../../mixins/helpers.mixin");
 const FileHelpers = require("../../../mixins/file.helpers.mixin");
 const validateAddress = require("../../../mixins/validate.address.mixin");
 const { isOpenApiEnabled } = require("../../../mixins/openapi.enabled");
+const {
+	jsonForHtmlScript,
+	resolveOpenApiUiSpecUrl,
+	renderOpenApiUiHtml,
+	openApiUiCsp,
+} = require("../../../mixins/openapi.ui-url");
 const subproject = require("../../../mixins/subproject.helper");
 const dbMixinFactory = require("../../../mixins/db.mixin");
 
@@ -278,6 +284,68 @@ describe("openapi.enabled", () => {
 		expect(isOpenApiEnabled()).toBe(true);
 		process.env.SITE_URL = "https://shop.example.com";
 		expect(isOpenApiEnabled()).toBe(false);
+	});
+});
+
+describe("openapi.ui-url", () => {
+	const xssUrl = "</script><script>alert(1)</script>";
+
+	it("accepts missing or local schema url and rejects anything else", () => {
+		expect(resolveOpenApiUiSpecUrl(undefined).url).toBe("/openapi/openapi.json");
+		expect(resolveOpenApiUiSpecUrl("").url).toBe("/openapi/openapi.json");
+		expect(resolveOpenApiUiSpecUrl("/openapi/openapi.json").url).toBe("/openapi/openapi.json");
+		expect(resolveOpenApiUiSpecUrl(xssUrl).ok).toBe(false);
+		expect(resolveOpenApiUiSpecUrl("javascript:alert(1)").ok).toBe(false);
+		expect(resolveOpenApiUiSpecUrl("https://evil.example/openapi.json").ok).toBe(false);
+		expect(resolveOpenApiUiSpecUrl("//evil.example/openapi/openapi.json").ok).toBe(false);
+	});
+
+	it("encodes script-breakout sequences in JSON embedded in HTML", () => {
+		const encoded = jsonForHtmlScript({ url: xssUrl });
+		expect(encoded).not.toMatch(/<\/script>/i);
+		expect(encoded).toContain("\\u003c/script\\u003e");
+	});
+
+	it("renders UI HTML that cannot close the settings script with a hostile url", () => {
+		const html = renderOpenApiUiHtml({
+			specUrl: xssUrl,
+			assetsPath: "/openapi/assets",
+			oauth2RedirectUrl: "/openapi/oauth2-redirect",
+			nonce: "test-nonce",
+		});
+		expect(html).not.toContain(xssUrl);
+		expect(html).toContain("\\u003c/script\\u003e");
+		expect(html).toContain('nonce="test-nonce"');
+		expect(openApiUiCsp("test-nonce")).toContain("script-src 'nonce-test-nonce' 'self'");
+	});
+});
+
+describe("openapi.ui action", () => {
+	const openapi = require("../../../services/openapi/openapi.service");
+	const xssUrl = "</script><script>alert(1)</script>";
+	const service = {
+		getOpenApiPaths: async () => ({
+			schemaPath: "/openapi/openapi.json",
+			assetsPath: "/openapi/assets",
+			oauth2RedirectPath: "/openapi/oauth2-redirect",
+		}),
+		settings: {},
+	};
+
+	it("rejects a script-breakout url query", async () => {
+		const ctx = { params: { url: xssUrl }, meta: {} };
+		await expect(openapi.actions.ui.handler.call(service, ctx)).rejects.toMatchObject({
+			code: 400,
+			type: "INVALID_OPENAPI_URL",
+		});
+	});
+
+	it("serves the local spec when url is omitted", async () => {
+		const ctx = { params: {}, meta: {} };
+		const html = await openapi.actions.ui.handler.call(service, ctx);
+		expect(html).toContain("/openapi/openapi.json");
+		expect(html).not.toContain(xssUrl);
+		expect(ctx.meta.$responseHeaders["Content-Security-Policy"]).toMatch(/nonce-/);
 	});
 });
 
