@@ -18,18 +18,22 @@ module.exports = {
 			auth: "required",
 			authType: "csrfCheck",
 			params: {
-				user: { type: "object", props: {
+				user: { type: "object", strict: "remove", props: {
 					username: { type: "string" },
 					email: { type: "string" },
 					password: { type: "string" },
-					settings: { type: "object", props: {
-						language: { type: "string" },
-						currency: { type: "string" }
+					bio: { type: "string", optional: true },
+					image: { type: "string", optional: true, nullable: true },
+					company: { type: "object", optional: true },
+					addresses: { type: "array", optional: true, items: "object" },
+					settings: { type: "object", optional: true, props: {
+						language: { type: "string", optional: true },
+						currency: { type: "string", optional: true }
 					} }
 				} }
 			},
 			handler(ctx) {
-				let entity = ctx.params.user;
+				let entity = this.sanitizeRegistrationUser(ctx.params.user);
 				this.logger.info("users.create INCOMING", {
 					email: entity?.email,
 					username: entity?.username

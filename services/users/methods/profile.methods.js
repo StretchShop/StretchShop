@@ -54,10 +54,11 @@ module.exports = {
 						}
 					})
 					.then(() => {
+						const targetId = (isAdmin && newData._id) ? newData._id : ctx.meta.user._id;
 						if (newData.username) {
 							return this.adapter.findOne({ username: newData.username })
 								.then(found => {
-									if (found && found._id.toString() !== ctx.meta.user._id.toString()) {
+									if (found && found._id.toString() !== targetId.toString()) {
 										return Promise.reject(
 											new MoleculerClientError("Username is exist!", 422, "", [{ field: "username", message: "is exist" }])
 										);
@@ -66,10 +67,11 @@ module.exports = {
 						}
 					})
 					.then(() => {
+						const targetId = (isAdmin && newData._id) ? newData._id : ctx.meta.user._id;
 						if (newData.email)
 							return this.adapter.findOne({ email: newData.email })
 								.then(found => {
-									if (found && found._id.toString() !== ctx.meta.user._id.toString())
+									if (found && found._id.toString() !== targetId.toString())
 										return Promise.reject(new MoleculerClientError("Email is exist!", 422, "", [{ field: "email", message: "is exist" }]));
 								});
 

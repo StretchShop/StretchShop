@@ -22,6 +22,7 @@ function createAuthService(extra = {}) {
 		sendVerificationEmail: jest.fn(),
 		entityChanged: jest.fn().mockResolvedValue(true),
 		prepareForUpdate: coreMethods.methods.prepareForUpdate,
+		sanitizeRegistrationUser: coreMethods.methods.sanitizeRegistrationUser,
 		superloginJWT: coreMethods.methods.superloginJWT,
 		restoreAdminSession: coreMethods.methods.restoreAdminSession,
 		adapter: {
@@ -62,6 +63,49 @@ describe("users auth success paths", () => {
 		});
 		expect(result.user.email).toBe("jane@example.com");
 		expect(service.sendVerificationEmail).toHaveBeenCalled();
+	});
+
+	it("ignores client-supplied _id, type, and other privilege fields on create", async () => {
+		const service = createAuthService();
+		service.adapter.findOne.mockResolvedValue(null);
+		let inserted;
+		service.adapter.insert.mockImplementation((entity) => {
+			inserted = entity;
+			return Promise.resolve({
+				_id: "generated-id",
+				...entity,
+			});
+		});
+		const result = await authMixin.actions.create.handler.call(service, {
+			params: {
+				user: {
+					_id: "aaaaaaaaaaaaaaaaaaaaaaaa",
+					id: "aaaaaaaaaaaaaaaaaaaaaaaa",
+					type: "admin",
+					subtype: "super",
+					superadmined: true,
+					restrictions: ["GET /"],
+					username: "attacker",
+					email: "attacker@example.com",
+					password: "secret12",
+					settings: { language: "en", currency: "EUR" },
+				},
+			},
+			meta: {
+				remoteAddress: "127.0.0.1",
+				remotePort: "1",
+				localsDefault: { lang: "en", currency: "EUR" },
+				siteSettings: { url: "https://shop.example.com" },
+			},
+		});
+		expect(inserted._id).toBeUndefined();
+		expect(inserted.id).toBeUndefined();
+		expect(inserted.type).toBe("user");
+		expect(inserted.subtype).toBeUndefined();
+		expect(inserted.superadmined).toBeUndefined();
+		expect(inserted.restrictions).toBeUndefined();
+		expect(result.user._id).toBe("generated-id");
+		expect(result.user.type).toBe("user");
 	});
 
 	it("logs in an activated user", async () => {
@@ -152,5 +196,16 @@ describe("users core helpers", () => {
 		expect(service.buildHashSourceFromEntity("a", "b", true)).toEqual(expect.any(String));
 		expect(service.prepareForUpdate({ _id: "u1", name: "Jane" })).toEqual({ $set: { name: "Jane" } });
 		expect(service.isValidTranslationLanguage("en", [{ code: "en" }])).toBe(true);
+		expect(service.sanitizeRegistrationUser({
+			_id: "admin-id",
+			type: "admin",
+			username: "jane",
+			email: "j@e.c",
+			password: "x",
+		})).toEqual({
+			username: "jane",
+			email: "j@e.c",
+			password: "x",
+		});
 	});
 });

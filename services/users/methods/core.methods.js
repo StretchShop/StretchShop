@@ -635,6 +635,23 @@ module.exports = {
 			return { "$set": objectToSave };
 		},
 
+		/**
+		 * Registration must never accept client-supplied identity or privilege fields.
+		 * A supplied `_id` is stored as a string; later findById() converts it to ObjectId
+		 * and can resolve an existing (e.g. admin) account for the new login session.
+		 */
+		sanitizeRegistrationUser(user) {
+			const entity = (user && typeof user === "object") ? { ...user } : {};
+			const denied = [
+				"_id", "id", "type", "subtype", "superadmined", "actAs", "adminId",
+				"restrictions", "dates", "ip", "data", "token", "passwordHash"
+			];
+			for (const key of denied) {
+				delete entity[key];
+			}
+			return entity;
+		},
+
 
 		buildHashSourceFromEntity(string1, string2, hashedParam) {
 			// don't hash only if hashedParam is false
