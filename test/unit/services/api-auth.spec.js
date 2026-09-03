@@ -154,8 +154,7 @@ describe("api cookies and authenticate", () => {
 			}),
 		});
 		const req = { $ctx: { meta: { user: { type: "user" } } }, $route: {} };
-		service.processUpload(req, createRes());
-		await Promise.resolve();
+		await service.processUpload(req, createRes());
 		expect(service.parseUploadedFile).toHaveBeenCalled();
 	});
 
@@ -166,9 +165,7 @@ describe("api cookies and authenticate", () => {
 			parseUploadedFile: jest.fn(),
 		});
 		const res = createRes();
-		service.processUpload({ $ctx: { meta: {} }, $route: {} }, res);
-		await Promise.resolve();
-		await Promise.resolve();
+		await service.processUpload({ $ctx: { meta: {} }, $route: {} }, res);
 		expect(service.parseUploadedFile).not.toHaveBeenCalled();
 		expect(res.writeHead).toHaveBeenCalledWith(401, { "content-type": "application/json" });
 		expect(res.end).toHaveBeenCalledWith(JSON.stringify({ success: false, error: "Upload failed" }));
@@ -183,10 +180,33 @@ describe("api cookies and authenticate", () => {
 			}),
 		});
 		const res = createRes();
-		service.processUpload({ $ctx: { meta: { user: { type: "user" } } }, $route: {} }, res);
-		await Promise.resolve();
+		await service.processUpload({ $ctx: { meta: { user: { type: "user" } } }, $route: {} }, res);
 		expect(service.parseUploadedFile).not.toHaveBeenCalled();
 		expect(res.writeHead).toHaveBeenCalledWith(400, { "content-type": "application/json" });
+	});
+
+	it("empty unauthenticated POST /user/image returns an error and does not reject", async () => {
+		const service = createService({
+			cookiesManagement: jest.fn((ctx) => {
+				ctx.meta.cookies = {};
+			}),
+			checkCsrfToken: jest.fn().mockReturnValue(false),
+			parseUploadedFile: jest.fn(),
+		});
+		const ctx = { meta: { remoteAddress: "127.0.0.1", cookies: {}, headers: {} } };
+		const req = {
+			method: "POST",
+			headers: { cookie: "" },
+			$ctx: ctx,
+			$route: {},
+			$alias: { path: "user/image" },
+			parsedUrl: "/api/v1/user/image",
+		};
+		const res = createRes();
+		await expect(service.processUpload(req, res)).resolves.toBeUndefined();
+		expect(service.parseUploadedFile).not.toHaveBeenCalled();
+		expect(res.writeHead).toHaveBeenCalledWith(401, { "content-type": "application/json" });
+		expect(res.end).toHaveBeenCalledWith(JSON.stringify({ success: false, error: "Upload failed" }));
 	});
 
 	it("logs afterCallAction payloads", () => {

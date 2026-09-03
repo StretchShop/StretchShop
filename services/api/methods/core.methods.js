@@ -336,6 +336,11 @@ module.exports = {
 					},
 				});
 				this.logger.info("api.parseUploadedFile() #2", form);
+				if (typeof form.on === "function") {
+					form.on("error", (formErr) => {
+						finishParseError(formErr, 400, "Upload failed");
+					});
+				}
 				return form.parse(req, (err, fields, files) => {
 					try {
 						self.logger.info("api.parseUploadedFile() #2.5", err, fields, files);
@@ -461,56 +466,52 @@ module.exports = {
 		 * @param {*} res 
 		 */
 		processUpload(req, res) {
-			try {
-				req["$action"] = {
-					auth: "required"
-				};
-				this.authenticate(req.$ctx, req.$route, req, res)
-					.then(() => {
-						let activePath;
-						try {
-							activePath = this.getActiveUploadPath(req);
-						} catch (pathErr) {
-							this.logger.error("api.processUpload() getActiveUploadPath ERROR", pathErr);
-							this.respondUploadError(res, 400, "Upload failed");
-							return;
-						}
+			req["$action"] = {
+				auth: "required"
+			};
+			return Promise.resolve()
+				.then(() => this.authenticate(req.$ctx, req.$route, req, res))
+				.then(() => {
+					let activePath;
+					try {
+						activePath = this.getActiveUploadPath(req);
+					} catch (pathErr) {
+						this.logger.error("api.processUpload() getActiveUploadPath ERROR", pathErr);
+						this.respondUploadError(res, 400, "Upload failed");
+						return;
+					}
 
-						this.logger.info("api.processUpload() activePath-vars", activePath, activePath?.validUserTypes, activePath?.validUserTypes?.indexOf("author") > -1, activePath?.checkAuthorAction, activePath?.checkAuthorActionParams);
-						if (!activePath?.validUserTypes) {
-							this.respondUploadError(res, 400, "Invalid upload path");
-							return;
-						}
+					this.logger.info("api.processUpload() activePath-vars", activePath, activePath?.validUserTypes, activePath?.validUserTypes?.indexOf("author") > -1, activePath?.checkAuthorAction, activePath?.checkAuthorActionParams);
+					if (!activePath?.validUserTypes) {
+						this.respondUploadError(res, 400, "Invalid upload path");
+						return;
+					}
 
-						const userType = req.$ctx.meta.user?.type;
-						if (activePath.validUserTypes.includes("author")
-							&& activePath.checkAuthorAction && activePath.checkAuthorActionParams) {
-							return req.$ctx.call(activePath.checkAuthorAction, {
-								data: activePath.checkAuthorActionParams
-							})
-								.then(result => {
-									this.logger.info("api.processUpload author:", result);
-									if (result === true && userType &&
-										activePath.validUserTypes.includes(userType)) {
-										return this.parseUploadedFile(req, res, activePath);
-									}
-									this.respondUploadError(res, 403, "Upload not allowed");
-								});
-						}
-						if (userType && activePath.validUserTypes.includes(userType)) {
-							return this.parseUploadedFile(req, res, activePath);
-						}
-						this.respondUploadError(res, 403, "Upload not allowed");
-					})
-					.catch((err) => {
-						this.logger.error("api.processUpload() ERROR", err);
-						const status = err?.code === 401 ? 401 : 400;
-						this.respondUploadError(res, status, "Upload failed");
-					});
-			} catch (err) {
-				this.logger.error("api.processUpload() ERROR", err);
-				this.respondUploadError(res, 400, "Upload failed");
-			}
+					const userType = req.$ctx.meta.user?.type;
+					if (activePath.validUserTypes.includes("author")
+						&& activePath.checkAuthorAction && activePath.checkAuthorActionParams) {
+						return req.$ctx.call(activePath.checkAuthorAction, {
+							data: activePath.checkAuthorActionParams
+						})
+							.then(result => {
+								this.logger.info("api.processUpload author:", result);
+								if (result === true && userType &&
+									activePath.validUserTypes.includes(userType)) {
+									return this.parseUploadedFile(req, res, activePath);
+								}
+								this.respondUploadError(res, 403, "Upload not allowed");
+							});
+					}
+					if (userType && activePath.validUserTypes.includes(userType)) {
+						return this.parseUploadedFile(req, res, activePath);
+					}
+					this.respondUploadError(res, 403, "Upload not allowed");
+				})
+				.catch((err) => {
+					this.logger.error("api.processUpload() ERROR", err);
+					const status = err?.code === 401 ? 401 : 400;
+					this.respondUploadError(res, status, "Upload failed");
+				});
 		},
 
 
