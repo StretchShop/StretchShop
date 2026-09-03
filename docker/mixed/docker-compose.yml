@@ -6,6 +6,7 @@ services:
     build:
       context: ../..
     image: wradgio/stretchshop_demo:latest
+    restart: unless-stopped
     env_file: docker-compose.env
     environment:
       # Add `,openapi` to SERVICES if you set OPENAPI_ENABLED=true
@@ -31,6 +32,7 @@ services:
     build:
       context: ../..
     image: wradgio/stretchshop_demo:latest
+    restart: unless-stopped
     env_file: docker-compose.env
     environment:
       SERVICES: products,pages,categories
@@ -49,6 +51,7 @@ services:
     build:
       context: ../..
     image: wradgio/stretchshop_demo:latest
+    restart: unless-stopped
     env_file: docker-compose.env
     environment:
       SERVICES: cart,orders,subscriptions
@@ -79,6 +82,7 @@ services:
 
   nats-server:
     image: nats:2.10-alpine
+    restart: unless-stopped
     # Do not publish NATS to the host in production.
     # ports:
     #   - "4222:4222"
@@ -95,6 +99,7 @@ services:
 
   traefik:
     image: traefik:v3.3.5
+    restart: unless-stopped
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"

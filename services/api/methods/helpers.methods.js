@@ -102,7 +102,7 @@ module.exports = {
 					checkAuthorAction: "products.checkAuthor",
 					checkAuthorActionParams: {
 						"orderCode": req.$params.orderCode,
-						"publisher": req.$ctx.meta.user.email
+						"publisher": req.$ctx.meta.user?.email
 					},
 					stringToChunk: req.$params.orderCode ? req.$params.orderCode : "",
 					chunkSize: process.env.CHUNKSIZE_PRODUCT || 3,
@@ -116,7 +116,7 @@ module.exports = {
 					checkAuthorAction: "pages.checkAuthor",
 					checkAuthorActionParams: {
 						"slug": req.$params.slug,
-						"publisher": req.$ctx.meta.user.email
+						"publisher": req.$ctx.meta.user?.email
 					},
 					stringToChunk: req.$params.slug ? req.$params.slug : "",
 					chunkSize: 0, // do not chunk, use the whole string
@@ -130,7 +130,7 @@ module.exports = {
 					checkAuthorAction: "pages.checkAuthor",
 					checkAuthorActionParams: {
 						"slug": req.$params.slug,
-						"publisher": req.$ctx.meta.user.email
+						"publisher": req.$ctx.meta.user?.email
 					},
 					stringToChunk: req.$params.slug ? req.$params.slug : "",
 					chunkSize: 0,
@@ -144,7 +144,7 @@ module.exports = {
 					checkAuthorAction: "categories.checkAuthor",
 					checkAuthorActionParams: {
 						"slug": req.$params.slug,
-						"publisher": req.$ctx.meta.user.email
+						"publisher": req.$ctx.meta.user?.email
 					},
 					stringToChunk: req.$params.slug ? req.$params.slug : "",
 					chunkSize: 0,
@@ -158,7 +158,7 @@ module.exports = {
 					checkAuthorAction: "categories.checkAuthor",
 					checkAuthorActionParams: {
 						"slug": req.$params.slug,
-						"publisher": req.$ctx.meta.user.email
+						"publisher": req.$ctx.meta.user?.email
 					},
 					stringToChunk: req.$params.slug ? req.$params.slug : "",
 					chunkSize: 0, // do not chunk, use the whole string
@@ -192,6 +192,9 @@ module.exports = {
 			// formidable with multiples:true always wraps values in arrays
 			const uploaded = Array.isArray(files[property]) ? files[property][0] : files[property];
 			this.logger.info("api.parseUploadedFile() files-" + property + ": ", files[property], uploaded);
+			if (!uploaded?.filepath) {
+				throw new Error("No file uploaded");
+			}
 			let fileFrom = uploaded.filepath;
 			let copyBaseDir = req.$ctx.service.settings.assets.folder + "/" + process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let urlBaseDir = process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
