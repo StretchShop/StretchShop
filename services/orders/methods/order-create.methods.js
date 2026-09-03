@@ -13,6 +13,10 @@ const { subscriptionPaymentStatuses } = require("../constants/subscription.const
 const { productStatuses } = require("../constants/product.constants");
 const { orderStatuses } = require("../constants/order.constants");
 const { update } = require("lodash");
+const {
+	hasAllowedOrderParamUpdates,
+	mergeAllowedOrderParams,
+} = require("../../../mixins/order-params.security");
 
 const calcExcludedTypes = ["subscription"];
 
@@ -100,8 +104,8 @@ module.exports = {
 						this.logger.info("order.progress - updateResult: ", updateResult);
 						this.getAvailableOrderSettings();
 						this.logger.info("order.progress - cart order found updated (COFU):", updateResult, "\n\n");
-						// if no params (eg. only refreshed), return original order
-						if (!ctx.params.orderParams || Object.keys(ctx.params.orderParams).length < 1) {
+						// if no allowed params (eg. only refreshed), return original order
+						if (!hasAllowedOrderParamUpdates(ctx.params.orderParams)) {
 							let orderProcessedResult = {};
 							orderProcessedResult.order = order;
 							orderProcessedResult.result = updateResult;
@@ -226,17 +230,21 @@ module.exports = {
 		 */
 		processOrder(ctx) {
 			if (this.settings.orderTemp) {
+				const hasOrderUpdates = hasAllowedOrderParamUpdates(ctx.params.orderParams);
 				// update order params
-				if (typeof ctx.params.orderParams !== "undefined" && ctx.params.orderParams) {
-					this.settings.orderTemp = this.updateBySentParams(this.settings.orderTemp, ctx.params.orderParams);
+				if (hasOrderUpdates) {
+					this.settings.orderTemp = this.updateBySentParams(
+						this.settings.orderTemp,
+						ctx.params.orderParams
+					);
 					if (ctx.meta.userNew && ctx.meta.userNew === true) {
 						this.logger.info("orders.processOrder() - setting new user data");
 						this.settings.orderTemp.user.id = ctx.params.orderParams.user.id;
 						this.settings.orderTemp.user.email = ctx.params.orderParams.user.email;
 						this.settings.orderTemp.user.token = ctx.params.orderParams.user.token;
 					}
+					this.settings.orderTemp.dates.dateChanged = new Date();
 				}
-				this.settings.orderTemp.dates.dateChanged = new Date();
 				this.logger.info("orders.processOrder() - orderTemp updated by params: ", this.settings.orderTemp);
 
 				if (this.checkCartItems()) {
@@ -267,35 +275,8 @@ module.exports = {
 		 * according to template created with createEmptyOrder().
 		 * From level 2 it enables to create objects by request.
 		 */
-		updateBySentParams(orderParams, updateParams, level) {
-			level = (typeof level !== "undefined") ? level : 0;
-			let self = this;
-			let level1protectedProps = ["user", "id"];
-			// loop updateParams and check, if they exist in orderParams
-			Object.keys(updateParams).forEach(function (key) {
-				if (!(level == 0 && level1protectedProps.includes(key))) {
-					if (((orderParams && Object.prototype.hasOwnProperty.call(orderParams, key)) || level >= 2)) { // order has this property
-						// update it
-						if (orderParams === null) {
-							orderParams = {};
-						}
-						if (typeof updateParams[key] === "object") {
-							if (!orderParams[key] || orderParams[key] === null) {
-								orderParams[key] = {};
-							}
-							if (updateParams[key] !== null) {
-								orderParams[key] = self.updateBySentParams(orderParams[key], updateParams[key], level + 1);
-							} else {
-								orderParams[key] = null;
-							}
-						} else {
-							orderParams[key] = updateParams[key];
-						}
-					}
-				}
-			});
-
-			return orderParams;
+		updateBySentParams(orderParams, updateParams) {
+			return mergeAllowedOrderParams(orderParams, updateParams);
 		},
 
 

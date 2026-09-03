@@ -98,6 +98,114 @@ describe("mongo.security", () => {
 	});
 });
 
+describe("order-params.security", () => {
+	const {
+		pickAllowedOrderParams,
+		hasAllowedOrderParamUpdates,
+		mergeAllowedOrderParams,
+	} = require("../../../mixins/order-params.security");
+
+	const orderTemplate = {
+		lang: { code: "sk", longCode: "sk-SK", name: "Slovensky" },
+		country: { code: "SK", name: "Slovakia" },
+		addresses: {
+			invoiceAddress: null,
+			deliveryAddress: null,
+		},
+		dates: {
+			userConfirmation: null,
+		},
+		data: {
+			deliveryData: null,
+			paymentData: null,
+			couponData: null,
+		},
+		notes: {
+			customerNote: null,
+		},
+		prices: { priceTotal: 10 },
+		status: "cart",
+	};
+
+	it("rejects prototype pollution keys and unknown top-level fields", () => {
+		const picked = pickAllowedOrderParams({
+			__proto__: { polluted: true },
+			constructor: { prototype: {} },
+			prototype: { polluted: true },
+			status: "saved",
+			prices: { priceTotal: 0 },
+			notes: { customerNote: "hello" },
+		});
+		expect(picked).toEqual({ notes: { customerNote: "hello" } });
+		expect(hasAllowedOrderParamUpdates({
+			__proto__: { polluted: true },
+		})).toBe(false);
+	});
+
+	it("merges only allowlisted nested checkout fields", () => {
+		const merged = mergeAllowedOrderParams(
+			JSON.parse(JSON.stringify(orderTemplate)),
+			{
+				addresses: {
+					invoiceAddress: {
+						email: "buyer@example.com",
+						nameFirst: "Jane",
+						__proto__: { polluted: true },
+					},
+				},
+				data: {
+					deliveryData: {
+						codename: {
+							physical: { value: "personally", price: 0 },
+						},
+					},
+					paymentData: {
+						codename: "online_stripe",
+					},
+				},
+				dates: { userConfirmation: 123 },
+			}
+		);
+
+		expect(merged.addresses.invoiceAddress).toEqual({
+			email: "buyer@example.com",
+			nameFirst: "Jane",
+		});
+		expect(merged.data.deliveryData.codename.physical).toEqual({
+			value: "personally",
+			price: 0,
+		});
+		expect(merged.data.paymentData.codename).toBe("online_stripe");
+		expect(merged.dates.userConfirmation).toBe(123);
+		expect(merged.status).toBe("cart");
+		expect(merged.prices.priceTotal).toBe(10);
+		expect(Object.prototype.polluted).toBeUndefined();
+	});
+
+	it("blocks the reported deliveryData __proto__ pollution payload", () => {
+		const attackPayload = {
+			orderParams: {
+				data: {
+					deliveryData: {
+						__proto__: { Polluted: "MARKER" },
+					},
+				},
+			},
+		};
+
+		expect(pickAllowedOrderParams(attackPayload.orderParams)).toEqual({});
+		expect(hasAllowedOrderParamUpdates(attackPayload.orderParams)).toBe(false);
+
+		const merged = mergeAllowedOrderParams(
+			JSON.parse(JSON.stringify(orderTemplate)),
+			attackPayload.orderParams
+		);
+		expect(merged.data.deliveryData).toBeNull();
+		expect({}.Polluted).toBeUndefined();
+		expect(Object.prototype.Polluted).toBeUndefined();
+	});
+});
+
 describe("helpers.mixin", () => {
 	const service = createHelpersService();
 

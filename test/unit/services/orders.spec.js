@@ -49,7 +49,6 @@ describe("Test 'orders' service", () => {
 		// ip: expect.nullOrAny(String),
 		dates: expect.objectContaining({
 			dateCreated: expect.toBeOneOf([String, Date]),
-			dateChanged: expect.toBeOneOf([String, Date]),
 		}),
 		lang: expect.objectContaining({
 			code: expect.any(String),
