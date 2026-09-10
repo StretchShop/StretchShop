@@ -4,6 +4,7 @@ const { MoleculerClientError } = require("moleculer").Errors;
 const fulfillment = require("../../../services/orders/methods/order-fulfillment.methods");
 const lifecycle = require("../../../services/orders/mixins/order-actions.lifecycle.mixin");
 const authMixin = require("../../../services/users/mixins/auth.mixin");
+const coreMethods = require("../../../services/users/methods/core.methods");
 const SettingsMixin = require("../../../mixins/settings.mixin");
 
 describe("order fulfillment helpers", () => {
@@ -94,6 +95,7 @@ describe("users auth actions", () => {
 		Promise,
 		enforceRateLimit: jest.fn().mockResolvedValue(true),
 		validateEntity: jest.fn().mockResolvedValue(true),
+		sanitizeRegistrationUser: coreMethods.methods.sanitizeRegistrationUser,
 		adapter: {
 			findOne: jest.fn(),
 			insert: jest.fn(),

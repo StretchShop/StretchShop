@@ -196,6 +196,7 @@ describe("service schemas and category detail", () => {
 		expect(openapi.name).toBe("openapi");
 		expect(typeof openapi.created).toBe("function");
 		expect(typeof openapi.started).toBe("function");
+		expect(typeof openapi.actions.ui.handler).toBe("function");
 	});
 
 	it("loads a category detail with products count and min/max price", async () => {

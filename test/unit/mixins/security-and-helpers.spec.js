@@ -14,6 +14,12 @@ const HelpersMixin = require("../../../mixins/helpers.mixin");
 const FileHelpers = require("../../../mixins/file.helpers.mixin");
 const validateAddress = require("../../../mixins/validate.address.mixin");
 const { isOpenApiEnabled } = require("../../../mixins/openapi.enabled");
+const {
+	jsonForHtmlScript,
+	resolveOpenApiUiSpecUrl,
+	renderOpenApiUiHtml,
+	openApiUiCsp,
+} = require("../../../mixins/openapi.ui-url");
 const subproject = require("../../../mixins/subproject.helper");
 const dbMixinFactory = require("../../../mixins/db.mixin");
 
@@ -89,6 +95,162 @@ describe("mongo.security", () => {
 			{ allowedOperators: ["$or"] }
 		);
 		expect(query).toEqual({ name: "x" });
+	});
+});
+
+describe("order-params.security", () => {
+	const {
+		pickAllowedOrderParams,
+		hasAllowedOrderParamUpdates,
+		mergeAllowedOrderParams,
+	} = require("../../../mixins/order-params.security");
+
+	const orderTemplate = {
+		lang: { code: "sk", longCode: "sk-SK", name: "Slovensky" },
+		country: { code: "SK", name: "Slovakia" },
+		addresses: {
+			invoiceAddress: null,
+			deliveryAddress: null,
+		},
+		dates: {
+			datePaid: null,
+			userConfirmation: null,
+		},
+		data: {
+			deliveryData: null,
+			paymentData: null,
+			couponData: null,
+			subscription: null,
+		},
+		notes: {
+			customerNote: null,
+		},
+		items: [{ _id: "p1", price: 100 }],
+		prices: { priceTotal: 10 },
+		status: "cart",
+	};
+
+	it("rejects prototype pollution keys and unknown top-level fields", () => {
+		const picked = pickAllowedOrderParams({
+			__proto__: { polluted: true },
+			constructor: { prototype: {} },
+			prototype: { polluted: true },
+			status: "saved",
+			prices: { priceTotal: 0 },
+			notes: { customerNote: "hello" },
+		});
+		expect(picked).toEqual({ notes: { customerNote: "hello" } });
+		expect(hasAllowedOrderParamUpdates({
+			__proto__: { polluted: true },
+		})).toBe(false);
+	});
+
+	it("merges only allowlisted nested checkout fields", () => {
+		const merged = mergeAllowedOrderParams(
+			JSON.parse(JSON.stringify(orderTemplate)),
+			{
+				addresses: {
+					invoiceAddress: {
+						email: "buyer@example.com",
+						nameFirst: "Jane",
+						__proto__: { polluted: true },
+					},
+				},
+				data: {
+					deliveryData: {
+						codename: {
+							physical: { value: "personally", price: 0, taxData: { tax: 0 } },
+						},
+					},
+					paymentData: {
+						codename: "online_stripe",
+						price: 0,
+						name: { en: "Free" },
+						taxData: { tax: 0 },
+					},
+				},
+				dates: { userConfirmation: 123 },
+			}
+		);
+
+		expect(merged.addresses.invoiceAddress).toEqual({
+			email: "buyer@example.com",
+			nameFirst: "Jane",
+		});
+		expect(merged.data.deliveryData.codename.physical).toEqual({
+			value: "personally",
+		});
+		expect(merged.data.paymentData).toEqual({
+			codename: "online_stripe",
+		});
+		expect(merged.dates.userConfirmation).toBe(123);
+		expect(merged.status).toBe("cart");
+		expect(merged.prices.priceTotal).toBe(10);
+		expect(Object.prototype.polluted).toBeUndefined();
+	});
+
+	it("blocks client items, prices, payment date, and subscription terms", () => {
+		const attackPayload = {
+			items: [{ _id: "hack", price: 0.01, amount: 1, data: { subscription: { period: "day", cycles: 1 } } }],
+			prices: { priceTotal: 0.01, priceItems: 0.01 },
+			status: "paid",
+			dates: {
+				datePaid: "2020-01-01T00:00:00.000Z",
+				userConfirmation: Date.now(),
+			},
+			data: {
+				subscription: {
+					period: "day",
+					duration: 1,
+					cycles: 999,
+				},
+				paymentData: {
+					codename: "online_stripe",
+					price: 0,
+				},
+			},
+		};
+
+		const picked = pickAllowedOrderParams(attackPayload);
+		expect(picked.items).toBeUndefined();
+		expect(picked.prices).toBeUndefined();
+		expect(picked.status).toBeUndefined();
+		expect(picked.dates).toEqual({ userConfirmation: attackPayload.dates.userConfirmation });
+		expect(picked.data.subscription).toBeUndefined();
+		expect(picked.data.paymentData).toEqual({ codename: "online_stripe" });
+
+		const merged = mergeAllowedOrderParams(
+			JSON.parse(JSON.stringify(orderTemplate)),
+			attackPayload
+		);
+		expect(merged.items).toEqual([{ _id: "p1", price: 100 }]);
+		expect(merged.prices.priceTotal).toBe(10);
+		expect(merged.status).toBe("cart");
+		expect(merged.dates.datePaid).toBeNull();
+		expect(merged.data.subscription).toBeNull();
+	});
+
+	it("blocks the reported deliveryData __proto__ pollution payload", () => {
+		const attackPayload = {
+			orderParams: {
+				data: {
+					deliveryData: {
+						__proto__: { Polluted: "MARKER" },
+					},
+				},
+			},
+		};
+
+		expect(pickAllowedOrderParams(attackPayload.orderParams)).toEqual({});
+		expect(hasAllowedOrderParamUpdates(attackPayload.orderParams)).toBe(false);
+
+		const merged = mergeAllowedOrderParams(
+			JSON.parse(JSON.stringify(orderTemplate)),
+			attackPayload.orderParams
+		);
+		expect(merged.data.deliveryData).toBeNull();
+		expect({}.Polluted).toBeUndefined();
+		expect(Object.prototype.Polluted).toBeUndefined();
 	});
 });
 
@@ -278,6 +440,68 @@ describe("openapi.enabled", () => {
 		expect(isOpenApiEnabled()).toBe(true);
 		process.env.SITE_URL = "https://shop.example.com";
 		expect(isOpenApiEnabled()).toBe(false);
+	});
+});
+
+describe("openapi.ui-url", () => {
+	const xssUrl = "</script><script>alert(1)</script>";
+
+	it("accepts missing or local schema url and rejects anything else", () => {
+		expect(resolveOpenApiUiSpecUrl(undefined).url).toBe("/openapi/openapi.json");
+		expect(resolveOpenApiUiSpecUrl("").url).toBe("/openapi/openapi.json");
+		expect(resolveOpenApiUiSpecUrl("/openapi/openapi.json").url).toBe("/openapi/openapi.json");
+		expect(resolveOpenApiUiSpecUrl(xssUrl).ok).toBe(false);
+		expect(resolveOpenApiUiSpecUrl("javascript:alert(1)").ok).toBe(false);
+		expect(resolveOpenApiUiSpecUrl("https://evil.example/openapi.json").ok).toBe(false);
+		expect(resolveOpenApiUiSpecUrl("//evil.example/openapi/openapi.json").ok).toBe(false);
+	});
+
+	it("encodes script-breakout sequences in JSON embedded in HTML", () => {
+		const encoded = jsonForHtmlScript({ url: xssUrl });
+		expect(encoded).not.toMatch(/<\/script>/i);
+		expect(encoded).toContain("\\u003c/script\\u003e");
+	});
+
+	it("renders UI HTML that cannot close the settings script with a hostile url", () => {
+		const html = renderOpenApiUiHtml({
+			specUrl: xssUrl,
+			assetsPath: "/openapi/assets",
+			oauth2RedirectUrl: "/openapi/oauth2-redirect",
+			nonce: "test-nonce",
+		});
+		expect(html).not.toContain(xssUrl);
+		expect(html).toContain("\\u003c/script\\u003e");
+		expect(html).toContain('nonce="test-nonce"');
+		expect(openApiUiCsp("test-nonce")).toContain("script-src 'nonce-test-nonce' 'self'");
+	});
+});
+
+describe("openapi.ui action", () => {
+	const openapi = require("../../../services/openapi/openapi.service");
+	const xssUrl = "</script><script>alert(1)</script>";
+	const service = {
+		getOpenApiPaths: async () => ({
+			schemaPath: "/openapi/openapi.json",
+			assetsPath: "/openapi/assets",
+			oauth2RedirectPath: "/openapi/oauth2-redirect",
+		}),
+		settings: {},
+	};
+
+	it("rejects a script-breakout url query", async () => {
+		const ctx = { params: { url: xssUrl }, meta: {} };
+		await expect(openapi.actions.ui.handler.call(service, ctx)).rejects.toMatchObject({
+			code: 400,
+			type: "INVALID_OPENAPI_URL",
+		});
+	});
+
+	it("serves the local spec when url is omitted", async () => {
+		const ctx = { params: {}, meta: {} };
+		const html = await openapi.actions.ui.handler.call(service, ctx);
+		expect(html).toContain("/openapi/openapi.json");
+		expect(html).not.toContain(xssUrl);
+		expect(ctx.meta.$responseHeaders["Content-Security-Policy"]).toMatch(/nonce-/);
 	});
 });
 

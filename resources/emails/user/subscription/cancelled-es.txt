@@ -1,0 +1,8 @@
+Hola {{username}},
+
+Hemos recibido su solicitud para cancelar la suscripción.
+La suscripción ya está cancelada y no se realizarán más cobros por ella.
+
+ID de suscripción: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+Si no ha solicitado esto o necesita ayuda, contáctenos en {{support_email}}

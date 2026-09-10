@@ -3,6 +3,21 @@
 const { stringifySetCookie } = require("cookie");
 const SettingsMixin = require("./../../mixins/settings.mixin");
 
+function handleUpload(req, res) {
+	try {
+		const result = this.processUpload(req, res);
+		if (result && typeof result.catch === "function") {
+			result.catch((err) => {
+				this.logger.error("upload handler ERROR", err);
+				this.respondUploadError(res, 400, "Upload failed");
+			});
+		}
+	} catch (err) {
+		this.logger.error("upload handler ERROR", err);
+		this.respondUploadError(res, 400, "Upload failed");
+	}
+}
+
 
 module.exports = {
 	path: "/api/v1",
@@ -34,9 +49,7 @@ module.exports = {
 		// moleculer-auto-openapi logs ERROR on every startup/hot-reload.
 		"POST /user/image": {
 			openapi: false,
-			handler(req, res) {
-				this.processUpload(req, res);
-			}
+			handler: handleUpload
 		},
 		"DELETE /user/image/:type/:code/:image": "users.deleteUserImage",
 		"DELETE /user/profile": "users.deleteProfile",
@@ -62,9 +75,7 @@ module.exports = {
 		"GET /products/rebuildpl/:id": "products.rebuildProductPriceLevels",
 		"POST /products/upload/:orderCode/:type": {
 			openapi: false,
-			handler(req, res) {
-				this.processUpload(req, res);
-			}
+			handler: handleUpload
 		},
 
 		// Categories
@@ -74,15 +85,11 @@ module.exports = {
 		"POST /categories/find": "categories.findWithContent",
 		"POST /categories/upload/:slug/:type": {
 			openapi: false,
-			handler(req, res) {
-				this.processUpload(req, res);
-			}
+			handler: handleUpload
 		},
 		"POST /categories/upload/:slug": {
 			openapi: false,
-			handler(req, res) {
-				this.processUpload(req, res);
-			}
+			handler: handleUpload
 		},
 
 		// Order
@@ -121,15 +128,11 @@ module.exports = {
 		"POST /pages/count": "pages.count",
 		"POST /pages/upload/:slug/:type": {
 			openapi: false,
-			handler(req, res) {
-				this.processUpload(req, res);
-			}
+			handler: handleUpload
 		},
 		"POST /pages/upload/:slug/": {
 			openapi: false,
-			handler(req, res) {
-				this.processUpload(req, res);
-			}
+			handler: handleUpload
 		},
 
 		// Global

@@ -15,3 +15,5 @@ _backup/
 sonar-project.properties
 .github
 .temp
+# Local-only symlink to host static assets; demo-data provides the real tree
+public/assets/data

@@ -1,0 +1,7 @@
+Hallo {{username}},
+
+Wir haben eine Zahlung für Ihr Abonnement erhalten.
+
+Konto: {{email}}
+
+Wenn Sie Hilfe benötigen, kontaktieren Sie uns unter {{support_email}}

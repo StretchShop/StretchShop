@@ -1,0 +1,151 @@
+{
+	"main":{
+		 "items":[
+				{
+					 "codename":"aboutus",
+					 "typeName":"pageDetailShort",
+					 "slugParams":{
+							"slug":"aboutus"
+					 },
+					 "langs":{
+							"sk":{
+								 "name":"O nás"
+							},
+							"en":{
+								 "name":"About us"
+							},
+							"de":{
+								 "name":"Über uns"
+							},
+							"es":{
+								 "name":"Sobre nosotros"
+							}
+					 }
+				},
+				{
+					 "codename":"termsconditions",
+					 "typeName":"pageDetailShort",
+					 "slugParams":{
+							"slug":"terms-conditions"
+					 },
+					 "langs":{
+							"sk":{
+								 "name":"Všeobecné obchodné podmienky"
+							},
+							"en":{
+								 "name":"Terms and Conditions"
+							},
+							"de":{
+								 "name":"Allgemeine Geschäftsbedingungen"
+							},
+							"es":{
+								 "name":"Términos y condiciones"
+							}
+					 }
+				},
+				{
+					 "codename":"returnpolicy",
+					 "typeName":"pageDetailShort",
+					 "slugParams":{
+							"slug":"return-policy"
+					 },
+					 "langs":{
+							"sk":{
+								 "name":"Reklamačný poriadok"
+							},
+							"en":{
+								 "name":"Return Policy"
+							},
+							"de":{
+								 "name":"Rückgaberichtlinie"
+							},
+							"es":{
+								 "name":"Política de devoluciones"
+							}
+					 }
+				},
+				{
+					 "codename":"deliverypayment",
+					 "typeName":"pageDetailShort",
+					 "slugParams":{
+							"slug":"delivery-payment"
+					 },
+					 "langs":{
+							"sk":{
+								 "name":"Doručenie a Platba"
+							},
+							"en":{
+								 "name":"Delivery and Payment"
+							},
+							"de":{
+								 "name":"Lieferung und Zahlung"
+							},
+							"es":{
+								 "name":"Entrega y pago"
+							}
+					 }
+				}
+		 ]
+	},
+	"links":{
+		 "items":[
+				{
+					 "codename":"github",
+					 "typeName":"--link",
+					 "slugParams":"https://github.com/Wradgio/StretchShop",
+					 "langs":{
+							"sk":{
+								 "name":"GitHub"
+							},
+							"en":{
+								 "name":"GitHub"
+							},
+							"de":{
+								 "name":"GitHub"
+							},
+							"es":{
+								 "name":"GitHub"
+							}
+					 }
+				},
+				{
+					 "codename":"facebook",
+					 "typeName":"--link",
+					 "slugParams":"https://facebook.com/StretchShop",
+					 "langs":{
+							"sk":{
+								 "name":"Facebook"
+							},
+							"en":{
+								 "name":"Facebook"
+							},
+							"de":{
+								 "name":"Facebook"
+							},
+							"es":{
+								 "name":"Facebook"
+							}
+					 }
+				},
+				{
+					 "codename":"linkedin",
+					 "typeName":"--link",
+					 "slugParams":"https://facebook.com/StretchShop",
+					 "langs":{
+							"sk":{
+								 "name":"LinkedIn"
+							},
+							"en":{
+								 "name":"LinkedIn"
+							},
+							"de":{
+								 "name":"LinkedIn"
+							},
+							"es":{
+								 "name":"LinkedIn"
+							}
+					 }
+				}
+		 ]
+	}
+}

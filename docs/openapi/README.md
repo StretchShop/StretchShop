@@ -4,12 +4,14 @@ Live API docs are generated at runtime by [`@spailybot/moleculer-auto-openapi`](
 
 ## Endpoints
 
-When `OPENAPI_ENABLED=true`, or in `development` / `dockerdev` / `test`, or when `SITE_URL` points at `demo.stretchshop.app`:
+Live docs are **off in production** unless you set `OPENAPI_ENABLED=true`. They are on in `development` / `dockerdev` / `test`, when `OPENAPI_ENABLED=true`, or when `SITE_URL` points at `demo.stretchshop.app`:
 
 - Swagger UI: `GET /openapi/ui`
 - OpenAPI JSON: `GET /openapi/openapi.json`
 
-In Docker **micro** / **mixed** layouts, the API container must also load the `openapi` service (`SERVICES` must include `openapi`). Env alone is not enough — without it the gateway returns `503 ServiceUnavailableError`.
+`GET /openapi/ui?url=` is restricted to the local schema path (`/openapi/openapi.json`). Other values (including HTML or `javascript:` payloads) return `400`. Spec URL is HTML-encoded before it is written into the page so `</script>` cannot break out of the settings block.
+
+In Docker **micro** / **mixed** layouts, production compose files do not load the `openapi` service. If you opt in with `OPENAPI_ENABLED=true`, add `openapi` to the API container `SERVICES` as well — env alone is not enough and the gateway returns `503 ServiceUnavailableError`.
 
 ## Source of truth
 

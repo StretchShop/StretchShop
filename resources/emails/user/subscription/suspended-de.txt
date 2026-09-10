@@ -1,0 +1,7 @@
+Hallo {{username}},
+
+Ihr Abonnement wurde ausgesetzt, weil keine Zahlung eingegangen ist.
+
+Abonnement-ID: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+Wenn Sie Hilfe benötigen, kontaktieren Sie uns unter {{support_email}}

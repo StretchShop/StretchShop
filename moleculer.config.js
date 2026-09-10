@@ -31,9 +31,25 @@ function getCacherConfig() {
 	};
 }
 
+function replaceMoleculerCrashHandlers(broker) {
+	if (process.env.NODE_ENV === "test") {
+		return;
+	}
+	const log = (broker && broker.logger) ? broker.logger : console;
+	process.removeAllListeners("unhandledRejection");
+	process.removeAllListeners("uncaughtException");
+	process.on("unhandledRejection", (reason) => {
+		log.error("Unhandled Rejection — process kept alive", reason);
+	});
+	process.on("uncaughtException", (err) => {
+		log.error("Uncaught Exception — process kept alive", err);
+	});
+}
+
 module.exports = {
 	timeout: 10000,
 	namespace: "stretchshop",
+	created: replaceMoleculerCrashHandlers,
 	//transporter: "TCP",
 	logger: {
 		type: "Console",

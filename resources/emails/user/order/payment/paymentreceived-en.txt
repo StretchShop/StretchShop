@@ -1,0 +1,7 @@
+Hi {{username}},
+
+We have received a payment for your subscription.
+
+Account: {{email}}
+
+If you need help, contact us on {{support_email}}

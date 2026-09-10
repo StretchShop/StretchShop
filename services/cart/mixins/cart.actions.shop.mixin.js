@@ -89,8 +89,8 @@ module.exports = {
 						if (!productAvailable || (Array.isArray(productAvailable) && productAvailable.length === 0)) {
 							return this.Promise.reject(new MoleculerClientError("No matching product found"));
 						}
-						// check if amount is available
-						if (ctx.params.amount > productAvailable.stockAmount) {
+						// check if amount is available, while stockAmount = -1 means unlimited stock
+						if (ctx.params.amount > productAvailable.stockAmount && productAvailable.stockAmount > -1) {
 							// if digital or subscription - only 1 pcs can be ordered, 
 							// but only if stockAmount is set (more than -1) 
 							if (productAvailable.type == "subscription" || productAvailable.subtype == "digital") {

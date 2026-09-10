@@ -1,0 +1,8 @@
+Hi {{username}},
+
+We have received your request to cancel your subscription.
+The subscription is now cancelled and no further payments will be taken for it.
+
+Subscription ID: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+If you did not request this or you need help, contact us on {{support_email}}

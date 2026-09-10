@@ -1,0 +1,61 @@
+Vielen Dank für Ihre Bestellung,
+
+wir haben Ihre Bestellung erhalten {{order._id}}
+zum Gesamtpreis von {{order.prices.priceTotal}} {{order.prices.currency.symbol}}
+erstellt am {{order.dates.dateCreated}}.
+
+Hier sind die Details Ihrer Bestellung:
+
+ID {{order._id}} (verwenden Sie diese ID bei der Kommunikation mit uns)
+
+Rechnungsadresse:
+----------------
+Name: {{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}
+Straße: {{order.addresses.invoiceAddress.street}}
+{{order.addresses.invoiceAddress.street2}}
+PLZ: {{order.addresses.invoiceAddress.zip}}
+Stadt: {{order.addresses.invoiceAddress.city}}
+Land: {{order.addresses.invoiceAddress.country}}
+Telefon: {{order.addresses.invoiceAddress.phone}}
+{{#if order.data.paymentData.name.en}}
+----
+Zahlung: {{order.data.paymentData.name.en}}
+Zahlungspreis: {{ order.data.paymentData.price }}
+{{/if}}
+
+
+{{#if order.addresses.deliveryAddress}}
+Lieferadresse:
+----------------
+Name: {{order.addresses.deliveryAddress.nameFirst}} {{order.addresses.deliveryAddress.nameLast}}
+Straße: {{order.addresses.deliveryAddress.street}}
+{{order.addresses.deliveryAddress.street2}}
+PLZ: {{order.addresses.deliveryAddress.zip}}
+Stadt: {{order.addresses.deliveryAddress.city}}
+Land: {{order.addresses.deliveryAddress.country}}
+Telefon: {{order.addresses.deliveryAddress.phone}}
+{{/if}}
+{{#if order.data.deliveryData.codename.physical.value}}
+----
+Lieferart: {{order.data.deliveryData.codename.physical.value}}
+Lieferpreis: {{ order.data.deliveryData.codename.physical.price }}
+{{/if}}
+
+Artikel:
+----------------
+{{#order.items}}
+---- Artikel-ID: {{_id}} ----
+Artikelname: {{name.en}}
+Artikelpreis: {{price}}
+{{/order.items}}
+
+
+Summen:
+----------------
+Artikel ohne MwSt.: {{order.prices.priceItemsNoTax}}
+Artikel mit MwSt.: {{order.prices.priceItems}}
+----
+Lieferkosten: {{order.prices.priceDelivery}}
+Price of Zahlung: {{order.prices.pricePayment}}
+----
+Bestellsumme: {{order.prices.priceTotal}}

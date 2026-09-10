@@ -1,0 +1,9 @@
+Ahoj {{username}},
+
+Prijali sme vašu žiadosť o vymazanie profilu. Profil bude odstránený o 14 dní.
+
+Naplánované vymazanie: {{date}}
+
+Ak si to rozmyslíte, môžete vymazanie v týchto dňoch zrušiť na stránke profilu.
+
+Ak narazíte na problémy, kontaktujte nás na {{support_email}}

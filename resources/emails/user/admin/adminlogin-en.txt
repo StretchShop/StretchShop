@@ -1,0 +1,9 @@
+Dear user,
+
+An administrator has signed in to perform actions in your account.
+
+Administrator: {{admin.username}}
+Email: {{admin.email}}
+Date: {{datetime}}
+
+If this action is not expected, please contact us on {{support_email}}.

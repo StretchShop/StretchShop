@@ -1,0 +1,9 @@
+Estimado usuario,
+
+Un administrador ha iniciado sesión para realizar acciones en su cuenta.
+
+Administrador: {{admin.username}}
+Email: {{admin.email}}
+Fecha: {{datetime}}
+
+Si esta acción no era esperada, contáctenos en {{support_email}}.

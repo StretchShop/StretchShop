@@ -6,7 +6,6 @@ const ApiGateway = require("moleculer-web");
 const fs = require("fs-extra");
 const formidable = require("formidable");
 const jwt = require("jsonwebtoken");
-const util = require("node:util");
 const _ = require("lodash");
 
 const SettingsMixin = require("../../../mixins/settings.mixin");
@@ -290,6 +289,22 @@ module.exports = {
 		},
 
 
+		respondUploadError(res, status, error) {
+			if (res.headersSent || res.writableEnded) {
+				return;
+			}
+			try {
+				res.writeHead(status, { "content-type": "application/json" });
+			} catch {
+				// Headers may already be partially sent.
+			}
+			try {
+				res.end(JSON.stringify({ success: false, error }));
+			} catch (err) {
+				this.logger.error("api.respondUploadError() failed to write response", err);
+			}
+		},
+
 		/**
 		 * parse form with uploaded files, copy files according to paths
 		 * allowed: jpeg, png, webp, gif, pdf, zip
@@ -305,91 +320,143 @@ module.exports = {
 				"application/pdf",
 				"application/zip",
 			]);
-			const form = formidable.formidable({
-				multiples: true,
-				maxFileSize: 5 * 1024 * 1024,
-				filter({ mimetype }) {
-					self.logger.info("api.parseUploadedFile() MIMETYPE: ", mimetype);
-					return ALLOWED_MIME.has(mimetype);
-				},
-			});
-			this.logger.info("api.parseUploadedFile() #2", form);
-			return form.parse(req, (err, fields, files) => {
-				self.logger.info("api.parseUploadedFile() #2.5", err, fields, files);
-				let promises = [];
-				self.logger.info("api.parseUploadedFile() #3", files, fields);
-				if (err) {
-					self.logger.error("api.parseUploadedFile() ERROR:", err);
-				}
 
-				// multiple files to upload - multiple promises as in import
-				// after all done, create message and send
-				for (let property in files) {
-					if (Object.hasOwn(files, property)) {
+			const finishParseError = (err, status = 400, message = "Upload failed") => {
+				self.logger.error("api.parseUploadedFile() ERROR:", err);
+				self.respondUploadError(res, status, message);
+			};
 
-						const r = self.prepareFilePathNameData(req, activePath, fields, files, property);
-
-						const uploaded = Array.isArray(files[property]) ? files[property][0] : files[property];
-						promises.push(
-							fs.ensureDir(r.copyBaseDir + "/" + r.targetDir)
-								.then(() => {
-									return self.moveFile(r.fileFrom, r.fileToSave).then(() => { // (result)
-										return {
-											id: property,
-											from: uploaded.originalFilename || uploaded.name,
-											to: r.fileToUrl,
-											path: r.resultFullPath,
-											name: r.resultFileName,
-											success: true,
-											action: (activePath.postAction) ? activePath.postAction : null
-										};
-									});
-								})
-								.catch(err => {
-									self.logger.error("api.parseuploadeFile() files ensudeDir ERROR", err);
-									return { "id": property, "from": uploaded.originalFilename || uploaded.name, "success": false, "error": err };
-								})); // push with ensureDir end
-					}
-				}
-
-				// after form processed and wait for all promises to finish
-				// return multiple promises results
-				return Promise.all(promises)
-					.then((values) => {
-						let fileErrors = false;
-						values.forEach((v) => {
-							if (v.success !== true) {
-								fileErrors = true;
-							}
-							// if available, run post action
-							if (v.action) {
-								req.$ctx.call(v.action, {
-									data: {
-										image: v.path,
-										success: v.success,
-										from: v.from
-									},
-									params: req.$params
-								});
-							}
-						});
-						let headers = res.getHeaders();
-						self.logger.info("api.parseUploadedFile Promise.all RES:", headers);
-						if (headers["content-type"] !== undefined) {
-							res.writeHead(200, { "content-type": "application/json" });
-						}
-						res.end(util.inspect(JSON.stringify({
-							success: true,
-							errors: fileErrors,
-							files: values
-						})));
-						return values;
-					})
-					.catch(err => {
-						self.logger.error("api.parseUploadedFile Promise.all ERROR: ", err);
-						return null;
+			try {
+				const form = formidable.formidable({
+					multiples: true,
+					maxFileSize: 5 * 1024 * 1024,
+					filter({ mimetype }) {
+						self.logger.info("api.parseUploadedFile() MIMETYPE: ", mimetype);
+						return ALLOWED_MIME.has(mimetype);
+					},
+				});
+				this.logger.info("api.parseUploadedFile() #2", form);
+				if (typeof form.on === "function") {
+					form.on("error", (formErr) => {
+						finishParseError(formErr, 400, "Upload failed");
 					});
-			});
+				}
+				return form.parse(req, (err, fields, files) => {
+					try {
+						self.logger.info("api.parseUploadedFile() #2.5", err, fields, files);
+						if (err) {
+							finishParseError(err, 400, "Upload failed");
+							return;
+						}
+						if (!files || typeof files !== "object") {
+							finishParseError(new Error("missing files"), 400, "No file uploaded");
+							return;
+						}
+
+						let promises = [];
+						self.logger.info("api.parseUploadedFile() #3", files, fields);
+
+						for (let property in files) {
+							if (!Object.hasOwn(files, property)) {
+								continue;
+							}
+
+							const uploaded = Array.isArray(files[property]) ? files[property][0] : files[property];
+							if (!uploaded?.filepath) {
+								promises.push(Promise.resolve({
+									id: property,
+									from: uploaded?.originalFilename || uploaded?.name || null,
+									success: false,
+									error: "No file uploaded"
+								}));
+								continue;
+							}
+
+							let r;
+							try {
+								r = self.prepareFilePathNameData(req, activePath, fields, files, property);
+							} catch (prepErr) {
+								self.logger.error("api.parseUploadedFile() prepare path ERROR", prepErr);
+								promises.push(Promise.resolve({
+									id: property,
+									from: uploaded.originalFilename || uploaded.name,
+									success: false,
+									error: "Invalid upload"
+								}));
+								continue;
+							}
+
+							promises.push(
+								fs.ensureDir(r.copyBaseDir + "/" + r.targetDir)
+									.then(() => {
+										return self.moveFile(r.fileFrom, r.fileToSave).then(() => { // (result)
+											return {
+												id: property,
+												from: uploaded.originalFilename || uploaded.name,
+												to: r.fileToUrl,
+												path: r.resultFullPath,
+												name: r.resultFileName,
+												success: true,
+												action: (activePath.postAction) ? activePath.postAction : null
+											};
+										});
+									})
+									.catch(moveErr => {
+										self.logger.error("api.parseuploadeFile() files ensudeDir ERROR", moveErr);
+										return { "id": property, "from": uploaded.originalFilename || uploaded.name, "success": false, "error": moveErr };
+									}));
+						}
+
+						if (promises.length === 0) {
+							finishParseError(new Error("empty upload"), 400, "No file uploaded");
+							return;
+						}
+
+						return Promise.all(promises)
+							.then((values) => {
+								let fileErrors = false;
+								values.forEach((v) => {
+									if (v.success !== true) {
+										fileErrors = true;
+									}
+									if (v.action) {
+										req.$ctx.call(v.action, {
+											data: {
+												image: v.path,
+												success: v.success,
+												from: v.from
+											},
+											params: req.$params
+										});
+									}
+								});
+								if (res.headersSent || res.writableEnded) {
+									return values;
+								}
+								let headers = typeof res.getHeaders === "function" ? res.getHeaders() : {};
+								self.logger.info("api.parseUploadedFile Promise.all RES:", headers);
+								if (headers["content-type"] === undefined) {
+									res.writeHead(fileErrors ? 400 : 200, { "content-type": "application/json" });
+								}
+								res.end(JSON.stringify({
+									success: !fileErrors,
+									errors: fileErrors,
+									files: values
+								}));
+								return values;
+							})
+							.catch(allErr => {
+								finishParseError(allErr, 400, "Upload failed");
+								return null;
+							});
+					} catch (parseCbErr) {
+						finishParseError(parseCbErr, 400, "Upload failed");
+					}
+				});
+			} catch (setupErr) {
+				finishParseError(setupErr, 400, "Upload failed");
+				return null;
+			}
 		},
 
 
@@ -402,40 +469,48 @@ module.exports = {
 			req["$action"] = {
 				auth: "required"
 			};
-			this.authenticate(req.$ctx, req.$route, req, res)
-				.then((x) => {
-					// get active path with variables
-					let self = this;
-					let activePath = this.getActiveUploadPath(req);
-
-					this.logger.info("api.processUpload() activePath-vars", activePath, activePath.validUserTypes, activePath.validUserTypes.indexOf("author") > -1, activePath.checkAuthorAction, activePath.checkAuthorActionParams);
-					// check if upload path is valid and has set validUserTypes
-					if (activePath?.validUserTypes) {
-						// check if author is in array of activePath.validUserTypes and file was uploaded by author
-						if (activePath.validUserTypes.includes("author")
-							&& activePath.checkAuthorAction && activePath.checkAuthorActionParams) {
-							// check if uploaded by author
-							req.$ctx.call(activePath.checkAuthorAction, {
-								data: activePath.checkAuthorActionParams
-							})
-								.then(result => {
-									this.logger.info("api.processUpload author:", result);
-									if (result === true && req.$ctx.meta.user?.type &&
-										activePath.validUserTypes.includes(req.$ctx.meta.user.type)) {
-										/**
-										 * User is author
-										 * can process form, move file and launch related action, because:
-										 * 1. path is valid
-										 * 2. user is authentificated
-										 * 3. user can upload to that path
-										 */
-										self.parseUploadedFile(req, res, activePath);
-									}
-								});
-						} else if (activePath.validUserTypes?.includes?.(req.$ctx.meta.user.type)) { // check if user or admin
-							self.parseUploadedFile(req, res, activePath);
-						}
+			return Promise.resolve()
+				.then(() => this.authenticate(req.$ctx, req.$route, req, res))
+				.then(() => {
+					let activePath;
+					try {
+						activePath = this.getActiveUploadPath(req);
+					} catch (pathErr) {
+						this.logger.error("api.processUpload() getActiveUploadPath ERROR", pathErr);
+						this.respondUploadError(res, 400, "Upload failed");
+						return;
 					}
+
+					this.logger.info("api.processUpload() activePath-vars", activePath, activePath?.validUserTypes, activePath?.validUserTypes?.indexOf("author") > -1, activePath?.checkAuthorAction, activePath?.checkAuthorActionParams);
+					if (!activePath?.validUserTypes) {
+						this.respondUploadError(res, 400, "Invalid upload path");
+						return;
+					}
+
+					const userType = req.$ctx.meta.user?.type;
+					if (activePath.validUserTypes.includes("author")
+						&& activePath.checkAuthorAction && activePath.checkAuthorActionParams) {
+						return req.$ctx.call(activePath.checkAuthorAction, {
+							data: activePath.checkAuthorActionParams
+						})
+							.then(result => {
+								this.logger.info("api.processUpload author:", result);
+								if (result === true && userType &&
+									activePath.validUserTypes.includes(userType)) {
+									return this.parseUploadedFile(req, res, activePath);
+								}
+								this.respondUploadError(res, 403, "Upload not allowed");
+							});
+					}
+					if (userType && activePath.validUserTypes.includes(userType)) {
+						return this.parseUploadedFile(req, res, activePath);
+					}
+					this.respondUploadError(res, 403, "Upload not allowed");
+				})
+				.catch((err) => {
+					this.logger.error("api.processUpload() ERROR", err);
+					const status = err?.code === 401 ? 401 : 400;
+					this.respondUploadError(res, status, "Upload failed");
 				});
 		},
 

@@ -1,0 +1,8 @@
+Hallo {{username}},
+
+wir haben Ihre Anfrage zum Zurücksetzen des Passworts erhalten.
+
+Klicken Sie auf den Link, um zu Ihrem Benutzerprofil zu gelangen, wo Sie Ihr Passwort ändern können:
+{{confirm_link}}
+
+Bei Problemen kontaktieren Sie uns unter {{support_email}}

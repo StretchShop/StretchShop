@@ -1,0 +1,8 @@
+Hola {{username}},
+
+hemos recibido su solicitud para restablecer la contraseña.
+
+Haga clic en el enlace para acceder a su perfil de usuario, donde puede cambiar su contraseña:
+{{confirm_link}}
+
+Si tiene algún problema, contáctenos en {{support_email}}

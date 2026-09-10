@@ -154,9 +154,59 @@ describe("api cookies and authenticate", () => {
 			}),
 		});
 		const req = { $ctx: { meta: { user: { type: "user" } } }, $route: {} };
-		service.processUpload(req, createRes());
-		await Promise.resolve();
+		await service.processUpload(req, createRes());
 		expect(service.parseUploadedFile).toHaveBeenCalled();
+	});
+
+	it("processUpload returns an error response when authenticate rejects", async () => {
+		const err = Object.assign(new Error("NO_RIGHTS"), { code: 401 });
+		const service = createService({
+			authenticate: jest.fn().mockRejectedValue(err),
+			parseUploadedFile: jest.fn(),
+		});
+		const res = createRes();
+		await service.processUpload({ $ctx: { meta: {} }, $route: {} }, res);
+		expect(service.parseUploadedFile).not.toHaveBeenCalled();
+		expect(res.writeHead).toHaveBeenCalledWith(401, { "content-type": "application/json" });
+		expect(res.end).toHaveBeenCalledWith(JSON.stringify({ success: false, error: "Upload failed" }));
+	});
+
+	it("processUpload returns an error when getActiveUploadPath throws", async () => {
+		const service = createService({
+			authenticate: jest.fn().mockResolvedValue({ type: "user" }),
+			parseUploadedFile: jest.fn(),
+			getActiveUploadPath: jest.fn(() => {
+				throw new TypeError("Cannot read properties of undefined");
+			}),
+		});
+		const res = createRes();
+		await service.processUpload({ $ctx: { meta: { user: { type: "user" } } }, $route: {} }, res);
+		expect(service.parseUploadedFile).not.toHaveBeenCalled();
+		expect(res.writeHead).toHaveBeenCalledWith(400, { "content-type": "application/json" });
+	});
+
+	it("empty unauthenticated POST /user/image returns an error and does not reject", async () => {
+		const service = createService({
+			cookiesManagement: jest.fn((ctx) => {
+				ctx.meta.cookies = {};
+			}),
+			checkCsrfToken: jest.fn().mockReturnValue(false),
+			parseUploadedFile: jest.fn(),
+		});
+		const ctx = { meta: { remoteAddress: "127.0.0.1", cookies: {}, headers: {} } };
+		const req = {
+			method: "POST",
+			headers: { cookie: "" },
+			$ctx: ctx,
+			$route: {},
+			$alias: { path: "user/image" },
+			parsedUrl: "/api/v1/user/image",
+		};
+		const res = createRes();
+		await expect(service.processUpload(req, res)).resolves.toBeUndefined();
+		expect(service.parseUploadedFile).not.toHaveBeenCalled();
+		expect(res.writeHead).toHaveBeenCalledWith(401, { "content-type": "application/json" });
+		expect(res.end).toHaveBeenCalledWith(JSON.stringify({ success: false, error: "Upload failed" }));
 	});
 
 	it("logs afterCallAction payloads", () => {

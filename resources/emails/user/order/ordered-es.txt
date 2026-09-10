@@ -1,0 +1,61 @@
+Gracias por su pedido,
+
+hemos recibido su pedido {{order._id}}
+por un importe total de {{order.prices.priceTotal}} {{order.prices.currency.symbol}}
+realizado el {{order.dates.dateCreated}}.
+
+Aquí están los detalles de su pedido:
+
+ID {{order._id}} (use este ID cuando se comunique con nosotros)
+
+Dirección de facturación:
+----------------
+Nombre: {{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}
+Calle: {{order.addresses.invoiceAddress.street}}
+{{order.addresses.invoiceAddress.street2}}
+Código postal: {{order.addresses.invoiceAddress.zip}}
+Ciudad: {{order.addresses.invoiceAddress.city}}
+País: {{order.addresses.invoiceAddress.country}}
+Teléfono: {{order.addresses.invoiceAddress.phone}}
+{{#if order.data.paymentData.name.en}}
+----
+Pago: {{order.data.paymentData.name.en}}
+Precio del pago: {{ order.data.paymentData.price }}
+{{/if}}
+
+
+{{#if order.addresses.deliveryAddress}}
+Dirección de entrega:
+----------------
+Nombre: {{order.addresses.deliveryAddress.nameFirst}} {{order.addresses.deliveryAddress.nameLast}}
+Calle: {{order.addresses.deliveryAddress.street}}
+{{order.addresses.deliveryAddress.street2}}
+Código postal: {{order.addresses.deliveryAddress.zip}}
+Ciudad: {{order.addresses.deliveryAddress.city}}
+País: {{order.addresses.deliveryAddress.country}}
+Teléfono: {{order.addresses.deliveryAddress.phone}}
+{{/if}}
+{{#if order.data.deliveryData.codename.physical.value}}
+----
+Tipo de entrega: {{order.data.deliveryData.codename.physical.value}}
+Precio de entrega: {{ order.data.deliveryData.codename.physical.price }}
+{{/if}}
+
+Artículos:
+----------------
+{{#order.items}}
+---- ID del artículo: {{_id}} ----
+Nombre del artículo: {{name.en}}
+Precio del artículo: {{price}}
+{{/order.items}}
+
+
+Totales:
+----------------
+Artículos sin IVA: {{order.prices.priceItemsNoTax}}
+Artículos con IVA: {{order.prices.priceItems}}
+----
+Precio de entrega: {{order.prices.priceDelivery}}
+Price of Pago: {{order.prices.pricePayment}}
+----
+Total del pedido: {{order.prices.priceTotal}}

@@ -12,16 +12,12 @@ db
 public/**/*
 !public/index.html
 
-resources/emails/*
-!resources/emails/user/
-resources/emails/user/*
-!resources/emails/user/main-*
-resources/navigation/
-resources/pages/
+# Email layouts, nested templates, navigation, and pages are required at
+# runtime (Docker image + service boot). Keep them in git; public media
+# assets still come from StretchShop-demo-data during image build / postinstall.
 
 .vscode/
 copyToDemoData.sh
-.github
 *.log
 .temp/
 .temp/webhook.log

@@ -1,0 +1,9 @@
+Hallo {{username}},
+
+Wir haben Ihre Anfrage zur Löschung Ihres Profils erhalten. Es wird in 14 Tagen entfernt.
+
+Geplante Löschung: {{date}}
+
+Wenn Sie Ihre Meinung ändern, können Sie die Löschung innerhalb dieser Frist auf Ihrer Profilseite abbrechen.
+
+Bei Problemen kontaktieren Sie uns unter {{support_email}}

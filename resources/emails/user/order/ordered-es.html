@@ -1,0 +1,143 @@
+<p style="margin:0 0 8px 0;">Gracias por su pedido.</p>
+<p style="margin:0 0 20px 0;">
+  Hemos recibido su pedido <strong>{{order._id}}</strong>
+  por un importe total de {{order.prices.priceTotal}} {{order.prices.currency.symbol}}
+  el {{order.dates.dateCreated}}.
+</p>
+<p style="margin:0 0 20px 0;font-size:13px;color:#666666;">
+  Use este ID cuando se comunique con nosotros: <strong style="color:#111111;">{{order._id}}</strong>
+</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0 0 16px 0;">
+  <tr>
+    <td colspan="2" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Dirección de facturación</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:36%;border-bottom:1px solid #eeeeee;">Nombre</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Calle</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.street}}{{#if order.addresses.invoiceAddress.street2}}, {{order.addresses.invoiceAddress.street2}}{{/if}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Código postal</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.zip}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Ciudad</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.city}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">País</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.country}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;">Teléfono</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;">{{order.addresses.invoiceAddress.phone}}</td>
+  </tr>
+</table>
+
+{{#if order.addresses.deliveryAddress}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0 0 16px 0;">
+  <tr>
+    <td colspan="2" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Dirección de entrega</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:36%;border-bottom:1px solid #eeeeee;">Nombre</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.nameFirst}} {{order.addresses.deliveryAddress.nameLast}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Calle</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.street}}{{#if order.addresses.deliveryAddress.street2}}, {{order.addresses.deliveryAddress.street2}}{{/if}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Código postal</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.zip}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Ciudad</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.city}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">País</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.country}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;">Teléfono</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;">{{order.addresses.deliveryAddress.phone}}</td>
+  </tr>
+</table>
+{{/if}}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0 0 16px 0;">
+  <tr>
+    <td colspan="2" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Pago y entrega</td>
+  </tr>
+  {{#if order.data.paymentData.name.en}}
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:36%;border-bottom:1px solid #eeeeee;">Pago</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.data.paymentData.name.en}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Precio del pago</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.data.paymentData.price}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  {{/if}}
+  {{#if order.data.deliveryData.codename.physical.value}}
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:36%;border-bottom:1px solid #eeeeee;">Tipo de entrega</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.data.deliveryData.codename.physical.value}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;">Precio de entrega</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;">{{order.data.deliveryData.codename.physical.price}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  {{/if}}
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0 0 16px 0;">
+  <tr>
+    <td colspan="4" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Artículos</td>
+  </tr>
+  <tr>
+    <th align="left" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#666666;border-bottom:1px solid #e6e6e6;">Artículo</th>
+    <th align="left" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#666666;border-bottom:1px solid #e6e6e6;">ID</th>
+    <th align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#666666;border-bottom:1px solid #e6e6e6;">Cant.</th>
+    <th align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#666666;border-bottom:1px solid #e6e6e6;">Precio</th>
+  </tr>
+  {{#order.items}}
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{#if nameReady}}{{nameReady}}{{else}}{{name.en}}{{/if}}</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#888888;border-bottom:1px solid #eeeeee;">{{_id}}</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{amount}}</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{price}}</td>
+  </tr>
+  {{/order.items}}
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0;">
+  <tr>
+    <td colspan="2" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Totales</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:64%;border-bottom:1px solid #eeeeee;">Artículos sin IVA</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.prices.priceItemsNoTax}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Artículos con IVA</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.prices.priceItems}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Entrega</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.prices.priceDelivery}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #e6e6e6;">Pago</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #e6e6e6;">{{order.prices.pricePayment}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  <tr>
+    <td style="padding:10px 12px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#111111;background-color:#f7f7f7;">Total del pedido</td>
+    <td align="right" style="padding:10px 12px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#111111;background-color:#f7f7f7;">{{order.prices.priceTotal}} {{order.prices.currency.symbol}}</td>
+  </tr>
+</table>
