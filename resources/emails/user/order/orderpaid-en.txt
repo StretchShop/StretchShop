@@ -1,0 +1,53 @@
+Thank you for your payment.
+
+We have received payment of {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}
+for your order {{order._id}}.
+We are sending you an invoice in the attachment.
+
+Use this ID when you communicate with us: {{order._id}}
+
+Invoice Address:
+----------------
+Name: {{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}
+Street: {{order.addresses.invoiceAddress.street}}{{#if order.addresses.invoiceAddress.street2}}, {{order.addresses.invoiceAddress.street2}}{{/if}}
+ZIP: {{order.addresses.invoiceAddress.zip}}
+City: {{order.addresses.invoiceAddress.city}}
+Country: {{order.addresses.invoiceAddress.country}}
+Phone: {{order.addresses.invoiceAddress.phone}}
+{{#if order.data.paymentData.name.en}}
+----
+Payment: {{order.data.paymentData.name.en}}
+Payment price: {{order.data.paymentData.price}} {{order.prices.currency.symbol}}
+{{/if}}
+
+{{#if order.addresses.deliveryAddress}}
+Delivery Address:
+----------------
+Name: {{order.addresses.deliveryAddress.nameFirst}} {{order.addresses.deliveryAddress.nameLast}}
+Street: {{order.addresses.deliveryAddress.street}}{{#if order.addresses.deliveryAddress.street2}}, {{order.addresses.deliveryAddress.street2}}{{/if}}
+ZIP: {{order.addresses.deliveryAddress.zip}}
+City: {{order.addresses.deliveryAddress.city}}
+Country: {{order.addresses.deliveryAddress.country}}
+Phone: {{order.addresses.deliveryAddress.phone}}
+{{/if}}
+{{#if order.data.deliveryData.codename.physical.value}}
+----
+Delivery type: {{order.data.deliveryData.codename.physical.value}}
+Delivery price: {{order.data.deliveryData.codename.physical.price}} {{order.prices.currency.symbol}}
+{{/if}}
+
+Items:
+----------------
+{{#order.items}}
+{{#if nameReady}}{{nameReady}}{{else}}{{name.en}}{{/if}} ({{_id}})
+Qty: {{amount}}  Price: {{price}}
+{{/order.items}}
+
+Totals:
+----------------
+Items without tax: {{order.prices.priceItemsNoTax}} {{order.prices.currency.symbol}}
+Items with tax: {{order.prices.priceItems}} {{order.prices.currency.symbol}}
+Delivery: {{order.prices.priceDelivery}} {{order.prices.currency.symbol}}
+Payment: {{order.prices.pricePayment}} {{order.prices.currency.symbol}}
+Amount paid: {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}
+Order total: {{order.prices.priceTotal}} {{order.prices.currency.symbol}}

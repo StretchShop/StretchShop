@@ -1,0 +1,8 @@
+Hi {{username}},
+
+Your subscription has been reactivated.
+Billing will continue and you have access to the related content again.
+
+Subscription ID: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+If you did not request this or you need help, contact us on {{support_email}}

@@ -1,0 +1,10 @@
+Willkommen bei {{webname}},
+
+wir haben Ihre Registrierung mit folgenden Daten erhalten:
+Benutzername: {{username}},
+E-Mail: {{email}}
+
+Bitte bestätigen Sie, dass Sie diese Registrierung vorgenommen haben, indem Sie den folgenden Link besuchen:
+{{confirm_link}}
+
+Nach der Bestätigung können Sie Ihr Profil ausfüllen und mit dem Einkaufen oder Schreiben von Artikeln beginnen.

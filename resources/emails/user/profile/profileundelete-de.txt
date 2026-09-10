@@ -1,0 +1,5 @@
+Hallo {{username}},
+
+Sie haben die Löschung Ihres Profils abgebrochen. Ihr Konto bleibt aktiv.
+
+Bei Problemen oder wenn Sie das nicht waren, kontaktieren Sie uns unter {{support_email}}

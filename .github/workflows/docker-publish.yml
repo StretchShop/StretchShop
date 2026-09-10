@@ -14,50 +14,46 @@ on:
   pull_request:
 
 env:
-  # TODO: Change variable to your image's name.
   IMAGE_NAME: wradgio/stretchshop
 
 jobs:
-  # Run tests.
-  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
+  # Build the image (Dockerfile seeds StretchShop-demo-data, then overlays
+  # repo resources/public so pdf fonts and nested templates are kept).
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Run tests
+      - name: Build image
         run: |
           if [ -f docker-compose.test.yml ]; then
-            docker-compose --file docker-compose.test.yml build
-            docker-compose --file docker-compose.test.yml run sut
+            docker compose --file docker-compose.test.yml build
+            docker compose --file docker-compose.test.yml run sut
           else
-            docker build . --file Dockerfile
+            docker build . --file Dockerfile --tag $IMAGE_NAME:test
           fi
 
-  # Push image to GitHub Packages.
-  # See also https://docs.docker.com/docker-hub/builds/
-  push:
-    # Ensure test job passes before pushing image.
-    needs: test
+      - name: Verify runtime assets in image
+        if: ${{ hashFiles('docker-compose.test.yml') == '' }}
+        run: |
+          docker run --rm --entrypoint sh "$IMAGE_NAME:test" -c '
+            test -f /app/resources/pdftemplates/fonts/pdfmake-font-definition.js
+            test -f /app/resources/pdftemplates/fonts/Roboto-Regular.ttf
+            test -f /app/resources/navigation/navigation-main.json
+            test -f /app/resources/pages/_default/default/default.html
+            test -d /app/public/assets/data
+            node -e "require(\"./resources/pdftemplates/fonts/pdfmake-font-definition\"); require(\"./mixins/pdfprint.mixin\"); console.log(\"pdf assets ok\")"
+          '
 
+  # Push image to Docker Hub.
+  push:
+    needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
 
     steps:
-      - uses: actions/checkout@v2
-      
-      - name: Copy resource data
-        run: |
-          rm -rf resources public
-          mkdir demodata resources public
-          git clone https://github.com/StretchShop/StretchShop-demo-data.git demodata
-          ls demodata/resources/navigation
-          echo "----"
-          cp -a demodata/resources/. resources/
-          cp -a demodata/public/. public/
-          rm -rf demodata
-          ls resources/navigation
+      - uses: actions/checkout@v4
 
       - name: Log into registry
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
@@ -68,7 +64,7 @@ jobs:
       - name: Push image
         run: |
           IMAGE_ID=$IMAGE_NAME
-          
+
           # Change all uppercase to lowercase
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 

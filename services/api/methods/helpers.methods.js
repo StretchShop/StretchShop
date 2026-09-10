@@ -9,7 +9,7 @@ module.exports = {
 		parseCookies(cookiesString) {
 			let list = {};
 
-			cookiesString && cookiesString.split(";").forEach(function (cookie) {
+			cookiesString?.split(";").forEach(function (cookie) {
 				let parts = cookie.split("=");
 				list[parts.shift().trim()] = decodeURI(parts.join("="));
 			});
@@ -211,7 +211,7 @@ module.exports = {
 			if (fileNameReplaced.join("-") === "----WYSIWYGEDITOR----") {
 				targetDir = targetDir + "/editor";
 			} else if (fileNameReplaced.join("-") !== "----ORIGINAL----") {
-				const joined = fileNameReplaced.join("-").replace(/[^\w\-]/g, "_").slice(0, 80) || "file";
+				const joined = fileNameReplaced.join("-").replace(/[^\w-]/g, "_").slice(0, 80) || "file";
 				resultFileName = joined + "." + ext;
 			}
 			let resultFullPath = targetDir + "/" + resultFileName;

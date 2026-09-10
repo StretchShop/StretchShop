@@ -1,0 +1,8 @@
+Ahoj {{username}},
+
+Vaše predplatné bolo znova aktivované.
+Platby budú pokračovať a opäť máte prístup k súvisiacemu obsahu.
+
+ID predplatného: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+Ak ste o to nežiadali alebo potrebujete pomoc, kontaktujte nás na {{support_email}}

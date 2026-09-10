@@ -1,0 +1,53 @@
+Gracias por su pago.
+
+Hemos recibido el pago de {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}
+para su pedido {{order._id}}.
+Le enviamos la factura adjunta.
+
+Use este ID cuando se comunique con nosotros: {{order._id}}
+
+Dirección de facturación:
+----------------
+Nombre: {{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}
+Calle: {{order.addresses.invoiceAddress.street}}{{#if order.addresses.invoiceAddress.street2}}, {{order.addresses.invoiceAddress.street2}}{{/if}}
+Código postal: {{order.addresses.invoiceAddress.zip}}
+Ciudad: {{order.addresses.invoiceAddress.city}}
+País: {{order.addresses.invoiceAddress.country}}
+Teléfono: {{order.addresses.invoiceAddress.phone}}
+{{#if order.data.paymentData.name.en}}
+----
+Pago: {{order.data.paymentData.name.en}}
+Precio del pago: {{order.data.paymentData.price}} {{order.prices.currency.symbol}}
+{{/if}}
+
+{{#if order.addresses.deliveryAddress}}
+Dirección de entrega:
+----------------
+Nombre: {{order.addresses.deliveryAddress.nameFirst}} {{order.addresses.deliveryAddress.nameLast}}
+Calle: {{order.addresses.deliveryAddress.street}}{{#if order.addresses.deliveryAddress.street2}}, {{order.addresses.deliveryAddress.street2}}{{/if}}
+Código postal: {{order.addresses.deliveryAddress.zip}}
+Ciudad: {{order.addresses.deliveryAddress.city}}
+País: {{order.addresses.deliveryAddress.country}}
+Teléfono: {{order.addresses.deliveryAddress.phone}}
+{{/if}}
+{{#if order.data.deliveryData.codename.physical.value}}
+----
+Tipo de entrega: {{order.data.deliveryData.codename.physical.value}}
+Precio de entrega: {{order.data.deliveryData.codename.physical.price}} {{order.prices.currency.symbol}}
+{{/if}}
+
+Artículos:
+----------------
+{{#order.items}}
+{{#if nameReady}}{{nameReady}}{{else}}{{name.en}}{{/if}} ({{_id}})
+Cant.: {{amount}}  Precio: {{price}}
+{{/order.items}}
+
+Totales:
+----------------
+Artículos sin IVA: {{order.prices.priceItemsNoTax}} {{order.prices.currency.symbol}}
+Artículos con IVA: {{order.prices.priceItems}} {{order.prices.currency.symbol}}
+Entrega: {{order.prices.priceDelivery}} {{order.prices.currency.symbol}}
+Pago: {{order.prices.pricePayment}} {{order.prices.currency.symbol}}
+Importe pagado: {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}
+Total del pedido: {{order.prices.priceTotal}} {{order.prices.currency.symbol}}

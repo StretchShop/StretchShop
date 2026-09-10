@@ -1,0 +1,10 @@
+Bienvenido a {{webname}},
+
+hemos recibido su registro con los siguientes datos:
+Nombre de usuario: {{username}},
+E-mail: {{email}}
+
+Confirme que fue usted quien realizó este registro visitando el siguiente enlace:
+{{confirm_link}}
+
+Tras la confirmación puede completar su perfil y empezar a comprar o escribir artículos.

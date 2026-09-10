@@ -1,0 +1,5 @@
+Hola {{username}},
+
+Ha cancelado la eliminación de su perfil. Su cuenta permanecerá activa.
+
+Si tiene algún problema o no fue usted, contáctenos en {{support_email}}

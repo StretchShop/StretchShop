@@ -1,0 +1,147 @@
+<p style="margin:0 0 8px 0;">Ďakujeme za vašu platbu.</p>
+<p style="margin:0 0 20px 0;">
+  Prijali sme platbu <strong>{{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}</strong>
+  za vašu objednávku <strong>{{order._id}}</strong>.
+</p>
+<p style="margin:0 0 20px 0;">Faktúru posielame v prílohe.</p>
+<p style="margin:0 0 20px 0;font-size:13px;color:#666666;">
+  Toto ID používajte pri komunikácii s nami: <strong style="color:#111111;">{{order._id}}</strong>
+</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0 0 16px 0;">
+  <tr>
+    <td colspan="2" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Fakturačná adresa</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:36%;border-bottom:1px solid #eeeeee;">Meno</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Ulica</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.street}}{{#if order.addresses.invoiceAddress.street2}}, {{order.addresses.invoiceAddress.street2}}{{/if}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">PSČ</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.zip}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Mesto</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.city}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Krajina</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.invoiceAddress.country}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;">Telefón</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;">{{order.addresses.invoiceAddress.phone}}</td>
+  </tr>
+</table>
+
+{{#if order.addresses.deliveryAddress}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0 0 16px 0;">
+  <tr>
+    <td colspan="2" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Dodacia adresa</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:36%;border-bottom:1px solid #eeeeee;">Meno</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.nameFirst}} {{order.addresses.deliveryAddress.nameLast}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Ulica</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.street}}{{#if order.addresses.deliveryAddress.street2}}, {{order.addresses.deliveryAddress.street2}}{{/if}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">PSČ</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.zip}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Mesto</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.city}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Krajina</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.addresses.deliveryAddress.country}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;">Telefón</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;">{{order.addresses.deliveryAddress.phone}}</td>
+  </tr>
+</table>
+{{/if}}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0 0 16px 0;">
+  <tr>
+    <td colspan="2" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Platba a doručenie</td>
+  </tr>
+  {{#if order.data.paymentData.name.en}}
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:36%;border-bottom:1px solid #eeeeee;">Platba</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.data.paymentData.name.en}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Cena platby</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.data.paymentData.price}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  {{/if}}
+  {{#if order.data.deliveryData.codename.physical.value}}
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:36%;border-bottom:1px solid #eeeeee;">Spôsob doručenia</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.data.deliveryData.codename.physical.value}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;">Cena doručenia</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;">{{order.data.deliveryData.codename.physical.price}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  {{/if}}
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0 0 16px 0;">
+  <tr>
+    <td colspan="4" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Položky</td>
+  </tr>
+  <tr>
+    <th align="left" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#666666;border-bottom:1px solid #e6e6e6;">Položka</th>
+    <th align="left" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#666666;border-bottom:1px solid #e6e6e6;">ID</th>
+    <th align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#666666;border-bottom:1px solid #e6e6e6;">Množstvo</th>
+    <th align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#666666;border-bottom:1px solid #e6e6e6;">Cena</th>
+  </tr>
+  {{#order.items}}
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{#if nameReady}}{{nameReady}}{{else}}{{name.en}}{{/if}}</td>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#888888;border-bottom:1px solid #eeeeee;">{{_id}}</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{amount}}</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{price}}</td>
+  </tr>
+  {{/order.items}}
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e6e6e6;border-collapse:collapse;margin:0;">
+  <tr>
+    <td colspan="2" style="padding:10px 12px;background-color:#f7f7f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#111111;border-bottom:1px solid #e6e6e6;">Súhrn</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;width:64%;border-bottom:1px solid #eeeeee;">Položky bez DPH</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.prices.priceItemsNoTax}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Položky s DPH</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.prices.priceItems}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #eeeeee;">Doručenie</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #eeeeee;">{{order.prices.priceDelivery}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #e6e6e6;">Platba</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #e6e6e6;">{{order.prices.pricePayment}} {{order.prices.currency.symbol}}</td>
+  </tr>
+  <tr>
+    <td style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#666666;border-bottom:1px solid #e6e6e6;">Zaplatená suma</td>
+    <td align="right" style="padding:8px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333333;border-bottom:1px solid #e6e6e6;">{{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}</td>
+  </tr>
+
+  <tr>
+    <td style="padding:10px 12px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#111111;background-color:#f7f7f7;">Celkom</td>
+    <td align="right" style="padding:10px 12px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#111111;background-color:#f7f7f7;">{{order.prices.priceTotal}} {{order.prices.currency.symbol}}</td>
+  </tr>
+</table>

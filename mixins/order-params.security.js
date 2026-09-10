@@ -2,7 +2,10 @@
 
 const { DANGEROUS_KEYS } = require("./mongo.security");
 
-/** Top-level order fields a client may send in orderParams. */
+/**
+ * Top-level order fields a client may send in orderParams.
+ * Prices, items, status, totals, and payment dates are never client-writable.
+ */
 const TOP_LEVEL_KEYS = new Set([
 	"lang",
 	"country",
@@ -33,24 +36,19 @@ const ADDRESS_FIELD_KEYS = new Set([
 	"companyTaxVatId",
 ]);
 
+/** Only customer confirmation timestamp — never datePaid or other server dates. */
 const DATE_KEYS = new Set(["userConfirmation"]);
 
-const DATA_KEYS = new Set(["deliveryData", "paymentData", "couponData"]);
+/** Delivery/payment method selection only — never prices or subscription terms. */
+const DATA_KEYS = new Set(["deliveryData", "paymentData"]);
 
 const DELIVERY_DATA_KEYS = new Set(["codename"]);
 
-const PAYMENT_DATA_KEYS = new Set(["codename", "name", "price", "taxData"]);
+/** Payment method id only; name/price/taxData come from shop settings. */
+const PAYMENT_DATA_KEYS = new Set(["codename"]);
 
-const DELIVERY_OPTION_KEYS = new Set(["value", "price", "taxData"]);
-
-const TAX_DATA_KEYS = new Set([
-	"taxDecimal",
-	"tax",
-	"taxType",
-	"priceWithoutTax",
-	"priceWithTax",
-	"taxTypes",
-]);
+/** Delivery option id only; price/taxData come from shop settings. */
+const DELIVERY_OPTION_KEYS = new Set(["value"]);
 
 const NOTE_KEYS = new Set(["customerNote"]);
 
@@ -106,10 +104,9 @@ function isDynamicPath(path) {
 /**
  * @param {string} path
  * @param {string} key
- * @param {object} target
  * @returns {boolean}
  */
-function isKeyAllowed(path, key, target) {
+function isKeyAllowed(path, key) {
 	if (isDangerousKey(key)) {
 		return false;
 	}
@@ -123,22 +120,18 @@ function isKeyAllowed(path, key, target) {
 	if (allowed) {
 		return allowed.has(key);
 	}
-	if (path.endsWith(".taxData")) {
-		return TAX_DATA_KEYS.has(key);
-	}
 	if (path.startsWith("data.deliveryData.codename.")) {
 		return DELIVERY_OPTION_KEYS.has(key);
 	}
-	return Object.prototype.hasOwnProperty.call(target, key);
+	return false;
 }
 
 /**
  * @param {string} path
  * @param {string} key
- * @param {object} target
  * @returns {boolean}
  */
-function canAssignKey(path, key, target) {
+function canAssignKey(path, key) {
 	if (isDynamicPath(path)) {
 		return true;
 	}
@@ -148,30 +141,26 @@ function canAssignKey(path, key, target) {
 	if (PATH_ALLOWED_KEYS[path]?.has(key)) {
 		return true;
 	}
-	if (path.endsWith(".taxData") && TAX_DATA_KEYS.has(key)) {
-		return true;
-	}
 	if (path.startsWith("data.deliveryData.codename.") && DELIVERY_OPTION_KEYS.has(key)) {
 		return true;
 	}
-	return Object.prototype.hasOwnProperty.call(target, key);
+	return false;
 }
 
 /**
  * Pick only client-allowed order fields from a request payload.
  * @param {*} source
  * @param {string} [path]
- * @param {object} [target]
  * @returns {object}
  */
-function pickAllowedOrderParams(source, path = "", target = null) {
+function pickAllowedOrderParams(source, path = "") {
 	if (!isPlainObject(source)) {
 		return {};
 	}
 
 	const out = {};
 	for (const key of Object.keys(source)) {
-		if (!isKeyAllowed(path, key, target || {})) {
+		if (!isKeyAllowed(path, key)) {
 			continue;
 		}
 
@@ -179,11 +168,7 @@ function pickAllowedOrderParams(source, path = "", target = null) {
 		const nextPath = path ? `${path}.${key}` : key;
 
 		if (isPlainObject(value)) {
-			const nested = pickAllowedOrderParams(
-				value,
-				nextPath,
-				target && isPlainObject(target[key]) ? target[key] : null
-			);
+			const nested = pickAllowedOrderParams(value, nextPath);
 			if (Object.keys(nested).length > 0 || isDynamicPath(nextPath)) {
 				out[key] = nested;
 			}
@@ -191,13 +176,11 @@ function pickAllowedOrderParams(source, path = "", target = null) {
 		}
 
 		if (Array.isArray(value)) {
-			if (canAssignKey(path, key, target || {})) {
-				out[key] = value;
-			}
+			// Never accept client arrays (items, etc.) — only scalar/object checkout fields.
 			continue;
 		}
 
-		if (canAssignKey(path, key, target || {})) {
+		if (canAssignKey(path, key)) {
 			out[key] = value;
 		}
 	}
@@ -225,7 +208,7 @@ function mergeAllowedOrderParams(target, source, path = "") {
 		return target;
 	}
 
-	const picked = pickAllowedOrderParams(source, path, target);
+	const picked = pickAllowedOrderParams(source, path);
 	for (const key of Object.keys(picked)) {
 		const value = picked[key];
 		const nextPath = path ? `${path}.${key}` : key;

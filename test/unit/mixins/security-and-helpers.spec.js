@@ -113,16 +113,19 @@ describe("order-params.security", () => {
 			deliveryAddress: null,
 		},
 		dates: {
+			datePaid: null,
 			userConfirmation: null,
 		},
 		data: {
 			deliveryData: null,
 			paymentData: null,
 			couponData: null,
+			subscription: null,
 		},
 		notes: {
 			customerNote: null,
 		},
+		items: [{ _id: "p1", price: 100 }],
 		prices: { priceTotal: 10 },
 		status: "cart",
 	};
@@ -156,11 +159,14 @@ describe("order-params.security", () => {
 				data: {
 					deliveryData: {
 						codename: {
-							physical: { value: "personally", price: 0 },
+							physical: { value: "personally", price: 0, taxData: { tax: 0 } },
 						},
 					},
 					paymentData: {
 						codename: "online_stripe",
+						price: 0,
+						name: { en: "Free" },
+						taxData: { tax: 0 },
 					},
 				},
 				dates: { userConfirmation: 123 },
@@ -173,13 +179,55 @@ describe("order-params.security", () => {
 		});
 		expect(merged.data.deliveryData.codename.physical).toEqual({
 			value: "personally",
-			price: 0,
 		});
-		expect(merged.data.paymentData.codename).toBe("online_stripe");
+		expect(merged.data.paymentData).toEqual({
+			codename: "online_stripe",
+		});
 		expect(merged.dates.userConfirmation).toBe(123);
 		expect(merged.status).toBe("cart");
 		expect(merged.prices.priceTotal).toBe(10);
 		expect(Object.prototype.polluted).toBeUndefined();
+	});
+
+	it("blocks client items, prices, payment date, and subscription terms", () => {
+		const attackPayload = {
+			items: [{ _id: "hack", price: 0.01, amount: 1, data: { subscription: { period: "day", cycles: 1 } } }],
+			prices: { priceTotal: 0.01, priceItems: 0.01 },
+			status: "paid",
+			dates: {
+				datePaid: "2020-01-01T00:00:00.000Z",
+				userConfirmation: Date.now(),
+			},
+			data: {
+				subscription: {
+					period: "day",
+					duration: 1,
+					cycles: 999,
+				},
+				paymentData: {
+					codename: "online_stripe",
+					price: 0,
+				},
+			},
+		};
+
+		const picked = pickAllowedOrderParams(attackPayload);
+		expect(picked.items).toBeUndefined();
+		expect(picked.prices).toBeUndefined();
+		expect(picked.status).toBeUndefined();
+		expect(picked.dates).toEqual({ userConfirmation: attackPayload.dates.userConfirmation });
+		expect(picked.data.subscription).toBeUndefined();
+		expect(picked.data.paymentData).toEqual({ codename: "online_stripe" });
+
+		const merged = mergeAllowedOrderParams(
+			JSON.parse(JSON.stringify(orderTemplate)),
+			attackPayload
+		);
+		expect(merged.items).toEqual([{ _id: "p1", price: 100 }]);
+		expect(merged.prices.priceTotal).toBe(10);
+		expect(merged.status).toBe("cart");
+		expect(merged.dates.datePaid).toBeNull();
+		expect(merged.data.subscription).toBeNull();
 	});
 
 	it("blocks the reported deliveryData __proto__ pollution payload", () => {

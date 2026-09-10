@@ -1,0 +1,8 @@
+Hola {{username}},
+
+Su suscripción ha sido reactivada.
+Se reanudarán los cobros y vuelve a tener acceso al contenido relacionado.
+
+ID de suscripción: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+Si no ha solicitado esto o necesita ayuda, contáctenos en {{support_email}}

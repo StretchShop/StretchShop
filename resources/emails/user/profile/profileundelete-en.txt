@@ -1,0 +1,5 @@
+Hi {{username}},
+
+You cancelled the deletion of your profile. Your account will stay active.
+
+If you meet any problems or it wasn't you, contact us on {{support_email}}

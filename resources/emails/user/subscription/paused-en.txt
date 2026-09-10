@@ -1,0 +1,8 @@
+Hi {{username}},
+
+Your subscription has been paused.
+No further payments will be taken until it is reactivated.
+
+Subscription ID: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+If you did not request this or you need help, contact us on {{support_email}}

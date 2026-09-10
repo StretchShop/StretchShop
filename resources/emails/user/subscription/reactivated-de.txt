@@ -1,0 +1,8 @@
+Hallo {{username}},
+
+Ihr Abonnement wurde reaktiviert.
+Die Abrechnung wird fortgesetzt und Sie haben wieder Zugriff auf die zugehörigen Inhalte.
+
+Abonnement-ID: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+Wenn Sie dies nicht veranlasst haben oder Hilfe benötigen, kontaktieren Sie uns unter {{support_email}}

@@ -1,0 +1,5 @@
+Ahoj {{username}},
+
+Zrušili ste vymazanie svojho profilu. Váš účet zostane aktívny.
+
+Ak narazíte na problémy alebo to neboli vy, kontaktujte nás na {{support_email}}

@@ -45,7 +45,7 @@ if ( !fs.existsSync("./" +changePath+ "public") ||
 	// 1.1 get target directory
 	// from https://stackoverflow.com/questions/57669037/how-to-clone-github-repo-using-node-js/57669219#57669219
 	let dir = __dirname+ "/repo";
-	let repoUrl = "https://github.com/Wradgio/StretchShop-demo-data.git";
+	let repoUrl = "https://github.com/StretchShop/StretchShop-demo-data.git";
 	if (!fs.existsSync(dir)){
 		console.log("Creating repository folder in "+dir);
 		fs.mkdirSync(dir);

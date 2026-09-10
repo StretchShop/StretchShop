@@ -1,0 +1,107 @@
+{
+  "main": {
+    "items": [
+      {
+        "codename": "home",
+        "typeName": "--link",
+        "slugParams": "/",
+        "langs": {
+          "sk": {
+            "name": "Domov"
+          },
+          "en": {
+            "name": "Home"
+          },
+          "de": {
+            "name": "Startseite"
+          },
+          "es": {
+            "name": "Inicio"
+          }
+        }
+      },
+      {
+        "codename": "info",
+        "typeName": "pageDetailShort",
+        "slugParams": {
+          "slug": "info"
+        },
+        "langs": {
+          "sk": {
+            "name": "Info"
+          },
+          "en": {
+            "name": "Info"
+          },
+          "de": {
+            "name": "Info"
+          },
+          "es": {
+            "name": "Info"
+          }
+        }
+      },
+      {
+        "codename": "products",
+        "typeName": "productsHome",
+        "slugParams": null,
+        "langs": {
+          "sk": {
+            "name": "Produkty"
+          },
+          "en": {
+            "name": "Products"
+          },
+          "de": {
+            "name": "Produkte"
+          },
+          "es": {
+            "name": "Productos"
+          }
+        }
+      },
+      {
+        "codename": "test",
+        "typeName": "--link",
+        "slugParams": "/",
+        "langs": {
+          "sk": {
+            "name": "Test SK"
+          },
+          "en": {
+            "name": "Test"
+          },
+          "de": {
+            "name": "Test"
+          },
+          "es": {
+            "name": "Test"
+          }
+        },
+        "text": "Test",
+        "items": [
+          {
+            "codename": "test-sub",
+            "typeName": "--link",
+            "slugParams": "/",
+            "langs": {
+              "sk": {
+                "name": "New Item SK - 20220509-185239"
+              },
+              "en": {
+                "name": "Test sub EN"
+              },
+              "de": {
+                "name": "Test Untermenü DE"
+              },
+              "es": {
+                "name": "Test sub ES"
+              }
+            },
+            "text": "Test sub EN"
+          }
+        ]
+      }
+    ]
+  }
+}

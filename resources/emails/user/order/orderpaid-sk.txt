@@ -1,0 +1,53 @@
+Ďakujeme za vašu platbu.
+
+Prijali sme platbu {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}
+za vašu objednávku {{order._id}}.
+Faktúru posielame v prílohe.
+
+Toto ID používajte pri komunikácii s nami: {{order._id}}
+
+Fakturačná adresa:
+----------------
+Meno: {{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}
+Ulica: {{order.addresses.invoiceAddress.street}}{{#if order.addresses.invoiceAddress.street2}}, {{order.addresses.invoiceAddress.street2}}{{/if}}
+PSČ: {{order.addresses.invoiceAddress.zip}}
+Mesto: {{order.addresses.invoiceAddress.city}}
+Krajina: {{order.addresses.invoiceAddress.country}}
+Telefón: {{order.addresses.invoiceAddress.phone}}
+{{#if order.data.paymentData.name.en}}
+----
+Platba: {{order.data.paymentData.name.en}}
+Cena platby: {{order.data.paymentData.price}} {{order.prices.currency.symbol}}
+{{/if}}
+
+{{#if order.addresses.deliveryAddress}}
+Dodacia adresa:
+----------------
+Meno: {{order.addresses.deliveryAddress.nameFirst}} {{order.addresses.deliveryAddress.nameLast}}
+Ulica: {{order.addresses.deliveryAddress.street}}{{#if order.addresses.deliveryAddress.street2}}, {{order.addresses.deliveryAddress.street2}}{{/if}}
+PSČ: {{order.addresses.deliveryAddress.zip}}
+Mesto: {{order.addresses.deliveryAddress.city}}
+Krajina: {{order.addresses.deliveryAddress.country}}
+Telefón: {{order.addresses.deliveryAddress.phone}}
+{{/if}}
+{{#if order.data.deliveryData.codename.physical.value}}
+----
+Spôsob doručenia: {{order.data.deliveryData.codename.physical.value}}
+Cena doručenia: {{order.data.deliveryData.codename.physical.price}} {{order.prices.currency.symbol}}
+{{/if}}
+
+Položky:
+----------------
+{{#order.items}}
+{{#if nameReady}}{{nameReady}}{{else}}{{name.en}}{{/if}} ({{_id}})
+Množstvo: {{amount}}  Cena: {{price}}
+{{/order.items}}
+
+Súhrn:
+----------------
+Položky bez DPH: {{order.prices.priceItemsNoTax}} {{order.prices.currency.symbol}}
+Položky s DPH: {{order.prices.priceItems}} {{order.prices.currency.symbol}}
+Doručenie: {{order.prices.priceDelivery}} {{order.prices.currency.symbol}}
+Platba: {{order.prices.pricePayment}} {{order.prices.currency.symbol}}
+Zaplatená suma: {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}
+Celkom: {{order.prices.priceTotal}} {{order.prices.currency.symbol}}

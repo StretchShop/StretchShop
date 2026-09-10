@@ -1,0 +1,7 @@
+Hi {{username}},
+
+Your subscription has been suspended because no payment was received.
+
+Subscription ID: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+If you need help, contact us on {{support_email}}

@@ -1,0 +1,9 @@
+Hola {{username}},
+
+Hemos recibido su solicitud de eliminación de perfil. Se eliminará en 14 días.
+
+Eliminación programada: {{date}}
+
+Si cambia de opinión durante este plazo, puede cancelar la eliminación en su página de perfil.
+
+Si tiene algún problema, contáctenos en {{support_email}}

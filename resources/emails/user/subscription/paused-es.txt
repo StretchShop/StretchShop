@@ -1,0 +1,8 @@
+Hola {{username}},
+
+Su suscripción ha sido pausada.
+No se realizarán más cobros hasta que se reactive.
+
+ID de suscripción: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+Si no ha solicitado esto o necesita ayuda, contáctenos en {{support_email}}

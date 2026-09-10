@@ -1,0 +1,53 @@
+Vielen Dank für Ihre Zahlung.
+
+Wir haben die Zahlung in Höhe von {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}
+für Ihre Bestellung {{order._id}} erhalten.
+Wir senden Ihnen die Rechnung im Anhang.
+
+Verwenden Sie diese ID bei der Kommunikation mit uns: {{order._id}}
+
+Rechnungsadresse:
+----------------
+Name: {{order.addresses.invoiceAddress.nameFirst}} {{order.addresses.invoiceAddress.nameLast}}
+Straße: {{order.addresses.invoiceAddress.street}}{{#if order.addresses.invoiceAddress.street2}}, {{order.addresses.invoiceAddress.street2}}{{/if}}
+PLZ: {{order.addresses.invoiceAddress.zip}}
+Stadt: {{order.addresses.invoiceAddress.city}}
+Land: {{order.addresses.invoiceAddress.country}}
+Telefon: {{order.addresses.invoiceAddress.phone}}
+{{#if order.data.paymentData.name.en}}
+----
+Zahlung: {{order.data.paymentData.name.en}}
+Zahlungspreis: {{order.data.paymentData.price}} {{order.prices.currency.symbol}}
+{{/if}}
+
+{{#if order.addresses.deliveryAddress}}
+Lieferadresse:
+----------------
+Name: {{order.addresses.deliveryAddress.nameFirst}} {{order.addresses.deliveryAddress.nameLast}}
+Straße: {{order.addresses.deliveryAddress.street}}{{#if order.addresses.deliveryAddress.street2}}, {{order.addresses.deliveryAddress.street2}}{{/if}}
+PLZ: {{order.addresses.deliveryAddress.zip}}
+Stadt: {{order.addresses.deliveryAddress.city}}
+Land: {{order.addresses.deliveryAddress.country}}
+Telefon: {{order.addresses.deliveryAddress.phone}}
+{{/if}}
+{{#if order.data.deliveryData.codename.physical.value}}
+----
+Lieferart: {{order.data.deliveryData.codename.physical.value}}
+Lieferpreis: {{order.data.deliveryData.codename.physical.price}} {{order.prices.currency.symbol}}
+{{/if}}
+
+Artikel:
+----------------
+{{#order.items}}
+{{#if nameReady}}{{nameReady}}{{else}}{{name.en}}{{/if}} ({{_id}})
+Menge: {{amount}}  Preis: {{price}}
+{{/order.items}}
+
+Summen:
+----------------
+Artikel ohne MwSt.: {{order.prices.priceItemsNoTax}} {{order.prices.currency.symbol}}
+Artikel mit MwSt.: {{order.prices.priceItems}} {{order.prices.currency.symbol}}
+Lieferkosten: {{order.prices.priceDelivery}} {{order.prices.currency.symbol}}
+Zahlungspreis: {{order.prices.pricePayment}} {{order.prices.currency.symbol}}
+Gezahlter Betrag: {{order.data.paymentData.paidAmountTotal}} {{order.prices.currency.symbol}}
+Bestellsumme: {{order.prices.priceTotal}} {{order.prices.currency.symbol}}

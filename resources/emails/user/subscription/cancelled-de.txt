@@ -1,0 +1,8 @@
+Hallo {{username}},
+
+Wir haben Ihre Anfrage zur Kündigung des Abonnements erhalten.
+Das Abonnement ist jetzt gekündigt. Es werden keine weiteren Zahlungen dafür eingezogen.
+
+Abonnement-ID: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+Wenn Sie dies nicht veranlasst haben oder Hilfe benötigen, kontaktieren Sie uns unter {{support_email}}

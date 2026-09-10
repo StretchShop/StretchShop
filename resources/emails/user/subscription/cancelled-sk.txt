@@ -1,0 +1,8 @@
+Ahoj {{username}},
+
+Prijali sme vašu žiadosť o zrušenie predplatného.
+Predplatné je zrušené a ďalšie platby zaň už nebudú strhávané.
+
+ID predplatného: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+Ak ste o to nežiadali alebo potrebujete pomoc, kontaktujte nás na {{support_email}}

@@ -1,0 +1,8 @@
+Hallo {{username}},
+
+Ihr Abonnement wurde pausiert.
+Es werden keine weiteren Zahlungen eingezogen, bis es reaktiviert wird.
+
+Abonnement-ID: {{#if subscription._id}}{{subscription._id}}{{else}}{{subscription.id}}{{/if}}
+
+Wenn Sie dies nicht veranlasst haben oder Hilfe benötigen, kontaktieren Sie uns unter {{support_email}}

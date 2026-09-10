@@ -88,7 +88,7 @@ module.exports = {
 			let updateResult = this.settings.emptyUpdateResult;
 
 			if (order && order.status == "cart") {
-				// update order items
+				// update order items from cart, then re-price from catalog
 				if (cart.items) {
 					order.items = cart.items;
 				}
@@ -96,52 +96,54 @@ module.exports = {
 				this.settings.orderErrors.userErrors = [];
 				this.logger.info("order.progress - ctx.params.orderParams: ", ctx.params.orderParams);
 				return this.manageUser(ctx)
-					.then(ctx => {  // promise for user
-						// run processOrder(orderParams) to proces user input and
-						// update order data according to it
-						this.settings.orderTemp = order;
-						updateResult = this.processOrder(ctx);
-						this.logger.info("order.progress - updateResult: ", updateResult);
-						this.getAvailableOrderSettings();
-						this.logger.info("order.progress - cart order found updated (COFU):", updateResult, "\n\n");
-						// if no allowed params (eg. only refreshed), return original order
-						if (!hasAllowedOrderParamUpdates(ctx.params.orderParams)) {
-							let orderProcessedResult = {};
-							orderProcessedResult.order = order;
-							orderProcessedResult.result = updateResult;
-							if (!updateResult.success) {
-								orderProcessedResult.errors = this.settings.orderErrors;
+					.then(ctx => this.refreshOrderItemsFromCatalog(ctx, order)
+						.then(refreshedOrder => {
+							order = refreshedOrder;
+							// run processOrder(orderParams) to proces user input and
+							// update order data according to it
+							this.settings.orderTemp = order;
+							updateResult = this.processOrder(ctx);
+							this.logger.info("order.progress - updateResult: ", updateResult);
+							this.getAvailableOrderSettings();
+							this.logger.info("order.progress - cart order found updated (COFU):", updateResult, "\n\n");
+							// if no allowed params (eg. only refreshed), return original order
+							if (!hasAllowedOrderParamUpdates(ctx.params.orderParams)) {
+								let orderProcessedResult = {};
+								orderProcessedResult.order = order;
+								orderProcessedResult.result = updateResult;
+								if (!updateResult.success) {
+									orderProcessedResult.errors = this.settings.orderErrors;
+								}
+								return orderProcessedResult;
 							}
-							return orderProcessedResult;
-						}
-						// if order check returns success, order can be saved
-						// otherwise remains in cart status
-						if (updateResult.success) {
-							this.settings.orderTemp.status = "saved";
-						}
-						// order ready to save and send - update order data in related variables
-						order = this.settings.orderTemp;
-						this.logger.info("order.progress - cart: ", cart);
-						return ctx.call("cart.updateMyCart", { cartNew: { order: this.idToString(order._id) } })
-							.then(() => { //(cart2)
-								return this.adapter.updateById(this.idToString(order._id), this.prepareForUpdate(order))
-									.then(orderUpdated => {
-										this.entityChanged("updated", orderUpdated, ctx);
-										// if order was processed with errors, add them to result for frontend
-										let orderProcessedResult = {};
-										orderProcessedResult.order = orderUpdated;
-										orderProcessedResult.result = updateResult;
-										if (!updateResult.success) {
-											orderProcessedResult.errors = this.settings.orderErrors;
-										} else {
-											// order was processed without errors, run afterSaveActions
-											orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
-										}
-										return orderProcessedResult;
-									});
-							});
-						// order updated
-					})
+							// if order check returns success, order can be saved
+							// otherwise remains in cart status
+							if (updateResult.success) {
+								this.settings.orderTemp.status = "saved";
+							}
+							// order ready to save and send - update order data in related variables
+							order = this.settings.orderTemp;
+							this.logger.info("order.progress - cart: ", cart);
+							return ctx.call("cart.updateMyCart", { cartNew: { order: this.idToString(order._id) } })
+								.then(() => { //(cart2)
+									return this.adapter.updateById(this.idToString(order._id), this.prepareForUpdate(order))
+										.then(orderUpdated => {
+											this.entityChanged("updated", orderUpdated, ctx);
+											// if order was processed with errors, add them to result for frontend
+											let orderProcessedResult = {};
+											orderProcessedResult.order = orderUpdated;
+											orderProcessedResult.result = updateResult;
+											if (!updateResult.success) {
+												orderProcessedResult.errors = this.settings.orderErrors;
+											} else {
+												// order was processed without errors, run afterSaveActions
+												orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
+											}
+											return orderProcessedResult;
+										});
+								});
+							// order updated
+						}))
 					.catch(ctxWithUserError => {
 						this.logger.error("user error: ", ctxWithUserError);
 						return null;
@@ -181,39 +183,43 @@ module.exports = {
 			if (ctx.meta.user?.settings?.language) {
 				order.lang = this.getValueByCode(ctx.meta.localsDefault.langs, ctx.meta.user.settings.language);
 			}
-			// update order items
+			// update order items from cart, then re-price from catalog
 			if (cart.items) {
 				order.items = cart.items;
 			}
-			// run processOrder(orderParams) to update order data
-			this.settings.orderTemp = order;
-			this.getAvailableOrderSettings();
-			if (ctx.params.orderParams) {
-				updateResult = this.processOrder(ctx);
-				this.logger.info("orders.createOrderAction() - updateResult: ", updateResult);
-				if (!updateResult.success) {
-					this.logger.error("orders.createOrderAction() - Order !updateResult.success: ", this.settings.orderErrors);
-				}
-			}
-			// update order data in related variables
-			order = this.settings.orderTemp;
-			this.logger.info("orders.createOrderAction() - order before save: ", order);
-			cart.order = this.idToString(order._id);
-			// save new order
-			return adapter.insert(order)
-				.then(orderNew => {
-					this.entityChanged("updated", orderNew, ctx);
-					cart.order = this.idToString(orderNew._id); // order id is not saved to cart
-					this.logger.info("orders.createOrderAction() - order after save: ", orderNew);
-					return ctx.call("cart.updateMyCart", { "cartNew": cart })
-						.then(() => { //(cart2)
-							let orderProcessedResult = {};
-							orderProcessedResult.order = orderNew;
-							orderProcessedResult.result = updateResult;
-							if (!updateResult.success) {
-								orderProcessedResult.errors = this.settings.orderErrors;
-							}
-							return orderProcessedResult;
+			return this.refreshOrderItemsFromCatalog(ctx, order)
+				.then(refreshedOrder => {
+					order = refreshedOrder;
+					// run processOrder(orderParams) to update order data
+					this.settings.orderTemp = order;
+					this.getAvailableOrderSettings();
+					if (ctx.params.orderParams) {
+						updateResult = this.processOrder(ctx);
+						this.logger.info("orders.createOrderAction() - updateResult: ", updateResult);
+						if (!updateResult.success) {
+							this.logger.error("orders.createOrderAction() - Order !updateResult.success: ", this.settings.orderErrors);
+						}
+					}
+					// update order data in related variables
+					order = this.settings.orderTemp;
+					this.logger.info("orders.createOrderAction() - order before save: ", order);
+					cart.order = this.idToString(order._id);
+					// save new order
+					return adapter.insert(order)
+						.then(orderNew => {
+							this.entityChanged("updated", orderNew, ctx);
+							cart.order = this.idToString(orderNew._id); // order id is not saved to cart
+							this.logger.info("orders.createOrderAction() - order after save: ", orderNew);
+							return ctx.call("cart.updateMyCart", { "cartNew": cart })
+								.then(() => { //(cart2)
+									let orderProcessedResult = {};
+									orderProcessedResult.order = orderNew;
+									orderProcessedResult.result = updateResult;
+									if (!updateResult.success) {
+										orderProcessedResult.errors = this.settings.orderErrors;
+									}
+									return orderProcessedResult;
+								});
 						});
 				});
 		},
@@ -273,10 +279,81 @@ module.exports = {
 		/**
 		 * Updates order parameters using parameters from request
 		 * according to template created with createEmptyOrder().
-		 * From level 2 it enables to create objects by request.
+		 * Only allowlisted checkout fields are merged.
 		 */
 		updateBySentParams(orderParams, updateParams) {
 			return mergeAllowedOrderParams(orderParams, updateParams);
+		},
+
+
+		/**
+		 * Replace cart item price/tax/subscription metadata with fresh catalog data.
+		 * Keeps cart quantity and filled product requirements.
+		 *
+		 * @param {Object} ctx
+		 * @param {Object} order
+		 * @returns {Promise<Object>}
+		 */
+		refreshOrderItemsFromCatalog(ctx, order) {
+			if (!order?.items || !Array.isArray(order.items) || order.items.length < 1) {
+				return Promise.resolve(order);
+			}
+
+			const self = this;
+			const cartItems = order.items;
+
+			return Promise.all(cartItems.map((cartItem) => {
+				const itemId = cartItem?._id != null ? String(cartItem._id) : null;
+				if (!itemId) {
+					self.logger.error("orders.refreshOrderItemsFromCatalog() - item missing _id");
+					return null;
+				}
+
+				return ctx.call("products.findWithId", {
+					query: { _id: itemId }
+				})
+					.then((found) => {
+						if (!found || !found.length) {
+							self.logger.error("orders.refreshOrderItemsFromCatalog() - product not found:", itemId);
+							return null;
+						}
+
+						const product = found[0];
+						product._id = product._id.toString();
+						product.amount = cartItem.amount > 0 ? cartItem.amount : 1;
+
+						// Preserve customer-filled requirement values from the cart snapshot.
+						if (cartItem.data?.requirements?.inputs && product.data?.requirements?.inputs) {
+							const cartInputs = cartItem.data.requirements.inputs;
+							product.data.requirements.inputs.forEach((input, key) => {
+								const match = cartInputs.find(
+									(cartInput) => cartInput?.codename && input?.codename
+										&& cartInput.codename === input.codename
+								);
+								if (match && typeof match.value !== "undefined") {
+									product.data.requirements.inputs[key].value = match.value;
+								}
+							});
+						}
+
+						return product;
+					})
+					.catch((err) => {
+						self.logger.error("orders.refreshOrderItemsFromCatalog() - lookup error:", itemId, err);
+						return null;
+					});
+			}))
+				.then((refreshedItems) => {
+					const validItems = refreshedItems.filter(Boolean);
+					if (validItems.length !== cartItems.length) {
+						self.logger.error(
+							"orders.refreshOrderItemsFromCatalog() - some items missing from catalog",
+							{ expected: cartItems.length, found: validItems.length }
+						);
+					}
+					order.items = validItems;
+					return order;
+				});
 		},
 
 
