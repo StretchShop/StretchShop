@@ -5,6 +5,15 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { assertPasswordPolicy } = require("../../../mixins/password.policy");
 
+const LOGIN_AUTH_FAILURE_MESSAGES = new Set(["wrong credentials", "not activated"]);
+
+function isLoginAuthFailure(err) {
+	if (err?.code !== 422 || !Array.isArray(err.data)) {
+		return false;
+	}
+	return err.data.some((entry) => LOGIN_AUTH_FAILURE_MESSAGES.has(entry?.message));
+}
+
 module.exports = {
 	actions: {
 		/**
@@ -147,8 +156,11 @@ module.exports = {
 			},
 			handler(ctx) {
 				const { email, password } = ctx.params.user;
+				// Count failed attempts only (checkOnly). Successful logins reset the bucket
+				// so E2E/session reuse and normal multi-login do not trip the brute-force limit.
+				const loginRate = { limit: 5, windowMs: 15 * 60 * 1000, keyExtra: email };
 
-				return this.enforceRateLimit(ctx, "login", { limit: 5, windowMs: 15 * 60 * 1000, keyExtra: email })
+				return this.enforceRateLimit(ctx, "login", { ...loginRate, checkOnly: true })
 					.then(() => this.adapter.findOne({ email: email }))
 					.then(user => {
 						if (!user) {
@@ -175,7 +187,8 @@ module.exports = {
 					})
 					// Transform user entity (remove password and all protected fields)
 					.then(doc => {
-						return this.transformDocuments(ctx, {}, doc);
+						return this.resetRateLimit(ctx, "login", loginRate)
+							.then(() => this.transformDocuments(ctx, {}, doc));
 					})
 					.then(user => {
 						if ( ctx.meta.cart ) {
@@ -187,6 +200,9 @@ module.exports = {
 						return this.transformEntity(user, true, ctx);
 					})
 					.catch(err => {
+						if (isLoginAuthFailure(err)) {
+							this.recordRateLimitHit(ctx, "login", loginRate);
+						}
 						if (err instanceof MoleculerClientError || err?.code === 429) {
 							return this.Promise.reject(err);
 						}

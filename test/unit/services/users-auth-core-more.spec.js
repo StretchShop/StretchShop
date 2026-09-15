@@ -12,6 +12,8 @@ function createAuthService(extra = {}) {
 		Promise,
 		settings: { JWT_SECRET: process.env.JWT_SECRET },
 		enforceRateLimit: jest.fn().mockResolvedValue(true),
+		recordRateLimitHit: jest.fn().mockResolvedValue(true),
+		resetRateLimit: jest.fn().mockResolvedValue(true),
 		validateEntity: jest.fn().mockResolvedValue(true),
 		transformDocuments: jest.fn((ctx, params, doc) => Promise.resolve(doc)),
 		transformEntity: coreMethods.methods.transformEntity,
