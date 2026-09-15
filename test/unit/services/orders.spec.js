@@ -69,7 +69,7 @@ describe("Test 'orders' service", () => {
 				ratio: expect.any(Number),
 				symbol: expect.any(String),
 			}),
-			priceTotal: expect.nullOrAny(String),
+			priceTotal: expect.nullOrAny(Number),
 			taxData: expect.objectContaining({
 				taxDecimal: expect.any(Number),
 				taxType: expect.any(String),
@@ -102,33 +102,28 @@ describe("Test 'orders' service", () => {
 	// Test order updates
 	describe("Test 'orders.progress' action", () => {
 
+		const cartCookie = `orders-spec-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
 		const withCartMeta = (meta = global.testMeta) => ({
 			...meta,
-			cookies: { cart: global.lastCart.hash || global.lastCart._id?.toString() },
-			cart: global.lastCart,
+			cookies: { cart: global.lastCart?.hash || cartCookie },
 		});
 
 		it("Should return Object of New Order created", async () => {			
 			const cart = await broker.call("cart.add", {
 				itemId: "5c8183d176feb5cd4f7573ff",
 				amount: 1
-			});
-
-			const cartMeta = {
-				...global.testMeta,
-				cookies: { cart: cart.hash },
-				cart,
-			};
+			}, { meta: { ...global.testMeta, cookies: { cart: cartCookie } } });
+			global.lastCart = cart;
 
 			// create new order because none exists for cart
-			const orderResponse = await broker.call("orders.progress", {}, { meta: cartMeta });
+			const orderResponse = await broker.call("orders.progress", {}, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 1,
 				name: "missing user data",
 				success: false
 			});
 			global.orderSpecial = orderResponse.order;
-			global.lastCart = cart;
 
 			expect(orderResponse.order).toMatchObject(global.orderExpectation);
 		});
@@ -138,30 +133,32 @@ describe("Test 'orders' service", () => {
 		it("Should return Order with user/client information", async () => {			
 			// add user to CTX.meta
 			global.testMeta["user"] = global.testUser;
-			// order update
-			global.orderSpecial.user = global.testUser;
-			global.orderSpecial.addresses = {
-				invoiceAddress: {
-					type: "invoice",
-					email: global.testUser.email,
-					nameFirst: global.testUser.addresses[0].nameFirst,
-					nameLast: global.testUser.addresses[0].nameLast,
-					street: global.testUser.addresses[0].street,
-					street2: global.testUser.addresses[0].street2,
-					zip: global.testUser.addresses[0].zip,
-					city: global.testUser.addresses[0].city,
-					country: global.testUser.addresses[0].country,
-					phone: global.testUser.addresses[0].phone,
-					companyName: "StretchShop s.r.o.",
-					companyOrgId: "1234567890",
-					companyTaxId: "1234567809",
-					companyTaxVatId: "SK1234567809"
-				},
-				deliveryAddress: null
+			const invoiceAddress = {
+				type: "invoice",
+				email: global.testUser.email,
+				nameFirst: global.testUser.addresses[0].nameFirst,
+				nameLast: global.testUser.addresses[0].nameLast,
+				street: global.testUser.addresses[0].street,
+				street2: global.testUser.addresses[0].street2,
+				zip: global.testUser.addresses[0].zip,
+				city: global.testUser.addresses[0].city,
+				country: global.testUser.addresses[0].country,
+				phone: global.testUser.addresses[0].phone,
+				companyName: "StretchShop s.r.o.",
+				companyOrgId: "1234567890",
+				companyTaxId: "1234567809",
+				companyTaxVatId: "SK1234567809"
 			};
 
 			// call progress action to get result - order status
-			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: withCartMeta() });
+			const orderResponse = await broker.call("orders.progress", {
+				orderParams: {
+					addresses: {
+						invoiceAddress,
+						deliveryAddress: null
+					}
+				}
+			}, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 2,
 				name: "missing order data",
@@ -210,40 +207,21 @@ describe("Test 'orders' service", () => {
 
 
 		it("Should return Order with delivery & payment information", async () => {			
-			global.orderSpecial.data.deliveryData = {
-				codename:{
-					physical: {
-						value: "personally",
-						price: 0,
-						taxData: {
-							taxDecimal: 0.1,
-							tax: 0,
-							taxType: "VAT",
-							priceWithoutTax: null,
-							priceWithTax: null
+			const orderResponse = await broker.call("orders.progress", {
+				orderParams: {
+					data: {
+						deliveryData: {
+							codename: {
+								physical: { value: "personally" },
+								digital: null
+							}
+						},
+						paymentData: {
+							codename: "online_stripe"
 						}
-					},
-					digital: null
+					}
 				}
-			};
-			global.orderSpecial.data.paymentData = {
-				codename: "online_stripe",
-        name: {
-          en: "Pay online with Stripe (Card, PayPal)",
-          sk: "Zaplatiť online cez Stripe (Karta, PayPal)"
-        },
-        price: 2,
-        taxData: {
-          taxDecimal: 0.2,
-          tax: 0.4,
-          taxType: "VAT",
-          priceWithoutTax: 1.6,
-          priceWithTax: 2
-        }
-			};
-
-			// create new order because none exists for cart
-			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: withCartMeta() });
+			}, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 3,
 				name: "missing confirmation",
@@ -291,10 +269,11 @@ describe("Test 'orders' service", () => {
 
 
 		it("Should return finished Order", async () => {			
-			global.orderSpecial.dates['userConfirmation'] = (new Date()).getTime();
-
-			// create new order because none exists for cart
-			const orderResponse = await broker.call("orders.progress", { orderParams: global.orderSpecial }, { meta: withCartMeta() });
+			const orderResponse = await broker.call("orders.progress", {
+				orderParams: {
+					dates: { userConfirmation: Date.now() - 1 }
+				}
+			}, { meta: withCartMeta() });
 			expect(orderResponse.result).toMatchObject({
 				id: 4,
 				name: "confirmed",
@@ -309,8 +288,6 @@ describe("Test 'orders' service", () => {
 
 
 		it("Should List Last Order", async () => {			
-			global.orderSpecial.dates["userConfirmation"] = (new Date()).getTime();
-
 			// get order by id to avoid cross-run pollution in shared test databases
 			if ( global.testMeta.user.id ) {
 				global.testMeta.user["_id"] = global.testMeta.user.id;

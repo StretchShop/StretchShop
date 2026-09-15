@@ -46,6 +46,30 @@ describe("pages helpers", () => {
 		expect(service.checkAndRunPageFunctions({}, { data: { blocks: [{}] } }, "en")).toBeUndefined();
 	});
 
+	it("does not run filterFields or other DbService helpers from page bodies", async () => {
+		const filterFields = jest.fn(() => ({ leaked: "JWT_SECRET" }));
+		const service = createService({
+			schema: { methods: { filterFields } },
+			filterFields,
+		});
+		const page = {
+			data: {
+				blocks: [{
+					en: "{{{filterFields(broker.services.$.settings.JWT_SECRET)}}}",
+				}],
+			},
+		};
+		const result = await service.checkAndRunPageFunctions({}, page, "en");
+		expect(filterFields).not.toHaveBeenCalled();
+		expect(JSON.stringify(result || [])).not.toContain("JWT_SECRET");
+	});
+
+	it("rejects path-traversal page slugs", () => {
+		const service = createService();
+		expect(() => service.getTemplateVars("en", "../../app/package")).toThrow(MoleculerClientError);
+		expect(() => service.getTemplateVars("en", "..%2F..%2Fapp%2Fpackage")).toThrow(MoleculerClientError);
+	});
+
 	it("filters inactive pages for non-admins", () => {
 		const adminQuery = service.filterOnlyActivePages({ $and: [] }, { meta: { user: { type: "admin" } } });
 		expect(adminQuery.$and).toHaveLength(0);
@@ -136,6 +160,29 @@ describe("pages.findWithCount", () => {
 		const result = await listMixin.actions.findWithCount.handler.call(service, ctx);
 		expect(result.results).toEqual([]);
 		expect(result.filteredPagesCount).toBeUndefined();
+	});
+
+	it("drops $where from pages.findWithCount client queries", async () => {
+		const service = createService();
+		const ctx = {
+			params: {
+				query: { $where: "return 6*7==42", categories: { $in: ["news"] } },
+			},
+			meta: { user: { type: "admin" } },
+			call: jest.fn((action) => {
+				if (action === "pages.find") {
+					return Promise.resolve([]);
+				}
+				if (action === "pages.count") {
+					return Promise.resolve(0);
+				}
+				return Promise.resolve([]);
+			}),
+		};
+		await listMixin.actions.findWithCount.handler.call(service, ctx);
+		const findArgs = ctx.call.mock.calls.find((c) => c[0] === "pages.find")[1];
+		expect(JSON.stringify(findArgs.query)).not.toContain("$where");
+		expect(JSON.stringify(findArgs.query)).not.toContain("6*7");
 	});
 });
 

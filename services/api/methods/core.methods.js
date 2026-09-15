@@ -9,7 +9,8 @@ const jwt = require("jsonwebtoken");
 const _ = require("lodash");
 
 const SettingsMixin = require("../../../mixins/settings.mixin");
-const { getRequiredSecret } = require("../../../mixins/env.helpers");
+const { getRequiredSecret, isCookiesSecure, getCookieSameSite } = require("../../../mixins/env.helpers");
+const { restrictionMatchesRequest } = require("../../../mixins/restrictions.security");
 
 const E = require("moleculer-web").Errors;
 
@@ -34,7 +35,7 @@ module.exports = {
 				options: options
 			};
 			if (process.env.COOKIES_SAME_SITE) {
-				ctx.meta.makeCookies[name].options["sameSite"] = options?.secure === true ? "None" : process.env.COOKIES_SAME_SITE;
+				ctx.meta.makeCookies[name].options["sameSite"] = getCookieSameSite();
 			}
 			ctx.meta.cookies[name] = value;
 		},
@@ -55,7 +56,8 @@ module.exports = {
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;
-			let cookieSecure = require("../../../mixins/env.helpers").isCookiesSecure();
+			let cookieSecure = isCookiesSecure();
+			const sameSite = getCookieSameSite();
 			// CART cookie
 			if (!cookies.cart) {
 				const name = "cart";
@@ -76,7 +78,7 @@ module.exports = {
 						signed: true,
 						secure: false,
 						httpOnly: true,
-						sameSite: process?.env?.COOKIES_SAME_SITE ? process.env.COOKIES_SAME_SITE : true,
+						sameSite,
 					});
 					ctx.meta.cookies[name] = value;
 				}
@@ -97,10 +99,6 @@ module.exports = {
 					token: hashValue
 				}, this.settings.JWT_SECRET);
 				//--
-				let sameSite = process?.env?.COOKIES_SAME_SITE ? process.env.COOKIES_SAME_SITE : true;
-				if (cookieSecure) {
-					sameSite = "None";
-				}
 				if (cookieSecure) {
 					this.setCookie(ctx, name, value, {
 						signed: true,
@@ -112,7 +110,7 @@ module.exports = {
 						path: "/",
 						signed: true,
 						secure: false,
-						sameSite: sameSite,
+						sameSite,
 						httpOnly: false,
 					});
 				}
@@ -253,17 +251,8 @@ module.exports = {
 						// compare all user restrictions with the current request api endpoint path
 						// if current api endpoint path includes any of the user restrictions, throw an error
 						const restricted = user.restrictions.some(restriction => {
-							let restrictionPath = "";
-							let restrictionMethod = "*";
-							if (restriction.includes(" ")) {
-								restrictionPath = restriction.split(" ")[1];
-								restrictionMethod = restriction.split(" ")[0];
-							} else {
-								restrictionPath = restriction;
-							}
-							this.logger.info("api.authenticate() restrictionMethod & path: ", restrictionMethod, restrictionPath);
-							return !!((restrictionMethod === "*" && req.parsedUrl.includes(restrictionPath)) ||
-								(restrictionMethod === reqMethod && req.parsedUrl.includes(restrictionPath)));
+							this.logger.info("api.authenticate() restriction: ", restriction, reqMethod, req.parsedUrl);
+							return restrictionMatchesRequest(restriction, reqMethod, req.parsedUrl);
 						});
 						if (restricted) {
 							this.logger.warn("api.authenticate() RESTRICTION_VIOLATION: ", user.restrictions, req.parsedUrl);

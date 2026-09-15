@@ -19,10 +19,10 @@ module.exports = {
 	methods: {
 		checkUserData(ctx) {
 			let user = null;
-			this.logger.info("orders.checkUserData() - user inputs: ", { orderUser: this.settings.orderTemp.user, loggedUser: ctx.meta.user });
+			this.logger.info("orders.checkUserData() - user inputs: ", { orderUser: this.getOrderWork(ctx).orderTemp.user, loggedUser: ctx.meta.user });
 
-			if ( this.settings.orderTemp.user && ctx.meta.user && ctx.meta.user._id && 
-				ctx.meta.user._id!=null && this.settings.orderTemp.user.id != ctx.meta.user._id ) {
+			if ( this.getOrderWork(ctx).orderTemp.user && ctx.meta.user && ctx.meta.user._id && 
+				ctx.meta.user._id!=null && this.getOrderWork(ctx).orderTemp.user.id != ctx.meta.user._id ) {
 				// we have user but it's not set in order 
 				// (eg. logged in after started order)
 				this.logger.info("orders.checkUserData() CUD - #1 user logged, but not set in order");
@@ -34,12 +34,12 @@ module.exports = {
 					addresses: (ctx.meta.user.addresses) ? ctx.meta.user.addresses : null
 				};
 
-			} else if ( this.settings.orderTemp.user && ctx.meta.userNew===true ) {
+			} else if ( this.getOrderWork(ctx).orderTemp.user && ctx.meta.userNew===true ) {
 				// it's new user, created in order, use already set order data
 				// that means, there is no registered & activated & logged user 
 				// creating "order_no_verif" cookie
 				this.logger.info("orders.checkUserData() CUD - #2 new user from order, use order data & order_no_verif cookie");
-				user = this.settings.orderTemp.user ? this.settings.orderTemp.user : ctx.params.orderParams.user;
+				user = this.getOrderWork(ctx).orderTemp.user ? this.getOrderWork(ctx).orderTemp.user : ctx.params.orderParams.user;
 				if ( user && user.id && user.email ) {
 					this.generateJWT(user, ctx);
 				}
@@ -60,10 +60,10 @@ module.exports = {
 				}
 				this.logger.info("orders.checkUserData() CUD - #3 user from order_no_verif cookie");
 
-			} else if ( this.settings.orderTemp.user && 
+			} else if ( this.getOrderWork(ctx).orderTemp.user && 
 				(
 					(!ctx.meta.user || !ctx.meta.user._id ) && 
-					(this.settings.orderTemp.user && this.settings.orderTemp.user.id != null)
+					(this.getOrderWork(ctx).orderTemp.user && this.getOrderWork(ctx).orderTemp.user.id != null)
 				)
 			) {
 				// we don't have user, but it's set in order (eg. user logged out)
@@ -74,7 +74,7 @@ module.exports = {
 					username: null,
 					email: null
 				};
-				this.settings.orderTemp.addresses.invoiceAddress = null;
+				this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress = null;
 
 			} else if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!="" ) {
 				// regular user (registered & activated), logged in
@@ -87,7 +87,7 @@ module.exports = {
 			// set user
 			this.logger.info("orders.checkUserData() CUD - result user", user);
 			if ( user ) {
-				this.settings.orderTemp.user = user;
+				this.getOrderWork(ctx).orderTemp.user = user;
 				// user has to have id and email
 				if ( !user.id || !user.email ) {
 					this.logger.error("orders.checkUserData() user error - missing id or email");
@@ -105,10 +105,10 @@ module.exports = {
 			// let optionalFileds = ["state", "street2"];
 			let self = this;
 
-			this.logger.info("orders.checkUserData() - this.settings.orderTemp.addresses:", this.settings.orderTemp.addresses);
+			this.logger.info("orders.checkUserData() - this.getOrderWork(ctx).orderTemp.addresses:", this.getOrderWork(ctx).orderTemp.addresses);
 			// check if invoice address set
-			if ( !this.settings.orderTemp || !this.settings.orderTemp.addresses ||
-			!this.settings.orderTemp.addresses.invoiceAddress ) {
+			if ( !this.getOrderWork(ctx).orderTemp || !this.getOrderWork(ctx).orderTemp.addresses ||
+			!this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress ) {
 				// no invoice address set, check if user is available
 				if ( ctx.meta.user && ctx.meta.user.id && ctx.meta.user.addresses && ctx.meta.user.addresses.length>0 ) {
 					// having user, try to get his invoice address
@@ -116,35 +116,35 @@ module.exports = {
 					this.logger.info("orders.checkUserData() - loggedUserInvoiceAddress:", loggedUserInvoiceAddress);
 					if ( loggedUserInvoiceAddress ) {
 						// set invoice address for order
-						this.settings.orderTemp.addresses.invoiceAddress = loggedUserInvoiceAddress;
+						this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress = loggedUserInvoiceAddress;
 					} else {
 						// no invoice address, can't get user invoice address
-						this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
+						this.getOrderWork(ctx).orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
 						return false;
 					}
 				} else {
 					// no user set, can't get user invoice address
-					this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
+					this.getOrderWork(ctx).orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
 					return false;
 				}
 			}
 
 			// split name
-			if ( this.settings.orderTemp.addresses && this.settings.orderTemp.addresses.invoiceAddress ) {
-				if ( this.settings.orderTemp.addresses.invoiceAddress.name && this.settings.orderTemp.addresses.invoiceAddress.name.indexOf(" ") ) {
-					let nameSplit = this.settings.orderTemp.addresses.invoiceAddress.name.split(" ");
-					this.settings.orderTemp.addresses.invoiceAddress.nameFirst = nameSplit[0];
+			if ( this.getOrderWork(ctx).orderTemp.addresses && this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress ) {
+				if ( this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress.name && this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress.name.indexOf(" ") ) {
+					let nameSplit = this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress.name.split(" ");
+					this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress.nameFirst = nameSplit[0];
 					if ( nameSplit.length>1 ) {
-						this.settings.orderTemp.addresses.invoiceAddress.nameLast = nameSplit[nameSplit.length-1];
+						this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress.nameLast = nameSplit[nameSplit.length-1];
 					}
 				}
 			}
 
-			if ( this.settings.orderTemp.addresses.invoiceAddress && this.settings.orderTemp.addresses.invoiceAddress!==null ) {
+			if ( this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress && this.getOrderWork(ctx).orderTemp.addresses.invoiceAddress!==null ) {
 				let hasErrors = false;
 				requiredFields.forEach(function(value){
-					if ( !self.settings.orderTemp.addresses.invoiceAddress[value] || self.settings.orderTemp.addresses.invoiceAddress[value].toString().trim()=="" ) {
-						self.settings.orderErrors.userErrors.push({"value": "Invoice address value '"+value+"'", "desc": "not found"});
+					if ( !self.getOrderWork(ctx).orderTemp.addresses.invoiceAddress[value] || self.getOrderWork(ctx).orderTemp.addresses.invoiceAddress[value].toString().trim()=="" ) {
+						self.getOrderWork(ctx).orderErrors.userErrors.push({"value": "Invoice address value '"+value+"'", "desc": "not found"});
 						hasErrors = true;
 					}
 				});
@@ -153,13 +153,13 @@ module.exports = {
 					return false;
 				}
 			} else {
-				this.settings.orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
+				this.getOrderWork(ctx).orderErrors.userErrors.push({"value": "Invoice address", "desc": "not set"});
 				this.logger.error("orders.checkUserData() - invoice address not set");
 				return false;
 			}
 
-			if (this.settings.orderErrors.userErrors.length>0) {
-				this.logger.error("orders.checkUserData() - errors.length=="+this.settings.orderErrors.userErrors.length, this.settings.orderErrors);
+			if (this.getOrderWork(ctx).orderErrors.userErrors.length>0) {
+				this.logger.error("orders.checkUserData() - errors.length=="+this.getOrderWork(ctx).orderErrors.userErrors.length, this.getOrderWork(ctx).orderErrors);
 				return false;
 			}
 
@@ -185,7 +185,7 @@ module.exports = {
 				// user logged in
 				self.logger.info("orders.manageUser() #1");
 				return new Promise(function(resolve) {
-					self.settings.orderTemp.user = ctx.meta.user;
+					self.getOrderWork(ctx).orderTemp.user = ctx.meta.user;
 					ctx.params.orderParams["user"] = ctx.meta.user;
 					resolve(ctx);
 				})
@@ -206,7 +206,7 @@ module.exports = {
 							email: orderNoVerif.email
 						};
 						ctx.params.orderParams["user"] = user;
-						self.settings.orderTemp["user"] = user;
+						self.getOrderWork(ctx).orderTemp["user"] = user;
 						self.logger.info("orders.manageUser() #2 - 'order_no_verif' user id:", user.id);
 					}
 					resolve(ctx);
@@ -225,7 +225,7 @@ module.exports = {
 						.then((exists) => { // promise #1
 							if (exists?.result?.emailExists) {
 								self.logger.info("orders.manageUser() #3 - user email already exists");
-								this.settings.orderErrors.orderErrors.push({"value": "email", "desc": "exists"});
+								this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "email", "desc": "exists"});
 								return ctx;
 							} else {
 								let userData = this.getDataToCreateUser(ctx);
@@ -241,9 +241,9 @@ module.exports = {
 												username: newUser.user.username,
 												token: newUser.user.token
 											};
-											self.settings.orderTemp.user = ctx.params.orderParams.user;
+											self.getOrderWork(ctx).orderTemp.user = ctx.params.orderParams.user;
 											ctx.meta.userNew = true;
-											self.logger.info("orders.manageUser() #3 - self.settings.orderTemp.user", self.settings.orderTemp.user);
+											self.logger.info("orders.manageUser() #3 - self.getOrderWork(ctx).orderTemp.user", self.getOrderWork(ctx).orderTemp.user);
 										}
 										return ctx;
 									})
@@ -254,8 +254,8 @@ module.exports = {
 							}
 						})
 						.catch(userFoundErr => {
-							this.settings.orderErrors.userErrors.push({"value": "email", "desc": "exists"});
-							self.logger.info("orders.manageUser() #3 - user email already exists", userFoundErr, this.settings.orderErrors.userErrors);
+							this.getOrderWork(ctx).orderErrors.userErrors.push({"value": "email", "desc": "exists"});
+							self.logger.info("orders.manageUser() #3 - user email already exists", userFoundErr, this.getOrderWork(ctx).orderErrors.userErrors);
 							return ctx;
 						});
 				} else {

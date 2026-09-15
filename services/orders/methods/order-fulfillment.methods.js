@@ -59,11 +59,11 @@ module.exports = {
 
 
 		getInvoiceFilePaths(order) {
-			const publicDir = process.env.PATH_PUBLIC || "./public";
-			const assetsPath = process.env.ASSETS_PATH || "";
+			const invoicesRoot = process.env.PATH_INVOICES
+				|| require("path").resolve(process.env.PATH_RESOURCES || "./resources", "invoices");
 			const userId = String(order?.user?.id || "");
 			const invoiceId = String(order?.invoice?.id || "");
-			const dir = pathResolve(publicDir, assetsPath, "invoices", userId);
+			const dir = pathResolve(invoicesRoot, userId);
 			const pdfPath = pathResolve(dir, invoiceId + ".pdf");
 			const sendPath = "invoices/" + userId + "/" + invoiceId + ".pdf";
 			return { dir, pdfPath, sendPath };

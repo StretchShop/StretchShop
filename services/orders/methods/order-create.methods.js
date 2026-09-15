@@ -85,7 +85,7 @@ module.exports = {
 		 * @returns 
 		 */
 		getOrderProgressAction(ctx, cart, order) {
-			let updateResult = this.settings.emptyUpdateResult;
+			let updateResult = { ...this.settings.emptyUpdateResult };
 
 			if (order && order.status == "cart") {
 				// update order items from cart, then re-price from catalog
@@ -93,18 +93,17 @@ module.exports = {
 					order.items = cart.items;
 				}
 				// manage user if not exists
-				this.settings.orderErrors.userErrors = [];
+				this.getOrderWork(ctx).orderErrors.userErrors = [];
+				this.getOrderWork(ctx).orderTemp = order;
 				this.logger.info("order.progress - ctx.params.orderParams: ", ctx.params.orderParams);
 				return this.manageUser(ctx)
 					.then(ctx => this.refreshOrderItemsFromCatalog(ctx, order)
 						.then(refreshedOrder => {
 							order = refreshedOrder;
-							// run processOrder(orderParams) to proces user input and
-							// update order data according to it
-							this.settings.orderTemp = order;
+							this.getOrderWork(ctx).orderTemp = order;
 							updateResult = this.processOrder(ctx);
 							this.logger.info("order.progress - updateResult: ", updateResult);
-							this.getAvailableOrderSettings();
+							this.getAvailableOrderSettings(ctx);
 							this.logger.info("order.progress - cart order found updated (COFU):", updateResult, "\n\n");
 							// if no allowed params (eg. only refreshed), return original order
 							if (!hasAllowedOrderParamUpdates(ctx.params.orderParams)) {
@@ -112,17 +111,17 @@ module.exports = {
 								orderProcessedResult.order = order;
 								orderProcessedResult.result = updateResult;
 								if (!updateResult.success) {
-									orderProcessedResult.errors = this.settings.orderErrors;
+									orderProcessedResult.errors = this.getOrderWork(ctx).orderErrors;
 								}
 								return orderProcessedResult;
 							}
 							// if order check returns success, order can be saved
 							// otherwise remains in cart status
 							if (updateResult.success) {
-								this.settings.orderTemp.status = "saved";
+								this.getOrderWork(ctx).orderTemp.status = "saved";
 							}
 							// order ready to save and send - update order data in related variables
-							order = this.settings.orderTemp;
+							order = this.getOrderWork(ctx).orderTemp;
 							this.logger.info("order.progress - cart: ", cart);
 							return ctx.call("cart.updateMyCart", { cartNew: { order: this.idToString(order._id) } })
 								.then(() => { //(cart2)
@@ -134,7 +133,7 @@ module.exports = {
 											orderProcessedResult.order = orderUpdated;
 											orderProcessedResult.result = updateResult;
 											if (!updateResult.success) {
-												orderProcessedResult.errors = this.settings.orderErrors;
+												orderProcessedResult.errors = this.getOrderWork(ctx).orderErrors;
 											} else {
 												// order was processed without errors, run afterSaveActions
 												orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
@@ -155,7 +154,7 @@ module.exports = {
 
 				if (
 					(
-						this.settings.orderTemp.user?.id === undefined
+						this.getOrderWork(ctx).orderTemp.user?.id === undefined
 					) &&
 					ctx.params.orderParams.addresses?.invoiceAddress?.email
 				) {
@@ -177,7 +176,7 @@ module.exports = {
 
 
 		createOrderAction(cart, ctx, adapter) {
-			let updateResult = this.settings.emptyUpdateResult;
+			let updateResult = { ...this.settings.emptyUpdateResult };
 			let order = this.createEmptyOrder(ctx);
 			// if user lang available, set it
 			if (ctx.meta.user?.settings?.language) {
@@ -191,17 +190,17 @@ module.exports = {
 				.then(refreshedOrder => {
 					order = refreshedOrder;
 					// run processOrder(orderParams) to update order data
-					this.settings.orderTemp = order;
-					this.getAvailableOrderSettings();
+					this.getOrderWork(ctx).orderTemp = order;
+					this.getAvailableOrderSettings(ctx);
 					if (ctx.params.orderParams) {
 						updateResult = this.processOrder(ctx);
 						this.logger.info("orders.createOrderAction() - updateResult: ", updateResult);
 						if (!updateResult.success) {
-							this.logger.error("orders.createOrderAction() - Order !updateResult.success: ", this.settings.orderErrors);
+							this.logger.error("orders.createOrderAction() - Order !updateResult.success: ", this.getOrderWork(ctx).orderErrors);
 						}
 					}
 					// update order data in related variables
-					order = this.settings.orderTemp;
+					order = this.getOrderWork(ctx).orderTemp;
 					this.logger.info("orders.createOrderAction() - order before save: ", order);
 					cart.order = this.idToString(order._id);
 					// save new order
@@ -216,7 +215,7 @@ module.exports = {
 									orderProcessedResult.order = orderNew;
 									orderProcessedResult.result = updateResult;
 									if (!updateResult.success) {
-										orderProcessedResult.errors = this.settings.orderErrors;
+										orderProcessedResult.errors = this.getOrderWork(ctx).orderErrors;
 									}
 									return orderProcessedResult;
 								});
@@ -235,28 +234,28 @@ module.exports = {
 		 * 4: order confirmed, ready to save with "saved" status
 		 */
 		processOrder(ctx) {
-			if (this.settings.orderTemp) {
+			if (this.getOrderWork(ctx).orderTemp) {
 				const hasOrderUpdates = hasAllowedOrderParamUpdates(ctx.params.orderParams);
 				// update order params
 				if (hasOrderUpdates) {
-					this.settings.orderTemp = this.updateBySentParams(
-						this.settings.orderTemp,
+					this.getOrderWork(ctx).orderTemp = this.updateBySentParams(
+						this.getOrderWork(ctx).orderTemp,
 						ctx.params.orderParams
 					);
 					if (ctx.meta.userNew && ctx.meta.userNew === true) {
 						this.logger.info("orders.processOrder() - setting new user data");
-						this.settings.orderTemp.user.id = ctx.params.orderParams.user.id;
-						this.settings.orderTemp.user.email = ctx.params.orderParams.user.email;
-						this.settings.orderTemp.user.token = ctx.params.orderParams.user.token;
+						this.getOrderWork(ctx).orderTemp.user.id = ctx.params.orderParams.user.id;
+						this.getOrderWork(ctx).orderTemp.user.email = ctx.params.orderParams.user.email;
+						this.getOrderWork(ctx).orderTemp.user.token = ctx.params.orderParams.user.token;
 					}
-					this.settings.orderTemp.dates.dateChanged = new Date();
+					this.getOrderWork(ctx).orderTemp.dates.dateChanged = new Date();
 				}
-				this.logger.info("orders.processOrder() - orderTemp updated by params: ", this.settings.orderTemp);
+				this.logger.info("orders.processOrder() - orderTemp updated by params: ", this.getOrderWork(ctx).orderTemp);
 
-				if (this.checkCartItems()) {
+				if (this.checkCartItems(ctx)) {
 					if (this.checkUserData(ctx)) { // check if (invoice address) is set and valid
-						if (this.checkOrderData()) { // check if order data (delivery, payment) are set and done
-							if (this.checkConfirmation()) {
+						if (this.checkOrderData(ctx)) { // check if order data (delivery, payment) are set and done
+							if (this.checkConfirmation(ctx)) {
 								return { "id": 4, "name": "confirmed", "success": true };
 							} else {
 								return { "id": 3, "name": "missing confirmation", "success": false };
@@ -360,16 +359,16 @@ module.exports = {
 		/**
 		 * Check if there are cart items set
 		 */
-		checkCartItems() {
-			this.settings.orderErrors.itemErrors = [];
-			if (this.settings.orderTemp && this.settings.orderTemp.items) {
-				if (this.settings.orderTemp.items.length > 0) {
+		checkCartItems(ctx) {
+			this.getOrderWork(ctx).orderErrors.itemErrors = [];
+			if (this.getOrderWork(ctx).orderTemp && this.getOrderWork(ctx).orderTemp.items) {
+				if (this.getOrderWork(ctx).orderTemp.items.length > 0) {
 					return true;
 				} else {
-					this.settings.orderErrors.itemErrors.push({ "value": "Cart items", "desc": "no items" });
+					this.getOrderWork(ctx).orderErrors.itemErrors.push({ "value": "Cart items", "desc": "no items" });
 				}
 			} else {
-				this.settings.orderErrors.itemErrors.push({ "value": "Cart items", "desc": "not set" });
+				this.getOrderWork(ctx).orderErrors.itemErrors.push({ "value": "Cart items", "desc": "not set" });
 			}
 			return false;
 		},

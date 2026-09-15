@@ -266,7 +266,7 @@ module.exports = {
 				this.logger.info("products.findWithCount filter before sanitizeMongoQuery:", JSON.stringify(ctx.params.query));
 				if (ctx.params.query !== undefined && ctx.params.query) {
 					filter.query = sanitizeMongoQuery(ctx.params.query, {
-						allowedOperators: ["$in", "$and", "$or", "$regex"]
+						allowedOperators: ["$in", "$and", "$or", "$regex", "$gte", "$lte"]
 					});
 				}
 				this.logger.info("products.findWithCount filter after sanitizeMongoQuery:", JSON.stringify(filter.query));

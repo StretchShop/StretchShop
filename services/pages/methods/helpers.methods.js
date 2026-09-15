@@ -2,6 +2,16 @@
 
 const { existsSync } = require("fs");
 const pathResolve = require("path").resolve;
+const { MoleculerClientError } = require("moleculer").Errors;
+const { sanitizePathSegment, assertResolvedUnderRoot } = require("../../../mixins/path.security");
+const { allowlistQueryFields } = require("../../../mixins/mongo.security");
+
+const PAGE_FUNCTION_ALLOWLIST = new Set(["getProductsById"]);
+const PAGE_LIST_FIELDS = [
+	"slug", "categories", "pages", "type", "subtype", "name",
+	"publisher", "activity", "externalId", "_id", "status"
+];
+const PAGE_LIST_OPERATORS = ["$in", "$eq", "$ne", "$exists"];
 
 
 module.exports = {
@@ -18,23 +28,30 @@ module.exports = {
 		 * @returns 
 		 */
 		getTemplateVars(lang, pageSlug) {
-			let pageSlugArray = pageSlug.split("---");
-			let pageName = pageSlugArray[0];
+			const langRaw = String(lang || "en").trim().toLowerCase();
+			const safeLang = sanitizePathSegment(langRaw.slice(0, 2));
+			if (!/^[a-z]{2}$/.test(safeLang)) {
+				throw new MoleculerClientError("Page not found!", 400, "", [{ field: "page", message: "not found" }]);
+			}
+			let pageSlugArray = String(pageSlug || "").split("---");
+			let pageName = sanitizePathSegment(pageSlugArray[0]);
 			let templateName = "_default";
 			if ( pageSlugArray.length>1 ) {
-				templateName = pageSlugArray[1];
+				templateName = sanitizePathSegment(pageSlugArray[1]);
 			}
-			let parentDir = this.settings.paths.resources + "/pages/" + templateName+"/" +pageName+"/";
-			parentDir = this.removeParentTraversing(parentDir);
-			let filepath = parentDir + pageName + "-" + lang + ".html";
-			filepath = pathResolve(filepath);
+			const pagesRoot = pathResolve(this.settings.paths.resources, "pages");
+			let parentDir = pathResolve(pagesRoot, templateName, pageName);
+			assertResolvedUnderRoot(pagesRoot, parentDir);
+			let filepath = pathResolve(parentDir, pageName + "-" + safeLang + ".html");
+			assertResolvedUnderRoot(pagesRoot, filepath);
 
 			// use default template if more relevant not found
 			if ( !existsSync(filepath) ) {
 				pageName = "default";
-				parentDir = this.settings.paths.resources + "/pages/" + templateName + "/default/";
-				parentDir = this.removeParentTraversing(parentDir);
-				filepath = parentDir+"default-"+lang+".html";
+				parentDir = pathResolve(pagesRoot, templateName, "default");
+				assertResolvedUnderRoot(pagesRoot, parentDir);
+				filepath = pathResolve(parentDir, "default-" + safeLang + ".html");
+				assertResolvedUnderRoot(pagesRoot, filepath);
 			}
 
 			return {
@@ -81,8 +98,8 @@ module.exports = {
 					let promises = [];
 					for (let pfi in pageFunctions) {
 						let pf = pageFunctions[pfi];
-						if ( Object.prototype.hasOwnProperty.call(this.schema.methods, pf.method) ) {
-							promises.push( this.schema.methods[pf.method](ctx, pf.params) );
+						if ( PAGE_FUNCTION_ALLOWLIST.has(pf.method) && typeof this[pf.method] === "function" ) {
+							promises.push( this[pf.method](ctx, pf.params) );
 						}
 					}
 					return Promise.all(promises).then((values) => {
@@ -126,6 +143,18 @@ module.exports = {
 		 * 
 		 * @returns {*} updated query
 		 */
+		/**
+		 * Drop $where and other client operators; keep only page list fields.
+		 * @param {object} clientQuery
+		 * @returns {object}
+		 */
+		sanitizePageListQuery(clientQuery) {
+			return allowlistQueryFields(clientQuery, PAGE_LIST_FIELDS, {
+				allowedOperators: PAGE_LIST_OPERATORS
+			});
+		},
+
+
 		filterOnlyActivePages(query, ctx) {
 			// display only active pages (admin can see all)
 			if (ctx.meta && ctx.meta.user && ctx.meta.user.type=="admin") {

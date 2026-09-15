@@ -95,6 +95,27 @@ describe("Test 'api' helper methods", () => {
 		});
 	});
 
+	describe("prepareFilePathNameData", () => {
+		it("rejects traversal slugs used as upload directories", () => {
+			const req = {
+				$params: {},
+				$ctx: { service: { settings: { assets: { folder: "/tmp" } } } },
+			};
+			expect(() => serviceApi.prepareFilePathNameData(
+				req,
+				{
+					destination: "pages/cover",
+					stringToChunk: "../../etc",
+					chunkSize: 0,
+					fileName: ["cover"],
+				},
+				{},
+				{ file: { filepath: "/tmp/x", originalFilename: "a.jpg" } },
+				"file"
+			)).toThrow();
+		});
+	});
+
 	describe("setCookie", () => {
 		it("should store cookie value and options in ctx meta", () => {
 			const ctx = { meta: { cookies: {} } };

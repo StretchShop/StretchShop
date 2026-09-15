@@ -54,6 +54,30 @@ describe("api cookies and authenticate", () => {
 		expect(ctx.meta.cookies.session).toEqual(expect.any(String));
 	});
 
+	it("honors COOKIES_SAME_SITE instead of forcing None when cookies are secure", () => {
+		const originalSecure = process.env.COOKIES_SECURE;
+		const originalSameSite = process.env.COOKIES_SAME_SITE;
+		process.env.COOKIES_SECURE = "true";
+		process.env.COOKIES_SAME_SITE = "lax";
+		jest.spyOn(SettingsMixin, "getSiteSettings").mockReturnValue({
+			invoiceData: { company: { name: "StretchShop" } },
+		});
+		const service = createService();
+		const ctx = { meta: { remoteAddress: "127.0.0.1", cookies: {}, makeCookies: {} } };
+		service.setCookie(ctx, "session", "abc", { signed: true, secure: true, httpOnly: false });
+		expect(ctx.meta.makeCookies.session.options.sameSite).toBe("lax");
+		if (originalSecure === undefined) {
+			delete process.env.COOKIES_SECURE;
+		} else {
+			process.env.COOKIES_SECURE = originalSecure;
+		}
+		if (originalSameSite === undefined) {
+			delete process.env.COOKIES_SAME_SITE;
+		} else {
+			process.env.COOKIES_SAME_SITE = originalSameSite;
+		}
+	});
+
 	it("authenticates GET requests without a user token", async () => {
 		const service = createService({
 			cookiesManagement: jest.fn(),
@@ -120,6 +144,32 @@ describe("api cookies and authenticate", () => {
 		req.$action = {};
 		ctx.meta.cookies = { token: "user-token", cart: "abc", session: "sess" };
 		ctx.meta.headers = {};
+		await expect(service.authenticate(ctx, {}, req, createRes())).rejects.toBeDefined();
+	});
+
+	it("applies PUT /products restrictions to PUT /api/v1/PRODUCTS", async () => {
+		const service = createService({
+			cookiesManagement: jest.fn((ctx) => {
+				ctx.meta.cookies = { token: "user-token", cart: "abc", session: "sess" };
+			}),
+			checkCsrfToken: jest.fn().mockReturnValue(true),
+		});
+		const ctx = {
+			meta: { remoteAddress: "127.0.0.1", cookies: {}, headers: {} },
+			call: jest.fn().mockResolvedValue([{
+				_id: "u1",
+				username: "boss",
+				email: "a@b.c",
+				type: "admin",
+				restrictions: ["PUT /products"],
+			}]),
+		};
+		const req = {
+			method: "PUT",
+			headers: { cookie: "token=user-token; cart=abc; session=sess" },
+			$action: {},
+			parsedUrl: "/api/v1/PRODUCTS",
+		};
 		await expect(service.authenticate(ctx, {}, req, createRes())).rejects.toBeDefined();
 	});
 

@@ -81,6 +81,44 @@ function trustProxy() {
 	return process.env.TRUST_PROXY === "true";
 }
 
+/**
+ * Client IP for rate-limiting. When TRUST_PROXY is on, prefer X-Real-IP
+ * (the hop nginx sets) over the leftmost X-Forwarded-For (client-spoofable).
+ * @param {import("http").IncomingMessage} req
+ * @returns {string}
+ */
+function getClientIp(req) {
+	const direct = req?.connection?.remoteAddress || req?.socket?.remoteAddress || "";
+	if (!trustProxy()) {
+		return direct;
+	}
+	const realIp = req?.headers?.["x-real-ip"];
+	if (realIp && String(realIp).trim()) {
+		return String(realIp).trim();
+	}
+	const xff = req?.headers?.["x-forwarded-for"];
+	if (xff) {
+		const hops = String(xff).split(",").map((s) => s.trim()).filter(Boolean);
+		if (hops.length > 0) {
+			return hops[hops.length - 1];
+		}
+	}
+	return direct;
+}
+
+/**
+ * Cookie SameSite from COOKIES_SAME_SITE. Do not force None just because Secure is on.
+ * Use None only when the frontend and API are truly cross-site.
+ * @returns {string|true}
+ */
+function getCookieSameSite() {
+	const raw = process.env.COOKIES_SAME_SITE;
+	if (!raw || String(raw).trim() === "") {
+		return true;
+	}
+	return String(raw).trim();
+}
+
 module.exports = {
 	isProduction,
 	isNonProductionEnv,
@@ -90,4 +128,6 @@ module.exports = {
 	getCacherConfig,
 	isCookiesSecure,
 	trustProxy,
+	getClientIp,
+	getCookieSameSite,
 };

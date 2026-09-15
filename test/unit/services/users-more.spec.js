@@ -122,4 +122,90 @@ describe("users.profile actions", () => {
 			params: { username: "jane" },
 		})).rejects.toMatchObject({ code: 422 });
 	});
+
+	it("matches usernames exactly and does not treat regex metacharacters as a pattern", async () => {
+		const service = createUserService({
+			enforceRateLimit: jest.fn().mockResolvedValue(true),
+		});
+		service.adapter.count.mockResolvedValue(0);
+		await expect(profileMixin.actions.checkIfUserExists.handler.call(service, {
+			params: { username: "^a" },
+		})).resolves.toEqual({ result: { userExists: false } });
+		expect(service.adapter.count).toHaveBeenCalledWith({
+			query: { username: { $regex: "^\\^a$", $options: "i" } },
+		});
+	});
+
+	it("does not persist contentDependencies or restrictions from a customer profile save", async () => {
+		const found = {
+			_id: "u1",
+			type: "user",
+			username: "jane",
+			bio: "old",
+			restrictions: ["PUT /products"],
+			data: { contentDependencies: { list: ["PAID"] } },
+			dates: {},
+		};
+		const service = createUserService();
+		service.userCanUpdate = () => true;
+		service.adapter.findById.mockResolvedValue(found);
+		service.adapter.updateById.mockImplementation((id, update) => Promise.resolve({ _id: id, ...update.$set }));
+		const ctx = {
+			meta: { user: { _id: "u1", type: "user" } },
+			params: {
+				user: {
+					bio: "hi",
+					restrictions: [],
+					data: { contentDependencies: { list: ["HACKED"] } },
+				},
+			},
+		};
+		await profileMixin.actions.updateUser.handler.call(service, ctx);
+		expect(ctx.params.user.restrictions).toBeUndefined();
+		expect(ctx.params.user.data).toBeUndefined();
+		const saved = service.adapter.updateById.mock.calls[0][1].$set;
+		expect(saved.restrictions).toEqual(["PUT /products"]);
+		expect(saved.data.contentDependencies).toEqual({ list: ["PAID"] });
+		expect(saved.bio).toBe("hi");
+	});
+
+	it("ignores restrictions even when an admin saves their own profile", async () => {
+		const found = {
+			_id: "admin-1",
+			type: "admin",
+			username: "boss",
+			restrictions: ["PUT /products"],
+			data: { contentDependencies: { list: ["PAID"] } },
+			dates: {},
+		};
+		const service = createUserService();
+		service.userCanUpdate = () => true;
+		service.adapter.findById.mockResolvedValue(found);
+		service.adapter.updateById.mockImplementation((id, update) => Promise.resolve({ _id: id, ...update.$set, type: "admin" }));
+		const ctx = {
+			meta: { user: { _id: "admin-1", type: "admin" } },
+			params: {
+				user: {
+					restrictions: [],
+					data: { contentDependencies: { list: ["HACKED"] }, note: "ok" },
+				},
+			},
+		};
+		await profileMixin.actions.updateUser.handler.call(service, ctx);
+		const saved = service.adapter.updateById.mock.calls[0][1].$set;
+		expect(saved.restrictions).toEqual(["PUT /products"]);
+		expect(saved.data.contentDependencies).toEqual({ list: ["PAID"] });
+		expect(saved.data.note).toBe("ok");
+	});
+
+	it("rejects denylisted passwords on profile update", async () => {
+		const service = createUserService();
+		service.userCanUpdate = () => true;
+		service.adapter.findById.mockResolvedValue({ _id: "u1", type: "user", dates: {} });
+		await expect(profileMixin.actions.updateUser.handler.call(service, {
+			meta: { user: { _id: "u1", type: "user" } },
+			params: { user: { password: "password" } },
+		})).rejects.toMatchObject({ code: 422 });
+		expect(service.adapter.updateById).not.toHaveBeenCalled();
+	});
 });

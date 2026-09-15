@@ -2,6 +2,8 @@
 
 const { MoleculerClientError } = require("moleculer").Errors;
 const { readdirSync, statSync, rmSync } = require("fs");
+const path = require("path");
+const { sanitizePathSegment, assertResolvedUnderRoot } = require("../../../mixins/path.security");
 
 module.exports = {
 	actions: {
@@ -54,7 +56,7 @@ module.exports = {
 			handler(ctx) {
 				let lang = "en";
 				if (ctx.params.lang && ctx.params.lang.trim() != "") {
-					lang = ctx.params.lang;
+					lang = ctx.params.lang.trim();
 				}
 
 				const tv = this.getTemplateVars(lang, ctx.params.page);
@@ -184,10 +186,17 @@ module.exports = {
 													const pageBaseDir = self.settings.paths.assets + "/" + process.env.ASSETS_PATH + "pages/";
 													self.logger.info("pages.delete - deleted page - before assets deleted for page slug: ", slug);
 													if (slug) {
-														const coverDir = pageBaseDir + "cover/" + slug;
-														rmSync(coverDir, { recursive: true, force: true });
-														const editorDir = pageBaseDir + "editor/" + slug;
-														rmSync(editorDir, { recursive: true, force: true });
+														try {
+															const safeSlug = sanitizePathSegment(slug);
+															const coverRoot = path.resolve(pageBaseDir, "cover");
+															const editorRoot = path.resolve(pageBaseDir, "editor");
+															const coverDir = assertResolvedUnderRoot(coverRoot, path.resolve(coverRoot, safeSlug));
+															const editorDir = assertResolvedUnderRoot(editorRoot, path.resolve(editorRoot, safeSlug));
+															rmSync(coverDir, { recursive: true, force: true });
+															rmSync(editorDir, { recursive: true, force: true });
+														} catch (pathErr) {
+															self.logger.warn("pages.delete - skip asset delete for unsafe slug: ", slug, pathErr);
+														}
 													}
 
 													// after call action

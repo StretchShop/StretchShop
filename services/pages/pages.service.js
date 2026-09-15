@@ -86,7 +86,7 @@ module.exports = {
 		entityValidator: {
 			externalId: { type: "string", min: 3 },
 			variationGroupId: {type: "string", optional: true },
-			slug: {type: "string", optional: true },
+			slug: {type: "string", optional: true, pattern: /^[\w.\-]+$/ },
 			publisher: {type: "string", min: 3 },
 			authors: { type: "array", optional: true, items:
 				{ type: "object", props: {

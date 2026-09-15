@@ -33,9 +33,20 @@ function checkRateLimit({ key, limit, windowMs }) {
 	return true;
 }
 
-function clientKey(ctx, suffix) {
+/**
+ * @param {object} ctx
+ * @param {string} suffix
+ * @param {string} [extra] optional identity (e.g. login email) so accounts do not share one IP bucket
+ * @returns {string}
+ */
+function clientKey(ctx, suffix, extra) {
 	const ip = ctx.meta?.remoteAddress || "unknown";
-	return `${ip}:${suffix}`;
+	const extraPart = extra ? `:${String(extra).toLowerCase().trim()}` : "";
+	return `${ip}${extraPart}:${suffix}`;
+}
+
+function resetRateLimitBuckets() {
+	buckets.clear();
 }
 
 module.exports = {
@@ -43,11 +54,11 @@ module.exports = {
 		/**
 		 * @param {Context} ctx
 		 * @param {string} actionKey
-		 * @param {{ limit: number, windowMs: number }} options
+		 * @param {{ limit: number, windowMs: number, keyExtra?: string }} options
 		 */
 		enforceRateLimit(ctx, actionKey, options) {
-			const key = clientKey(ctx, actionKey);
-			if (!checkRateLimit({ key, ...options })) {
+			const key = clientKey(ctx, actionKey, options?.keyExtra);
+			if (!checkRateLimit({ key, limit: options.limit, windowMs: options.windowMs })) {
 				return Promise.reject(
 					new MoleculerClientError("Too many requests", 429, "RATE_LIMIT", [])
 				);
@@ -55,4 +66,7 @@ module.exports = {
 			return Promise.resolve();
 		},
 	},
+	clientKey,
+	checkRateLimit,
+	resetRateLimitBuckets,
 };

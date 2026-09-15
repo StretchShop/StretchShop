@@ -3,6 +3,7 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { assertPasswordPolicy } = require("../../../mixins/password.policy");
 
 module.exports = {
 	actions: {
@@ -21,7 +22,7 @@ module.exports = {
 				user: { type: "object", strict: "remove", props: {
 					username: { type: "string" },
 					email: { type: "string" },
-					password: { type: "string" },
+					password: { type: "string", min: 8, max: 72 },
 					bio: { type: "string", optional: true },
 					image: { type: "string", optional: true, nullable: true },
 					company: { type: "object", optional: true },
@@ -40,6 +41,9 @@ module.exports = {
 				});
 
 				return this.enforceRateLimit(ctx, "register", { limit: 3, windowMs: 60 * 60 * 1000 })
+					.then(() => {
+						assertPasswordPolicy(entity.password);
+					})
 					.then(() => this.validateEntity(entity))
 					.then(() => {
 						if (entity.username)
@@ -60,7 +64,7 @@ module.exports = {
 
 					})
 					.catch(err => {
-						if (err?.code === 429) {
+						if (err instanceof MoleculerClientError || err?.code === 429) {
 							return Promise.reject(err);
 						}
 						console.error("users.create error: ", err);
@@ -144,7 +148,7 @@ module.exports = {
 			handler(ctx) {
 				const { email, password } = ctx.params.user;
 
-				return this.enforceRateLimit(ctx, "login", { limit: 5, windowMs: 15 * 60 * 1000 })
+				return this.enforceRateLimit(ctx, "login", { limit: 5, windowMs: 15 * 60 * 1000, keyExtra: email })
 					.then(() => this.adapter.findOne({ email: email }))
 					.then(user => {
 						if (!user) {
@@ -183,6 +187,9 @@ module.exports = {
 						return this.transformEntity(user, true, ctx);
 					})
 					.catch(err => {
+						if (err instanceof MoleculerClientError || err?.code === 429) {
+							return this.Promise.reject(err);
+						}
 						console.error("users.login error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Login failed", 422, "", []));
 					});
