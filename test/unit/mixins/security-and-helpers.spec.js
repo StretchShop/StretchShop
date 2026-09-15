@@ -151,12 +151,33 @@ describe("restrictions.security", () => {
 
 describe("rate-limit.mixin", () => {
 	const rateLimit = require("../../../mixins/rate-limit.mixin");
+	const originalStrict = process.env.RATE_LIMIT_STRICT;
+	const originalLoginLimit = process.env.RATE_LIMIT_LOGIN_LIMIT;
+	const originalNodeEnv = process.env.NODE_ENV;
 
 	beforeEach(() => {
 		rateLimit.resetRateLimitBuckets();
+		delete process.env.RATE_LIMIT_STRICT;
+		delete process.env.RATE_LIMIT_LOGIN_LIMIT;
+		process.env.NODE_ENV = "test";
+	});
+
+	afterAll(() => {
+		if (originalStrict === undefined) {
+			delete process.env.RATE_LIMIT_STRICT;
+		} else {
+			process.env.RATE_LIMIT_STRICT = originalStrict;
+		}
+		if (originalLoginLimit === undefined) {
+			delete process.env.RATE_LIMIT_LOGIN_LIMIT;
+		} else {
+			process.env.RATE_LIMIT_LOGIN_LIMIT = originalLoginLimit;
+		}
+		process.env.NODE_ENV = originalNodeEnv;
 	});
 
 	it("keys login by email and ip so one account does not lock another", async () => {
+		process.env.RATE_LIMIT_STRICT = "true";
 		const service = { Promise, ...rateLimit.methods };
 		const ctxA = { meta: { remoteAddress: "10.0.0.1" } };
 		const ctxB = { meta: { remoteAddress: "10.0.0.1" } };
@@ -169,6 +190,54 @@ describe("rate-limit.mixin", () => {
 		await expect(
 			service.enforceRateLimit(ctxB, "login", { limit: 5, windowMs: 60_000, keyExtra: "b@example.com" })
 		).resolves.toBeUndefined();
+	});
+
+	it("checkOnly rejects when over limit without consuming an extra slot", async () => {
+		process.env.RATE_LIMIT_STRICT = "true";
+		const service = { Promise, ...rateLimit.methods };
+		const ctx = { meta: { remoteAddress: "10.0.0.2" } };
+		const opts = { limit: 2, windowMs: 60_000, keyExtra: "fail@example.com" };
+		await service.recordRateLimitHit(ctx, "login", opts);
+		await service.recordRateLimitHit(ctx, "login", opts);
+		await expect(
+			service.enforceRateLimit(ctx, "login", { ...opts, checkOnly: true })
+		).rejects.toMatchObject({ code: 429 });
+		await expect(
+			service.enforceRateLimit(ctx, "login", { ...opts, checkOnly: true })
+		).rejects.toMatchObject({ code: 429 });
+	});
+
+	it("resetRateLimit clears failures so login can proceed again", async () => {
+		process.env.RATE_LIMIT_STRICT = "true";
+		const service = { Promise, ...rateLimit.methods };
+		const ctx = { meta: { remoteAddress: "10.0.0.3" } };
+		const opts = { limit: 1, windowMs: 60_000, keyExtra: "ok@example.com" };
+		await service.recordRateLimitHit(ctx, "login", opts);
+		await expect(
+			service.enforceRateLimit(ctx, "login", { ...opts, checkOnly: true })
+		).rejects.toMatchObject({ code: 429 });
+		await service.resetRateLimit(ctx, "login", opts);
+		await expect(
+			service.enforceRateLimit(ctx, "login", { ...opts, checkOnly: true })
+		).resolves.toBeUndefined();
+	});
+
+	it("relaxes limits outside production unless RATE_LIMIT_STRICT=true", () => {
+		process.env.NODE_ENV = "development";
+		delete process.env.RATE_LIMIT_STRICT;
+		const relaxed = rateLimit.resolveRateLimitOptions("register", { limit: 3, windowMs: 60_000 });
+		expect(relaxed.limit).toBeGreaterThanOrEqual(50);
+
+		process.env.RATE_LIMIT_STRICT = "true";
+		const strict = rateLimit.resolveRateLimitOptions("register", { limit: 3, windowMs: 60_000 });
+		expect(strict.limit).toBe(3);
+	});
+
+	it("honors RATE_LIMIT_LOGIN_LIMIT env override", () => {
+		process.env.RATE_LIMIT_STRICT = "true";
+		process.env.RATE_LIMIT_LOGIN_LIMIT = "7";
+		const resolved = rateLimit.resolveRateLimitOptions("login", { limit: 5, windowMs: 60_000 });
+		expect(resolved.limit).toBe(7);
 	});
 });
 
