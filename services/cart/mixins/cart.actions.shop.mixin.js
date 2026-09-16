@@ -1,6 +1,7 @@
 "use strict";
 
 const { MoleculerClientError } = require("moleculer").Errors;
+const { normalizeProductAmount } = require("../../../mixins/product.amount");
 
 module.exports = {
 	actions: {
@@ -89,6 +90,11 @@ module.exports = {
 						if (!productAvailable || (Array.isArray(productAvailable) && productAvailable.length === 0)) {
 							return this.Promise.reject(new MoleculerClientError("No matching product found"));
 						}
+						try {
+							ctx.params.amount = normalizeProductAmount(ctx.params.amount, productAvailable);
+						} catch (err) {
+							return this.Promise.reject(err);
+						}
 						// check if amount is available, while stockAmount = -1 means unlimited stock
 						if (ctx.params.amount > productAvailable.stockAmount && productAvailable.stockAmount > -1) {
 							// if digital or subscription - only 1 pcs can be ordered, 
@@ -113,6 +119,9 @@ module.exports = {
 					})
 					.catch(err => {
 						console.error('cart.add error: ', err);
+						if (err instanceof MoleculerClientError) {
+							return this.Promise.reject(err);
+						}
 						return this.Promise.reject(new MoleculerClientError("Can't add to cart", 422, "", []));
 					});
 			}
@@ -230,6 +239,14 @@ module.exports = {
 								// if found, remove one product from cart
 								if (productInCart > -1) {
 									if (ctx.params.amount && ctx.params.amount > 0) {
+										try {
+											ctx.params.amount = normalizeProductAmount(
+												ctx.params.amount,
+												cart.items[productInCart]
+											);
+										} catch (err) {
+											return this.Promise.reject(err);
+										}
 										// remove amount from existing value
 										cart.items[productInCart].amount = ctx.params.amount;
 										if (cart.items[productInCart].amount <= 0) {
@@ -259,6 +276,9 @@ module.exports = {
 					})
 					.catch(err => {
 						console.error('cart.updateCartItemAmount error: ', err);
+						if (err instanceof MoleculerClientError) {
+							return this.Promise.reject(err);
+						}
 						return this.Promise.reject(new MoleculerClientError("Can't update cart item amount", 422, "", []));
 					});
 			}
