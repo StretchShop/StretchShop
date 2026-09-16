@@ -118,7 +118,7 @@ module.exports = {
 						return this.addToCart(ctx, productAvailable);
 					})
 					.catch(err => {
-						console.error('cart.add error: ', err);
+						console.error("cart.add error: ", err);
 						if (err instanceof MoleculerClientError) {
 							return this.Promise.reject(err);
 						}
@@ -188,13 +188,13 @@ module.exports = {
 								.then(json => this.entityChanged("removed", json, ctx)
 									.then(() => json))
 								.catch(err => {
-									console.error('cart.delete update error: ', err);
+									console.error("cart.delete update error: ", err);
 									return this.Promise.reject(new MoleculerClientError("Can't update cart", 422, "", []));
 								});
 						}
 					})
 					.catch(err => {
-						console.error('cart.delete error: ', err);
+						console.error("cart.delete error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Can't delete cart item", 422, "", []));
 					});
 			}
@@ -269,13 +269,13 @@ module.exports = {
 								.then(json => this.entityChanged("updated", json, ctx)
 									.then(() => json))
 								.catch(err => {
-									console.error('cart.updateCartItemAmount update error: ', err);
+									console.error("cart.updateCartItemAmount update error: ", err);
 									return this.Promise.reject(new MoleculerClientError("Can't update cart", 422, "", []));
 								});
 						}
 					})
 					.catch(err => {
-						console.error('cart.updateCartItemAmount error: ', err);
+						console.error("cart.updateCartItemAmount error: ", err);
 						if (err instanceof MoleculerClientError) {
 							return this.Promise.reject(err);
 						}
@@ -324,7 +324,7 @@ module.exports = {
 							.then(json => this.entityChanged("updated", json, ctx)
 								.then(() => json))
 							.catch(err => {
-								console.error('cart.updateMyCart update error: ', err);
+								console.error("cart.updateMyCart update error: ", err);
 								return this.Promise.reject(new MoleculerClientError("Can't update cart", 422, "", []));
 							});
 					});

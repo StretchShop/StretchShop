@@ -677,7 +677,7 @@ describe("openapi.ui-url", () => {
 		});
 		expect(html).not.toContain(xssUrl);
 		expect(html).toContain("\\u003c/script\\u003e");
-		expect(html).toContain('nonce="test-nonce"');
+		expect(html).toContain("nonce=\"test-nonce\"");
 		expect(openApiUiCsp("test-nonce")).toContain("script-src 'nonce-test-nonce' 'self'");
 	});
 });

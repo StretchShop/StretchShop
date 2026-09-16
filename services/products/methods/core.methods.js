@@ -225,7 +225,7 @@ module.exports = {
 					found = this.priceByUser(found, ctx.meta.user, edit);
 					// get taxData for product
 					if (!found["taxData"]) {
-						found["taxData"] = SettingsMixin.getSiteSettings('business')?.taxData?.global;
+						found["taxData"] = SettingsMixin.getSiteSettings("business")?.taxData?.global;
 					}
 					// categories
 					if (found.categories.length>0) {

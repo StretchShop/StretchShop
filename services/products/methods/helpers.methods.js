@@ -54,7 +54,7 @@ module.exports = {
 		 * @returns {*} filter
 		 */
 		getFilterSort(filter, ctx) {
-			filter.sort = SettingsMixin.getSiteSettings('business')?.sorting?.products?.default; // default
+			filter.sort = SettingsMixin.getSiteSettings("business")?.sorting?.products?.default; // default
 			if (typeof ctx.params.sort !== "undefined" && ctx.params.sort) {
 				// if applicable, get sort from request
 				filter.sort = ctx.params.sort;
@@ -130,7 +130,7 @@ module.exports = {
 							}
 						}
 					}
-					this.logger.warn('processCategoryProductsProperties --- TOO MANY PROPERTIES: ', propertyGroup.length, result);
+					this.logger.warn("processCategoryProductsProperties --- TOO MANY PROPERTIES: ", propertyGroup.length, result);
 				} else {
 					// loop all groups
 					for (let properties of propertyGroup) {

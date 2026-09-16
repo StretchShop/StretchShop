@@ -51,7 +51,7 @@ module.exports = {
 				},
 				"prices": {
 					"currency": this.getValueByCode(ctx.meta.localsDefault.currencies, ctx.meta.localsDefault.currency),
-					"taxData": SettingsMixin.getSiteSettings('business')?.taxData?.global,
+					"taxData": SettingsMixin.getSiteSettings("business")?.taxData?.global,
 					"priceTotal": null,
 					"priceTotalNoTax": null,
 					"priceItems": null,
