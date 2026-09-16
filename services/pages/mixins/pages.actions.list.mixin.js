@@ -85,25 +85,25 @@ module.exports = {
 														return result;
 													})
 													.catch(err => {
-														console.error('pages.pagesList count error: ', err);
+														console.error("pages.pagesList count error: ", err);
 														return this.Promise.reject(new MoleculerClientError("Pages count error", 422, "", []));
 													});
 											}
 											return result;
 										})
 										.catch(err => {
-											console.error('pages.pagesList findActive error: ', err);
+											console.error("pages.pagesList findActive error: ", err);
 											return this.Promise.reject(new MoleculerClientError("Pages findA error", 422, "", []));
 										});
 								})
 								.catch(err => {
-									console.error('pages.pagesList find error: ', err);
+									console.error("pages.pagesList find error: ", err);
 									return this.Promise.reject(new MoleculerClientError("Pages find error", 422, "", []));
 								});
 						}
 					})
 					.catch(err => {
-						console.error('pages.pagesList category error: ', err);
+						console.error("pages.pagesList category error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Pages category error", 422, "", []));
 					});
 			}
@@ -184,13 +184,13 @@ module.exports = {
 									return results;
 								})
 								.catch(err => {
-									console.error('pages.listTemplates categories.find error: ', err);
+									console.error("pages.listTemplates categories.find error: ", err);
 									return this.Promise.reject(new MoleculerClientError("Pages templates cats error", 422, "", []));
 								});
 							//return results;
 						})
 						.catch(err => {
-							console.error('pages.listTemplates find error: ', err);
+							console.error("pages.listTemplates find error: ", err);
 							return this.Promise.reject(new MoleculerClientError("Pages templates find error", 422, "", []));
 						});
 				} else {
@@ -293,13 +293,13 @@ module.exports = {
 									return result;
 								})
 								.catch(err => {
-									console.error('pages.findWithCount count error: ', err);
+									console.error("pages.findWithCount count error: ", err);
 									return this.Promise.reject(new MoleculerClientError("Pages findC count error", 422, "", []));
 								});
 						}
 					})
 					.catch(err => {
-						console.error('pages.findWithCount find error: ', err);
+						console.error("pages.findWithCount find error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Pages findC error", 422, "", []));
 					});
 

@@ -341,7 +341,7 @@ module.exports = {
 					return result;
 				})
 				.catch(err => {
-					this.logger.error('pages processPageWysiwygContent() Error:', err);
+					this.logger.error("pages processPageWysiwygContent() Error:", err);
 					return err;
 				})
 				.then(result => {

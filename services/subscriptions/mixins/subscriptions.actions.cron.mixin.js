@@ -31,7 +31,7 @@ module.exports = {
 						return results;
 					})
 					.catch(err => {
-						console.error('subscription.checkSubscriptions error: ', err);
+						console.error("subscription.checkSubscriptions error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Check Subscriptions", 422, "", []));
 					});
 
@@ -78,7 +78,7 @@ module.exports = {
 						return results;
 					})
 					.catch(err => {
-						console.error('subscription.checkEndingSubscriptions error: ', err);
+						console.error("subscription.checkEndingSubscriptions error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Check Ending Subscriptions", 422, "", []));
 					});
 
