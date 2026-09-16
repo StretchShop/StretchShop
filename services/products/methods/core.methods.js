@@ -2,6 +2,7 @@
 
 const { MoleculerClientError } = require("moleculer").Errors;
 const slug = require("slug");
+const { sanitizeProductEntityDecimalAmount } = require("../../../mixins/product.amount");
 
 const priceLevels = require("../../../mixins/price.levels.mixin");
 const SettingsMixin = require("../../../mixins/settings.mixin");
@@ -28,6 +29,14 @@ module.exports = {
 		 */
 		importProductAction(ctx, entity, found) {
 			let self = this;
+
+			if (entity) {
+				try {
+					sanitizeProductEntityDecimalAmount(entity);
+				} catch (err) {
+					return this.Promise.reject(err);
+				}
+			}
 
 			if (found) { // product found, update it
 				if ( entity ) {
@@ -216,7 +225,7 @@ module.exports = {
 					found = this.priceByUser(found, ctx.meta.user, edit);
 					// get taxData for product
 					if (!found["taxData"]) {
-						found["taxData"] = SettingsMixin.getSiteSettings('business')?.taxData?.global;
+						found["taxData"] = SettingsMixin.getSiteSettings("business")?.taxData?.global;
 					}
 					// categories
 					if (found.categories.length>0) {

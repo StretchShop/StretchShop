@@ -14,7 +14,7 @@ module.exports = {
 		 * @returns {Boolean} if usertype is valid
 		 */
 		isValidUsertype(usertype) {
-			const business = SettingsMixin.getSiteSettings('business')
+			const business = SettingsMixin.getSiteSettings("business");
 			if ( business?.priceLevels?.validTypes?.userTypes?.indexOf(usertype)>-1 ) {
 				return true;
 			}
@@ -86,7 +86,7 @@ module.exports = {
 		makeProductPriceLevels(product, recalculate) {
 			recalculate = (typeof recalculate !== "undefined") ?  recalculate : false;
 			let newPriceLevels = {};
-			const businessSettings = SettingsMixin.getSiteSettings('business');
+			const businessSettings = SettingsMixin.getSiteSettings("business");
 
 			if (businessSettings && businessSettings.priceLevels && 
 				businessSettings.priceLevels.validTypes.userTypes && 
@@ -153,7 +153,7 @@ module.exports = {
 		 * @param {*} usertype 
 		 */
 		calculatePriceForUsertype(price, usertype) {
-			const businessSettings = SettingsMixin.getSiteSettings('business');
+			const businessSettings = SettingsMixin.getSiteSettings("business");
 			
 			if (this.isValidUsertype(usertype) && businessSettings && 
 			businessSettings.priceLevels && businessSettings.priceLevels.discounts &&

@@ -12,6 +12,7 @@ const PdfPrintMixin = require("../../../mixins/pdfprint.mixin");
 const { subscriptionPaymentStatuses } = require("../constants/subscription.constants");
 const { productStatuses } = require("../constants/product.constants");
 const { orderStatuses } = require("../constants/order.constants");
+const { normalizeProductAmount } = require("../../../mixins/product.amount");
 const { update } = require("lodash");
 const {
 	hasAllowedOrderParamUpdates,
@@ -50,7 +51,7 @@ module.exports = {
 				},
 				"prices": {
 					"currency": this.getValueByCode(ctx.meta.localsDefault.currencies, ctx.meta.localsDefault.currency),
-					"taxData": SettingsMixin.getSiteSettings('business')?.taxData?.global,
+					"taxData": SettingsMixin.getSiteSettings("business")?.taxData?.global,
 					"priceTotal": null,
 					"priceTotalNoTax": null,
 					"priceItems": null,
@@ -319,7 +320,8 @@ module.exports = {
 
 						const product = found[0];
 						product._id = product._id.toString();
-						product.amount = cartItem.amount > 0 ? cartItem.amount : 1;
+						const rawAmount = cartItem.amount > 0 ? cartItem.amount : 1;
+						product.amount = normalizeProductAmount(rawAmount, product);
 
 						// Preserve customer-filled requirement values from the cart snapshot.
 						if (cartItem.data?.requirements?.inputs && product.data?.requirements?.inputs) {

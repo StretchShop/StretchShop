@@ -21,7 +21,7 @@ module.exports = {
 		checkOrderData(ctx) {
 			this.getOrderWork(ctx).orderErrors.orderErrors = [];
 			let self = this;
-			const businessSettings = SettingsMixin.getSiteSettings('business');
+			const businessSettings = SettingsMixin.getSiteSettings("business");
 
 			// get order item types and subtypes - orderCalcItemsTypology
 			let orderCalcItemsTypology = { types: [], subtypes: [] };
@@ -228,7 +228,7 @@ module.exports = {
 			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
 			specification = typeof specification === "undefined" ?  null : specification;
 
-			const businessSettings = SettingsMixin.getSiteSettings('business');
+			const businessSettings = SettingsMixin.getSiteSettings("business");
 			
 			let orderFromParam = true;
 			if ( typeof order == "undefined" ) {
