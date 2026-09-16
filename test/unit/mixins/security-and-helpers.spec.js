@@ -4,7 +4,7 @@ const path = require("path");
 const os = require("os");
 const fs = require("fs");
 const { MoleculerClientError } = require("moleculer").Errors;
-const { resolveSafePath, sanitizeUploadFilename } = require("../../../mixins/path.security");
+const { resolveSafePath, sanitizeUploadFilename, sanitizePathSegment, assertResolvedUnderRoot } = require("../../../mixins/path.security");
 const {
 	escapeRegex,
 	sanitizeMongoQuery,
@@ -45,10 +45,38 @@ describe("path.security", () => {
 		expect(() => sanitizeUploadFilename("../etc/passwd.jpg")).not.toThrow();
 	});
 
+	it("sanitizes path segments and contains resolved paths", () => {
+		expect(sanitizePathSegment("about-page")).toBe("about-page");
+		expect(() => sanitizePathSegment("../../app/package")).toThrow(MoleculerClientError);
+		expect(() => sanitizePathSegment("foo/bar")).toThrow(MoleculerClientError);
+		const root = os.tmpdir();
+		const nested = path.resolve(root, "child");
+		expect(assertResolvedUnderRoot(root, nested)).toBe(nested);
+		expect(() => assertResolvedUnderRoot(root, path.resolve(root, "..", "etc", "passwd"))).toThrow(MoleculerClientError);
+	});
+
 	it("sanitizes upload filenames and rejects unknown extensions", () => {
 		expect(sanitizeUploadFilename("My Photo!.PNG")).toEqual({ base: "My_Photo_.png", ext: "png" });
 		expect(() => sanitizeUploadFilename("payload.exe")).toThrow(MoleculerClientError);
 		expect(() => sanitizeUploadFilename("noext")).toThrow(MoleculerClientError);
+	});
+
+	it("rejects traversal slugs used as upload directories", () => {
+		const helperMethods = require("../../../services/api/methods/helpers.methods");
+		const service = {
+			logger: { info() {}, warn() {}, error() {} },
+			stringReplaceParams: (s) => s,
+			arrayReplaceParams: (arr) => arr,
+			stringChunk: (s) => s,
+			...helperMethods.methods,
+		};
+		expect(() => service.prepareFilePathNameData(
+			{ $params: {}, $ctx: { service: { settings: { assets: { folder: "/tmp" } } } } },
+			{ destination: "pages/cover", stringToChunk: "../../etc", chunkSize: 0, fileName: ["cover"] },
+			{},
+			{ file: { filepath: "/tmp/x", originalFilename: "a.jpg" } },
+			"file"
+		)).toThrow(MoleculerClientError);
 	});
 });
 
@@ -95,6 +123,184 @@ describe("mongo.security", () => {
 			{ allowedOperators: ["$or"] }
 		);
 		expect(query).toEqual({ name: "x" });
+	});
+});
+
+describe("password.policy", () => {
+	const { getPasswordPolicyError, assertPasswordPolicy } = require("../../../mixins/password.policy");
+
+	it("rejects short, overlong, and denylisted passwords", () => {
+		expect(getPasswordPolicyError("short")).toMatchObject({ message: "too short" });
+		expect(getPasswordPolicyError("password")).toMatchObject({ message: "too common" });
+		expect(getPasswordPolicyError("a".repeat(73))).toMatchObject({ message: "too long" });
+		expect(getPasswordPolicyError("secret12")).toBeNull();
+		expect(() => assertPasswordPolicy("password")).toThrow(MoleculerClientError);
+	});
+});
+
+describe("restrictions.security", () => {
+	const { restrictionMatchesRequest } = require("../../../mixins/restrictions.security");
+
+	it("matches restriction paths case-insensitively as a prefix, not a substring", () => {
+		expect(restrictionMatchesRequest("PUT /products", "PUT", "/api/v1/PRODUCTS")).toBe(true);
+		expect(restrictionMatchesRequest("PUT /products", "put", "/api/v1/products")).toBe(true);
+		expect(restrictionMatchesRequest("PUT /products", "GET", "/api/v1/products")).toBe(false);
+		expect(restrictionMatchesRequest("PUT /products", "PUT", "/api/v1/notproducts")).toBe(false);
+	});
+});
+
+describe("rate-limit.mixin", () => {
+	const rateLimit = require("../../../mixins/rate-limit.mixin");
+	const originalStrict = process.env.RATE_LIMIT_STRICT;
+	const originalLoginLimit = process.env.RATE_LIMIT_LOGIN_LIMIT;
+	const originalNodeEnv = process.env.NODE_ENV;
+
+	beforeEach(() => {
+		rateLimit.resetRateLimitBuckets();
+		delete process.env.RATE_LIMIT_STRICT;
+		delete process.env.RATE_LIMIT_LOGIN_LIMIT;
+		process.env.NODE_ENV = "test";
+	});
+
+	afterAll(() => {
+		if (originalStrict === undefined) {
+			delete process.env.RATE_LIMIT_STRICT;
+		} else {
+			process.env.RATE_LIMIT_STRICT = originalStrict;
+		}
+		if (originalLoginLimit === undefined) {
+			delete process.env.RATE_LIMIT_LOGIN_LIMIT;
+		} else {
+			process.env.RATE_LIMIT_LOGIN_LIMIT = originalLoginLimit;
+		}
+		process.env.NODE_ENV = originalNodeEnv;
+	});
+
+	it("keys login by email and ip so one account does not lock another", async () => {
+		process.env.RATE_LIMIT_STRICT = "true";
+		const service = { Promise, ...rateLimit.methods };
+		const ctxA = { meta: { remoteAddress: "10.0.0.1" } };
+		const ctxB = { meta: { remoteAddress: "10.0.0.1" } };
+		for (let i = 0; i < 5; i++) {
+			await service.enforceRateLimit(ctxA, "login", { limit: 5, windowMs: 60_000, keyExtra: "a@example.com" });
+		}
+		await expect(
+			service.enforceRateLimit(ctxA, "login", { limit: 5, windowMs: 60_000, keyExtra: "a@example.com" })
+		).rejects.toMatchObject({ code: 429 });
+		await expect(
+			service.enforceRateLimit(ctxB, "login", { limit: 5, windowMs: 60_000, keyExtra: "b@example.com" })
+		).resolves.toBeUndefined();
+	});
+
+	it("checkOnly rejects when over limit without consuming an extra slot", async () => {
+		process.env.RATE_LIMIT_STRICT = "true";
+		const service = { Promise, ...rateLimit.methods };
+		const ctx = { meta: { remoteAddress: "10.0.0.2" } };
+		const opts = { limit: 2, windowMs: 60_000, keyExtra: "fail@example.com" };
+		await service.recordRateLimitHit(ctx, "login", opts);
+		await service.recordRateLimitHit(ctx, "login", opts);
+		await expect(
+			service.enforceRateLimit(ctx, "login", { ...opts, checkOnly: true })
+		).rejects.toMatchObject({ code: 429 });
+		await expect(
+			service.enforceRateLimit(ctx, "login", { ...opts, checkOnly: true })
+		).rejects.toMatchObject({ code: 429 });
+	});
+
+	it("resetRateLimit clears failures so login can proceed again", async () => {
+		process.env.RATE_LIMIT_STRICT = "true";
+		const service = { Promise, ...rateLimit.methods };
+		const ctx = { meta: { remoteAddress: "10.0.0.3" } };
+		const opts = { limit: 1, windowMs: 60_000, keyExtra: "ok@example.com" };
+		await service.recordRateLimitHit(ctx, "login", opts);
+		await expect(
+			service.enforceRateLimit(ctx, "login", { ...opts, checkOnly: true })
+		).rejects.toMatchObject({ code: 429 });
+		await service.resetRateLimit(ctx, "login", opts);
+		await expect(
+			service.enforceRateLimit(ctx, "login", { ...opts, checkOnly: true })
+		).resolves.toBeUndefined();
+	});
+
+	it("relaxes limits outside production unless RATE_LIMIT_STRICT=true", () => {
+		process.env.NODE_ENV = "development";
+		delete process.env.RATE_LIMIT_STRICT;
+		const relaxed = rateLimit.resolveRateLimitOptions("register", { limit: 3, windowMs: 60_000 });
+		expect(relaxed.limit).toBeGreaterThanOrEqual(50);
+
+		process.env.RATE_LIMIT_STRICT = "true";
+		const strict = rateLimit.resolveRateLimitOptions("register", { limit: 3, windowMs: 60_000 });
+		expect(strict.limit).toBe(3);
+	});
+
+	it("honors RATE_LIMIT_LOGIN_LIMIT env override", () => {
+		process.env.RATE_LIMIT_STRICT = "true";
+		process.env.RATE_LIMIT_LOGIN_LIMIT = "7";
+		const resolved = rateLimit.resolveRateLimitOptions("login", { limit: 5, windowMs: 60_000 });
+		expect(resolved.limit).toBe(7);
+	});
+});
+
+describe("order-work.mixin", () => {
+	const OrderWorkMixin = require("../../../mixins/order-work.mixin");
+
+	it("isolates order drafts between concurrent requests", async () => {
+		const service = {
+			settings: { orderTemp: {}, orderErrors: { itemErrors: [], userErrors: [], orderErrors: [] } },
+			...OrderWorkMixin.methods,
+		};
+		const first = service.withOrderWork(async () => {
+			service.getOrderWork().orderTemp = { user: { email: "a@a.a" } };
+			await new Promise((r) => setTimeout(r, 20));
+			return service.getOrderWork().orderTemp.user.email;
+		});
+		const second = service.withOrderWork(async () => {
+			service.getOrderWork().orderTemp = { user: { email: "b@b.b" } };
+			await new Promise((r) => setTimeout(r, 5));
+			return service.getOrderWork().orderTemp.user.email;
+		});
+		const [a, b] = await Promise.all([first, second]);
+		expect(a).toBe("a@a.a");
+		expect(b).toBe("b@b.b");
+	});
+
+	it("keeps order drafts on ctx.locals across async hops", async () => {
+		const service = {
+			settings: { orderTemp: {}, orderErrors: { itemErrors: [], userErrors: [], orderErrors: [] } },
+			...OrderWorkMixin.methods,
+		};
+		const ctxA = { meta: {}, locals: {} };
+		const ctxB = { meta: {}, locals: {} };
+		const first = service.withOrderWork(ctxA, async () => {
+			service.getOrderWork(ctxA).orderTemp = { user: { email: "a@a.a" } };
+			await new Promise((r) => setTimeout(r, 20));
+			return service.getOrderWork(ctxA).orderTemp.user.email;
+		});
+		const second = service.withOrderWork(ctxB, async () => {
+			service.getOrderWork(ctxB).orderTemp = { user: { email: "b@b.b" } };
+			await new Promise((r) => setTimeout(r, 5));
+			return service.getOrderWork(ctxB).orderTemp.user.email;
+		});
+		const [a, b] = await Promise.all([first, second]);
+		expect(a).toBe("a@a.a");
+		expect(b).toBe("b@b.b");
+		expect(ctxA.locals.orderWork.orderTemp.user.email).toBe("a@a.a");
+		expect(ctxB.locals.orderWork.orderTemp.user.email).toBe("b@b.b");
+		expect(ctxA.meta.orderWork).toBeUndefined();
+		expect(ctxB.meta.orderWork).toBeUndefined();
+	});
+
+	it("does not store in-flight checkout data on this.settings", () => {
+		const service = {
+			settings: { orderTemp: { leaked: true }, orderErrors: { itemErrors: [], userErrors: [], orderErrors: [] } },
+			...OrderWorkMixin.methods,
+		};
+		const ctx = { meta: {}, locals: {} };
+		service.withOrderWork(ctx, () => {
+			service.getOrderWork(ctx).orderTemp = { user: { email: "a@a.a" } };
+		});
+		expect(service.settings.orderTemp).toEqual({ leaked: true });
+		expect(ctx.locals.orderWork.orderTemp.user.email).toBe("a@a.a");
 	});
 });
 
@@ -471,7 +677,7 @@ describe("openapi.ui-url", () => {
 		});
 		expect(html).not.toContain(xssUrl);
 		expect(html).toContain("\\u003c/script\\u003e");
-		expect(html).toContain('nonce="test-nonce"');
+		expect(html).toContain("nonce=\"test-nonce\"");
 		expect(openApiUiCsp("test-nonce")).toContain("script-src 'nonce-test-nonce' 'self'");
 	});
 });

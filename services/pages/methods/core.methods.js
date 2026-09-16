@@ -1,8 +1,10 @@
 "use strict";
 
 const { MoleculerClientError } = require("moleculer").Errors;
+const pathResolve = require("path").resolve;
 
 const slug = require("slug");
+const { sanitizePathSegment } = require("../../../mixins/path.security");
 
 module.exports = {
 
@@ -22,6 +24,10 @@ module.exports = {
 		 */
 		importPageAction(ctx, entity, found) {
 			let self = this;
+
+			if (entity?.slug) {
+				sanitizePathSegment(entity.slug);
+			}
 
 			if (found) { // page found, update it
 				if (entity) {
@@ -189,7 +195,7 @@ module.exports = {
 					};
 					// get template static metadata
 					// TODO - check if exists, if not, set default value {}
-					return self.readFile(tv.parentDir + tv.pageName + ".json")
+					return self.readFile(pathResolve(tv.parentDir, tv.pageName + ".json"))
 						.then((staticData) => {
 							// return static metadata
 							staticData = JSON.parse(staticData);
@@ -220,11 +226,10 @@ module.exports = {
 									// get intersection of user and page contentDependencies 
 									const filteredArray = result.staticData.data.requirements.userdata.products.filter(value => ctx.meta.user.data.contentDependencies.list.includes(value));
 									if (filteredArray.length <= 0) {
-										return Promise.reject(new MoleculerClientError("Page not found!", 403, "", [{ field: "page", message: "forbidden", data: { orderCodes: filteredArray } }]));
+										return Promise.reject(new MoleculerClientError("Page not found!", 403, "", [{ field: "page", message: "forbidden" }]));
 									}
 								} else {
-									// no user, page cannot be displayed
-									return Promise.reject(new MoleculerClientError("Page not found!", 401, "", [{ field: "page", message: "unauthorized", data: { orderCodes: result.staticData?.data?.requirements?.userdata?.products } }]));
+									return Promise.reject(new MoleculerClientError("Page not found!", 401, "", [{ field: "page", message: "unauthorized" }]));
 								}
 							}
 
@@ -288,11 +293,11 @@ module.exports = {
 							const filteredArray = page.data.requirements.userdata.products.filter(value => ctx.meta.user.data.contentDependencies.list.includes(value));
 							this.logger.info("pages core processPageWysiwygContent() filteredArray:", filteredArray);
 							if (filteredArray.length <= 0) {
-								return Promise.reject(new MoleculerClientError("Page not found!", 403, "", [{ field: "page", message: "forbidden", data: { orderCodes: filteredArray } }]));
+								return Promise.reject(new MoleculerClientError("Page not found!", 403, "", [{ field: "page", message: "forbidden" }]));
 							}
 						} else {
 							// no user, page cannot be displayed
-							return Promise.reject(new MoleculerClientError("Page not found!", 401, "", [{ field: "page", message: "unauthorized", data: { orderCodes: page.data?.requirements?.userdata?.products } }]));
+							return Promise.reject(new MoleculerClientError("Page not found!", 401, "", [{ field: "page", message: "unauthorized" }]));
 						}
 					}
 
@@ -336,7 +341,7 @@ module.exports = {
 					return result;
 				})
 				.catch(err => {
-					this.logger.error('pages processPageWysiwygContent() Error:', err);
+					this.logger.error("pages processPageWysiwygContent() Error:", err);
 					return err;
 				})
 				.then(result => {

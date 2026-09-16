@@ -13,6 +13,7 @@ const priceLevels = require("../../mixins/price.levels.mixin");
 const FileHelpers = require("../../mixins/file.helpers.mixin");
 const CacheCleanerMixin = require("../../mixins/cache.cleaner.mixin");
 const SettingsMixin = require("../../mixins/settings.mixin");
+const OrderWorkMixin = require("../../mixins/order-work.mixin");
 const { getRequiredSecret } = require("../../mixins/env.helpers");
 
 // methods
@@ -42,6 +43,7 @@ module.exports = {
 		HelpersMixin,
 		priceLevels,
 		FileHelpers,
+		OrderWorkMixin,
 		// methods
 		OrdersMethodsCore,
 		OrdersMethodsHelpers,

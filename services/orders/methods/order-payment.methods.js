@@ -20,7 +20,7 @@ module.exports = {
 	methods: {
 		orderPaymentReceived(ctx, order, paymentData, paymentProvider, action) {
 			// TODO - HERE check if order is fully paid or just partially
-			if (paymentProvider && paymentProvider !== 'admin') {
+			if (paymentProvider && paymentProvider !== "admin") {
 				this.logger.info("orders.orderPaymentReceived() - payment received:", { order: order._id, provider: paymentProvider, action: action, paymentData: paymentData });
 				const updatedOrder = this.updateOrderPaymentState(ctx, order, paymentData, paymentProvider, action);
 				// get order payment status after payment update
@@ -370,9 +370,9 @@ module.exports = {
 							
 							// save updated order
 							return ctx.call("orders.updateOrder", { order: foundOrder })
-							.then(updatedOrder => {
-								this.logger.info("WEBHOOK charge.succeeded - order updated:", updatedOrder);
-							});
+								.then(updatedOrder => {
+									this.logger.info("WEBHOOK charge.succeeded - order updated:", updatedOrder);
+								});
 						}
 					})
 					.catch(error => {

@@ -3,6 +3,8 @@
 const { MoleculerClientError } = require("moleculer").Errors;
 const bcrypt = require("bcryptjs");
 const validateAddress = require("../../../mixins/validate.address.mixin");
+const { escapeRegex } = require("../../../mixins/mongo.security");
+const { assertPasswordPolicy } = require("../../../mixins/password.policy");
 
 module.exports = {
 	actions: {
@@ -27,16 +29,20 @@ module.exports = {
 				// Fields a normal user may update on their own profile
 				const SELF_ALLOWED = new Set([
 					"username", "email", "password", "addresses", "company",
-					"settings", "bio", "image", "data"
+					"settings", "bio", "image"
 				]);
-				// Never accept these from non-admins; admins may set type/subtype only
-				const PRIVILEGED_FIELDS = ["type", "subtype", "_id", "id", "dates", "ip", "superadmined"];
+				// Never accept these from the profile endpoint (including self-admin)
+				const PRIVILEGED_FIELDS = ["type", "subtype", "_id", "id", "dates", "ip", "superadmined", "restrictions"];
 
 				// admin can update other users, his actions are logged
 				// common users can update only themself according to authentication
 
 				return this.Promise.resolve()
 					.then(() => {
+						delete newData.restrictions;
+						if (newData.data && typeof newData.data === "object") {
+							delete newData.data.contentDependencies;
+						}
 						if (!isAdmin) {
 							for (const key of Object.keys(newData)) {
 								if (!SELF_ALLOWED.has(key) || PRIVILEGED_FIELDS.includes(key)) {
@@ -106,12 +112,16 @@ module.exports = {
 							return this.adapter.findById(findId)
 								.then(found => {
 									if (typeof newData["password"] !== "undefined") {
+										assertPasswordPolicy(newData["password"]);
 										newData["password"] = bcrypt.hashSync(newData["password"], 10);
 									}
 									// loop found object, update it with new data
 									for (let property in newData) {
 										// _id/id select the target user; never write them onto the document
-										if (property === "_id" || property === "id") {
+										if (property === "_id" || property === "id" || property === "restrictions") {
+											continue;
+										}
+										if (PRIVILEGED_FIELDS.includes(property) && property !== "type" && property !== "subtype") {
 											continue;
 										}
 										if (!isAdmin && PRIVILEGED_FIELDS.includes(property)) {
@@ -119,6 +129,18 @@ module.exports = {
 										}
 										// non-admins: only allowlisted fields (already stripped, keep as belt-and-suspenders)
 										if (!isAdmin && !SELF_ALLOWED.has(property)) {
+											continue;
+										}
+										if (property === "data") {
+											const preserved = found.data?.contentDependencies;
+											const incoming = (newData.data && typeof newData.data === "object") ? { ...newData.data } : {};
+											delete incoming.contentDependencies;
+											found.data = { ...(found.data || {}), ...incoming };
+											if (preserved) {
+												found.data.contentDependencies = preserved;
+											} else {
+												delete found.data.contentDependencies;
+											}
 											continue;
 										}
 										if (Object.prototype.hasOwnProperty.call(newData, property) && Object.prototype.hasOwnProperty.call(found, property)) {
@@ -151,6 +173,9 @@ module.exports = {
 					.then(json => this.entityChanged("updated", json, ctx)
 						.then(() => json))
 					.catch(err => {
+						if (err instanceof MoleculerClientError) {
+							return this.Promise.reject(err);
+						}
 						console.error("users.updateUser error: ", err);
 						return this.Promise.reject(new MoleculerClientError("User update error", 422, "", []));
 					});
@@ -228,7 +253,11 @@ module.exports = {
 			},
 			handler(ctx) {
 				return this.enforceRateLimit(ctx, "checkUsername", { limit: 20, windowMs: 60 * 1000 })
-					.then(() => this.adapter.count({ "query": { "username": { $regex: ctx.params.username, $options: "i" } } }))
+					.then(() => this.adapter.count({
+						"query": {
+							"username": { $regex: `^${escapeRegex(ctx.params.username)}$`, $options: "i" }
+						}
+					}))
 					.then(count => {
 						if (count > 0) {
 							return Promise.reject(new MoleculerClientError("User already exists", 422, "", [{ field: "username", message: "exists" }]));

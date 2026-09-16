@@ -59,11 +59,11 @@ module.exports = {
 
 
 		getInvoiceFilePaths(order) {
-			const publicDir = process.env.PATH_PUBLIC || "./public";
-			const assetsPath = process.env.ASSETS_PATH || "";
+			const invoicesRoot = process.env.PATH_INVOICES
+				|| require("path").resolve(process.env.PATH_RESOURCES || "./resources", "invoices");
 			const userId = String(order?.user?.id || "");
 			const invoiceId = String(order?.invoice?.id || "");
-			const dir = pathResolve(publicDir, assetsPath, "invoices", userId);
+			const dir = pathResolve(invoicesRoot, userId);
 			const pdfPath = pathResolve(dir, invoiceId + ".pdf");
 			const sendPath = "invoices/" + userId + "/" + invoiceId + ".pdf";
 			return { dir, pdfPath, sendPath };
@@ -192,7 +192,7 @@ module.exports = {
 						orderFixed.prices.priceTotalToPay = orderFixed.prices.priceTotal - (orderFixed.data.paymentData.paidAmountTotal ?? 0);
 						let data = {
 							order: orderFixed,
-							business: SettingsMixin.getSiteSettings('business')
+							business: SettingsMixin.getSiteSettings("business")
 						};
 						data = this.prepareDataForTemplate(data);
 						html = template(data);
@@ -202,7 +202,7 @@ module.exports = {
 						let logo1 = "./public/assets/_site/logo-words-horizontal.svg";
 						return this.readFile(logo1)
 							.then((logoCode) => {
-								logoCode = logoCode.replace(/(width\s*=\s*["'](.*?)["'])/, 'width="240"').replace(/(height\s*=\s*["'](.*?)["'])/, 'height="53"');
+								logoCode = logoCode.replace(/(width\s*=\s*["'](.*?)["'])/, "width=\"240\"").replace(/(height\s*=\s*["'](.*?)["'])/, "height=\"53\"");
 								return html.toString().replace("<!-- company_logo //-->", logoCode);
 							})
 							.catch(logoCodeErr => {
@@ -252,7 +252,7 @@ module.exports = {
 		 * @param {*} date 
 		 */
 		generateInvoiceNumber(newInvoiceNum, date) {
-			let eshopNumberCode = SettingsMixin.getSiteSettings('business')?.invoiceData?.eshop?.numberCodePrefix;
+			let eshopNumberCode = SettingsMixin.getSiteSettings("business")?.invoiceData?.eshop?.numberCodePrefix;
 			let newInvoiceNumBase = date.getFullYear() * 100 + (date.getMonth() + 1); // 4 + 2 chars
 			let zerosAppend = 9 - newInvoiceNumBase.toString().length;
 			let zeros = "";

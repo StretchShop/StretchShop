@@ -12,6 +12,8 @@ function createAuthService(extra = {}) {
 		Promise,
 		settings: { JWT_SECRET: process.env.JWT_SECRET },
 		enforceRateLimit: jest.fn().mockResolvedValue(true),
+		recordRateLimitHit: jest.fn().mockResolvedValue(true),
+		resetRateLimit: jest.fn().mockResolvedValue(true),
 		validateEntity: jest.fn().mockResolvedValue(true),
 		transformDocuments: jest.fn((ctx, params, doc) => Promise.resolve(doc)),
 		transformEntity: coreMethods.methods.transformEntity,
@@ -106,6 +108,26 @@ describe("users auth success paths", () => {
 		expect(inserted.restrictions).toBeUndefined();
 		expect(result.user._id).toBe("generated-id");
 		expect(result.user.type).toBe("user");
+	});
+
+	it("rejects a denylisted password on register", async () => {
+		const service = createAuthService();
+		await expect(authMixin.actions.create.handler.call(service, {
+			params: {
+				user: {
+					username: "jane",
+					email: "jane@example.com",
+					password: "password",
+				},
+			},
+			meta: {
+				remoteAddress: "127.0.0.1",
+				remotePort: "1",
+				localsDefault: { lang: "en", currency: "EUR" },
+				siteSettings: { url: "https://shop.example.com" },
+			},
+		})).rejects.toMatchObject({ code: 422 });
+		expect(service.adapter.insert).not.toHaveBeenCalled();
 	});
 
 	it("logs in an activated user", async () => {
@@ -207,5 +229,37 @@ describe("users core helpers", () => {
 			email: "j@e.c",
 			password: "x",
 		});
+	});
+});
+
+describe("users.resetPassword", () => {
+	const emailMixin = require("../../../services/users/mixins/email.mixin");
+
+	it("stores a verify token without unsetting dateActivated", async () => {
+		const service = createAuthService({
+			sendVerificationEmail: jest.fn(),
+			buildHashSourceFromEntity: () => "hash-source",
+		});
+		const activated = new Date("2020-01-01T00:00:00.000Z");
+		service.adapter.findOne.mockResolvedValue({
+			_id: "u1",
+			email: "jane@example.com",
+			password: "hashed",
+			dates: { dateCreated: new Date("2019-01-01T00:00:00.000Z"), dateActivated: activated },
+			settings: { language: "en" },
+		});
+		service.adapter.updateById.mockResolvedValue({});
+		await emailMixin.actions.resetPassword.handler.call(service, {
+			params: { email: "jane@example.com" },
+			meta: {
+				localsDefault: { lang: "en", currency: "EUR" },
+				siteSettings: { url: "https://shop.example.com" },
+			},
+		});
+		const update = service.adapter.updateById.mock.calls[0][1];
+		expect(update.$unset).toBeUndefined();
+		expect(update.$set["dates.dateActivated"]).toBeUndefined();
+		expect(update.$set["dates.dateLastVerify"]).toBeInstanceOf(Date);
+		expect(service.sendVerificationEmail).toHaveBeenCalled();
 	});
 });

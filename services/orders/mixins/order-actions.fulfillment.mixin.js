@@ -2,7 +2,6 @@
 
 const { MoleculerClientError } = require("moleculer").Errors;
 const path = require("path");
-const pathResolve = path.resolve;
 const { createReadStream } = require("fs-extra");
 const { ReadStream } = require("fs");
 const jwt = require("jsonwebtoken");
@@ -81,24 +80,24 @@ module.exports = {
 				if (!isAdmin && !isOwner) {
 					return Promise.reject(new MoleculerClientError("Forbidden", 403));
 				}
-				// Allow only safe basename characters (generated invoice ids are alphanumeric)
-				if (!invoiceId || !/^[\w-]+$/.test(invoiceId)) {
+				if (!userId || !/^[\w-]+$/.test(userId) || !invoiceId || !/^[\w-]+$/.test(invoiceId)) {
 					return Promise.reject(new MoleculerClientError("Invalid invoice", 400));
 				}
 
-				const assets = process.env.PATH_PUBLIC || "./public";
-				const assetsPath = process.env.ASSETS_PATH || "";
-				const root = pathResolve(assets, assetsPath, "invoices", userId);
-				const filePath = pathResolve(root, invoiceId + ".pdf");
+				const { pdfPath, dir } = this.getInvoiceFilePaths({
+					user: { id: userId },
+					invoice: { id: invoiceId }
+				});
+				const root = dir;
 				const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
 
-				if (filePath !== root && !filePath.startsWith(rootWithSep)) {
+				if (pdfPath !== root && !pdfPath.startsWith(rootWithSep)) {
 					return Promise.reject(new MoleculerClientError("Invalid invoice", 400));
 				}
 
-				this.logger.info("orders.invoiceDownload - path:", { path: filePath, resolvedPath: filePath });
+				this.logger.info("orders.invoiceDownload - path:", { path: pdfPath, resolvedPath: pdfPath });
 				try {
-					return createReadStream(filePath);
+					return createReadStream(pdfPath);
 				} catch (e) {
 					this.logger.error("orders.invoiceDownload - id #" + ctx.params.invoice + " error:", JSON.stringify(e));
 					return null;

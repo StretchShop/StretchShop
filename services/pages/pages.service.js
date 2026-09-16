@@ -74,7 +74,7 @@ module.exports = {
 			"publisher", "authors", // authors = object
 			"type", "subtype",
 			"name", "descriptionShort", "descriptionLong",
-			"editorBlocks", 
+			"editorBlocks",
 			"properties", "data", // {color, size, ...}, {assets, posible upgrades, ...}
 			"categories", // list of category slugs of parent categories
 			"pages", // list of page slugs of parent pages
@@ -85,38 +85,49 @@ module.exports = {
 		/** Validator schema for entity */
 		entityValidator: {
 			externalId: { type: "string", min: 3 },
-			variationGroupId: {type: "string", optional: true },
-			slug: {type: "string", optional: true },
-			publisher: {type: "string", min: 3 },
-			authors: { type: "array", optional: true, items:
-				{ type: "object", props: {
-					name: { type: "string", optional: true },
-					email: { type: "string", min: 8 }
-				} }
+			variationGroupId: { type: "string", optional: true },
+			slug: { type: "string", optional: true, pattern: /^[\w.-]+$/ },
+			publisher: { type: "string", min: 3 },
+			authors: {
+				type: "array", optional: true, items:
+				{
+					type: "object", props: {
+						name: { type: "string", optional: true },
+						email: { type: "string", min: 8 }
+					}
+				}
 			},
 			type: { type: "string", min: 3 },
 			subtype: { type: "string", min: 3, optional: true },
 			name: { type: "object" },
 			descriptionShort: { type: "object", optional: true },
 			descriptionLong: { type: "object", optional: true },
-			properties: { type: "object", optional: true, props: {
-			} },
-			data: { type: "object", optional: true, props: {
-				blocks: { type: "array", items: "object", optional: true }, // WYSIWYG strings
-				tagList: { type: "array", items: "string", optional: true }
-			} },
+			properties: {
+				type: "object", optional: true, props: {
+				}
+			},
+			data: {
+				type: "object", optional: true, props: {
+					blocks: { type: "array", items: "object", optional: true }, // WYSIWYG strings
+					tagList: { type: "array", items: "string", optional: true }
+				}
+			},
 			categories: { type: "array", items: "string", optional: true }, // parent categories paths
 			pages: { type: "array", items: "string", optional: true }, // parent pages paths
-			dates: { type: "object", optional: true, props: {
-				dateCreated: { type: "date", optional: true },
-				dateUpdated: { type: "date", optional: true },
-				dateSynced: { type: "date", optional: true },
-			}},
+			dates: {
+				type: "object", optional: true, props: {
+					dateCreated: { type: "date", optional: true },
+					dateUpdated: { type: "date", optional: true },
+					dateSynced: { type: "date", optional: true },
+				}
+			},
 			note: { type: "string", optional: true },
-			activity: { type: "object", optional: true, props: {
-				start: { type: "date", optional: true },
-				end: { type: "date", optional: true }
-			}},
+			activity: {
+				type: "object", optional: true, props: {
+					start: { type: "date", optional: true },
+					end: { type: "date", optional: true }
+				}
+			},
 		},
 
 		// ------------- PAGES VARIABLES AND SETTINGS -------------

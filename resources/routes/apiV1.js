@@ -151,16 +151,9 @@ module.exports = {
 
 	// Call before every request
 	onBeforeCall(ctx, route, req) {
-		const { trustProxy } = require("../../mixins/env.helpers");
+		const { getClientIp } = require("../../mixins/env.helpers");
 		ctx.meta.host = req.headers.host;
-		ctx.meta.remoteAddress = req.connection.remoteAddress;
-		if (trustProxy()) {
-			if (req.headers["x-forwarded-for"]) {
-				ctx.meta.remoteAddress = String(req.headers["x-forwarded-for"]).split(",")[0].trim();
-			} else if (req.headers["x-real-ip"]) {
-				ctx.meta.remoteAddress = req.headers["x-real-ip"];
-			}
-		}
+		ctx.meta.remoteAddress = getClientIp(req) || req.connection.remoteAddress;
 		ctx.meta.remotePort = req.connection.remotePort;
 		// update localsDefault according to cookie value if possible
 		ctx.meta.localsDefault = this.settings.localsDefault;

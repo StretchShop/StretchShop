@@ -18,14 +18,14 @@ const calcExcludedTypes = ["subscription"];
 
 module.exports = {
 	methods: {
-		checkOrderData() {
-			this.settings.orderErrors.orderErrors = [];
+		checkOrderData(ctx) {
+			this.getOrderWork(ctx).orderErrors.orderErrors = [];
 			let self = this;
-			const businessSettings = SettingsMixin.getSiteSettings('business');
+			const businessSettings = SettingsMixin.getSiteSettings("business");
 
 			// get order item types and subtypes - orderCalcItemsTypology
 			let orderCalcItemsTypology = { types: [], subtypes: [] };
-			this.settings.orderTemp.items.some(function(product){
+			this.getOrderWork(ctx).orderTemp.items.some(function(product){
 				// check if type not in array
 				if ( product?.type && !calcExcludedTypes.includes(product.type) ) {
 					if ( orderCalcItemsTypology.types.indexOf(product.type)===-1 ) {
@@ -37,13 +37,13 @@ module.exports = {
 					}
 				}
 			});
-			Object.keys(this.settings.orderTemp.data.deliveryData?.codename || {}).forEach(function(key){
+			Object.keys(this.getOrderWork(ctx).orderTemp.data.deliveryData?.codename || {}).forEach(function(key){
 				if ( !orderCalcItemsTypology.subtypes.includes(key) ) {
-					delete self.settings.orderTemp.data.deliveryData.codename[key];
+					delete self.getOrderWork(ctx).orderTemp.data.deliveryData.codename[key];
 				}
 			});
 
-			const orderTypology = self.getOrderTypology(self.settings.orderTemp);
+			const orderTypology = self.getOrderTypology(self.getOrderWork(ctx).orderTemp);
 
 			/**
 			 * Check received delivery data:
@@ -53,13 +53,13 @@ module.exports = {
 			 * 4. if some type is missing in orderCalcItemsTypology.subtypes, return false
 			 */
 			// check if delivery type is set
-			if ( this.settings?.orderTemp?.data?.deliveryData?.codename ) {
-				let deliveryType = {...this.settings.orderTemp.data.deliveryData.codename};
-				this.settings.orderTemp.data.deliveryData = { "codename": deliveryType };
+			if ( this.getOrderWork(ctx)?.orderTemp?.data?.deliveryData?.codename ) {
+				let deliveryType = {...this.getOrderWork(ctx).orderTemp.data.deliveryData.codename};
+				this.getOrderWork(ctx).orderTemp.data.deliveryData = { "codename": deliveryType };
 				let deliveryMethodExists = false;
 				let processedDeliveryMethodCodenames = [];
-				self.settings.orderTemp.prices.priceDelivery = 0;
-				self.settings.orderTemp.prices.priceDeliveryTaxData = null;
+				self.getOrderWork(ctx).orderTemp.prices.priceDelivery = 0;
+				self.getOrderWork(ctx).orderTemp.prices.priceDeliveryTaxData = null;
 
 				// go through delivery types of order (like physical, digital, ...)
 				Object.keys(deliveryType).forEach(function(typeKey){
@@ -73,37 +73,37 @@ module.exports = {
 							}
 							if ( shopDeliveryType && shopDeliveryType.codename == deliveryType[typeKey].value ) {
 								// delivery type exists in shop settings
-								self.settings.orderTemp.data.deliveryData.codename[typeKey] = {};
+								self.getOrderWork(ctx).orderTemp.data.deliveryData.codename[typeKey] = {};
 								// need to filter language later
-								self.settings.orderTemp.data.deliveryData.codename[typeKey].value = shopDeliveryType.codename;
+								self.getOrderWork(ctx).orderTemp.data.deliveryData.codename[typeKey].value = shopDeliveryType.codename;
 								self.logger.info("orders.checkOrderData() - shopDeliveryType: ", shopDeliveryType);
 								// count item prices to get total for getting delivery price
-								self.settings.orderTemp.prices.priceItems = 0;
+								self.getOrderWork(ctx).orderTemp.prices.priceItems = 0;
 								// get delivery price specific to type of product (physical, digital, ...)
 								// first count total prices for that specific type of items, to get valid price
-								const priceItemsCheck = self.countOrderPrices("items", shopDeliveryType.type, self.settings.orderTemp); // shopDeliveryType.codename = digital, physical, ...
+								const priceItemsCheck = self.countOrderPrices("items", shopDeliveryType.type, self.getOrderWork(ctx).orderTemp, ctx); // shopDeliveryType.codename = digital, physical, ...
 								// then get delivery price for that type and total items price
 								if ( priceItemsCheck?.prices?.priceItems > 0 ) {
 									// get delivery price for that specific type and items total
 									shopDeliveryType.prices.some(function(deliveryPrice){
 										if ( priceItemsCheck?.prices?.priceItems >= deliveryPrice.range.from && priceItemsCheck?.prices?.priceItems < deliveryPrice.range.to ) {
 											// have match - set the delivery price
-											self.settings.orderTemp.prices.priceDelivery += deliveryPrice.price;
+											self.getOrderWork(ctx).orderTemp.prices.priceDelivery += deliveryPrice.price;
 											let deliveryProduct = {
 												price: deliveryPrice.price,
 												tax: deliveryPrice.tax
 											};
 											deliveryProduct = self.getProductTaxData(deliveryProduct, businessSettings.taxData.global);
-											if ( self.settings.orderTemp.prices.priceDeliveryTaxData == null) {
-												self.settings.orderTemp.prices.priceDeliveryTaxData = deliveryProduct.taxData;
-												self.logger.error("Option #1", self.settings.orderTemp.prices.priceDeliveryTaxData, deliveryProduct.taxData);
+											if ( self.getOrderWork(ctx).orderTemp.prices.priceDeliveryTaxData == null) {
+												self.getOrderWork(ctx).orderTemp.prices.priceDeliveryTaxData = deliveryProduct.taxData;
+												self.logger.error("Option #1", self.getOrderWork(ctx).orderTemp.prices.priceDeliveryTaxData, deliveryProduct.taxData);
 											} else {
-												self.settings.orderTemp.prices.priceDeliveryTaxData.priceWithTax += deliveryProduct.taxData.priceWithTax;
-												self.settings.orderTemp.prices.priceDeliveryTaxData.priceWithoutTax += deliveryProduct.taxData.priceWithoutTax;
-												self.settings.orderTemp.prices.priceDeliveryTaxData.tax += deliveryProduct.taxData.tax;
+												self.getOrderWork(ctx).orderTemp.prices.priceDeliveryTaxData.priceWithTax += deliveryProduct.taxData.priceWithTax;
+												self.getOrderWork(ctx).orderTemp.prices.priceDeliveryTaxData.priceWithoutTax += deliveryProduct.taxData.priceWithoutTax;
+												self.getOrderWork(ctx).orderTemp.prices.priceDeliveryTaxData.tax += deliveryProduct.taxData.tax;
 											}
-											self.settings.orderTemp.data.deliveryData.codename[typeKey].price = deliveryPrice.price;
-											self.settings.orderTemp.data.deliveryData.codename[typeKey].taxData = deliveryProduct.taxData;
+											self.getOrderWork(ctx).orderTemp.data.deliveryData.codename[typeKey].price = deliveryPrice.price;
+											self.getOrderWork(ctx).orderTemp.data.deliveryData.codename[typeKey].taxData = deliveryProduct.taxData;
 											// add this (physical, digital) to processed delivery methods
 											if ( processedDeliveryMethodCodenames.indexOf(shopDeliveryType.type)==-1 ) {
 												processedDeliveryMethodCodenames.push(shopDeliveryType.type);
@@ -118,7 +118,7 @@ module.exports = {
 						});
 					}
 				});
-				self.countOrderPrices("items");
+				self.countOrderPrices("items", undefined, undefined, ctx);
 
 				// 4. check if no received delivery method is missing for ordered items
 				if (deliveryMethodExists && processedDeliveryMethodCodenames) {
@@ -134,28 +134,28 @@ module.exports = {
 						if ( typeMissing ) {
 							deliveryMethodExists = false;
 							this.logger.error("order.checkOrderData() - delivery type missing");
-							this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
+							this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
 						}
 					} else {
 						deliveryMethodExists = false;
 						this.logger.error("order.checkOrderData() - delivery types not processed");
-						this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
+						this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
 					}
 				}
 
 				if (!deliveryMethodExists && !orderTypology.types.includes("subscription")) {
 					this.logger.error("order.checkOrderData() - delivery type not exist");
-					this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
+					this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
 				}
 			} else {
 				this.logger.error("order.checkOrderData() - delivery type not set");
-				this.settings.orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not set"});
+				this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not set"});
 			}
 
 			// check if payment type is set
-			if ( this.settings.orderTemp.data.paymentData && this.settings.orderTemp.data.paymentData.codename ) {
-				let paymentType = this.settings.orderTemp.data.paymentData.codename;
-				this.settings.orderTemp.data.paymentData = { "codename": paymentType };
+			if ( this.getOrderWork(ctx).orderTemp.data.paymentData && this.getOrderWork(ctx).orderTemp.data.paymentData.codename ) {
+				let paymentType = this.getOrderWork(ctx).orderTemp.data.paymentData.codename;
+				this.getOrderWork(ctx).orderTemp.data.paymentData = { "codename": paymentType };
 				let paymentMethodExists = false;
 				let selectedPaymentMethod = null;
 
@@ -165,24 +165,24 @@ module.exports = {
 						// payment method is valid - store its data for later
 						selectedPaymentMethod = paymentType;
 						// need to filter language later
-						self.settings.orderTemp.data.paymentData.name = shopPaymentType.name;
+						self.getOrderWork(ctx).orderTemp.data.paymentData.name = shopPaymentType.name;
 						self.logger.info("orders.checkOrderData() - shopPaymentType ITEMS LAST: ", shopPaymentType);
 						//--
-						if ( self.settings.orderTemp.prices.priceItems <= 0 ) {
-							self.countOrderPrices("items");
+						if ( self.getOrderWork(ctx).orderTemp.prices.priceItems <= 0 ) {
+							self.countOrderPrices("items", undefined, undefined, ctx);
 						}
 						shopPaymentType.prices.some(function(paymentPrice){
-							if ( self.settings.orderTemp.prices.priceItems>=paymentPrice.range.from && self.settings.orderTemp.prices.priceItems<paymentPrice.range.to ) {
+							if ( self.getOrderWork(ctx).orderTemp.prices.priceItems>=paymentPrice.range.from && self.getOrderWork(ctx).orderTemp.prices.priceItems<paymentPrice.range.to ) {
 								// have match set the payment price
-								self.settings.orderTemp.prices.pricePayment = paymentPrice.price;
+								self.getOrderWork(ctx).orderTemp.prices.pricePayment = paymentPrice.price;
 								let paymentProduct = {
 									price: paymentPrice.price,
 									tax: paymentPrice.tax
 								};
 								paymentProduct = self.getProductTaxData(paymentProduct, businessSettings.taxData.global);
-								self.settings.orderTemp.prices.pricePaymentTaxData = paymentProduct.taxData;
-								self.settings.orderTemp.data.paymentData.price = paymentPrice.price;
-								self.settings.orderTemp.data.paymentData.taxData = paymentProduct.taxData;
+								self.getOrderWork(ctx).orderTemp.prices.pricePaymentTaxData = paymentProduct.taxData;
+								self.getOrderWork(ctx).orderTemp.data.paymentData.price = paymentPrice.price;
+								self.getOrderWork(ctx).orderTemp.data.paymentData.taxData = paymentProduct.taxData;
 								return true;
 							}
 						});
@@ -198,21 +198,21 @@ module.exports = {
 					// if there are more product types in order and this one specific is there, this payment method cannot be used
 					if ( itemsTypology.subtypes.length>1 && itemsTypology.subtypes.indexOf(selectedPaymentMethod.type)>-1 ) {
 						paymentMethodExists = false;
-						this.settings.orderErrors.orderErrors.push({"value": "Payment type", "desc": "not valid"});
+						this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Payment type", "desc": "not valid"});
 					}
 				}
 
 				if (!paymentMethodExists) {
-					this.settings.orderErrors.orderErrors.push({"value": "Payment type", "desc": "not found"});
+					this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Payment type", "desc": "not found"});
 				}
 			} else {
-				this.settings.orderErrors.orderErrors.push({"value": "Payment type", "desc": "not set"});
+				this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Payment type", "desc": "not set"});
 			}
 
-			if ( this.settings.orderErrors.orderErrors.length>0 ) {
+			if ( this.getOrderWork(ctx).orderErrors.orderErrors.length>0 ) {
 				return false;
 			} else {
-				this.countOrderPrices("totals");
+				this.countOrderPrices("totals", undefined, this.getOrderWork(ctx).orderTemp, ctx);
 			}
 			return true;
 		},
@@ -221,18 +221,18 @@ module.exports = {
 		/**
 		 * Count cart items total price and order total prices
 		 */
-		countOrderPrices(calculate, specification, order) {
+		countOrderPrices(calculate, specification, order, ctx) {
 			this.logger.warn("orders.countOrderPrices() - PARAMS: ", calculate, specification, typeof order !== undefined);
 
 			const calcTypes = ["all", "items", "totals"];
 			calculate = (typeof calculate !== "undefined" && calcTypes.includes(calculate)) ?  calculate : "all";
 			specification = typeof specification === "undefined" ?  null : specification;
 
-			const businessSettings = SettingsMixin.getSiteSettings('business');
+			const businessSettings = SettingsMixin.getSiteSettings("business");
 			
 			let orderFromParam = true;
 			if ( typeof order == "undefined" ) {
-				order = this.settings.orderTemp;	
+				order = this.getOrderWork(ctx).orderTemp;	
 				orderFromParam = false;
 			}
 
@@ -352,7 +352,7 @@ module.exports = {
 			if (orderFromParam) {
 				return order;
 			} else {
-				this.settings.orderTemp = order;
+				this.getOrderWork(ctx).orderTemp = order;
 			}
 		},
 
@@ -360,12 +360,12 @@ module.exports = {
 		/**
 		 * Check if user confirmed order
 		 */
-		checkConfirmation() {
-			this.logger.info("orders.checkConfirmation:", { userConfirmation: this.settings.orderTemp.dates.userConfirmation, now: Date.now() } );
-			if ( this.settings.orderTemp.dates.userConfirmation && this.settings.orderTemp.dates.userConfirmation < Date.now() ) {
+		checkConfirmation(ctx) {
+			this.logger.info("orders.checkConfirmation:", { userConfirmation: this.getOrderWork(ctx).orderTemp.dates.userConfirmation, now: Date.now() } );
+			if ( this.getOrderWork(ctx).orderTemp.dates.userConfirmation && this.getOrderWork(ctx).orderTemp.dates.userConfirmation < Date.now() ) {
 				return true;
 			} else {
-				this.settings.orderErrors.orderErrors.push({"value": "Confirmation", "desc": "missing"});
+				this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Confirmation", "desc": "missing"});
 			}
 
 			return false;
@@ -375,26 +375,26 @@ module.exports = {
 		/**
 		 * Get Delivery and Payment settings
 		 */
-		getAvailableOrderSettings() {
-			if ( typeof this.settings.orderTemp.settings == "undefined" ) {
-				this.settings.orderTemp.settings = {};
+		getAvailableOrderSettings(ctx) {
+			if ( typeof this.getOrderWork(ctx).orderTemp.settings == "undefined" ) {
+				this.getOrderWork(ctx).orderTemp.settings = {};
 			}
-			this.getAvailableDeliveries();
-			this.getAvailablePayments();
+			this.getAvailableDeliveries(ctx);
+			this.getAvailablePayments(ctx);
 		},
 
 
 		/**
 		 * Loop available delivery types
 		 */
-		getAvailableDeliveries() {
+		getAvailableDeliveries(ctx) {
 			let self = this;
 			let usedProductTypes = [];
 
-			if (this.settings.orderTemp.items && this.settings.orderTemp.items.length>0) {
-				Object.keys(this.settings.orderTemp.items).forEach((itemKey) => { // loop items
-					if ( usedProductTypes.indexOf(self.settings.orderTemp.items[itemKey].subtype)<0 ) {
-						usedProductTypes.push( self.settings.orderTemp.items[itemKey].subtype );
+			if (this.getOrderWork(ctx).orderTemp.items && this.getOrderWork(ctx).orderTemp.items.length>0) {
+				Object.keys(this.getOrderWork(ctx).orderTemp.items).forEach((itemKey) => { // loop items
+					if ( usedProductTypes.indexOf(self.getOrderWork(ctx).orderTemp.items[itemKey].subtype)<0 ) {
+						usedProductTypes.push( self.getOrderWork(ctx).orderTemp.items[itemKey].subtype );
 					}
 				}); // loop items end
 			}
@@ -402,13 +402,13 @@ module.exports = {
 			this.logger.info("orders.getAvailableDeliveries() - orders.getAvailableDeliveries.usedProductTypes:", usedProductTypes);
 
 			if ( usedProductTypes.length>0 ) {
-				if ( typeof this.settings.orderTemp.settings == "undefined" ) {
-					this.settings.orderTemp.settings = {};
+				if ( typeof this.getOrderWork(ctx).orderTemp.settings == "undefined" ) {
+					this.getOrderWork(ctx).orderTemp.settings = {};
 				}
-				this.settings.orderTemp.settings.deliveryMethods = [];
+				this.getOrderWork(ctx).orderTemp.settings.deliveryMethods = [];
 				Object.keys(this.settings.order.deliveryMethods).forEach((deliveryKey) => { // loop deliveries
 					if ( usedProductTypes.indexOf(this.settings.order.deliveryMethods[deliveryKey].type)>-1  ) {
-						this.settings.orderTemp.settings.deliveryMethods.push( this.settings.order.deliveryMethods[deliveryKey] );
+						this.getOrderWork(ctx).orderTemp.settings.deliveryMethods.push( this.settings.order.deliveryMethods[deliveryKey] );
 					}
 				}); // loop deliveries end
 			}
@@ -418,16 +418,16 @@ module.exports = {
 		/**
 		 * Loop available payment types
 		 */
-		getAvailablePayments() {
-			if ( typeof this.settings.orderTemp.settings === "undefined" ) {
-				this.settings.orderTemp.settings = {};
+		getAvailablePayments(ctx) {
+			if ( typeof this.getOrderWork(ctx).orderTemp.settings === "undefined" ) {
+				this.getOrderWork(ctx).orderTemp.settings = {};
 			}
-			this.settings.orderTemp.settings.paymentMethods = this.settings.order.paymentMethods;
-			if (this.settings.orderTemp.data && this.settings.orderTemp.data.paymentData && 
-				this.settings.orderTemp.data.paymentData.codename && 
-				this.settings.orderTemp.data.paymentData.codename.indexOf("online_stripe") > -1
+			this.getOrderWork(ctx).orderTemp.settings.paymentMethods = this.settings.order.paymentMethods;
+			if (this.getOrderWork(ctx).orderTemp.data && this.getOrderWork(ctx).orderTemp.data.paymentData && 
+				this.getOrderWork(ctx).orderTemp.data.paymentData.codename && 
+				this.getOrderWork(ctx).orderTemp.data.paymentData.codename.indexOf("online_stripe") > -1
 			) {
-				this.settings.orderTemp.settings.stripeKey = process.env.STRIPE_PUBLISHABLE_KEY;
+				this.getOrderWork(ctx).orderTemp.settings.stripeKey = process.env.STRIPE_PUBLISHABLE_KEY;
 			}
 		}
 

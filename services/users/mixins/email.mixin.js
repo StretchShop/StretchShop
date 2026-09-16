@@ -223,13 +223,11 @@ module.exports = {
 
 				this.logger.info("users.verifyHash: ", {
 					email: email,
-					"dates.dateActivated": { "$exists": false },
 					"dates.dateLastVerify": { "$gt": oldDate }
 				});
 				return this.adapter.find({
 					query: {
 						email: email,
-						"dates.dateActivated": { "$exists": false },
 						"dates.dateLastVerify": { "$gt": oldDate }
 					}
 				})
@@ -248,20 +246,18 @@ module.exports = {
 									this.logger.info("users.verifyHash compared:", result);
 
 									if (result) {
-										// Write Date objects only — prepareForUpdate JSON-stringifies Dates
-										return this.adapter.updateById(found._id, {
-											"$set": { "dates.dateActivated": new Date() }
-										})
-											.then(doc => {
-												return this.transformDocuments(ctx, {}, doc);
-											})
-											.then(user => {
-												return this.transformEntity(user, true, ctx);
-											})
-											.then(json => {
-												return this.entityChanged("updated", json, ctx)
-													.then(() => json);
-											});
+										const finish = (doc) => this.transformDocuments(ctx, {}, doc)
+											.then(user => this.transformEntity(user, true, ctx))
+											.then(json => this.entityChanged("updated", json, ctx).then(() => json));
+
+										// Activation only when the account is not yet activated.
+										// Password-reset confirmation must not require deactivation.
+										if (!found.dates?.dateActivated) {
+											return this.adapter.updateById(found._id, {
+												"$set": { "dates.dateActivated": new Date() }
+											}).then(finish);
+										}
+										return finish(found);
 									} else {
 										return Promise.reject(new MoleculerClientError("Activation failed!", 422, "", [{ field: "activation", message: "failed" }]));
 									}
@@ -318,13 +314,14 @@ module.exports = {
 							// Targeted update with real Date objects.
 							// Do NOT use prepareForUpdate here — JSON.stringify turns Dates into
 							// strings, and verifyHash's Date $gt query then never matches.
+							// Do not deactivate the account; login must keep working until
+							// the owner confirms the reset email.
 							const update = {
 								"$set": {
 									"dates.dateUpdated": now,
 									"dates.dateLastVerify": now,
 									settings: found.settings
-								},
-								"$unset": { "dates.dateActivated": 1 }
+								}
 							};
 
 							return this.adapter.updateById(found._id, update)

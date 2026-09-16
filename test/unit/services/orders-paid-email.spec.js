@@ -9,11 +9,15 @@ describe("orders paid email invoice attachment", () => {
 		sendOrderPaidEmail: fulfillmentMethods.methods.sendOrderPaidEmail,
 	};
 
-	it("builds invoice paths under public + ASSETS_PATH", () => {
+	it("builds invoice paths outside the public static folder", () => {
 		const originalPublic = process.env.PATH_PUBLIC;
 		const originalAssets = process.env.ASSETS_PATH;
+		const originalInvoices = process.env.PATH_INVOICES;
+		const originalResources = process.env.PATH_RESOURCES;
 		process.env.PATH_PUBLIC = "./public";
 		process.env.ASSETS_PATH = "assets/_s";
+		process.env.PATH_INVOICES = "./data/invoices";
+		delete process.env.PATH_RESOURCES;
 
 		const paths = service.getInvoiceFilePaths({
 			user: { id: "user1" },
@@ -21,7 +25,8 @@ describe("orders paid email invoice attachment", () => {
 		});
 
 		expect(paths.sendPath).toBe("invoices/user1/5202608031.pdf");
-		expect(paths.pdfPath.replace(/\\/g, "/")).toMatch(/public\/assets\/_s\/invoices\/user1\/5202608031\.pdf$/);
+		expect(paths.pdfPath.replace(/\\/g, "/")).toMatch(/data\/invoices\/user1\/5202608031\.pdf$/);
+		expect(paths.pdfPath.replace(/\\/g, "/")).not.toMatch(/\/public\//);
 
 		if (originalPublic === undefined) {
 			delete process.env.PATH_PUBLIC;
@@ -32,6 +37,16 @@ describe("orders paid email invoice attachment", () => {
 			delete process.env.ASSETS_PATH;
 		} else {
 			process.env.ASSETS_PATH = originalAssets;
+		}
+		if (originalInvoices === undefined) {
+			delete process.env.PATH_INVOICES;
+		} else {
+			process.env.PATH_INVOICES = originalInvoices;
+		}
+		if (originalResources === undefined) {
+			delete process.env.PATH_RESOURCES;
+		} else {
+			process.env.PATH_RESOURCES = originalResources;
 		}
 	});
 

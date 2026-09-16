@@ -86,19 +86,19 @@ module.exports = {
 													found["minMaxPrice"] = minMaxPrice;
 													return found;
 												})
-												.catch(err => {
-													console.error('categories.detail - products.getMinMaxPrice error: ', err);
-													return this.Promise.reject(new MoleculerClientError("Category detail error", 422, "", []));
-												});
+													.catch(err => {
+														console.error("categories.detail - products.getMinMaxPrice error: ", err);
+														return this.Promise.reject(new MoleculerClientError("Category detail error", 422, "", []));
+													});
 											}
 										})
 										.catch(err => {
-											console.error('categories.detail - items count error: ', err);
+											console.error("categories.detail - items count error: ", err);
 											return this.Promise.reject(new MoleculerClientError("Category items count error", 422, "", []));
 										});
 								})
 								.catch(err => {
-									console.error('categories.detail - subcategories error: ', err);
+									console.error("categories.detail - subcategories error: ", err);
 									return this.Promise.reject(new MoleculerClientError("Category subcategories error", 422, "", []));
 								});
 						} else { // no category found
@@ -106,7 +106,7 @@ module.exports = {
 						}
 					})
 					.catch(err => {
-						console.error('categories.detail - categories.find error: ', err);
+						console.error("categories.detail - categories.find error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Category detail error", 422, "", []));
 					});
 			}

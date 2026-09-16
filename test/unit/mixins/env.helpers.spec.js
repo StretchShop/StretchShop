@@ -5,6 +5,8 @@ const {
 	getRequiredSecret,
 	useRedisCacher,
 	getCacherConfig,
+	getClientIp,
+	getCookieSameSite,
 } = require("../../../mixins/env.helpers");
 
 describe("env.helpers", () => {
@@ -109,5 +111,41 @@ describe("env.helpers", () => {
 		process.env.TRANSPORTER = "nats://nats-server:4222";
 		delete process.env.REDIS_URL;
 		expect(() => getCacherConfig()).toThrow("Missing required environment variable: REDIS_URL");
+	});
+
+	it("uses X-Real-IP or the last X-Forwarded-For hop when TRUST_PROXY is on", () => {
+		const originalTrust = process.env.TRUST_PROXY;
+		process.env.TRUST_PROXY = "true";
+		expect(getClientIp({
+			connection: { remoteAddress: "10.0.0.1" },
+			headers: { "x-forwarded-for": "1.1.1.1, 2.2.2.2", "x-real-ip": "9.9.9.9" },
+		})).toBe("9.9.9.9");
+		expect(getClientIp({
+			connection: { remoteAddress: "10.0.0.1" },
+			headers: { "x-forwarded-for": "1.1.1.1, 2.2.2.2" },
+		})).toBe("2.2.2.2");
+		process.env.TRUST_PROXY = "false";
+		expect(getClientIp({
+			connection: { remoteAddress: "10.0.0.1" },
+			headers: { "x-forwarded-for": "1.1.1.1", "x-real-ip": "9.9.9.9" },
+		})).toBe("10.0.0.1");
+		if (originalTrust === undefined) {
+			delete process.env.TRUST_PROXY;
+		} else {
+			process.env.TRUST_PROXY = originalTrust;
+		}
+	});
+
+	it("honors COOKIES_SAME_SITE without defaulting to None", () => {
+		const original = process.env.COOKIES_SAME_SITE;
+		process.env.COOKIES_SAME_SITE = "lax";
+		expect(getCookieSameSite()).toBe("lax");
+		delete process.env.COOKIES_SAME_SITE;
+		expect(getCookieSameSite()).toBe(true);
+		if (original === undefined) {
+			delete process.env.COOKIES_SAME_SITE;
+		} else {
+			process.env.COOKIES_SAME_SITE = original;
+		}
 	});
 });

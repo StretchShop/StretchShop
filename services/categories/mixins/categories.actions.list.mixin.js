@@ -38,7 +38,7 @@ module.exports = {
 									return categoryProducts;
 								})
 								.catch(err => {
-									console.error('categories.categoriesList error: ', err);
+									console.error("categories.categoriesList error: ", err);
 									return this.Promise.reject(new MoleculerClientError("Categories error", 422, "", []));
 								});
 						}
@@ -136,12 +136,12 @@ module.exports = {
 								return result;
 							})
 							.catch(err => {
-								console.error('categories.findWithContent pages.detail error: ', err);
+								console.error("categories.findWithContent pages.detail error: ", err);
 								return this.Promise.reject(new MoleculerClientError("Category page error", 422, "", []));
 							});
 					})
 					.catch(err => {
-						console.error('categories.categoriesList error: ', err);
+						console.error("categories.categoriesList error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Categories error", 422, "", []));
 					});
 			}

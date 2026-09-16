@@ -2,6 +2,8 @@
 
 const { MoleculerClientError } = require("moleculer").Errors;
 const { readdirSync, statSync, rmSync } = require("fs");
+const path = require("path");
+const { sanitizePathSegment, assertResolvedUnderRoot } = require("../../../mixins/path.security");
 
 module.exports = {
 	actions: {
@@ -24,7 +26,7 @@ module.exports = {
 					"query": queryObject
 				})
 					.catch(err => {
-						console.error('pages.findWithId find error: ', err);
+						console.error("pages.findWithId find error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Pages findI error", 422, "", []));
 					});
 			}
@@ -54,14 +56,14 @@ module.exports = {
 			handler(ctx) {
 				let lang = "en";
 				if (ctx.params.lang && ctx.params.lang.trim() != "") {
-					lang = ctx.params.lang;
+					lang = ctx.params.lang.trim();
 				}
 
 				const tv = this.getTemplateVars(lang, ctx.params.page);
 
 				return this.getPageDetail(ctx, tv)
 					.catch(err => {
-						this.logger.error('pages.detail error:', err);
+						this.logger.error("pages.detail error:", err);
 						return err;
 					});
 			}
@@ -123,7 +125,7 @@ module.exports = {
 										return self.importPageAction(ctx, entity, found);
 									})
 									.catch(err => {
-										console.error('pages.import find error: ', err);
+										console.error("pages.import find error: ", err);
 										return this.Promise.reject(new MoleculerClientError("Pages import find error", 422, "", []));
 									})); // push with find end
 						});
@@ -134,7 +136,7 @@ module.exports = {
 						return prom;
 					})
 						.catch(err => {
-							console.error('pages.import promises error: ', err);
+							console.error("pages.import promises error: ", err);
 							return this.Promise.reject(new MoleculerClientError("Pages import all error", 422, "", []));
 						});
 				} else { // not admin user
@@ -184,10 +186,17 @@ module.exports = {
 													const pageBaseDir = self.settings.paths.assets + "/" + process.env.ASSETS_PATH + "pages/";
 													self.logger.info("pages.delete - deleted page - before assets deleted for page slug: ", slug);
 													if (slug) {
-														const coverDir = pageBaseDir + "cover/" + slug;
-														rmSync(coverDir, { recursive: true, force: true });
-														const editorDir = pageBaseDir + "editor/" + slug;
-														rmSync(editorDir, { recursive: true, force: true });
+														try {
+															const safeSlug = sanitizePathSegment(slug);
+															const coverRoot = path.resolve(pageBaseDir, "cover");
+															const editorRoot = path.resolve(pageBaseDir, "editor");
+															const coverDir = assertResolvedUnderRoot(coverRoot, path.resolve(coverRoot, safeSlug));
+															const editorDir = assertResolvedUnderRoot(editorRoot, path.resolve(editorRoot, safeSlug));
+															rmSync(coverDir, { recursive: true, force: true });
+															rmSync(editorDir, { recursive: true, force: true });
+														} catch (pathErr) {
+															self.logger.warn("pages.delete - skip asset delete for unsafe slug: ", slug, pathErr);
+														}
 													}
 
 													// after call action
@@ -203,7 +212,7 @@ module.exports = {
 													return deletedCount;
 												})
 												.catch(err => {
-													self.logger.error('pages.delete remove error: ', err);
+													self.logger.error("pages.delete remove error: ", err);
 													return this.Promise.reject(new MoleculerClientError("Pages deleteR error", 422, "", []));
 												}); // returns number of removed items
 										} else {
@@ -211,7 +220,7 @@ module.exports = {
 										}
 									})
 									.catch(err => {
-										self.logger.error('pages.delete find error: ', err);
+										self.logger.error("pages.delete find error: ", err);
 										return this.Promise.reject(new MoleculerClientError("Pages delete find error", 422, "", []));
 									})); // push with find end
 						});
@@ -222,7 +231,7 @@ module.exports = {
 						return promises;
 					})
 						.catch(err => {
-							console.error('pages.delete promises error: ', err);
+							console.error("pages.delete promises error: ", err);
 							return this.Promise.reject(new MoleculerClientError("Pages delete all error", 422, "", []));
 						});
 				} else { // not admin user

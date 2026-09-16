@@ -94,6 +94,8 @@ describe("users auth actions", () => {
 		logger: { info() {}, warn() {}, error() {} },
 		Promise,
 		enforceRateLimit: jest.fn().mockResolvedValue(true),
+		recordRateLimitHit: jest.fn().mockResolvedValue(true),
+		resetRateLimit: jest.fn().mockResolvedValue(true),
 		validateEntity: jest.fn().mockResolvedValue(true),
 		sanitizeRegistrationUser: coreMethods.methods.sanitizeRegistrationUser,
 		adapter: {

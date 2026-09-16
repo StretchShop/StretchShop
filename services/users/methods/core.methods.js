@@ -21,8 +21,8 @@ module.exports = {
 
 		getCoreDataBase(ctx) {
 			let coreData = ctx.meta.localsDefault;
-			const businessSettings = SettingsMixin.getSiteSettings('business');
-			const bsi = SettingsMixin.getSiteSettings('business', true);
+			const businessSettings = SettingsMixin.getSiteSettings("business");
+			const bsi = SettingsMixin.getSiteSettings("business", true);
 
 			// set full lang
 			if (coreData.lang && coreData.langs) {
@@ -56,8 +56,8 @@ module.exports = {
 			}
 
 			coreData.navigation = {
-				main: SettingsMixin.getSiteSettings('navigation-main'),
-				footer: SettingsMixin.getSiteSettings('navigation-footer')
+				main: SettingsMixin.getSiteSettings("navigation-main"),
+				footer: SettingsMixin.getSiteSettings("navigation-footer")
 			};
 
 			// get lang from translLang if set
@@ -676,8 +676,8 @@ module.exports = {
 			const headers = ctx.meta.headers;
 			const cookies = ctx.meta.cookies;
 			// send session in coreData for special header - for mobile app
-			if (headers['resource-type'] && headers['resource-type'] === 'MAL') {
-				coreData.settings.additional['mal'] = cookies['session'];
+			if (headers["resource-type"] && headers["resource-type"] === "MAL") {
+				coreData.settings.additional["mal"] = cookies["session"];
 			}
 			return coreData;
 		}

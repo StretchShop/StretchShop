@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("fs-extra");
+const { MoleculerClientError } = require("moleculer").Errors;
 
 
 module.exports = {
@@ -188,7 +189,7 @@ module.exports = {
 		 * @returns Object
 		 */
 		prepareFilePathNameData(req, activePath, fields, files, property) {
-			const { sanitizeUploadFilename } = require("../../../mixins/path.security");
+			const { sanitizeUploadFilename, sanitizePathSegment, assertResolvedUnderRoot } = require("../../../mixins/path.security");
 			// formidable with multiples:true always wraps values in arrays
 			const uploaded = Array.isArray(files[property]) ? files[property][0] : files[property];
 			this.logger.info("api.parseUploadedFile() files-" + property + ": ", files[property], uploaded);
@@ -198,9 +199,14 @@ module.exports = {
 			let fileFrom = uploaded.filepath;
 			let copyBaseDir = req.$ctx.service.settings.assets.folder + "/" + process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
 			let urlBaseDir = process.env.ASSETS_PATH + this.stringReplaceParams(activePath.destination, req.$params);
-			let targetDir = activePath.stringToChunk;
+			let targetDir = String(activePath.stringToChunk || "");
+			if (targetDir.includes("/") || targetDir.includes("\\") || targetDir.includes("..")) {
+				throw new MoleculerClientError("Invalid file path", 400);
+			}
 			if (activePath.chunkSize > 0) {
-				targetDir = this.stringChunk(activePath.stringToChunk, activePath.chunkSize);
+				targetDir = this.stringChunk(targetDir, activePath.chunkSize);
+			} else {
+				targetDir = sanitizePathSegment(targetDir);
 			}
 			// set new filename — always sanitize; never trust client path segments
 			const originalName = uploaded.originalFilename || uploaded.name || "upload.jpg";
@@ -218,6 +224,7 @@ module.exports = {
 			// set result paths
 			let fileToSave = copyBaseDir + "/" + resultFullPath;
 			let fileToUrl = urlBaseDir + "/" + resultFullPath;
+			assertResolvedUnderRoot(copyBaseDir, fileToSave);
 			this.logger.info("api.parseuploadeFile() files-vars: ", fileFrom, fileToSave, fileToUrl, targetDir);
 
 			return {

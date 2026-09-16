@@ -81,7 +81,7 @@ module.exports = {
 		/** Validator schema for entity */
 		entityValidator: {
 			username: { type: "string", min: 2 },//, pattern: /^[a-zA-Z0-9]+$/ },
-			password: { type: "string", min: 6 },
+			password: { type: "string", min: 8, max: 72 },
 			email: { type: "email" },
 			type: { type: "string", optional: true },
 			subtype: { type: "string", optional: true },

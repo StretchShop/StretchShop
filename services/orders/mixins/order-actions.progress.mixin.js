@@ -16,6 +16,7 @@ module.exports = {
 				orderParams: { type: "object", optional: true },
 			},
 			handler(ctx) {
+				return this.withOrderWork(ctx, () => {
 				this.logger.info("order.progress - ctx.params: ", ctx.params);
 				ctx.params.orderParams = (typeof ctx.params.orderParams === "undefined" || !ctx.params.orderParams) ? {} : ctx.params.orderParams;
 				this.logger.info("order.progress - ctx.params.orderParams: ", ctx.params.orderParams);
@@ -45,6 +46,7 @@ module.exports = {
 						console.error("orders.progress cart.me error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Order cart error", 422, "", []));
 					}); // cart end
+				});
 			}
 		},
 
