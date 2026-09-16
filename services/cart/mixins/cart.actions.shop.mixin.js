@@ -289,7 +289,7 @@ module.exports = {
 						// update old cart according to new one, if property set, otherwise keep old
 						if (ctx.params.cartNew) {
 							for (let property in ctx.params.cartNew) {
-								if (Object.prototype.hasOwnProperty.call(cart, property) && Object.prototype.hasOwnProperty.call(ctx.params.cartNew, property)) {
+								if (Object.hasOwn(cart, property) && Object.hasOwn(ctx.params.cartNew, property)) {
 									cart[property] = ctx.params.cartNew[property];
 								}
 							}
