@@ -27,6 +27,7 @@ function createAuthService(extra = {}) {
 		sanitizeRegistrationUser: coreMethods.methods.sanitizeRegistrationUser,
 		superloginJWT: coreMethods.methods.superloginJWT,
 		restoreAdminSession: coreMethods.methods.restoreAdminSession,
+		bumpTokenVersion: coreMethods.methods.bumpTokenVersion,
 		adapter: {
 			findOne: jest.fn(),
 			insert: jest.fn(),
@@ -261,5 +262,81 @@ describe("users.resetPassword", () => {
 		expect(update.$set["dates.dateActivated"]).toBeUndefined();
 		expect(update.$set["dates.dateLastVerify"]).toBeInstanceOf(Date);
 		expect(service.sendVerificationEmail).toHaveBeenCalled();
+	});
+});
+
+describe("users.resolveToken and logout", () => {
+	it("rejects a JWT after tokenVersion is bumped", async () => {
+		const service = createAuthService();
+		const token = jwt.sign(
+			{ id: "u1", username: "jane", tv: 0, exp: Math.floor(Date.now() / 1000) + 3600 },
+			process.env.JWT_SECRET,
+			{ algorithm: "HS256" }
+		);
+		service.adapter.findById.mockResolvedValue({
+			_id: "u1",
+			dates: { dateActivated: new Date(Date.now() - 1000) },
+			security: { tokenVersion: 1 },
+		});
+		await expect(authMixin.actions.resolveToken.handler.call(service, {
+			params: { token },
+		})).rejects.toMatchObject({ code: 422 });
+	});
+
+	it("accepts a JWT whose tv matches the user document", async () => {
+		const service = createAuthService();
+		const token = jwt.sign(
+			{ id: "u1", username: "jane", tv: 2, exp: Math.floor(Date.now() / 1000) + 3600 },
+			process.env.JWT_SECRET,
+			{ algorithm: "HS256" }
+		);
+		service.adapter.findById.mockResolvedValue({
+			_id: "u1",
+			username: "jane",
+			dates: { dateActivated: new Date(Date.now() - 1000) },
+			security: { tokenVersion: 2 },
+		});
+		const found = await authMixin.actions.resolveToken.handler.call(service, {
+			params: { token },
+		});
+		expect(found.username).toBe("jane");
+	});
+
+	it("bumps tokenVersion on logout", async () => {
+		const service = createAuthService();
+		service.adapter.updateById.mockResolvedValue({});
+		service.adapter.findById.mockResolvedValue({ _id: "u1", security: { tokenVersion: 1 } });
+		const ctx = { meta: { user: { _id: "u1" }, cookies: { token: "old" } } };
+		await authMixin.actions.logout.handler.call(service, ctx);
+		expect(service.adapter.updateById).toHaveBeenCalledWith("u1", { $inc: { "security.tokenVersion": 1 } });
+		expect(ctx.meta.makeCookies.token.value).toBe("");
+	});
+
+	it("users.me refreshes JWT with the DB tokenVersion after security is stripped", async () => {
+		const service = createAuthService();
+		service.getById = jest.fn().mockResolvedValue({
+			_id: "u1",
+			username: "jane",
+			email: "jane@example.com",
+			dates: { dateActivated: new Date(Date.now() - 1000), dateUpdated: new Date() },
+			security: { tokenVersion: 3 },
+		});
+		service.transformDocuments = jest.fn((ctx, params, doc) => {
+			const { security, ...rest } = doc;
+			return Promise.resolve(rest);
+		});
+		const ctx = {
+			meta: {
+				user: { _id: "u1" },
+				cookies: {},
+				makeCookies: {},
+			},
+		};
+		const entity = await authMixin.actions.me.handler.call(service, ctx);
+		expect(ctx.meta.issuedTokenVersion).toBe(3);
+		expect(entity.user).toBeTruthy();
+		const issued = ctx.meta.makeCookies.token.value;
+		const decoded = jwt.verify(issued, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+		expect(decoded.tv).toBe(3);
 	});
 });

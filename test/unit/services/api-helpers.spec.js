@@ -213,6 +213,23 @@ describe("Test 'api' helper methods", () => {
 			expect(serviceApi.checkCsrfToken(ctx, req)).toBe(true);
 		});
 
+		it("accepts the raw csrf cookie value in Authorization", () => {
+			const tokenHash = "csrf-token-hash";
+			const session = jwt.sign(
+				{ ip: "127.0.0.1", issued: Date.now(), token: tokenHash },
+				serviceApi.settings.JWT_SECRET,
+				{ algorithm: "HS256" }
+			);
+			const ctx = {
+				meta: {
+					headers: { authorization: `Token ${tokenHash}` },
+					remoteAddress: "127.0.0.1",
+				},
+			};
+			const req = { headers: { cookie: `session=${session}; csrf=${tokenHash}` } };
+			expect(serviceApi.checkCsrfToken(ctx, req)).toBe(true);
+		});
+
 		it("rejects a session cookie signed with a different secret", () => {
 			const { session, authorization } = csrfPair({ secret: "forged-secret" });
 			const ctx = {

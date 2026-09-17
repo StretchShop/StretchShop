@@ -62,7 +62,26 @@ describe("users core methods", () => {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		expect(decoded.username).toBe("jane");
 		expect(decoded.actAs).toBe(true);
+		expect(decoded.tv).toBe(0);
 		expect(ctx.meta.makeCookies.token.value).toBe(token);
+	});
+
+	it("defaults to an 8-hour JWT and 60 days when remember is set", () => {
+		const ctx = { meta: {} };
+		const short = jwt.verify(
+			service.generateJWT({ _id: "u1", username: "jane" }, ctx),
+			process.env.JWT_SECRET
+		);
+		const now = Math.floor(Date.now() / 1000);
+		expect(short.exp).toBeGreaterThan(now + 7 * 3600);
+		expect(short.exp).toBeLessThan(now + 9 * 3600);
+
+		const long = jwt.verify(
+			service.generateJWT({ _id: "u1", username: "jane" }, { meta: {} }, { remember: true }),
+			process.env.JWT_SECRET
+		);
+		expect(long.exp).toBeGreaterThan(now + 59 * 24 * 3600);
+		expect(long.exp).toBeLessThan(now + 61 * 24 * 3600);
 	});
 
 	it("rejects impersonation of missing, inactive, or admin users", async () => {
