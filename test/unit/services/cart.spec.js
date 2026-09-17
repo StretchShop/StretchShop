@@ -16,6 +16,10 @@ describe("Test 'cart' service", () => {
 	let broker = createTestBroker();
 	const serviceCart = broker.createService(CartService, {});
 	const serviceProducts = broker.createService(ProductsService, {});
+	// Guest carts are keyed by cookie hash. Each broker.call() has a fresh ctx.meta,
+	// so tests must pass the same cookie or they operate on different carts (CI Mongo).
+	const cartCookie = `cart-spec-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+	const cartOpts = () => ({ meta: { cookies: { cart: cartCookie } } });
 
 	// add extensions
 	expect.extend({toBeOneOf});
@@ -25,7 +29,7 @@ describe("Test 'cart' service", () => {
 	beforeAll(async () => {
 		await broker.start();
 		await seedTestProduct(serviceProducts);
-		await broker.call("cart.delete");
+		await broker.call("cart.delete", {}, cartOpts());
 	});
 	afterAll(async () => {
 		await broker.stop();
@@ -43,7 +47,7 @@ describe("Test 'cart' service", () => {
 	describe("Test 'cart.me' action", () => {
 		it("should return Empty Cart", async () => {
 
-			await broker.call("cart.me")
+			await broker.call("cart.me", {}, cartOpts())
 			.then(res => {
 				expect(res).toMatchObject({
 		      _id: expect.any(String),
@@ -68,7 +72,7 @@ describe("Test 'cart' service", () => {
 			const res = await broker.call("cart.add", {
 				itemId: "5c8183d176feb5cd4f7573ff",
 				amount: 1
-			});
+			}, cartOpts());
 
 			expect(res).toMatchObject({
 	      _id: expect.any(String),
@@ -98,7 +102,7 @@ describe("Test 'cart' service", () => {
 			const res = await broker.call("cart.updateCartItemAmount", {
 				itemId: "5c8183d176feb5cd4f7573ff",
 				amount: 2
-			});
+			}, cartOpts());
 
 			expect(res).toMatchObject({
 	      _id: expect.any(String),
@@ -125,10 +129,10 @@ describe("Test 'cart' service", () => {
 	describe("Test 'cart.updateMyCart' action", () => {
 
 		it("should return Cart with order ID", async () => {
-			const res = await broker.call("cart.me")
+			const res = await broker.call("cart.me", {}, cartOpts())
 			.then(cart => {
 				cart.order = "ORDR1234567";
-				return broker.call("cart.updateMyCart", {cartNew: cart});
+				return broker.call("cart.updateMyCart", {cartNew: cart}, cartOpts());
 			});
 
 			expect(res).toMatchObject({
@@ -160,7 +164,7 @@ describe("Test 'cart' service", () => {
 			const res = await broker.call("cart.delete", {
 				itemId: "5c8183d176feb5cd4f7573ff",
 				amount: 1
-			});
+			}, cartOpts());
 
 			expect(res).toMatchObject({
 	      _id: expect.any(String),
@@ -185,7 +189,7 @@ describe("Test 'cart' service", () => {
 		it("should return Cart with empty array of items", async () => {
 			const res = await broker.call("cart.delete", {
 				itemId: "5c8183d176feb5cd4f7573ff"
-			});
+			}, cartOpts());
 
 			expect(res).toMatchObject({
 	      _id: expect.any(String),
