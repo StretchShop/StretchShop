@@ -37,6 +37,31 @@ module.exports = {
 			if (process.env.COOKIES_SAME_SITE) {
 				ctx.meta.makeCookies[name].options["sameSite"] = getCookieSameSite();
 			}
+			if (!ctx.meta.cookies) {
+				ctx.meta.cookies = {};
+			}
+			ctx.meta.cookies[name] = value;
+		},
+
+		setAppCookie(ctx, res, name, value, { httpOnly, cookieSecure, sameSite }) {
+			if (cookieSecure) {
+				this.setCookie(ctx, name, value, {
+					signed: true,
+					secure: true,
+					httpOnly,
+				});
+				return;
+			}
+			res.cookies.set(name, value, {
+				path: "/",
+				signed: true,
+				secure: false,
+				httpOnly,
+				sameSite,
+			});
+			if (!ctx.meta.cookies) {
+				ctx.meta.cookies = {};
+			}
 			ctx.meta.cookies[name] = value;
 		},
 
@@ -56,65 +81,57 @@ module.exports = {
 
 			const cookies = this.parseCookies(req.headers.cookie);
 			ctx.meta.cookies = cookies;
-			let cookieSecure = isCookiesSecure();
+			const cookieSecure = isCookiesSecure();
 			const sameSite = getCookieSameSite();
-			// CART cookie
+			// CART cookie — cryptographically random, not derived from IP or time
 			if (!cookies.cart) {
-				const name = "cart";
-				const hash = crypto.createHash("sha256");
-				const userCookieString = ctx.meta.remoteAddress + "--" + new Date().toISOString();
-				hash.update(userCookieString);
-				const value = hash.digest("hex");
-				//--
-				if (cookieSecure) {
-					this.setCookie(ctx, name, value, {
-						signed: true,
-						secure: true,
-						httpOnly: true
-					});
-				} else {
-					res.cookies.set(name, value, {
-						path: "/",
-						signed: true,
-						secure: false,
-						httpOnly: true,
-						sameSite,
-					});
-					ctx.meta.cookies[name] = value;
-				}
+				const value = crypto.randomBytes(32).toString("hex");
+				this.setAppCookie(ctx, res, "cart", value, {
+					httpOnly: true,
+					cookieSecure,
+					sameSite,
+				});
 			}
 
-			// CSRF cookie (intentionally readable by JS for double-submit Authorization header).
-			// Auth JWT remains HttpOnly; keep XSS surface minimal (sanitize HTML) and SameSite set.
+			// HttpOnly session JWT + readable csrf token for double-submit Authorization.
 			if (!cookies.session) {
 				const csrfDate = new Date();
-				const name = "session";
-				const hash = crypto.createHash("sha256");
 				const sessionCookieString = ctx.meta.remoteAddress + "--" + csrfDate.getTime() + "--" + bsKeys.invoiceData?.company?.name + "--" + crypto.randomBytes(20).toString("hex");
-				hash.update(sessionCookieString);
-				const hashValue = hash.digest("hex");
+				const hashValue = crypto.createHash("sha256").update(sessionCookieString).digest("hex");
 				const value = jwt.sign({
 					ip: ctx.meta.remoteAddress,
 					issued: csrfDate.getTime(),
 					token: hashValue
 				}, this.settings.JWT_SECRET);
-				//--
-				if (cookieSecure) {
-					this.setCookie(ctx, name, value, {
-						signed: true,
-						secure: true,
-						httpOnly: false
-					});
-				} else {
-					res.cookies.set(name, value, {
-						path: "/",
-						signed: true,
-						secure: false,
-						sameSite,
-						httpOnly: false,
-					});
+				this.setAppCookie(ctx, res, "session", value, {
+					httpOnly: true,
+					cookieSecure,
+					sameSite,
+				});
+				this.setAppCookie(ctx, res, "csrf", hashValue, {
+					httpOnly: false,
+					cookieSecure,
+					sameSite,
+				});
+			} else if (!cookies.csrf) {
+				// Upgrade existing non-HttpOnly session cookies and expose csrf once.
+				this.setAppCookie(ctx, res, "session", cookies.session, {
+					httpOnly: true,
+					cookieSecure,
+					sameSite,
+				});
+				try {
+					const cookieData = jwt.verify(cookies.session, this.settings.JWT_SECRET, { algorithms: ["HS256"] });
+					if (cookieData?.token) {
+						this.setAppCookie(ctx, res, "csrf", cookieData.token, {
+							httpOnly: false,
+							cookieSecure,
+							sameSite,
+						});
+					}
+				} catch {
+					this.logger.warn("CSRF bootstrap from session cookie failed");
 				}
-				ctx.meta.cookies[name] = value;
 			}
 		},
 
@@ -138,16 +155,21 @@ module.exports = {
 						this.logger.warn("CSRF session cookie verification failed");
 						return false;
 					}
+					const presented = token[1].trim();
+					if (cookieData?.token && presented === cookieData.token) {
+						return true;
+					}
+					if (cookies.csrf && presented === cookies.csrf && cookies.csrf === cookieData?.token) {
+						return true;
+					}
 					const verifyKey = ctx.meta.remoteAddress + "--" + cookieData?.issued;
 					try {
-						const decoded = jwt.verify(token[1].trim(), verifyKey, { algorithms: ["HS256"] });
-						if (decoded) {
-							if (decoded.token === cookieData?.token) {
-								return true;
-							}
-							this.logger.warn("CSRF token mismatch");
-							return false;
+						const decoded = jwt.verify(presented, verifyKey, { algorithms: ["HS256"] });
+						if (decoded?.token === cookieData?.token) {
+							return true;
 						}
+						this.logger.warn("CSRF token mismatch");
+						return false;
 					} catch (e) {
 						this.logger.warn("CSRF token verification failed");
 						return false;

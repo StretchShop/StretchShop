@@ -78,9 +78,14 @@ module.exports = {
 
 			} else if ( ctx.meta.user && ctx.meta.user._id && ctx.meta.user._id.toString().trim()!="" ) {
 				// regular user (registered & activated), logged in
-				user = ctx.meta.user;
-				user.id = user._id;
-				delete user._id;
+				// Clone into order.user shape — never mutate ctx.meta.user (auth identity).
+				user = {
+					id: ctx.meta.user._id,
+					externalId: ctx.meta.user.externalId || null,
+					username: ctx.meta.user.username || null,
+					email: ctx.meta.user.email || null,
+					addresses: ctx.meta.user.addresses || null
+				};
 				this.logger.info("orders.checkUserData() CUD - #5 regular registered & activated user");
 			}
 
@@ -182,11 +187,18 @@ module.exports = {
 			}
 
 			if ( ctx.meta.user?._id && ctx.meta.user._id.toString().trim()!="" ) {
-				// user logged in
+				// user logged in — snapshot into order.user shape; keep ctx.meta.user intact
 				self.logger.info("orders.manageUser() #1");
 				return new Promise(function(resolve) {
-					self.getOrderWork(ctx).orderTemp.user = ctx.meta.user;
-					ctx.params.orderParams["user"] = ctx.meta.user;
+					const orderUser = {
+						id: ctx.meta.user._id,
+						externalId: ctx.meta.user.externalId || null,
+						username: ctx.meta.user.username || null,
+						email: ctx.meta.user.email || null,
+						addresses: ctx.meta.user.addresses || null
+					};
+					self.getOrderWork(ctx).orderTemp.user = orderUser;
+					ctx.params.orderParams["user"] = orderUser;
 					resolve(ctx);
 				})
 					.then( (oldCtx) => {

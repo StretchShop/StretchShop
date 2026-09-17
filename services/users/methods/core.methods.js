@@ -95,6 +95,20 @@ module.exports = {
 
 
 		/**
+		 * Bump JWT tokenVersion so previously issued tokens fail resolveToken.
+		 * @param {string} userId
+		 * @returns {Promise<number>} new version
+		 */
+		bumpTokenVersion(userId) {
+			if (!userId) {
+				return this.Promise.resolve(0);
+			}
+			return this.adapter.updateById(userId, { $inc: { "security.tokenVersion": 1 } })
+				.then(() => this.adapter.findById(userId))
+				.then((found) => found?.security?.tokenVersion ?? 1);
+		},
+
+		/**
 		 * Generate a JWT token from user entity
 		 *
 		 * @param {Object} user
@@ -102,15 +116,19 @@ module.exports = {
 		 * @param {Object} [options]
 		 * @param {boolean} [options.actAs] - impersonation session
 		 * @param {string} [options.adminId] - real admin id when actAs
-		 * @param {number} [options.expiresInHours] - override lifetime (default 60 days)
+		 * @param {number} [options.expiresInHours] - override lifetime (default 8 hours)
+		 * @param {boolean} [options.remember] - 60-day lifetime
+		 * @param {number} [options.tokenVersion]
 		 */
 		generateJWT(user, ctx, options = {}) {
 			const today = new Date();
 			const exp = new Date(today);
 			if (options.expiresInHours && options.expiresInHours > 0) {
 				exp.setTime(today.getTime() + options.expiresInHours * 60 * 60 * 1000);
-			} else {
+			} else if (options.remember === true) {
 				exp.setDate(today.getDate() + 60);
+			} else {
+				exp.setTime(today.getTime() + 8 * 60 * 60 * 1000);
 			}
 
 			// cover the case all cookies are missing
@@ -118,10 +136,13 @@ module.exports = {
 				ctx.meta.cookies = {};
 			}
 
+			const tokenVersion = options.tokenVersion ?? user.security?.tokenVersion ?? ctx.meta?.issuedTokenVersion ?? 0;
+
 			const payload = {
 				id: user._id,
 				username: user.username,
-				exp: Math.floor(exp.getTime() / 1000)
+				exp: Math.floor(exp.getTime() / 1000),
+				tv: tokenVersion,
 			};
 			if (options.actAs && options.adminId) {
 				payload.actAs = true;
@@ -416,6 +437,26 @@ module.exports = {
 							user.superadmined = true;
 						}
 					}
+					if (ctx.params?.remember === true) {
+						opts.remember = true;
+					}
+					// Prefer DB tv, then login/me meta, then tv already on the current JWT
+					// (users.me refreshes tokens after transformDocuments strips `security`).
+					let tokenVersion = user.security?.tokenVersion ?? ctx.meta.issuedTokenVersion;
+					if (tokenVersion === undefined || tokenVersion === null) {
+						const existingToken = ctx.meta.token || ctx.meta.cookies?.token;
+						if (existingToken) {
+							try {
+								const decoded = jwt.verify(existingToken, this.settings.JWT_SECRET, { algorithms: ["HS256"] });
+								tokenVersion = decoded.tv ?? 0;
+							} catch {
+								tokenVersion = 0;
+							}
+						} else {
+							tokenVersion = 0;
+						}
+					}
+					opts.tokenVersion = tokenVersion;
 					ctx.meta.token = this.generateJWT(user, ctx, opts);
 				}
 			}
