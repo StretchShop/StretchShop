@@ -169,6 +169,7 @@ module.exports = {
 						if ( !user.dates.dateActivated || user.dates.dateActivated.toString().trim()=="" || user.dates.dateActivated>new Date() ) {
 							return this.Promise.reject(new MoleculerClientError("User not activated", 422, "", [{ field: "email", message: "not activated"}]));
 						}
+						ctx.meta.issuedTokenVersion = user.security?.tokenVersion ?? 0;
 						return bcrypt.compare(password, user.password).then(res => {
 							if (!res) {
 								return Promise.reject(new MoleculerClientError("Wrong password!", 422, "", [{ field: "email", message: "wrong credentials"}]));
@@ -270,28 +271,35 @@ module.exports = {
 
 		logout: {
 			handler(ctx) {
-				ctx.meta.user = null;
-				ctx.meta.token = null;
-				ctx.meta.userID = null;
-				if (ctx.meta.cookies?.["token"]) {
-					delete ctx.meta.cookies["token"];
-				}
-				if (!ctx.meta.makeCookies) {
-					ctx.meta.makeCookies = {};
-				}
-				const clearOpts = {
-					path: "/",
-					signed: true,
-					expires: new Date(0),
-					secure: require("../../../mixins/env.helpers").isCookiesSecure(),
-					httpOnly: true
+				const clearAuthCookies = () => {
+					ctx.meta.user = null;
+					ctx.meta.token = null;
+					ctx.meta.userID = null;
+					if (ctx.meta.cookies?.["token"]) {
+						delete ctx.meta.cookies["token"];
+					}
+					if (!ctx.meta.makeCookies) {
+						ctx.meta.makeCookies = {};
+					}
+					const clearOpts = {
+						path: "/",
+						signed: true,
+						expires: new Date(0),
+						secure: require("../../../mixins/env.helpers").isCookiesSecure(),
+						httpOnly: true
+					};
+					if (process.env.COOKIES_SAME_SITE) {
+						clearOpts.sameSite = process.env.COOKIES_SAME_SITE;
+					}
+					ctx.meta.makeCookies["token"] = { value: "", options: clearOpts };
+					ctx.meta.makeCookies["admin_token"] = { value: "", options: { ...clearOpts } };
+					return true;
 				};
-				if (process.env.COOKIES_SAME_SITE) {
-					clearOpts.sameSite = process.env.COOKIES_SAME_SITE;
+				const userId = ctx.meta.user?._id;
+				if (!userId || typeof this.bumpTokenVersion !== "function") {
+					return clearAuthCookies();
 				}
-				ctx.meta.makeCookies["token"] = { value: "", options: clearOpts };
-				ctx.meta.makeCookies["admin_token"] = { value: "", options: { ...clearOpts } };
-				return true;
+				return this.bumpTokenVersion(userId).then(clearAuthCookies);
 			}
 		},
 
@@ -305,10 +313,7 @@ module.exports = {
 		 * @returns {Object} Resolved user
 		 */
 		resolveToken: {
-			cache: {
-				keys: ["token"],
-				ttl: 60 * 60 // 1 hour
-			},
+			cache: false,
 			params: {
 				token: "string"
 			},
@@ -328,6 +333,10 @@ module.exports = {
 							return this.adapter.findById(decoded.id)
 								.then(found => {
 									if (found?.dates?.dateActivated && (new Date(found.dates.dateActivated).getTime() < Date.now()) ) {
+										const currentTv = found.security?.tokenVersion ?? 0;
+										if ((decoded.tv ?? 0) !== currentTv) {
+											return this.Promise.reject(new MoleculerClientError("Invalid token", 422, "", []));
+										}
 										if (decoded.actAs) {
 											found.actAs = true;
 											found.adminId = decoded.adminId ? String(decoded.adminId) : undefined;
@@ -366,6 +375,9 @@ module.exports = {
 							if (!user) {
 								return this.Promise.reject(new MoleculerClientError("User not found!", 400));
 							}
+							// security is stripped by transformDocuments (not in service fields).
+							// Preserve tv so the refreshed JWT still matches resolveToken.
+							ctx.meta.issuedTokenVersion = user.security?.tokenVersion ?? 0;
 							return this.transformDocuments(ctx, {}, user);
 						})
 						.then(user => {

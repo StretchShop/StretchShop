@@ -26,6 +26,7 @@ module.exports = {
 				const newData = ctx.params.user;
 				let loggedUser = ctx.meta.user;
 				const isAdmin = loggedUser?.type === "admin";
+				let passwordChanged = false;
 				// Fields a normal user may update on their own profile
 				const SELF_ALLOWED = new Set([
 					"username", "email", "password", "addresses", "company",
@@ -114,6 +115,7 @@ module.exports = {
 									if (typeof newData["password"] !== "undefined") {
 										assertPasswordPolicy(newData["password"]);
 										newData["password"] = bcrypt.hashSync(newData["password"], 10);
+										passwordChanged = true;
 									}
 									// loop found object, update it with new data
 									for (let property in newData) {
@@ -156,6 +158,15 @@ module.exports = {
 									return this.adapter.updateById(findId, this.prepareForUpdate(found));
 								})
 								.then(user => {
+									if (passwordChanged) {
+										return this.bumpTokenVersion(findId).then((tv) => {
+											ctx.meta.issuedTokenVersion = tv;
+											return user;
+										});
+									}
+									return user;
+								})
+								.then(user => {
 									// get used usertypes and add new pricesLevel if needed
 									return this.adapter.collection.distinct("type")
 										.then(types => {
@@ -169,7 +180,7 @@ module.exports = {
 						return Promise.reject(new MoleculerClientError("User not valid", 422, "", [{ field: "user", message: "invalid" }]));
 					})
 					.then(doc => this.transformDocuments(ctx, {}, doc))
-					.then(user => this.transformEntity(user, false, ctx))
+					.then(user => this.transformEntity(user, passwordChanged, ctx))
 					.then(json => this.entityChanged("updated", json, ctx)
 						.then(() => json))
 					.catch(err => {

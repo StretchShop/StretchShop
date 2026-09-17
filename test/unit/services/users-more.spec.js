@@ -20,6 +20,7 @@ function createUserService(extra = {}) {
 		prepareForUpdate: coreMethods.methods.prepareForUpdate,
 		buildHashSourceFromEntity: coreMethods.methods.buildHashSourceFromEntity,
 		specialValuesFromContext: coreMethods.methods.specialValuesFromContext,
+		bumpTokenVersion: coreMethods.methods.bumpTokenVersion,
 		transformDocuments: jest.fn((ctx, params, doc) => doc),
 		entityChanged: jest.fn().mockResolvedValue(true),
 		adapter: {
@@ -167,6 +168,31 @@ describe("users.profile actions", () => {
 		expect(saved.restrictions).toEqual(["PUT /products"]);
 		expect(saved.data.contentDependencies).toEqual({ list: ["PAID"] });
 		expect(saved.bio).toBe("hi");
+	});
+
+	it("bumps tokenVersion when the password changes", async () => {
+		const found = {
+			_id: "u1",
+			type: "user",
+			username: "jane",
+			password: "oldhash",
+			dates: {},
+		};
+		const service = createUserService();
+		service.userCanUpdate = () => true;
+		service.bumpTokenVersion = jest.fn().mockResolvedValue(4);
+		service.adapter.findById.mockResolvedValue(found);
+		service.adapter.updateById.mockImplementation((id, update) => Promise.resolve({ _id: id, username: "jane", ...update.$set }));
+		const ctx = {
+			meta: { user: { _id: "u1", type: "user" }, cookies: {} },
+			params: {
+				user: { password: "secret12" },
+			},
+		};
+		await profileMixin.actions.updateUser.handler.call(service, ctx);
+		expect(service.bumpTokenVersion).toHaveBeenCalledWith("u1");
+		expect(ctx.meta.issuedTokenVersion).toBe(4);
+		expect(ctx.meta.token).toEqual(expect.any(String));
 	});
 
 	it("ignores restrictions even when an admin saves their own profile", async () => {

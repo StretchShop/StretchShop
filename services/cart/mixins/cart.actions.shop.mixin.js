@@ -24,6 +24,9 @@ module.exports = {
 			},
 			handler(ctx) {
 				if (ctx.meta?.cart) {
+					if (!this.cartAccessible(ctx.meta.cart, ctx)) {
+						return this.replaceInaccessibleCart(ctx);
+					}
 					return ctx.meta.cart;
 				}
 
@@ -42,6 +45,18 @@ module.exports = {
 								if (found && found.length > 0) {
 									found = found[0];
 								}
+								if (!this.cartAccessible(found, ctx)) {
+									return this.replaceInaccessibleCart(ctx);
+								}
+								const requestUser = this.requestUserId(ctx);
+								if (requestUser && !this.cartOwnerId(found)) {
+									found.user = requestUser;
+									return this.adapter.updateById(found._id, { $set: { user: requestUser } })
+										.then(() => {
+											ctx.meta.cart = found;
+											return ctx.meta.cart;
+										});
+								}
 								ctx.meta.cart = found;
 								return ctx.meta.cart;
 							} else { // no cart found in datasource, create one
@@ -49,6 +64,9 @@ module.exports = {
 							}
 						})
 						.catch(err => {
+							if (err instanceof MoleculerClientError) {
+								return this.Promise.reject(err);
+							}
 							this.logger.error("cart.me - error: ", err);
 						});
 				}

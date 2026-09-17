@@ -51,7 +51,67 @@ describe("api cookies and authenticate", () => {
 
 		service.cookiesManagement(ctx, {}, req, res);
 		expect(ctx.meta.cookies.cart).toEqual(expect.any(String));
+		expect(ctx.meta.cookies.cart).toMatch(/^[a-f0-9]{64}$/);
 		expect(ctx.meta.cookies.session).toEqual(expect.any(String));
+		expect(ctx.meta.cookies.csrf).toEqual(expect.any(String));
+	});
+
+	it("does not derive the cart cookie from IP and time", () => {
+		jest.spyOn(SettingsMixin, "getSiteSettings").mockReturnValue({
+			invoiceData: { company: { name: "StretchShop" } },
+		});
+		const service = createService();
+		const ctx = { meta: { remoteAddress: "10.0.0.8", cookies: {} } };
+		const req = { headers: { cookie: "" }, connection: { encrypted: false } };
+		const res = createRes();
+		const before = new Date().toISOString();
+		service.cookiesManagement(ctx, {}, req, res);
+		const after = new Date().toISOString();
+		const crypto = require("node:crypto");
+		const hashedBefore = crypto.createHash("sha256").update("10.0.0.8--" + before).digest("hex");
+		const hashedAfter = crypto.createHash("sha256").update("10.0.0.8--" + after).digest("hex");
+		expect(ctx.meta.cookies.cart).not.toBe(hashedBefore);
+		expect(ctx.meta.cookies.cart).not.toBe(hashedAfter);
+	});
+
+	it("issues distinct cart cookies for sequential guests", () => {
+		jest.spyOn(SettingsMixin, "getSiteSettings").mockReturnValue({
+			invoiceData: { company: { name: "StretchShop" } },
+		});
+		const service = createService();
+		const req = { headers: { cookie: "" }, connection: { encrypted: false } };
+		const ctxA = { meta: { remoteAddress: "10.0.0.8", cookies: {} } };
+		const ctxB = { meta: { remoteAddress: "10.0.0.8", cookies: {} } };
+		service.cookiesManagement(ctxA, {}, req, createRes());
+		service.cookiesManagement(ctxB, {}, req, createRes());
+		expect(ctxA.meta.cookies.cart).not.toBe(ctxB.meta.cookies.cart);
+	});
+
+	it("sets session HttpOnly and csrf readable when cookies are secure", () => {
+		const originalSecure = process.env.COOKIES_SECURE;
+		const originalSameSite = process.env.COOKIES_SAME_SITE;
+		process.env.COOKIES_SECURE = "true";
+		process.env.COOKIES_SAME_SITE = "lax";
+		jest.spyOn(SettingsMixin, "getSiteSettings").mockReturnValue({
+			invoiceData: { company: { name: "StretchShop" } },
+		});
+		const service = createService();
+		const ctx = { meta: { remoteAddress: "127.0.0.1", cookies: {}, makeCookies: {} } };
+		const req = { headers: { cookie: "" }, connection: { encrypted: true } };
+		service.cookiesManagement(ctx, {}, req, createRes());
+		expect(ctx.meta.makeCookies.session.options.httpOnly).toBe(true);
+		expect(ctx.meta.makeCookies.csrf.options.httpOnly).toBe(false);
+		expect(ctx.meta.cookies.csrf).toEqual(expect.any(String));
+		if (originalSecure === undefined) {
+			delete process.env.COOKIES_SECURE;
+		} else {
+			process.env.COOKIES_SECURE = originalSecure;
+		}
+		if (originalSameSite === undefined) {
+			delete process.env.COOKIES_SAME_SITE;
+		} else {
+			process.env.COOKIES_SAME_SITE = originalSameSite;
+		}
 	});
 
 	it("honors COOKIES_SAME_SITE instead of forcing None when cookies are secure", () => {
