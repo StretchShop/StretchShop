@@ -12,6 +12,7 @@ const HelpersMixin = require("../../mixins/helpers.mixin");
 const SettingsMixin = require("../../mixins/settings.mixin");
 const { MoleculerClientError } = require("moleculer").Errors;
 const { getRequiredSecret, isProduction } = require("../../mixins/env.helpers");
+const { applyBaselineSecurityHeaders } = require("../../mixins/security.headers");
 
 // methods
 const ApiMethodsCore = require("./methods/core.methods");
@@ -131,17 +132,10 @@ module.exports = {
 
 		port: process.env.PORT || 3000,
 
-		// Baseline security headers for all API responses
+		// Baseline security headers for all API / SPA responses (finding 7.22)
 		use: [
 			function securityHeaders(req, res, next) {
-				res.setHeader("X-Content-Type-Options", "nosniff");
-				res.setHeader("X-Frame-Options", "DENY");
-				res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-				res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
-				res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-				if (process.env.COOKIES_SECURE === "true") {
-					res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-				}
+				applyBaselineSecurityHeaders(res);
 				if (typeof next === "function") {
 					next();
 				}

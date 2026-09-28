@@ -80,6 +80,9 @@ module.exports = {
 					"Content-Security-Policy": openApiUiCsp(nonce),
 					"X-Content-Type-Options": "nosniff",
 					"Referrer-Policy": "no-referrer",
+					"Cross-Origin-Opener-Policy": "same-origin",
+					"Cross-Origin-Resource-Policy": "same-origin",
+					"X-Frame-Options": "DENY",
 				};
 				return renderOpenApiUiHtml({
 					specUrl: resolved.url,

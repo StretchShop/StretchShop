@@ -708,6 +708,57 @@ describe("openapi.ui action", () => {
 		expect(html).toContain("/openapi/openapi.json");
 		expect(html).not.toContain(xssUrl);
 		expect(ctx.meta.$responseHeaders["Content-Security-Policy"]).toMatch(/nonce-/);
+		expect(ctx.meta.$responseHeaders["Cross-Origin-Opener-Policy"]).toBe("same-origin");
+		expect(ctx.meta.$responseHeaders["Cross-Origin-Resource-Policy"]).toBe("same-origin");
+	});
+});
+
+describe("security.headers", () => {
+	const {
+		shopContentSecurityPolicy,
+		applyBaselineSecurityHeaders,
+	} = require("../../../mixins/security.headers");
+
+	it("builds a CSP with script-src, object-src, and base-uri beyond frame-ancestors", () => {
+		const csp = shopContentSecurityPolicy();
+		expect(csp).toMatch(/script-src/);
+		expect(csp).toMatch(/object-src 'none'/);
+		expect(csp).toMatch(/base-uri 'none'/);
+		expect(csp).toMatch(/frame-ancestors 'none'/);
+		expect(csp).toMatch(/https:\/\/js\.stripe\.com/);
+	});
+
+	it("sets COOP and CORP and leaves COEP off by default", () => {
+		const headers = {};
+		const res = {
+			setHeader(name, value) {
+				headers[name] = value;
+			},
+		};
+		const originalCoep = process.env.COEP_REQUIRE_CORP;
+		delete process.env.COEP_REQUIRE_CORP;
+		applyBaselineSecurityHeaders(res, { cookiesSecure: false, coepRequireCorp: false });
+		expect(headers["Content-Security-Policy"]).toMatch(/script-src/);
+		expect(headers["Cross-Origin-Opener-Policy"]).toBe("same-origin");
+		expect(headers["Cross-Origin-Resource-Policy"]).toBe("same-origin");
+		expect(headers["Cross-Origin-Embedder-Policy"]).toBeUndefined();
+		expect(headers["X-Frame-Options"]).toBe("DENY");
+		if (originalCoep === undefined) {
+			delete process.env.COEP_REQUIRE_CORP;
+		} else {
+			process.env.COEP_REQUIRE_CORP = originalCoep;
+		}
+	});
+
+	it("enables COEP only when requested", () => {
+		const headers = {};
+		const res = {
+			setHeader(name, value) {
+				headers[name] = value;
+			},
+		};
+		applyBaselineSecurityHeaders(res, { coepRequireCorp: true });
+		expect(headers["Cross-Origin-Embedder-Policy"]).toBe("require-corp");
 	});
 });
 
