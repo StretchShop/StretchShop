@@ -148,7 +148,14 @@ module.exports = {
 						if (templates.txt) {
 							mailOptions.text = templates.txt;
 						}
-						this.logger.info("users.sendEmail - Trying to send email with these options:", mailOptions);
+						const loggedOptions = { ...mailOptions };
+						if (loggedOptions.html) {
+							loggedOptions.html = "[redacted]";
+						}
+						if (loggedOptions.text) {
+							loggedOptions.text = "[redacted]";
+						}
+						this.logger.info("users.sendEmail - Trying to send email with these options:", loggedOptions);
 
 						let emailSentResponse = new Promise(function (resolve, reject) {
 							transporter.sendMail(mailOptions, (error, info) => {

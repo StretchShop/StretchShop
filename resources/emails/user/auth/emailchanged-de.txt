@@ -1,0 +1,8 @@
+Guten Tag {{username}},
+
+Die Anmelde-E-Mail Ihres Administratorkontos wurde geändert.
+
+Bisherige E-Mail: {{old_email}}
+Neue E-Mail: {{new_email}}
+
+Wenn Sie diese Änderung nicht vorgenommen haben, kontaktieren Sie uns unter {{support_email}}.

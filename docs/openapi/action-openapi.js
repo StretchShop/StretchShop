@@ -176,7 +176,7 @@ module.exports = {
     },
     "login": {
       "summary": "Login user",
-      "description": "Send user credentials to login\n",
+      "description": "Send user credentials to login. Customer accounts receive a session. Administrator accounts do not: the response is { mfaRequired: true, challengeId } and the session is issued only by users.loginMfa after the email code is accepted.\n",
       "operationId": "userLogin",
       "tags": [
         "visitor"
@@ -220,6 +220,66 @@ module.exports = {
         },
         "400": {
           "description": "out of service"
+        }
+      },
+      "security": [
+        {
+          "CsrfHeader": []
+        }
+      ]
+    },
+    "loginMfa": {
+      "summary": "Confirm administrator sign-in code",
+      "description": "Second step for administrator login. Accepts the challengeId from users.login and the 6-digit code emailed to the account address. On success, issues the same session cookie as a customer login.",
+      "operationId": "userLoginMfa",
+      "tags": [
+        "visitor"
+      ],
+      "responses": {
+        "200": {
+          "description": "Administrator session created",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserScheme"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Invalid or expired code"
+        }
+      },
+      "security": [
+        {
+          "CsrfHeader": []
+        }
+      ]
+    },
+    "loginMfaResend": {
+      "summary": "Resend administrator sign-in code",
+      "description": "Sends a new code for an open administrator login challenge. Rejects when the previous code was sent less than 60 seconds ago, or after 5 sends.",
+      "operationId": "userLoginMfaResend",
+      "tags": [
+        "visitor"
+      ],
+      "responses": {
+        "200": {
+          "description": "A new code was sent",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mfaRequired": { "type": "boolean" },
+                  "challengeId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Challenge expired, or resend is cooling down"
         }
       },
       "security": [

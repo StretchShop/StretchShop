@@ -20,7 +20,8 @@ module.exports = {
 		updateUser: {
 			auth: "required",
 			params: {
-				user: { type: "object" }
+				user: { type: "object" },
+				currentPassword: { type: "string", optional: true, min: 1 }
 			},
 			handler(ctx) {
 				const newData = ctx.params.user;
@@ -33,7 +34,7 @@ module.exports = {
 					"settings", "bio", "image"
 				]);
 				// Never accept these from the profile endpoint (including self-admin)
-				const PRIVILEGED_FIELDS = ["type", "subtype", "_id", "id", "dates", "ip", "superadmined", "restrictions"];
+				const PRIVILEGED_FIELDS = ["type", "subtype", "_id", "id", "dates", "ip", "superadmined", "restrictions", "security"];
 
 				// admin can update other users, his actions are logged
 				// common users can update only themself according to authentication
@@ -41,6 +42,8 @@ module.exports = {
 				return this.Promise.resolve()
 					.then(() => {
 						delete newData.restrictions;
+						delete newData.security;
+						delete newData.currentPassword;
 						if (newData.data && typeof newData.data === "object") {
 							delete newData.data.contentDependencies;
 						}
@@ -112,50 +115,88 @@ module.exports = {
 							}
 							return this.adapter.findById(findId)
 								.then(found => {
-									if (typeof newData["password"] !== "undefined") {
-										assertPasswordPolicy(newData["password"]);
-										newData["password"] = bcrypt.hashSync(newData["password"], 10);
-										passwordChanged = true;
+									if (!found) {
+										return Promise.reject(new MoleculerClientError("User not valid", 422, "", [{ field: "user", message: "invalid" }]));
 									}
-									// loop found object, update it with new data
-									for (let property in newData) {
-										// _id/id select the target user; never write them onto the document
-										if (property === "_id" || property === "id" || property === "restrictions") {
-											continue;
+									const emailChanging = typeof newData.email === "string" && newData.email !== found.email;
+									const oldEmail = found.email;
+									const adminEmailChange = emailChanging && found.type === "admin";
+									let passwordCheck = Promise.resolve();
+									if (adminEmailChange) {
+										const currentPassword = ctx.params.currentPassword;
+										if (!currentPassword || String(currentPassword).trim() === "") {
+											return Promise.reject(new MoleculerClientError("Current password is required", 422, "", [{ field: "currentPassword", message: "is empty" }]));
 										}
-										if (PRIVILEGED_FIELDS.includes(property) && property !== "type" && property !== "subtype") {
-											continue;
-										}
-										if (!isAdmin && PRIVILEGED_FIELDS.includes(property)) {
-											continue;
-										}
-										// non-admins: only allowlisted fields (already stripped, keep as belt-and-suspenders)
-										if (!isAdmin && !SELF_ALLOWED.has(property)) {
-											continue;
-										}
-										if (property === "data") {
-											const preserved = found.data?.contentDependencies;
-											const incoming = (newData.data && typeof newData.data === "object") ? { ...newData.data } : {};
-											delete incoming.contentDependencies;
-											found.data = { ...(found.data || {}), ...incoming };
-											if (preserved) {
-												found.data.contentDependencies = preserved;
-											} else {
-												delete found.data.contentDependencies;
+										const actorId = loggedUser._id;
+										const actorPromise = String(actorId) === String(found._id)
+											? Promise.resolve(found)
+											: this.adapter.findById(actorId);
+										passwordCheck = actorPromise.then(actor => {
+											if (!actor?.password) {
+												return Promise.reject(new MoleculerClientError("Wrong password!", 422, "", [{ field: "currentPassword", message: "wrong credentials" }]));
 											}
-											continue;
-										}
-										if (Object.prototype.hasOwnProperty.call(newData, property) && Object.prototype.hasOwnProperty.call(found, property)) {
-											found[property] = newData[property];
-										} else if (Object.prototype.hasOwnProperty.call(newData, property)) { // if property does not exist, set it
-											found[property] = newData[property];
-										}
+											return bcrypt.compare(String(currentPassword), actor.password).then(ok => {
+												if (!ok) {
+													return Promise.reject(new MoleculerClientError("Wrong password!", 422, "", [{ field: "currentPassword", message: "wrong credentials" }]));
+												}
+											});
+										});
 									}
-									if (!found.dates) {
-										found.dates = {};
-									}
-									found.dates.dateUpdated = new Date();
-									return this.adapter.updateById(findId, this.prepareForUpdate(found));
+									return passwordCheck.then(() => {
+										if (typeof newData["password"] !== "undefined") {
+											assertPasswordPolicy(newData["password"]);
+											newData["password"] = bcrypt.hashSync(newData["password"], 10);
+											passwordChanged = true;
+										}
+										// loop found object, update it with new data
+										for (let property in newData) {
+										// _id/id select the target user; never write them onto the document
+											if (property === "_id" || property === "id" || property === "restrictions" || property === "security" || property === "currentPassword") {
+												continue;
+											}
+											if (PRIVILEGED_FIELDS.includes(property) && property !== "type" && property !== "subtype") {
+												continue;
+											}
+											if (!isAdmin && PRIVILEGED_FIELDS.includes(property)) {
+												continue;
+											}
+											// non-admins: only allowlisted fields (already stripped, keep as belt-and-suspenders)
+											if (!isAdmin && !SELF_ALLOWED.has(property)) {
+												continue;
+											}
+											if (property === "data") {
+												const preserved = found.data?.contentDependencies;
+												const incoming = (newData.data && typeof newData.data === "object") ? { ...newData.data } : {};
+												delete incoming.contentDependencies;
+												found.data = { ...(found.data || {}), ...incoming };
+												if (preserved) {
+													found.data.contentDependencies = preserved;
+												} else {
+													delete found.data.contentDependencies;
+												}
+												continue;
+											}
+											if (Object.prototype.hasOwnProperty.call(newData, property) && Object.prototype.hasOwnProperty.call(found, property)) {
+												found[property] = newData[property];
+											} else if (Object.prototype.hasOwnProperty.call(newData, property)) { // if property does not exist, set it
+												found[property] = newData[property];
+											}
+										}
+										if (adminEmailChange && found.security?.mfa) {
+											delete found.security.mfa;
+										}
+										if (!found.dates) {
+											found.dates = {};
+										}
+										found.dates.dateUpdated = new Date();
+										return this.adapter.updateById(findId, this.prepareForUpdate(found))
+											.then(user => {
+												if (adminEmailChange && typeof this.sendAdminEmailChanged === "function") {
+													return this.sendAdminEmailChanged(oldEmail, found.email, found, ctx).then(() => user);
+												}
+												return user;
+											});
+									});
 								})
 								.then(user => {
 									if (passwordChanged) {

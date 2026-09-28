@@ -1,0 +1,9 @@
+Hi {{username}},
+
+Use this code to finish signing in to the administration:
+
+{{code}}
+
+The code expires in {{minutes}} minutes.
+
+If you did not try to sign in, you can ignore this email. Contact us on {{support_email}} if you need help.

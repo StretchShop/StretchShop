@@ -1,0 +1,8 @@
+Dobrý deň {{username}},
+
+Prihlasovací e-mail vášho administrátorského účtu bol zmenený.
+
+Pôvodný e-mail: {{old_email}}
+Nový e-mail: {{new_email}}
+
+Ak ste túto zmenu neurobili, kontaktujte nás na {{support_email}}.

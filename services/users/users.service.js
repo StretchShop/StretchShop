@@ -14,6 +14,7 @@ const { getRequiredSecret } = require("../../mixins/env.helpers");
 
 // methods
 const UsersMethodsCore = require("./methods/core.methods");
+const UsersMethodsMfa = require("./methods/mfa.methods");
 const UsersMethodsCoreData = require("./methods/core-data.methods");
 const UsersMethodsProfile = require("./methods/profile.methods");
 const UsersMethodsAssets = require("./methods/assets.methods");
@@ -39,6 +40,7 @@ module.exports = {
 		RateLimitMixin,
 		// methods
 		UsersMethodsCore,
+		UsersMethodsMfa,
 		UsersMethodsCoreData,
 		UsersMethodsProfile,
 		UsersMethodsAssets,
