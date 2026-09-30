@@ -78,6 +78,9 @@
     "@spailybot/moleculer-auto-openapi": {
       "moleculer": "$moleculer"
     },
+    "moleculer": {
+      "ioredis": "$ioredis"
+    },
     "brace-expansion": "^5.0.12"
   }
 }
