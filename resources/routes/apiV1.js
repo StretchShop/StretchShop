@@ -32,6 +32,8 @@ module.exports = {
 
 		// Users
 		"POST /users/login": "users.login", // Login
+		"POST /users/login/mfa": "users.loginMfa",
+		"POST /users/login/mfa/resend": "users.loginMfaResend",
 		"GET /users/logout": "users.logout", // Logout
 		//"REST /users": "users", // list Users
 		"POST /users/checkemail": "users.checkIfEmailExists",

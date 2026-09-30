@@ -20,6 +20,8 @@ const API_V1_ALIASES = {
 	"GET /coredata/translation": "users.readTranslation",
 	"PUT /coredata/translation": "users.updateDictionary",
 	"POST /users/login": "users.login",
+	"POST /users/login/mfa": "users.loginMfa",
+	"POST /users/login/mfa/resend": "users.loginMfaResend",
 	"GET /users/logout": "users.logout",
 	"POST /users/checkemail": "users.checkIfEmailExists",
 	"POST /users/checkusername": "users.checkIfUserExists",
@@ -89,6 +91,8 @@ const EXTRA_ALIASES = {
 
 const CSRF_ACTIONS = new Set([
 	"users.login",
+	"users.loginMfa",
+	"users.loginMfaResend",
 	"users.create",
 	"users.checkIfEmailExists",
 	"users.checkIfUserExists",
@@ -187,6 +191,56 @@ function operationToOpenApi(op, actionFullName) {
 		openapi.security = security;
 	}
 	return openapi;
+}
+
+function addMfaOverrides(actionOpenApi) {
+	if (!actionOpenApi.users) actionOpenApi.users = {};
+	const loginDescription = "Send user credentials to login. Customer accounts receive a session. Administrator accounts do not: the response is { mfaRequired: true, challengeId } and the session is issued only by users.loginMfa after the email code is accepted.\n";
+	if (actionOpenApi.users.login) {
+		actionOpenApi.users.login.description = loginDescription;
+	}
+	actionOpenApi.users.loginMfa = {
+		summary: "Confirm administrator sign-in code",
+		description: "Second step for administrator login. Accepts the challengeId from users.login and the 6-digit code emailed to the account address. On success, issues the same session cookie as a customer login.",
+		operationId: "userLoginMfa",
+		tags: ["visitor"],
+		responses: {
+			200: {
+				description: "Administrator session created",
+				content: {
+					"application/json": {
+						schema: { $ref: "#/components/schemas/UserScheme" },
+					},
+				},
+			},
+			422: { description: "Invalid or expired code" },
+		},
+		security: [{ CsrfHeader: [] }],
+	};
+	actionOpenApi.users.loginMfaResend = {
+		summary: "Resend administrator sign-in code",
+		description: "Sends a new code for an open administrator login challenge. Rejects when the previous code was sent less than 60 seconds ago, or after 5 sends.",
+		operationId: "userLoginMfaResend",
+		tags: ["visitor"],
+		responses: {
+			200: {
+				description: "A new code was sent",
+				content: {
+					"application/json": {
+						schema: {
+							type: "object",
+							properties: {
+								mfaRequired: { type: "boolean" },
+								challengeId: { type: "string" },
+							},
+						},
+					},
+				},
+			},
+			422: { description: "Challenge expired, or resend is cooling down" },
+		},
+		security: [{ CsrfHeader: [] }],
+	};
 }
 
 function addPaymentOverrides(actionOpenApi) {
@@ -460,6 +514,7 @@ async function main() {
 	});
 
 	addPaymentOverrides(actionOpenApi);
+	addMfaOverrides(actionOpenApi);
 
 	const jsContent = `"use strict";
 

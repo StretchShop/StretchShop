@@ -1,0 +1,9 @@
+Guten Tag {{username}},
+
+Mit diesem Code schließen Sie die Anmeldung in der Administration ab:
+
+{{code}}
+
+Der Code ist {{minutes}} Minuten gültig.
+
+Wenn Sie sich nicht angemeldet haben, können Sie diese E-Mail ignorieren. Bei Fragen erreichen Sie uns unter {{support_email}}.

@@ -1,0 +1,9 @@
+Dobrý deň {{username}},
+
+Týmto kódom dokončíte prihlásenie do administrácie:
+
+{{code}}
+
+Kód platí {{minutes}} minút.
+
+Ak ste sa neprihlasovali, tento e-mail môžete ignorovať. V prípade potreby nás kontaktujte na {{support_email}}.

@@ -1,0 +1,9 @@
+Hola {{username}},
+
+Use este código para terminar de iniciar sesión en la administración:
+
+{{code}}
+
+El código caduca en {{minutes}} minutos.
+
+Si no ha intentado iniciar sesión, puede ignorar este mensaje. Si necesita ayuda, contáctenos en {{support_email}}.

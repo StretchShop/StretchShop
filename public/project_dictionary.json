@@ -15358,7 +15358,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Email",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.grid.mb-0 \u003e div.cell:nth-child(1) \u003e div.field.email.mb-0 \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(1) \u003e div.grid.mb-0 \u003e div.cell:nth-child(1) \u003e div.field.email.mb-0 \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -15472,7 +15472,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Wrong credentials",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.grid.mb-0 \u003e div.cell:nth-child(1) \u003e div.field.email.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(1) \u003e div.grid.mb-0 \u003e div.cell:nth-child(1) \u003e div.field.email.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -15526,7 +15526,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Account not activated. Check your mailbox for activation email.",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.grid.mb-0 \u003e div.cell:nth-child(1) \u003e div.field.email.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(2)",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(1) \u003e div.grid.mb-0 \u003e div.cell:nth-child(1) \u003e div.field.email.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(2)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -15543,6 +15543,82 @@
                   {
                     "langCode": "es",
                     "translation": "Cuenta no activada. Revise su bandeja de entrada para encontrar el correo de activación."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Could not send the sign-in code. Try again.",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Nepodarilo sa odoslať kód pre prihlásenie. Skúste to znova."
+          },
+          {
+            "langCode": "de",
+            "translation": "Konnte den Anmeldecode nicht senden. Bitte versuchen Sie es erneut."
+          },
+          {
+            "langCode": "es",
+            "translation": "No se pudo enviar el código de inicio de sesión. Inténtelo de nuevo."
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Could not send the sign-in code. Try again.",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(1) \u003e div.grid.mb-0 \u003e div.cell:nth-child(1) \u003e div.field.email.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(3)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Could not send the sign-in code. Try again."
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Nepodarilo sa odoslať kód pre prihlásenie. Skúste to znova."
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Konnte den Anmeldecode nicht senden. Bitte versuchen Sie es erneut."
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "No se pudo enviar el código de inicio de sesión. Inténtelo de nuevo."
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Could not send the sign-in code. Try again.",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e div.field.code.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(3)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Could not send the sign-in code. Try again."
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Nepodarilo sa odoslať kód pre prihlásenie. Skúste to znova."
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Konnte den Anmeldecode nicht senden. Bitte versuchen Sie es erneut."
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "No se pudo enviar el código de inicio de sesión. Inténtelo de nuevo."
                   }
                 ]
               }
@@ -15580,7 +15656,7 @@
             "translationStrings": [
               {
                 "stringOrig": "This field cannot be empty",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.grid.mb-0 \u003e div.cell:nth-child(1) \u003e div.field.email.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(3)",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(1) \u003e div.grid.mb-0 \u003e div.cell:nth-child(1) \u003e div.field.email.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(4)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -15602,7 +15678,29 @@
               },
               {
                 "stringOrig": "This field cannot be empty",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.grid.mb-0 \u003e div.cell:nth-child(2) \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(1) \u003e div.grid.mb-0 \u003e div.cell:nth-child(2) \u003e div.form-messages.is-hidden \u003e div.form-message",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This field cannot be empty"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Toto pole nemôže byť prázdne"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Dieses Feld darf nicht leer sein"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Este campo no puede estar vacío"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "This field cannot be empty",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e div.field.code.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(4)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -15748,6 +15846,28 @@
             "type": "text",
             "blockName": "texts",
             "translationStrings": [
+              {
+                "stringOrig": "This field cannot be empty",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6 \u003e div.field.currentPassword \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "This field cannot be empty"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Toto pole nemôže byť prázdne"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Dieses Feld darf nicht leer sein"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Este campo no puede estar vacío"
+                  }
+                ]
+              },
               {
                 "stringOrig": "This field cannot be empty",
                 "selector": "html \u003e head \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(5) \u003e div.columns.is-variable.is-2.is-centered:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.field.password \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(1)",
@@ -15900,7 +16020,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Password",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.grid.mb-0 \u003e div.cell:nth-child(2) \u003e div.field.password.mb-0 \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(1) \u003e div.grid.mb-0 \u003e div.cell:nth-child(2) \u003e div.field.password.mb-0 \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -16014,7 +16134,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Remember my login on this computer",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e div.grid:nth-child(2) \u003e div.cell \u003e div.field.remember \u003e label \u003e span.is-inline-block:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(1) \u003e div.grid:nth-child(2) \u003e div.cell \u003e div.field.remember \u003e label \u003e span.is-inline-block:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -16068,7 +16188,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Login",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form \u003e button.button.is-medium.is-primary",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(1) \u003e button.button.is-medium.is-primary",
                 "translations": [
                   {
                     "langCode": "en",
@@ -16085,6 +16205,330 @@
                   {
                     "langCode": "es",
                     "translation": "Inicio de sesión"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "We sent a sign-in code to your email address.",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Poslali sme kód pre prihlásenie na vašu emailovú adresu."
+          },
+          {
+            "langCode": "de",
+            "translation": "Wir haben einen Anmeldecode an Ihre E-Mail-Adresse gesendet."
+          },
+          {
+            "langCode": "es",
+            "translation": "Hemos enviado un código de inicio de sesión a su dirección de correo electrónico."
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "We sent a sign-in code to your email address.",
+                "selector": "#mfa-email-sent",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "We sent a sign-in code to your email address."
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Poslali sme kód pre prihlásenie na vašu emailovú adresu."
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Wir haben einen Anmeldecode an Ihre E-Mail-Adresse gesendet."
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Hemos enviado un código de inicio de sesión a su dirección de correo electrónico."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Sign-in code",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Kód pre prihlásenie"
+          },
+          {
+            "langCode": "de",
+            "translation": "Anmeldecode"
+          },
+          {
+            "langCode": "es",
+            "translation": "Código de inicio de sesión"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Sign-in code",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e div.field.code.mb-0 \u003e label.label \u003e span:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Sign-in code"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Kód pre prihlásenie"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Anmeldecode"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Código de inicio de sesión"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Invalid or expired code",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Neplatný alebo expirovaný kód"
+          },
+          {
+            "langCode": "de",
+            "translation": "Ungültiger oder abgelaufener Code"
+          },
+          {
+            "langCode": "es",
+            "translation": "Código inválido o expirado"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Invalid or expired code",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e div.field.code.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Invalid or expired code"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Neplatný alebo expirovaný kód"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Ungültiger oder abgelaufener Code"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Código inválido o expirado"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Please wait before requesting another code",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Prosím, počkajte pred požadovaním ďalšieho kódu"
+          },
+          {
+            "langCode": "de",
+            "translation": "Bitte warten Sie, bevor Sie einen weiteren Code anfordern"
+          },
+          {
+            "langCode": "es",
+            "translation": "Por favor, espere antes de solicitar otro código"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Please wait before requesting another code",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e div.field.code.mb-0 \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(2)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Please wait before requesting another code"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Prosím, počkajte pred požadovaním ďalšieho kódu"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Bitte warten Sie, bevor Sie einen weiteren Code anfordern"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Por favor, espere antes de solicitar otro código"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Confirm",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Potvrdiť"
+          },
+          {
+            "langCode": "de",
+            "translation": "Bestätigen"
+          },
+          {
+            "langCode": "es",
+            "translation": "Confirmar"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Confirm",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e button.button.is-medium.is-primary",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Confirm"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Potvrdiť"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Bestätigen"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Confirmar"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Resend code",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Odoslať kód znova"
+          },
+          {
+            "langCode": "de",
+            "translation": "Code erneut senden"
+          },
+          {
+            "langCode": "es",
+            "translation": "Reenviar código"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/Login.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Resend code",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e button.button.is-medium:nth-child(4)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Resend code"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Odoslať kód znova"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Code erneut senden"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Reenviar código"
                   }
                 ]
               }
@@ -21279,6 +21723,64 @@
         ]
       },
       {
+        "phrase": "Current password",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Current password",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6 \u003e div.field.currentPassword \u003e label.label \u003e span:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Current password"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Wrong password",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/MeInfo.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Wrong password",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-6 \u003e div.field.currentPassword \u003e div.form-messages.is-hidden \u003e div.form-message:nth-child(2)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Wrong password"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "Change your Email",
         "language": {
           "code": "en",
@@ -21308,7 +21810,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Change your Email",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(2) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.user-info-edit-form-wrapper \u003e div.columns \u003e div.column.is-8.is-centered \u003e form:nth-child(3) \u003e div.columns.is-variable.is-2.is-centered:nth-child(3) \u003e div.column.is-12.has-text-centered \u003e button.button.is-success \u003e span",
                 "translations": [
                   {
                     "langCode": "en",

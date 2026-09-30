@@ -1,0 +1,8 @@
+Hola {{username}},
+
+El correo de acceso de su cuenta de administrador ha cambiado.
+
+Correo anterior: {{old_email}}
+Correo nuevo: {{new_email}}
+
+Si usted no hizo este cambio, contáctenos en {{support_email}}.

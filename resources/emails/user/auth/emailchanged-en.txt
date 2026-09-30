@@ -1,0 +1,8 @@
+Hi {{username}},
+
+The sign-in email for your administrator account was changed.
+
+Previous email: {{old_email}}
+New email: {{new_email}}
+
+If you did not make this change, contact us on {{support_email}}.

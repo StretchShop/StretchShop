@@ -156,8 +156,10 @@ module.exports = {
 			},
 			handler(ctx) {
 				const { email, password } = ctx.params.user;
+				const remember = ctx.params.remember === true;
 				// Count failed attempts only (checkOnly). Successful logins reset the bucket
 				// so E2E/session reuse and normal multi-login do not trip the brute-force limit.
+				// Admin password success does not reset the bucket until the email code is accepted.
 				const loginRate = { limit: 5, windowMs: 15 * 60 * 1000, keyExtra: email };
 
 				return this.enforceRateLimit(ctx, "login", { ...loginRate, checkOnly: true })
@@ -174,31 +176,12 @@ module.exports = {
 							if (!res) {
 								return Promise.reject(new MoleculerClientError("Wrong password!", 422, "", [{ field: "email", message: "wrong credentials"}]));
 							}
-							// save last date and ip of login
-							user.dates["dateLastLogin"] = new Date();
-							if (!user.ip) {
-								user.ip = {
-									ipRegistration: null,
-									ipLastLogin: null
-								};
+							if (user.type === "admin") {
+								return this.beginAdminMfa(user, remember, ctx);
 							}
-							user.ip["ipLastLogin"] = ctx.meta.remoteAddress+":"+ctx.meta.remotePort;
-							return this.adapter.updateById(user._id, this.prepareForUpdate(user));
+							return this.recordSuccessfulLogin(user, ctx)
+								.then(doc => this.issueLoginSession(doc, ctx, loginRate));
 						});
-					})
-					// Transform user entity (remove password and all protected fields)
-					.then(doc => {
-						return this.resetRateLimit(ctx, "login", loginRate)
-							.then(() => this.transformDocuments(ctx, {}, doc));
-					})
-					.then(user => {
-						if ( ctx.meta.cart ) {
-							ctx.meta.cart.user = user._id;
-						}
-
-						user = this.removePrivateData(user);
-
-						return this.transformEntity(user, true, ctx);
 					})
 					.catch(err => {
 						if (isLoginAuthFailure(err)) {
@@ -209,6 +192,117 @@ module.exports = {
 						}
 						console.error("users.login error: ", err);
 						return this.Promise.reject(new MoleculerClientError("Login failed", 422, "", []));
+					});
+			}
+		},
+
+
+		/**
+		 * Second step for administrator login: email one-time code.
+		 */
+		loginMfa: {
+			auth: "required",
+			authType: "csrfCheck",
+			params: {
+				challengeId: { type: "string", min: 64, max: 64, pattern: /^[a-f0-9]{64}$/ },
+				code: { type: "string", min: 6, max: 6, pattern: /^[0-9]{6}$/ }
+			},
+			handler(ctx) {
+				const { challengeId, code } = ctx.params;
+				const mfaRate = { limit: 10, windowMs: 15 * 60 * 1000, keyExtra: challengeId };
+
+				return this.enforceRateLimit(ctx, "loginMfa", mfaRate)
+					.then(() => this.adapter.findOne({ "security.mfa.challengeId": challengeId }))
+					.then(user => {
+						const mfa = user?.security?.mfa;
+						if (!user || user.type !== "admin" || !mfa || mfa.challengeId !== challengeId) {
+							return this.Promise.reject(this.invalidMfaError());
+						}
+						if (this.isMfaExpired(mfa) || this.mfaAttemptsExhausted(mfa)) {
+							return this.adapter.updateById(user._id, { $unset: { "security.mfa": "" } })
+								.then(() => this.Promise.reject(this.invalidMfaError()));
+						}
+						if (!this.mfaCodeMatches(mfa, code)) {
+							const update = this.mfaShouldLockAfterFailure(mfa)
+								? { $unset: { "security.mfa": "" } }
+								: { $inc: { "security.mfa.attempts": 1 } };
+							return this.adapter.updateById(user._id, update)
+								.then(() => this.Promise.reject(this.invalidMfaError()));
+						}
+
+						ctx.meta.issuedTokenVersion = user.security?.tokenVersion ?? 0;
+						ctx.params.remember = mfa.remember === true;
+						const loginRate = { limit: 5, windowMs: 15 * 60 * 1000, keyExtra: user.email };
+						return this.recordSuccessfulLogin(user, ctx)
+							.then(doc => this.issueLoginSession(doc, ctx, loginRate));
+					})
+					.catch(err => {
+						if (err instanceof MoleculerClientError || err?.code === 429) {
+							return this.Promise.reject(err);
+						}
+						console.error("users.loginMfa error: ", err);
+						return this.Promise.reject(this.invalidMfaError());
+					});
+			}
+		},
+
+
+		/**
+		 * Send a fresh administrator sign-in code for an open challenge.
+		 */
+		loginMfaResend: {
+			auth: "required",
+			authType: "csrfCheck",
+			params: {
+				challengeId: { type: "string", min: 64, max: 64, pattern: /^[a-f0-9]{64}$/ }
+			},
+			handler(ctx) {
+				const { challengeId } = ctx.params;
+				const resendRate = { limit: 5, windowMs: 15 * 60 * 1000, keyExtra: challengeId };
+
+				return this.enforceRateLimit(ctx, "loginMfaResend", { ...resendRate, checkOnly: true })
+					.then(() => this.adapter.findOne({ "security.mfa.challengeId": challengeId }))
+					.then(user => {
+						const mfa = user?.security?.mfa;
+						if (!user || user.type !== "admin" || !mfa || mfa.challengeId !== challengeId || this.isMfaExpired(mfa)) {
+							if (user?._id && mfa) {
+								return this.adapter.updateById(user._id, { $unset: { "security.mfa": "" } })
+									.then(() => this.Promise.reject(this.invalidMfaError()));
+							}
+							return this.Promise.reject(this.invalidMfaError());
+						}
+						if (this.mfaResendCoolingDown(mfa)) {
+							return this.Promise.reject(this.mfaResendCooldownError());
+						}
+						if (this.mfaSendsExhausted(mfa)) {
+							return this.adapter.updateById(user._id, { $unset: { "security.mfa": "" } })
+								.then(() => this.Promise.reject(this.invalidMfaError()));
+						}
+
+						const previous = mfa;
+						const rotated = this.rotateMfaCode(previous);
+						return this.recordRateLimitHit(ctx, "loginMfaResend", resendRate)
+							.then(() => this.adapter.updateById(user._id, { $set: { "security.mfa": rotated.mfa } }))
+							.then(() => this.sendMfaCodeEmail(user, rotated.code, ctx))
+							.then(() => this.mfaChallengeResponse(rotated.mfa.challengeId, rotated.code))
+							.catch(err => {
+								return this.adapter.updateById(user._id, { $set: { "security.mfa": previous } })
+									.catch(() => null)
+									.then(() => {
+										if (err instanceof MoleculerClientError || err?.code === 429) {
+											return this.Promise.reject(err);
+										}
+										this.logger.error("users.loginMfaResend email failed", err);
+										return this.Promise.reject(this.mfaSendFailedError());
+									});
+							});
+					})
+					.catch(err => {
+						if (err instanceof MoleculerClientError || err?.code === 429) {
+							return this.Promise.reject(err);
+						}
+						console.error("users.loginMfaResend error: ", err);
+						return this.Promise.reject(this.invalidMfaError());
 					});
 			}
 		},
@@ -396,6 +490,30 @@ module.exports = {
 						});
 				}
 			}
+		},
+	},
+
+	methods: {
+		/**
+		 * Password matched for an admin. Store a hashed email code and do not issue a session.
+		 * If the mail send fails, drop the challenge.
+		 */
+		beginAdminMfa(user, remember, ctx) {
+			const { code, mfa } = this.createMfaChallenge(remember);
+			return this.adapter.updateById(user._id, { $set: { "security.mfa": mfa } })
+				.then(() => this.sendMfaCodeEmail(user, code, ctx))
+				.then(() => this.mfaChallengeResponse(mfa.challengeId, code))
+				.catch(err => {
+					return this.adapter.updateById(user._id, { $unset: { "security.mfa": "" } })
+						.catch(() => null)
+						.then(() => {
+							if (err instanceof MoleculerClientError || err?.code === 429) {
+								return this.Promise.reject(err);
+							}
+							this.logger.error("users.login mfa email failed", err);
+							return this.Promise.reject(this.mfaSendFailedError());
+						});
+				});
 		},
 	}
 };

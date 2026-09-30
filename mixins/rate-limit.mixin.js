@@ -18,6 +18,8 @@ const buckets = new Map();
 /** Floors applied in non-production when RATE_LIMIT_STRICT is not set. */
 const NON_PROD_MIN_LIMITS = {
 	login: 100,
+	loginMfa: 100,
+	loginMfaResend: 50,
 	register: 50,
 	resetPassword: 20,
 	checkUsername: 200,

@@ -3,6 +3,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const authMixin = require("../../../services/users/mixins/auth.mixin");
+const mfaMethods = require("../../../services/users/methods/mfa.methods");
 const coreMethods = require("../../../services/users/methods/core.methods");
 const HelpersMixin = require("../../../mixins/helpers.mixin");
 
@@ -25,6 +26,8 @@ function createAuthService(extra = {}) {
 		entityChanged: jest.fn().mockResolvedValue(true),
 		prepareForUpdate: coreMethods.methods.prepareForUpdate,
 		sanitizeRegistrationUser: coreMethods.methods.sanitizeRegistrationUser,
+		...mfaMethods.methods,
+		...authMixin.methods,
 		superloginJWT: coreMethods.methods.superloginJWT,
 		restoreAdminSession: coreMethods.methods.restoreAdminSession,
 		bumpTokenVersion: coreMethods.methods.bumpTokenVersion,
