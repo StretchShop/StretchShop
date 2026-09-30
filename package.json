@@ -63,7 +63,7 @@
     "nats": "^2.29.3",
     "ncp": "^2.0.0",
     "node-fetch": ">=3.3.2",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^10.0.9",
     "pdfmake": "^0.3.11",
     "promise-each": "^2.2.0",
     "saslprep": "^1.0.3",
