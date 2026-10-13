@@ -28,6 +28,59 @@ describe("pages helpers", () => {
 		expect(vars.filepath).toContain("default-en.html");
 	});
 
+	it("uses the subtype template by default", () => {
+		const vars = service.getTemplateVars("sk", "mrkvanux", "pricing");
+		expect(vars.pageName).toBe("pricing");
+		expect(vars.templateName).toBe("_default");
+		expect(vars.filepath).toContain("pricing-sk.html");
+		expect(vars.parentDir).toContain("pricing");
+	});
+
+	it("uses the subtype template instead of a directory named after the slug", () => {
+		const vars = service.getTemplateVars("en", "info", "pricing");
+		expect(vars.pageName).toBe("pricing");
+		expect(vars.templateName).toBe("_default");
+	});
+
+	it("falls back to default when the page has no subtype", () => {
+		const vars = service.getTemplateVars("en", "info");
+		expect(vars.pageName).toBe("default");
+		expect(vars.templateName).toBe("_default");
+	});
+
+	it("falls back to default when the subtype template is missing", () => {
+		const vars = service.getTemplateVars("en", "about", "missing-subtype");
+		expect(vars.pageName).toBe("default");
+		expect(vars.templateName).toBe("_default");
+	});
+
+	it("loads a per-slug template from _slugs when subtype is slug", () => {
+		const fs = require("fs");
+		const os = require("os");
+		const path = require("path");
+		const root = fs.mkdtempSync(path.join(os.tmpdir(), "pages-"));
+		try {
+			const dir = path.join(root, "pages", "_slugs", "mrkvanux");
+			fs.mkdirSync(dir, { recursive: true });
+			fs.writeFileSync(path.join(dir, "mrkvanux-sk.html"), "slug template");
+			const slugService = createService({
+				settings: { paths: { resources: root, assets: "public" } },
+			});
+			const vars = slugService.getTemplateVars("sk", "mrkvanux", "slug");
+			expect(vars.templateName).toBe("_slugs");
+			expect(vars.pageName).toBe("mrkvanux");
+			expect(vars.filepath).toBe(path.join(dir, "mrkvanux-sk.html"));
+		} finally {
+			fs.rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back to default when subtype slug has no template", () => {
+		const vars = service.getTemplateVars("en", "mrkvanux", "slug");
+		expect(vars.pageName).toBe("default");
+		expect(vars.templateName).toBe("_default");
+	});
+
 	it("attaches parent category details", () => {
 		const result = service.pageGlobalResultHelper_ParentCat(
 			{ staticData: {}, data: {}, global: {} },
@@ -204,12 +257,26 @@ describe("pages content actions", () => {
 	it("loads page detail with language fallback", async () => {
 		const service = createService({
 			getPageDetail: jest.fn().mockResolvedValue({ slug: "about" }),
+			adapter: { find: jest.fn().mockResolvedValue([]) },
 		});
 		const result = await contentMixin.actions.detail.handler.call(service, {
 			params: { page: "about", lang: " sk " },
 		});
+		expect(service.adapter.find).toHaveBeenCalledWith({ query: { slug: "about" } });
 		expect(service.getPageDetail).toHaveBeenCalled();
+		expect(service.getPageDetail.mock.calls[0][1].pageName).toBe("default");
 		expect(result).toEqual({ slug: "about" });
+	});
+
+	it("selects the subtype template in page detail", async () => {
+		const service = createService({
+			getPageDetail: jest.fn().mockResolvedValue({ slug: "mrkvanux" }),
+			adapter: { find: jest.fn().mockResolvedValue([{ slug: "mrkvanux", subtype: "pricing" }]) },
+		});
+		await contentMixin.actions.detail.handler.call(service, {
+			params: { page: "mrkvanux", lang: "sk" },
+		});
+		expect(service.getPageDetail.mock.calls[0][1].pageName).toBe("pricing");
 	});
 
 	it("forbids import and delete for non-admins", async () => {

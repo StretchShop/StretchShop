@@ -31,7 +31,9 @@ const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixi
  * 
  * Every page template has its own directory in ./resources/pages
  * Templates can be grouped into groups in this directory
- * To set group, use its name before name separated by "---" (3 dashes) 
+ * To set group, use its name before name separated by "---" (3 dashes)
+ * The template directory is the page subtype, then default.
+ * Subtype "slug" looks in ./resources/pages/_slugs/{slug} before that fallback. 
  * 
  * Database record enables to:
  *  - list in categories (if set),

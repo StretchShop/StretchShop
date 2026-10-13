@@ -69,7 +69,7 @@
             "name": "Test SK"
           },
           "en": {
-            "name": "Test"
+            "name": "Test1"
           },
           "de": {
             "name": "Test"
@@ -78,7 +78,7 @@
             "name": "Test"
           }
         },
-        "text": "Test",
+        "text": "Test1",
         "items": [
           {
             "codename": "test-sub",
