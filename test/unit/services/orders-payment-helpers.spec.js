@@ -85,6 +85,27 @@ describe("order payment helpers", () => {
 		expect(result).toEqual({ id: "INV-1" });
 		expect(service.generateInvoice).not.toHaveBeenCalled();
 	});
+
+	it("stores e-invoice metadata returned with the pdf invoice", async () => {
+		const einvoice = {
+			format: "en16931-peppolBisBilling30",
+			path: "invoices/u/1.xml",
+			sent: false,
+			status: null,
+			error: null
+		};
+		const svc = createService({
+			generateInvoice: jest.fn().mockResolvedValue({
+				html: "<p>inv</p>",
+				path: "invoices/u/1.pdf",
+				einvoice
+			})
+		});
+		const order = { _id: "ord-1", dates: {}, invoice: {} };
+		const result = await svc.orderPaymentReceived({}, order, {}, "admin", "products");
+		expect(result.einvoice).toEqual(einvoice);
+		expect(order.invoice.einvoice).toEqual(einvoice);
+	});
 });
 
 describe("stripe helper methods", () => {

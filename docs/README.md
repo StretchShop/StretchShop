@@ -21,6 +21,7 @@ Start at [Home](https://github.com/StretchShop/StretchShop/wiki/Home). The pages
 - [Contributing](https://github.com/StretchShop/StretchShop/wiki/Contributing)
 - [Installation](https://github.com/StretchShop/StretchShop/wiki/Installation)
 - [Architecture](https://github.com/StretchShop/StretchShop/wiki/Architecture)
+- [Code layout](https://github.com/StretchShop/StretchShop/wiki/Code-layout) — `services`, `modules`, `scripts`, `mixins`
 - [Environment setup](https://github.com/StretchShop/StretchShop/wiki/Environment-setup)
 - [Automated testing](https://github.com/StretchShop/StretchShop/wiki/Automated-testing)
 - [API](https://github.com/StretchShop/StretchShop/wiki/API)

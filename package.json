@@ -14,7 +14,7 @@
     "deps": "npm-check -u",
     "ci": "jest --watch",
     "test": "jest --coverage",
-    "lint": "eslint services",
+    "lint": "eslint services modules",
     "docker:build": "docker build -t stretchshop .",
     "demo": "node demo/demo.js",
     "postinstall": "node demo/demo.js base",

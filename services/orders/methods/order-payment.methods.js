@@ -42,6 +42,9 @@ module.exports = {
 				.then(invoice => {
 					order.invoice["html"] = invoice.html;
 					order.invoice["path"] = invoice.path;
+					if (invoice?.einvoice) {
+						order.invoice.einvoice = invoice.einvoice;
+					}
 					return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 						.then(orderUpdated => {
 							this.entityChanged("updated", orderUpdated, ctx);

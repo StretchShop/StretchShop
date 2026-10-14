@@ -9,6 +9,7 @@ const { ensureDir, pathExists } = require("fs-extra");
 const pathResolve = require("path").resolve;
 const SettingsMixin = require("../../../mixins/settings.mixin");
 const PdfPrintMixin = require("../../../mixins/pdfprint.mixin");
+const einvoiceModule = require("../../../modules/einvoice");
 const { subscriptionPaymentStatuses } = require("../constants/subscription.constants");
 const { productStatuses } = require("../constants/product.constants");
 const { orderStatuses } = require("../constants/order.constants");
@@ -227,8 +228,15 @@ module.exports = {
 								} else {
 									self.logger.info("orders.generateInvoice() - path:", pdfPath);
 								}
-								return self.sendOrderPaidEmail(ctx, order, html, exists ? pdfPath : null)
-									.then(() => ({ html, path: exists ? sendPath : null }));
+								const stored = exists ? self.generateEinvoice(order) : Promise.resolve(null);
+								return stored.then((einvoice) => {
+									return self.sendOrderPaidEmail(ctx, order, html, exists ? pdfPath : null)
+										.then(() => ({
+											html,
+											path: exists ? sendPath : null,
+											einvoice
+										}));
+								});
 							})
 							.catch(pdfErr => {
 								self.logger.error("orders.generateInvoice() - PDF generate error:", pdfErr);
@@ -237,6 +245,29 @@ module.exports = {
 							});
 					});
 			}
+		},
+
+
+		/**
+		 * Build the structured e-invoice after the PDF exists and, when
+		 * E_INVOICE_URL is set, submit it. Failures stay off the PDF path.
+		 *
+		 * @param {*} order
+		 */
+		generateEinvoice(order) {
+			const { dir } = this.getInvoiceFilePaths(order);
+			const userId = String(order?.user?.id || "");
+			return einvoiceModule.generateAndSend({
+				order,
+				business: SettingsMixin.getSiteSettings("business"),
+				resourcesPath: this.settings?.paths?.resources,
+				outputDir: dir,
+				relativeDir: "invoices/" + userId,
+				logger: this.logger
+			}).catch(error => {
+				this.logger.error("orders.generateEinvoice() - failed:", error);
+				return null;
+			});
 		},
 
 
