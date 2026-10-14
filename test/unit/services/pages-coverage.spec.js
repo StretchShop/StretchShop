@@ -28,6 +28,22 @@ describe("pages helpers", () => {
 		expect(vars.filepath).toContain("default-en.html");
 	});
 
+	it("always uses the homepage subtype for the homepage slug", () => {
+		const withoutSubtype = service.getTemplateVars("en", "homepage");
+		expect(withoutSubtype.pageName).toBe("homepage");
+		expect(withoutSubtype.templateName).toBe("_default");
+		expect(withoutSubtype.filepath).toContain("homepage-en.html");
+
+		const otherSubtype = service.getTemplateVars("en", "homepage", "pricing");
+		expect(otherSubtype.pageName).toBe("homepage");
+		expect(otherSubtype.templateName).toBe("_default");
+
+		const slugSubtype = service.getTemplateVars("sk", "homepage", "slug");
+		expect(slugSubtype.pageName).toBe("homepage");
+		expect(slugSubtype.templateName).toBe("_default");
+		expect(slugSubtype.filepath).toContain("homepage-sk.html");
+	});
+
 	it("uses the subtype template by default", () => {
 		const vars = service.getTemplateVars("sk", "mrkvanux", "pricing");
 		expect(vars.pageName).toBe("pricing");
@@ -266,6 +282,18 @@ describe("pages content actions", () => {
 		expect(service.getPageDetail).toHaveBeenCalled();
 		expect(service.getPageDetail.mock.calls[0][1].pageName).toBe("default");
 		expect(result).toEqual({ slug: "about" });
+	});
+
+	it("loads the homepage template even when the page has no homepage subtype", async () => {
+		const service = createService({
+			getPageDetail: jest.fn().mockResolvedValue({ body: "homepage" }),
+			adapter: { find: jest.fn().mockResolvedValue([{ slug: "homepage", subtype: "pricing" }]) },
+		});
+		await contentMixin.actions.detail.handler.call(service, {
+			params: { page: "homepage", lang: "en" },
+		});
+		expect(service.getPageDetail.mock.calls[0][1].pageName).toBe("homepage");
+		expect(service.getPageDetail.mock.calls[0][1].filepath).toContain("homepage-en.html");
 	});
 
 	it("selects the subtype template in page detail", async () => {

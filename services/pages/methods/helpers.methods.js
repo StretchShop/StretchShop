@@ -57,6 +57,7 @@ module.exports = {
 		 * Resolve the page template directory.
 		 * The page subtype is the template name. Missing templates fall back to default.
 		 * Subtype "slug" looks in resources/pages/_slugs/{slug} before that fallback.
+		 * The homepage slug always uses the homepage subtype.
 		 *
 		 * @param {String} lang - 2-letter code of active language
 		 * @param {String} pageSlug - slug of active page
@@ -78,7 +79,10 @@ module.exports = {
 			const pagesRoot = pathResolve(this.settings.paths.resources, "pages");
 
 			const candidates = [];
-			const subtypeRaw = String(subtype || "").trim();
+			let subtypeRaw = String(subtype || "").trim();
+			if (pageName.toLowerCase() === "homepage") {
+				subtypeRaw = "homepage";
+			}
 			if (subtypeRaw.toLowerCase() === "slug") {
 				candidates.push({ group: "_slugs", name: pageName });
 			} else if (subtypeRaw) {

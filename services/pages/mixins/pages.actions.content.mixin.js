@@ -60,6 +60,7 @@ module.exports = {
 				}
 
 				// subtype selects the template; "slug" uses resources/pages/_slugs
+				// homepage always resolves to the homepage subtype
 				return this.adapter.find({
 					query: { slug: ctx.params.page }
 				})

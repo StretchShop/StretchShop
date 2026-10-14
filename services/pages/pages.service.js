@@ -33,7 +33,8 @@ const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixi
  * Templates can be grouped into groups in this directory
  * To set group, use its name before name separated by "---" (3 dashes)
  * The template directory is the page subtype, then default.
- * Subtype "slug" looks in ./resources/pages/_slugs/{slug} before that fallback. 
+ * Subtype "slug" looks in ./resources/pages/_slugs/{slug} before that fallback.
+ * The homepage slug always uses the homepage subtype. 
  * 
  * Database record enables to:
  *  - list in categories (if set),
