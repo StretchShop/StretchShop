@@ -42,7 +42,18 @@ const DATE_KEYS = new Set(["userConfirmation"]);
 /** Delivery/payment method selection only — never prices or subscription terms. */
 const DATA_KEYS = new Set(["deliveryData", "paymentData"]);
 
-const DELIVERY_DATA_KEYS = new Set(["codename"]);
+const DELIVERY_DATA_KEYS = new Set(["codename", "destination"]);
+
+/** Pickup point chosen by the customer. Prices and tracking stay server-owned. */
+const DESTINATION_KEYS = new Set([
+	"supplier",
+	"externalId",
+	"name",
+	"street",
+	"city",
+	"zip",
+	"country",
+]);
 
 /** Payment method id only; name/price/taxData come from shop settings. */
 const PAYMENT_DATA_KEYS = new Set(["codename"]);
@@ -66,6 +77,7 @@ const PATH_ALLOWED_KEYS = {
 	dates: DATE_KEYS,
 	data: DATA_KEYS,
 	"data.deliveryData": DELIVERY_DATA_KEYS,
+	"data.deliveryData.destination": DESTINATION_KEYS,
 	"data.paymentData": PAYMENT_DATA_KEYS,
 	notes: NOTE_KEYS,
 	lang: LANG_COUNTRY_KEYS,

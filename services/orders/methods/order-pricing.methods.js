@@ -13,6 +13,7 @@ const { subscriptionPaymentStatuses } = require("../constants/subscription.const
 const { productStatuses } = require("../constants/product.constants");
 const { orderStatuses } = require("../constants/order.constants");
 const { update } = require("lodash");
+const { publicDeliveryMethod, applyOrderDestination } = require("../delivery/registry");
 
 const calcExcludedTypes = ["subscription"];
 
@@ -54,6 +55,7 @@ module.exports = {
 			 */
 			// check if delivery type is set
 			if ( this.getOrderWork(ctx)?.orderTemp?.data?.deliveryData?.codename ) {
+				const incomingDestination = this.getOrderWork(ctx).orderTemp.data.deliveryData.destination;
 				let deliveryType = {...this.getOrderWork(ctx).orderTemp.data.deliveryData.codename};
 				this.getOrderWork(ctx).orderTemp.data.deliveryData = { "codename": deliveryType };
 				let deliveryMethodExists = false;
@@ -146,6 +148,23 @@ module.exports = {
 				if (!deliveryMethodExists && !orderTypology.types.includes("subscription")) {
 					this.logger.error("order.checkOrderData() - delivery type not exist");
 					this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Deliverry type", "desc": "not found"});
+				}
+
+				if (deliveryMethodExists) {
+					if (incomingDestination) {
+						this.getOrderWork(ctx).orderTemp.data.deliveryData.destination = incomingDestination;
+					}
+					const destinationResult = applyOrderDestination(
+						this.getOrderWork(ctx).orderTemp.data.deliveryData,
+						this.settings.order.deliveryMethods
+					);
+					if (!destinationResult.ok) {
+						this.logger.error("order.checkOrderData() - delivery destination missing");
+						this.getOrderWork(ctx).orderErrors.orderErrors.push({
+							value: "Delivery destination",
+							desc: "not set",
+						});
+					}
 				}
 			} else {
 				this.logger.error("order.checkOrderData() - delivery type not set");
@@ -408,7 +427,9 @@ module.exports = {
 				this.getOrderWork(ctx).orderTemp.settings.deliveryMethods = [];
 				Object.keys(this.settings.order.deliveryMethods).forEach((deliveryKey) => { // loop deliveries
 					if ( usedProductTypes.indexOf(this.settings.order.deliveryMethods[deliveryKey].type)>-1  ) {
-						this.getOrderWork(ctx).orderTemp.settings.deliveryMethods.push( this.settings.order.deliveryMethods[deliveryKey] );
+						this.getOrderWork(ctx).orderTemp.settings.deliveryMethods.push(
+							publicDeliveryMethod(this.settings.order.deliveryMethods[deliveryKey])
+						);
 					}
 				}); // loop deliveries end
 			}

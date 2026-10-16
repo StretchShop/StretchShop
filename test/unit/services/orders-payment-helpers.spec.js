@@ -76,6 +76,41 @@ describe("order payment helpers", () => {
 		expect(service.updateOrderStatePaidStripe).toHaveBeenCalled();
 	});
 
+	it("accepts a charge that includes delivery and the payment fee", () => {
+		const markPaid = jest.fn();
+		const svc = createService({ updateOrderStatePaidStripe: markPaid });
+		const order = {
+			_id: "ord-1",
+			items: [{ _id: "p1", type: "product", price: 0.5, amount: 1 }],
+			prices: { priceTotal: 7.5, priceDelivery: 5, pricePayment: 2 },
+			data: { paymentData: { supplier: {} } },
+		};
+		svc.updateOrderPaymentState({}, order, { amount: 7.5, status: "succeeded" }, "stripe", "products");
+		expect(markPaid).toHaveBeenCalled();
+	});
+
+	it("accepts a charge one cent under the total", () => {
+		const markPaid = jest.fn();
+		const svc = createService({ updateOrderStatePaidStripe: markPaid });
+		svc.updateOrderPaymentState({}, {
+			items: [{ type: "product", price: 10.99, amount: 1 }],
+			prices: { priceTotal: 17.99 },
+			data: {},
+		}, { amount: 17.98, status: "succeeded" }, "stripe", "products");
+		expect(markPaid).toHaveBeenCalled();
+	});
+
+	it("rejects a charge that is only the product price when the total includes fees", () => {
+		const markPaid = jest.fn();
+		const svc = createService({ updateOrderStatePaidStripe: markPaid });
+		svc.updateOrderPaymentState({}, {
+			items: [{ type: "product", price: 10.99, amount: 1 }],
+			prices: { priceTotal: 17.99 },
+			data: {},
+		}, { amount: 10.99, status: "succeeded" }, "stripe", "products");
+		expect(markPaid).not.toHaveBeenCalled();
+	});
+
 	it("skips invoice generation when already emailed", async () => {
 		const result = await service.orderPaymentReceived({}, {
 			_id: "ord-1",
@@ -84,6 +119,22 @@ describe("order payment helpers", () => {
 		}, {}, "stripe", "products");
 		expect(result).toEqual({ id: "INV-1" });
 		expect(service.generateInvoice).not.toHaveBeenCalled();
+	});
+
+	it("persists paid status before invoice generation", async () => {
+		const svc = createService({
+			generateInvoice: jest.fn().mockRejectedValue(new Error("invoice failed")),
+		});
+		const order = {
+			_id: "ord-1",
+			status: "paid",
+			dates: { datePaid: new Date() },
+			invoice: {},
+			data: { paymentData: {} },
+		};
+		await expect(svc.orderPaymentReceived({}, order, {}, "admin", "products")).rejects.toThrow("invoice failed");
+		expect(svc.adapter.updateById).toHaveBeenCalled();
+		expect(svc.adapter.updateById.mock.calls[0][1].$set.status).toBe("paid");
 	});
 
 	it("stores e-invoice metadata returned with the pdf invoice", async () => {

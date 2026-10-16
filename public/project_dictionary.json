@@ -14869,6 +14869,60 @@
         ]
       },
       {
+        "phrase": "Download label",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Stiahnuť štítok"
+          },
+          {
+            "langCode": "de",
+            "translation": "Label herunterladen"
+          },
+          {
+            "langCode": "es",
+            "translation": "Descargar etiqueta"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrderDetailAdminActions.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Download label",
+                "selector": "html \u003e head \u003e template \u003e div.p-4.mb-4 \u003e div.columns.is-variable \u003e div.column.is-12 \u003e button.button:nth-child(4) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Download label"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Stiahnuť štítok"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Label herunterladen"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Descargar etiqueta"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "Your Settings",
         "language": {
           "code": "en",
@@ -16458,7 +16512,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Confirm",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e button.button.is-medium.is-primary",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e div.fixed-grid.has-1-cols \u003e div.grid \u003e div.cell.is-col-min-32:nth-child(1) \u003e button.button.is-medium.is-primary",
                 "translations": [
                   {
                     "langCode": "en",
@@ -16512,7 +16566,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Resend code",
-                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e button.button.is-medium:nth-child(4)",
+                "selector": "html \u003e head \u003e template \u003e div.container.users-login \u003e div.column.is-4.is-offset-4:nth-child(2) \u003e form:nth-child(2) \u003e div.fixed-grid.has-1-cols \u003e div.grid \u003e div.cell.is-col-min-32:nth-child(2) \u003e button.button.is-small",
                 "translations": [
                   {
                     "langCode": "en",
@@ -16853,6 +16907,222 @@
                   {
                     "langCode": "es",
                     "translation": "Revise su bandeja de entrada para encontrar el correo de verificación (si no lo encuentra, revise también la carpeta de spam)."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Expedition",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Preprava"
+          },
+          {
+            "langCode": "de",
+            "translation": "Lieferung"
+          },
+          {
+            "langCode": "es",
+            "translation": "Envío"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrderExpedition.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Expedition",
+                "selector": "html \u003e head \u003e template \u003e div.order-expedition \u003e h3.title.is-4",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Expedition"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Preprava"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Lieferung"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Envío"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Shipment created",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Preprava vytvorená"
+          },
+          {
+            "langCode": "de",
+            "translation": "Lieferung erstellt"
+          },
+          {
+            "langCode": "es",
+            "translation": "Envío creado"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrderExpedition.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Shipment created",
+                "selector": "html \u003e head \u003e template \u003e div.order-expedition \u003e p:nth-child(3)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Shipment created"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Preprava vytvorená"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Lieferung erstellt"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Envío creado"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Delivered",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Doručené"
+          },
+          {
+            "langCode": "de",
+            "translation": "Zugestellt"
+          },
+          {
+            "langCode": "es",
+            "translation": "Entregado"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrderExpedition.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Delivered",
+                "selector": "html \u003e head \u003e template \u003e div.order-expedition \u003e p:nth-child(4) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Delivered"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Doručené"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Zugestellt"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Entregado"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Track shipment",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Sledovať dopravu"
+          },
+          {
+            "langCode": "de",
+            "translation": "Lieferung verfolgen"
+          },
+          {
+            "langCode": "es",
+            "translation": "Seguir el envío"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrderExpedition.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Track shipment",
+                "selector": "html \u003e head \u003e template \u003e div.order-expedition \u003e p:nth-child(5) \u003e a",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Track shipment"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Sledovať dopravu"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Lieferung verfolgen"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Seguir el envío"
                   }
                 ]
               }
@@ -17735,6 +18005,60 @@
                   {
                     "langCode": "es",
                     "translation": "No hay artículos en este pedido"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Expeded",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Doručené"
+          },
+          {
+            "langCode": "de",
+            "translation": "Zugestellt"
+          },
+          {
+            "langCode": "es",
+            "translation": "Entregado"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrderDetail.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Expeded",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div:nth-child(1) \u003e div.container.order-detail-data \u003e div.columns.is-variable \u003e div.column.is-5 \u003e p",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Expeded"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Doručené"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Zugestellt"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Entregado"
                   }
                 ]
               }
@@ -20307,6 +20631,60 @@
         ]
       },
       {
+        "phrase": "Pick-up point",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Miesto vyzdvihnutia"
+          },
+          {
+            "langCode": "de",
+            "translation": "Abholpunkt"
+          },
+          {
+            "langCode": "es",
+            "translation": "Punto de recogida"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/UserOrderDetailSummarySidebar.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Pick-up point",
+                "selector": "html \u003e head \u003e template \u003e div.container.order-detail-data \u003e div.columns.is-variable.is-2:nth-child(2) \u003e div.column.is-6:nth-child(1) \u003e div.content.summary-block \u003e p \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Pick-up point"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Miesto vyzdvihnutia"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Abholpunkt"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Punto de recogida"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "Your Payment settings:",
         "language": {
           "code": "en",
@@ -21729,7 +22107,20 @@
           "lang": "en",
           "name": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Aktuálne heslo"
+          },
+          {
+            "langCode": "de",
+            "translation": "Aktuelles Passwort"
+          },
+          {
+            "langCode": "es",
+            "translation": "Contraseña actual"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/MeInfo.vue",
@@ -21744,6 +22135,18 @@
                   {
                     "langCode": "en",
                     "translation": "Current password"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Aktuálne heslo"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Aktuelles Passwort"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Contraseña actual"
                   }
                 ]
               }
@@ -21758,7 +22161,20 @@
           "lang": "en",
           "name": "en"
         },
-        "translates": [],
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Nesprávne heslo"
+          },
+          {
+            "langCode": "de",
+            "translation": "Falsches Passwort"
+          },
+          {
+            "langCode": "es",
+            "translation": "Contraseña incorrecta"
+          }
+        ],
         "occurrences": [
           {
             "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/users/MeInfo.vue",
@@ -21773,6 +22189,18 @@
                   {
                     "langCode": "en",
                     "translation": "Wrong password"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Nesprávne heslo"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Falsches Passwort"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Contraseña incorrecta"
                   }
                 ]
               }
@@ -23721,6 +24149,218 @@
         ]
       },
       {
+        "phrase": "Pickup selection is not configured",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Nástroj na zvolenie miesta vyzdvihnutia nie je nastavený"
+          },
+          {
+            "langCode": "de",
+            "translation": "Abholauswahl ist nicht konfiguriert"
+          },
+          {
+            "langCode": "es",
+            "translation": "La selección de recogida no está configurada"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/DeliveryDestinationPicker.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Pickup selection is not configured",
+                "selector": "html \u003e head \u003e template \u003e div.delivery-destination-picker \u003e p.has-text-danger:nth-child(1)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Pickup selection is not configured"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Abholauswahl ist nicht konfiguriert"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "La selección de recogida no está configurada"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Select the pick-up destination",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Vyberte miesto vyzdvihnutia"
+          },
+          {
+            "langCode": "de",
+            "translation": "Abholort auswählen"
+          },
+          {
+            "langCode": "es",
+            "translation": "Seleccionar punto de recogida"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/DeliveryDestinationPicker.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Select the pick-up destination",
+                "selector": "html \u003e head \u003e template \u003e div.delivery-destination-picker \u003e button.button \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Select the pick-up destination"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Vyberte miesto vyzdvihnutia"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Abholort auswählen"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Seleccionar punto de recogida"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Selected point",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Zvolené miesto"
+          },
+          {
+            "langCode": "de",
+            "translation": "Ausgewählter Punkt"
+          },
+          {
+            "langCode": "es",
+            "translation": "Punto seleccionado"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/DeliveryDestinationPicker.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Selected point",
+                "selector": "html \u003e head \u003e template \u003e div.delivery-destination-picker \u003e p:nth-child(3) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Selected point"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Zvolené miesto"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Ausgewählter Punkt"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Punto seleccionado"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "No place was selected yet",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Zatiaľ nebolo zvolené žiadne miesto"
+          },
+          {
+            "langCode": "de",
+            "translation": "Noch kein Ort ausgewählt"
+          },
+          {
+            "langCode": "es",
+            "translation": "Todavía no se ha seleccionado ningún lugar"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/DeliveryDestinationPicker.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "No place was selected yet",
+                "selector": "html \u003e head \u003e template \u003e div.delivery-destination-picker \u003e p:nth-child(4)",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "No place was selected yet"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Zatiaľ nebolo zvolené žiadne miesto"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Noch kein Ort ausgewählt"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Todavía no se ha seleccionado ningún lugar"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "Delivery Payment",
         "language": {
           "code": "en",
@@ -23951,6 +24591,60 @@
                   {
                     "langCode": "es",
                     "translation": "Seleccione un valor"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Please select a pick-up destination",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Vyberte prosím miesto vyzdvihnutia"
+          },
+          {
+            "langCode": "de",
+            "translation": "Bitte Abholort auswählen"
+          },
+          {
+            "langCode": "es",
+            "translation": "Seleccione un punto de recogida"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/DeliveryPayment.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Please select a pick-up destination",
+                "selector": "html \u003e head \u003e template \u003e div.orderDeliveryPayment \u003e form \u003e div:nth-child(1) \u003e div.deliveryType.optionControlList \u003e div.form-messages \u003e p.form-message.has-text-danger.has-text-left:nth-child(2) \u003e span",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Please select a pick-up destination"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Vyberte prosím miesto vyzdvihnutia"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Bitte Abholort auswählen"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Seleccione un punto de recogida"
                   }
                 ]
               }

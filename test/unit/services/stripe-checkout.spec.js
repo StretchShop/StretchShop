@@ -69,7 +69,7 @@ describe("stripe checkout payment intent", () => {
 		};
 
 		const result = await checkoutMixin.actions.stripeOrderPaymentintent.handler.call(service, ctx);
-		expect(Stripe.__paymentIntentsCreate).toHaveBeenCalled();
+		expect(Stripe.__paymentIntentsCreate).toHaveBeenCalledWith(expect.objectContaining({ amount: 2500 }));
 		expect(ctx.call).toHaveBeenCalledWith("orders.updateOrder", expect.objectContaining({
 			order: expect.objectContaining({
 				data: expect.objectContaining({
