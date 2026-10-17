@@ -7,6 +7,7 @@ const setupMethods = require("../../../services/orders/mixins/payments.stripe.su
 const stripeHelpers = require("../../../services/orders/mixins/payments.stripe.helpers.mixin");
 const suspendMixin = require("../../../services/subscriptions/mixins/subscriptions.actions.suspend.mixin");
 const paymentMethods = require("../../../services/orders/methods/order-payment.methods");
+const fulfillmentMethods = require("../../../services/orders/methods/order-fulfillment.methods");
 const HelpersMixin = require("../../../mixins/helpers.mixin");
 
 describe("users.updateUser", () => {
@@ -81,6 +82,7 @@ describe("order lifecycle extras", () => {
 		transformDocuments: jest.fn((ctx, params, doc) => doc),
 		entityChanged: jest.fn().mockResolvedValue(true),
 		getOrderPaymentStatus: paymentMethods.methods.getOrderPaymentStatus,
+		attachDeliveryTracking: fulfillmentMethods.methods.attachDeliveryTracking,
 		adapter: {
 			findById: jest.fn(),
 			updateById: jest.fn().mockResolvedValue({ _id: "ord-1", status: "canceled" }),

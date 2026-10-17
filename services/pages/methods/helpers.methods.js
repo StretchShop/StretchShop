@@ -22,12 +22,49 @@ module.exports = {
 	methods: {
 
 		/**
-		 * 
+		 * True when the localized template or its language-less sibling exists.
+		 * @param {String} filepath
+		 * @returns {Boolean}
+		 */
+		pageTemplateExists(filepath) {
+			if (existsSync(filepath)) {
+				return true;
+			}
+			const noLangPath = String(filepath).replace(/-[a-z]{2}(\.[^.\\/]+)$/i, "$1");
+			return noLangPath !== filepath && existsSync(noLangPath);
+		},
+
+
+		/**
+		 * Resolve one template directory under the page group.
+		 * @param {String} pagesRoot
+		 * @param {String} templateName
+		 * @param {String} name
+		 * @param {String} safeLang
+		 * @returns {{ pageName: String, parentDir: String, filepath: String }}
+		 */
+		resolvePageTemplate(pagesRoot, templateName, name, safeLang) {
+			const pageName = sanitizePathSegment(name);
+			const parentDir = pathResolve(pagesRoot, templateName, pageName);
+			assertResolvedUnderRoot(pagesRoot, parentDir);
+			const filepath = pathResolve(parentDir, pageName + "-" + safeLang + ".html");
+			assertResolvedUnderRoot(pagesRoot, filepath);
+			return { pageName, parentDir, filepath };
+		},
+
+
+		/**
+		 * Resolve the page template directory.
+		 * The page subtype is the template name. Missing templates fall back to default.
+		 * Subtype "slug" looks in resources/pages/_slugs/{slug} before that fallback.
+		 * The homepage slug always uses the homepage subtype.
+		 *
 		 * @param {String} lang - 2-letter code of active language
 		 * @param {String} pageSlug - slug of active page
-		 * @returns 
+		 * @param {String} [subtype] - page subtype used as the template name
+		 * @returns
 		 */
-		getTemplateVars(lang, pageSlug) {
+		getTemplateVars(lang, pageSlug, subtype) {
 			const langRaw = String(lang || "en").trim().toLowerCase();
 			const safeLang = sanitizePathSegment(langRaw.slice(0, 2));
 			if (!/^[a-z]{2}$/.test(safeLang)) {
@@ -40,26 +77,48 @@ module.exports = {
 				templateName = sanitizePathSegment(pageSlugArray[1]);
 			}
 			const pagesRoot = pathResolve(this.settings.paths.resources, "pages");
-			let parentDir = pathResolve(pagesRoot, templateName, pageName);
-			assertResolvedUnderRoot(pagesRoot, parentDir);
-			let filepath = pathResolve(parentDir, pageName + "-" + safeLang + ".html");
-			assertResolvedUnderRoot(pagesRoot, filepath);
 
-			// use default template if more relevant not found
-			if ( !existsSync(filepath) ) {
-				pageName = "default";
-				parentDir = pathResolve(pagesRoot, templateName, "default");
-				assertResolvedUnderRoot(pagesRoot, parentDir);
-				filepath = pathResolve(parentDir, "default-" + safeLang + ".html");
-				assertResolvedUnderRoot(pagesRoot, filepath);
+			const candidates = [];
+			let subtypeRaw = String(subtype || "").trim();
+			if (pageName.toLowerCase() === "homepage") {
+				subtypeRaw = "homepage";
+			}
+			if (subtypeRaw.toLowerCase() === "slug") {
+				candidates.push({ group: "_slugs", name: pageName });
+			} else if (subtypeRaw) {
+				try {
+					const safeSubtype = sanitizePathSegment(subtypeRaw);
+					if (safeSubtype && safeSubtype !== "default") {
+						candidates.push({ group: templateName, name: safeSubtype });
+					}
+				} catch {
+					// ignore subtypes that are not safe path segments
+				}
+			}
+			candidates.push({ group: templateName, name: "default" });
+
+			let resolved = null;
+			for (let i = 0; i < candidates.length; i++) {
+				const item = candidates[i];
+				const candidate = this.resolvePageTemplate(pagesRoot, item.group, item.name, safeLang);
+				const isLast = i === candidates.length - 1;
+				if (isLast || this.pageTemplateExists(candidate.filepath)) {
+					resolved = {
+						templateName: item.group,
+						pageName: candidate.pageName,
+						parentDir: candidate.parentDir,
+						filepath: candidate.filepath
+					};
+					break;
+				}
 			}
 
 			return {
 				pageSlugArray,
-				templateName,
-				pageName,
-				parentDir,
-				filepath
+				templateName: resolved.templateName,
+				pageName: resolved.pageName,
+				parentDir: resolved.parentDir,
+				filepath: resolved.filepath
 			};
 		},
 

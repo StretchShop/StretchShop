@@ -88,6 +88,12 @@ module.exports = {
 			if (order?.data && paymentData && availableActions.includes(action)) {
 				if (action === "products") {
 					if ( paymentData?.status === "succeeded" ) {
+						if (!order.data.paymentData) {
+							order.data.paymentData = {};
+						}
+						if (!order.data.paymentData.supplier) {
+							order.data.paymentData.supplier = {};
+						}
 						// update product payment status
 						order.data.paymentData.supplier.status = "paid";
 						// update product payment boolean

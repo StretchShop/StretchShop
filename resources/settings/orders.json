@@ -29,6 +29,56 @@
       ]
     },
     {
+      "codename": "packeta",
+      "type": "physical",
+      "name": {
+        "en": "Packeta",
+        "sk": "Packeta",
+        "de": "Packeta",
+        "es": "Packeta"
+      },
+      "prices": [
+        {
+          "range": {
+            "from": 0,
+            "to": 500
+          },
+          "price": 5,
+          "tax": 0.2
+        },
+        {
+          "range": {
+            "from": 500,
+            "to": 1000000
+          },
+          "price": 0
+        }
+      ],
+      "data": {
+        "destinationSelectionPlugin": true,
+        "widgetApiKey": "14602426c66fcf89",
+        "eshop": "testshop",
+        "defaultWeightKg": 1,
+        "trackingUrl": "https://tracking.packeta.com/{lang}/{trackingId}",
+        "widget": {
+          "language": "sk",
+          "view": "modal",
+          "vendors": [
+            {
+              "country": "sk"
+            },
+            {
+              "country": "sk",
+              "group": "zbox"
+            },
+            {
+              "country": "cz"
+            }
+          ]
+        }
+      }
+    },
+    {
       "codename": "courier",
       "type": "physical",
       "name": {

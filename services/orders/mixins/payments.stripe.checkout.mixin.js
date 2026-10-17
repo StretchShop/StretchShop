@@ -99,7 +99,7 @@ module.exports = {
 					}
 
 					// priceTotal is already without subscriptions, just format it to cents
-					priceTotalNoSubscriptions = parseInt((order.prices.priceTotal) * 100);
+					priceTotalNoSubscriptions = Math.round(Number(order.prices.priceTotal) * 100);
 
 					let payment = {
 						"intent": "sale",

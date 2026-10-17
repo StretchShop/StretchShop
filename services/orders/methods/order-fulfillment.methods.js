@@ -5,10 +5,13 @@ const passGenerator = require("generate-password");
 const fetch = require("cross-fetch");
 const jwt = require("jsonwebtoken");
 const handlebars = require("handlebars");
-const { ensureDir, pathExists } = require("fs-extra");
+const { ensureDir, pathExists, writeFile } = require("fs-extra");
+const path = require("path");
 const pathResolve = require("path").resolve;
+const { getSupplier, physicalCodename } = require("../delivery/registry");
 const SettingsMixin = require("../../../mixins/settings.mixin");
 const PdfPrintMixin = require("../../../mixins/pdfprint.mixin");
+const einvoiceModule = require("../../../modules/einvoice");
 const { subscriptionPaymentStatuses } = require("../constants/subscription.constants");
 const { productStatuses } = require("../constants/product.constants");
 const { orderStatuses } = require("../constants/order.constants");
@@ -67,6 +70,166 @@ module.exports = {
 			const pdfPath = pathResolve(dir, invoiceId + ".pdf");
 			const sendPath = "invoices/" + userId + "/" + invoiceId + ".pdf";
 			return { dir, pdfPath, sendPath };
+		},
+
+
+		getDeliveryLabelPaths(orderId) {
+			const labelsRoot = process.env.PATH_LABELS
+				|| pathResolve(process.env.PATH_RESOURCES || "./resources", "labels");
+			const id = String(orderId || "").replace(/[^a-zA-Z0-9_-]/g, "");
+			if (!id) {
+				throw new Error("Invalid order id");
+			}
+			const pdfPath = pathResolve(labelsRoot, id + ".pdf");
+			const rootWithSep = labelsRoot.endsWith(path.sep) ? labelsRoot : labelsRoot + path.sep;
+			if (pdfPath !== labelsRoot && !pdfPath.startsWith(rootWithSep)) {
+				throw new Error("Invalid order id");
+			}
+			return { dir: labelsRoot, pdfPath };
+		},
+
+
+		storeDeliveryLabel(orderId, pdf) {
+			const { dir, pdfPath } = this.getDeliveryLabelPaths(orderId);
+			return ensureDir(dir)
+				.then(() => writeFile(pdfPath, pdf))
+				.then(() => pdfPath);
+		},
+
+
+		/**
+		 * Create the supplier packet once, then let the caller mark the order expeded.
+		 * Methods without a supplier stay a status change only.
+		 */
+		prepareExpedition(order) {
+			const codename = physicalCodename(order);
+			const supplier = getSupplier(codename);
+			if (!supplier || typeof supplier.createShipment !== "function") {
+				return Promise.resolve(order);
+			}
+			if (!order.data) {
+				order.data = {};
+			}
+			if (!order.data.deliveryData) {
+				order.data.deliveryData = {};
+			}
+			if (order.data.deliveryData.expedition?.trackingId) {
+				return Promise.resolve(order);
+			}
+			const method = (this.settings?.order?.deliveryMethods || []).find((item) => item.codename === codename);
+			const self = this;
+			return supplier.createShipment(order, method)
+				.then((shipment) => {
+					order.data.deliveryData.expedition = {
+						supplier: shipment.supplier,
+						trackingId: shipment.trackingId,
+						packetId: shipment.packetId,
+						status: shipment.status || null,
+						statusText: shipment.statusText || null,
+						trackingUrl: shipment.trackingUrl || null,
+						updatedAt: shipment.updatedAt || null,
+						deliveredAt: shipment.deliveredAt || null,
+						labelStored: false,
+					};
+					if (!shipment.labelPdf) {
+						if (shipment.labelError) {
+							self.logger.error("orders.prepareExpedition() - label failed:", shipment.labelError);
+						}
+						return order;
+					}
+					return self.storeDeliveryLabel(order._id, shipment.labelPdf)
+						.then(() => {
+							order.data.deliveryData.expedition.labelStored = true;
+							return order;
+						})
+						.catch((error) => {
+							self.logger.error("orders.prepareExpedition() - label store failed:", error);
+							return order;
+						});
+				});
+		},
+
+
+		/**
+		 * Refresh tracking for one expeded order. A supplier error keeps the stored barcode and link.
+		 */
+		readOrFetchDeliveryLabel(order) {
+			const { pdfPath } = this.getDeliveryLabelPaths(order._id);
+			const self = this;
+			return pathExists(pdfPath).then((exists) => {
+				if (exists) {
+					return pdfPath;
+				}
+				const packetId = order?.data?.deliveryData?.expedition?.packetId;
+				const supplier = getSupplier(physicalCodename(order));
+				if (!packetId || typeof supplier?.fetchLabel !== "function") {
+					const missing = new Error("Label not found");
+					missing.code = 404;
+					throw missing;
+				}
+				return supplier.fetchLabel(packetId)
+					.then((pdf) => self.storeDeliveryLabel(order._id, pdf))
+					.then((storedPath) => {
+						if (order?.data?.deliveryData?.expedition) {
+							order.data.deliveryData.expedition.labelStored = true;
+						}
+						if (typeof self.adapter?.updateById !== "function" || !order._id) {
+							return storedPath;
+						}
+						return self.adapter.updateById(order._id, {
+							$set: { "data.deliveryData.expedition.labelStored": true },
+						})
+							.catch((error) => {
+								self.logger.error("orders.readOrFetchDeliveryLabel() - persist failed:", error);
+							})
+							.then(() => storedPath);
+					});
+			});
+		},
+
+
+		attachDeliveryTracking(order) {
+			if (!order?.dates?.dateExpeded) {
+				return Promise.resolve(order);
+			}
+			const stored = order?.data?.deliveryData?.expedition;
+			if (!stored?.trackingId) {
+				return Promise.resolve(order);
+			}
+			const codename = physicalCodename(order);
+			const supplier = getSupplier(codename);
+			if (!supplier || typeof supplier.track !== "function") {
+				return Promise.resolve(order);
+			}
+			const method = (this.settings?.order?.deliveryMethods || []).find((item) => item.codename === codename);
+			const self = this;
+			return supplier.track(stored.trackingId, { order, method, stored })
+				.then((fresh) => {
+					order.data.deliveryData.expedition = {
+						...stored,
+						...fresh,
+						labelStored: stored.labelStored === true,
+					};
+					const updates = {
+						"data.deliveryData.expedition": order.data.deliveryData.expedition,
+					};
+					if (fresh.status === "delivered" && fresh.deliveredAt && !order.dates.dateDelivered) {
+						order.dates.dateDelivered = new Date(fresh.deliveredAt);
+						updates["dates.dateDelivered"] = order.dates.dateDelivered;
+					}
+					if (typeof self.adapter?.updateById !== "function" || !order._id) {
+						return order;
+					}
+					return self.adapter.updateById(order._id, { $set: updates })
+						.catch((error) => {
+							self.logger.error("orders.attachDeliveryTracking() - persist failed:", error);
+						})
+						.then(() => order);
+				})
+				.catch((error) => {
+					self.logger.error("orders.attachDeliveryTracking() - tracking failed:", error);
+					return order;
+				});
 		},
 
 
@@ -227,8 +390,15 @@ module.exports = {
 								} else {
 									self.logger.info("orders.generateInvoice() - path:", pdfPath);
 								}
-								return self.sendOrderPaidEmail(ctx, order, html, exists ? pdfPath : null)
-									.then(() => ({ html, path: exists ? sendPath : null }));
+								const stored = exists ? self.generateEinvoice(order) : Promise.resolve(null);
+								return stored.then((einvoice) => {
+									return self.sendOrderPaidEmail(ctx, order, html, exists ? pdfPath : null)
+										.then(() => ({
+											html,
+											path: exists ? sendPath : null,
+											einvoice
+										}));
+								});
 							})
 							.catch(pdfErr => {
 								self.logger.error("orders.generateInvoice() - PDF generate error:", pdfErr);
@@ -237,6 +407,29 @@ module.exports = {
 							});
 					});
 			}
+		},
+
+
+		/**
+		 * Build the structured e-invoice after the PDF exists and, when
+		 * E_INVOICE_URL is set, submit it. Failures stay off the PDF path.
+		 *
+		 * @param {*} order
+		 */
+		generateEinvoice(order) {
+			const { dir } = this.getInvoiceFilePaths(order);
+			const userId = String(order?.user?.id || "");
+			return einvoiceModule.generateAndSend({
+				order,
+				business: SettingsMixin.getSiteSettings("business"),
+				resourcesPath: this.settings?.paths?.resources,
+				outputDir: dir,
+				relativeDir: "invoices/" + userId,
+				logger: this.logger
+			}).catch(error => {
+				this.logger.error("orders.generateEinvoice() - failed:", error);
+				return null;
+			});
 		},
 
 

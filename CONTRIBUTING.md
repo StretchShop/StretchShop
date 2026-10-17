@@ -56,11 +56,11 @@ The gateway listens on **http://localhost:3000**. Compiled SPA files in `public/
 CI (`.github/workflows/ci.yml`) runs on push to `main`/`master` and on pull requests: Node 22, MongoDB 7, `npm run lint`, then `npm test`.
 
 ```bash
-npm run lint         # ESLint on services/
+npm run lint         # ESLint on services/ and modules/
 npm test             # Jest with coverage (test/unit/**/*.spec.js)
 ```
 
-`npm test` collects coverage from `services/` and `mixins/` and **fails if global statements or lines drop below 60%**. Keep the threshold green when you change production code — add or extend specs under `test/unit/`.
+`npm test` collects coverage from `services/`, `mixins/`, and `modules/` and **fails if global statements or lines drop below 60%**. Keep the threshold green when you change production code — add or extend specs under `test/unit/`.
 
 MongoDB should be running. Jest sets `NODE_ENV=test` and dummy JWT/Stripe values in `test/setup/jest.setup.js` if they are missing.
 
@@ -69,7 +69,7 @@ Do not commit `coverage/` output.
 ## Coding conventions
 
 - JavaScript (CommonJS). Tabs, double quotes, semicolons (`eslint.config.js`).
-- Business logic belongs in Moleculer **services** (`services/<name>/`). Shared helpers go in **mixins**.
+- `services/` is only Moleculer broker services (a collection and the actions around it). Runtime libraries that a service calls live in `modules/`. `scripts/` is for jobs you run and leave. **Mixins** expect `this` (logger, settings, adapter) and expose methods or actions. Detail: [Code layout](https://github.com/StretchShop/StretchShop/wiki/Code-layout).
 - HTTP routes are declared in `resources/routes/apiV1.js` (`mappingPolicy: "restrict"`).
 - Do not put secrets in git. `.env` is ignored; `.env.example` and `docker/*/docker-compose.env` must stay free of real credentials.
 - Production rejects missing or well-known placeholder values for `JWT_SECRET` and `COOKIES_KEY`.

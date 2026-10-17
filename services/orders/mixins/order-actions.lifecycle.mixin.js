@@ -308,23 +308,28 @@ module.exports = {
 										}
 									}
 								}
+								const trackingPromise = found.length === 1
+									? self.attachDeliveryTracking(found[0])
+									: Promise.resolve(null);
+								return trackingPromise.then(() => {
 								// add payment status if requested
-								if (ctx.params.paymentStatus) {
-									for (const element of found) {
-										element.data["paymentStatus"] = self.getOrderPaymentStatus(element);
+									if (ctx.params.paymentStatus) {
+										for (const element of found) {
+											element.data["paymentStatus"] = self.getOrderPaymentStatus(element);
+										}
 									}
-								}
-								return ctx.call("orders.count", filter)
-									.then(count => {
-										return {
-											total: count,
-											results: found
-										};
-									})
-									.catch(error => {
-										self.logger.error("orders.listOrders count error", error);
-										return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found" }]));
-									});
+									return ctx.call("orders.count", filter)
+										.then(count => {
+											return {
+												total: count,
+												results: found
+											};
+										})
+										.catch(error => {
+											self.logger.error("orders.listOrders count error", error);
+											return Promise.reject(new MoleculerClientError("Orders not found!..", 400, "", [{ field: "orders", message: "not found" }]));
+										});
+								});
 							} else { // no order found in datasource
 								self.logger.error("orders.listOrders find error", found);
 								return Promise.reject(new MoleculerClientError("Orders not found!.", 400, "", [{ field: "orders", message: "not found" }]));

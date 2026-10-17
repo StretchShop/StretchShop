@@ -1,12 +1,19 @@
 "use strict";
 
+jest.mock("../../../modules/einvoice", () => ({
+	generateAndSend: jest.fn()
+}));
+
 const fulfillmentMethods = require("../../../services/orders/methods/order-fulfillment.methods");
+const SettingsMixin = require("../../../mixins/settings.mixin");
+const einvoice = require("../../../modules/einvoice");
 
 describe("orders paid email invoice attachment", () => {
 	const service = {
 		logger: { info() {}, warn() {}, error() {} },
 		getInvoiceFilePaths: fulfillmentMethods.methods.getInvoiceFilePaths,
 		sendOrderPaidEmail: fulfillmentMethods.methods.sendOrderPaidEmail,
+		generateEinvoice: fulfillmentMethods.methods.generateEinvoice,
 	};
 
 	it("builds invoice paths outside the public static folder", () => {
@@ -114,5 +121,29 @@ describe("orders paid email invoice attachment", () => {
 		expect(updateById).toHaveBeenCalledWith("order1", {
 			$set: { "dates.emailPaidSent": order.dates.emailPaidSent }
 		});
+	});
+
+	it("asks the e-invoice module to store xml beside the pdf", async () => {
+		const spy = jest.spyOn(SettingsMixin, "getSiteSettings").mockReturnValue({
+			invoiceData: { company: { name: "Co" } }
+		});
+		einvoice.generateAndSend.mockResolvedValue({
+			format: "en16931-peppolBisBilling30",
+			lang: "en",
+			path: "invoices/user1/5202608031.xml",
+			sent: false,
+			status: null,
+			error: null
+		});
+		const result = await service.generateEinvoice({
+			user: { id: "user1" },
+			invoice: { id: "5202608031" }
+		});
+		expect(einvoice.generateAndSend).toHaveBeenCalledWith(expect.objectContaining({
+			relativeDir: "invoices/user1",
+			outputDir: expect.stringMatching(/user1$/)
+		}));
+		expect(result.path).toBe("invoices/user1/5202608031.xml");
+		spy.mockRestore();
 	});
 });

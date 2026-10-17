@@ -14,6 +14,7 @@ module.exports = {
 	collectCoverageFrom: [
 		"services/**/*.js",
 		"mixins/**/*.js",
+		"modules/**/*.js",
 		"!services/coverage/**",
 	],
 	coveragePathIgnorePatterns: [

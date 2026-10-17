@@ -18,6 +18,7 @@ RUN addgroup -S stretchshop && adduser -S stretchshop -G stretchshop
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json moleculer.config.js ./
+COPY modules ./modules
 COPY mixins ./mixins
 COPY services ./services
 COPY docs/openapi ./docs/openapi
@@ -44,7 +45,8 @@ RUN cp -a /tmp/repo-resources/. ./resources/ \
 	&& test -f resources/pdftemplates/fonts/Roboto-MediumItalic.ttf \
 	&& test -f resources/navigation/navigation-main.json \
 	&& test -f resources/pages/_default/default/default.html \
-	&& test -d public/assets/data
+	&& test -d public/assets/data \
+	&& mkdir -p resources/invoices resources/labels
 
 RUN chown -R stretchshop:stretchshop /app
 

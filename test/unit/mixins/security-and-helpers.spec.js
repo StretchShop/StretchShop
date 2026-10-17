@@ -436,6 +436,40 @@ describe("order-params.security", () => {
 		expect(merged.data.subscription).toBeNull();
 	});
 
+	it("keeps a pickup destination and drops extra delivery fields", () => {
+		const picked = pickAllowedOrderParams({
+			data: {
+				deliveryData: {
+					codename: { physical: { value: "packeta", price: 5 } },
+					destination: {
+						supplier: "packeta",
+						externalId: "42",
+						name: "Z-BOX",
+						street: "Main",
+						city: "Bratislava",
+						zip: "81101",
+						country: "sk",
+						raw: { secret: true },
+						trackingId: "Z1",
+					},
+					expedition: { trackingId: "Z1" },
+				},
+			},
+		});
+
+		expect(picked.data.deliveryData.destination).toEqual({
+			supplier: "packeta",
+			externalId: "42",
+			name: "Z-BOX",
+			street: "Main",
+			city: "Bratislava",
+			zip: "81101",
+			country: "sk",
+		});
+		expect(picked.data.deliveryData.expedition).toBeUndefined();
+		expect(picked.data.deliveryData.codename.physical).toEqual({ value: "packeta" });
+	});
+
 	it("blocks the reported deliveryData __proto__ pollution payload", () => {
 		const attackPayload = {
 			orderParams: {
@@ -726,6 +760,22 @@ describe("security.headers", () => {
 		expect(csp).toMatch(/base-uri 'none'/);
 		expect(csp).toMatch(/frame-ancestors 'none'/);
 		expect(csp).toMatch(/https:\/\/js\.stripe\.com/);
+		expect(csp).toMatch(/script-src[^;]*https:\/\/\*\.js\.stripe\.com/);
+		expect(csp).toMatch(/script-src[^;]*https:\/\/www\.google\.com\/recaptcha\//);
+		expect(csp).toMatch(/script-src[^;]*https:\/\/www\.gstatic\.com\/recaptcha\//);
+		expect(csp).toMatch(/script-src[^;]*https:\/\/www\.googletagmanager\.com/);
+		expect(csp).toMatch(/script-src[^;]*https:\/\/widget\.packeta\.com/);
+		expect(csp).toMatch(/connect-src[^;]*https:\/\/api\.stripe\.com/);
+		expect(csp).toMatch(/connect-src[^;]*https:\/\/www\.google\.com\/recaptcha\//);
+		expect(csp).toMatch(/connect-src[^;]*https:\/\/\*\.google-analytics\.com/);
+		expect(csp).toMatch(/connect-src[^;]*https:\/\/widget\.packeta\.com/);
+		expect(csp).toMatch(/frame-src[^;]*https:\/\/hooks\.stripe\.com/);
+		expect(csp).toMatch(/frame-src[^;]*https:\/\/link\.com/);
+		expect(csp).toMatch(/frame-src[^;]*https:\/\/recaptcha\.google\.com\/recaptcha\//);
+		expect(csp).toMatch(/frame-src[^;]*https:\/\/widget\.packeta\.com/);
+		expect(csp).toMatch(/frame-src[^;]*https:\/\/backup\.widget\.packeta\.com/);
+		expect(csp).toMatch(/frame-src[^;]*https:\/\/www\.youtube\.com/);
+		expect(csp).toMatch(/frame-src[^;]*https:\/\/player\.vimeo\.com/);
 	});
 
 	it("sets COOP and CORP and leaves COEP off by default", () => {
@@ -743,6 +793,7 @@ describe("security.headers", () => {
 		expect(headers["Cross-Origin-Resource-Policy"]).toBe("same-origin");
 		expect(headers["Cross-Origin-Embedder-Policy"]).toBeUndefined();
 		expect(headers["X-Frame-Options"]).toBe("DENY");
+		expect(headers["Permissions-Policy"]).toMatch(/geolocation=\(self "https:\/\/widget\.packeta\.com"/);
 		if (originalCoep === undefined) {
 			delete process.env.COEP_REQUIRE_CORP;
 		} else {

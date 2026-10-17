@@ -107,6 +107,45 @@ module.exports = {
 
 
 		/**
+		 * Admin download of the supplier shipping label.
+		 * Fetches it again when the packet exists but the file was not stored.
+		 */
+		deliveryLabel: {
+			cache: false,
+			auth: "required",
+			params: {
+				orderId: { type: "string", min: 3 }
+			},
+			handler(ctx) {
+				const denied = this.requireAdmin(ctx);
+				if (denied) {
+					return denied;
+				}
+				return this.adapter.findById(ctx.params.orderId)
+					.then(order => {
+						if (!order) {
+							return this.Promise.reject(new MoleculerClientError("Order not found", 404, "", []));
+						}
+						return this.readOrFetchDeliveryLabel(order)
+							.then(pdfPath => createReadStream(pdfPath));
+					})
+					.catch(error => {
+						if (error instanceof MoleculerClientError) {
+							return this.Promise.reject(error);
+						}
+						const code = error?.code === 404 ? 404 : 422;
+						return this.Promise.reject(new MoleculerClientError(
+							error?.message || "Label not found",
+							code,
+							"",
+							[]
+						));
+					});
+			}
+		},
+
+
+		/**
 		 * Admin only action
 		 * Change order state to paid
 		 * 
@@ -195,45 +234,52 @@ module.exports = {
 								result.message = "error: Order not found";
 								return result;
 							}
-							// specific for admin
-							order.status = "expeded";
-							order.dates.dateChanged = new Date();
-							order.dates.dateExpeded = new Date();
-							if (!order.data) { order.data = {}; }
-							if (!order.data.paymentData) { order.data.paymentData = {}; }
-							if (!order.data.paymentData.lastResponseResult) {
-								order.data.paymentData.lastResponseResult = [];
-							}
-							order.data.paymentData.lastResponseResult.push({
-								description: "Marked as Expeded by Admin",
-								date: new Date(),
-								userId: ctx.meta.user._id.toString()
-							});
+							const orderId = order._id.toString();
+							return self.prepareExpedition(order)
+								.then(prepared => {
+									if (!prepared.dates) { prepared.dates = {}; }
+									prepared.status = "expeded";
+									prepared.dates.dateChanged = new Date();
+									prepared.dates.dateExpeded = prepared.dates.dateExpeded || new Date();
+									if (!prepared.data) { prepared.data = {}; }
+									if (!prepared.data.paymentData) { prepared.data.paymentData = {}; }
+									if (!prepared.data.paymentData.lastResponseResult) {
+										prepared.data.paymentData.lastResponseResult = [];
+									}
+									prepared.data.paymentData.lastResponseResult.push({
+										description: "Marked as Expeded by Admin",
+										date: new Date(),
+										userId: ctx.meta.user._id.toString()
+									});
 
-							let orderId = order._id.toString();
-							delete order.id;
-							delete order._id;
-							const update = {
-								"$set": order
-							};
+									delete prepared.id;
+									delete prepared._id;
+									const update = {
+										"$set": prepared
+									};
 
-							// update order document
-							return self.adapter.updateById(orderId, update)
-								.then(doc => {
-									return this.transformDocuments(ctx, {}, doc);
-								})
-								.then(json => {
-									return this.entityChanged("updated", json, ctx)
-										.then(() => {
-											self.logger.info("order.expede - expede success: ");
-											result.success = true;
-											result.order = json;
+									return self.adapter.updateById(orderId, update)
+										.then(doc => {
+											return self.transformDocuments(ctx, {}, doc);
+										})
+										.then(json => {
+											return self.entityChanged("updated", json, ctx)
+												.then(() => {
+													self.logger.info("order.expede - expede success: ");
+													result.success = true;
+													result.order = json;
+													return result;
+												});
+										})
+										.catch(error => {
+											self.logger.error("order.expede - update error: ", error);
+											result.message = "error: " + (error?.message || JSON.stringify(error));
 											return result;
 										});
 								})
 								.catch(error => {
-									self.logger.error("order.expede - update error: ", error);
-									result.message = "error: " + (error?.message || JSON.stringify(error));
+									self.logger.error("order.expede - shipment error: ", error);
+									result.message = error?.message || "Delivery shipment failed";
 									return result;
 								});
 						})

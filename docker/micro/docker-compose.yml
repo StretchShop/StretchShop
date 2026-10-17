@@ -22,6 +22,7 @@ services:
       - "traefik.http.services.api.loadbalancer.server.port=3000"
     volumes:
       - /var/www/html/stretchshop/static:/app/public/assets/data
+      - /var/www/html/stretchshop/resources/invoices:/app/resources/invoices
       - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
 #      - /etc/letsencrypt/:/etc/letsencrypt
     networks:
@@ -42,6 +43,7 @@ services:
         - mongo
     volumes:
       - /var/www/html/stretchshop/static:/app/public/assets/data
+      - /var/www/html/stretchshop/resources/invoices:/app/resources/invoices
       - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
     networks:
       - internal
@@ -138,6 +140,7 @@ services:
     volumes:
       - /var/www/html/stretchshop/static:/app/public/assets/_s
       - /var/www/html/stretchshop/app/stretchshop/.temp:/app/.temp
+      - invoices:/app/resources/invoices
     networks:
       - internal
 

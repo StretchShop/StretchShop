@@ -59,12 +59,19 @@ module.exports = {
 					lang = ctx.params.lang.trim();
 				}
 
-				const tv = this.getTemplateVars(lang, ctx.params.page);
-
-				return this.getPageDetail(ctx, tv)
-					.catch(err => {
-						this.logger.error("pages.detail error:", err);
-						return err;
+				// subtype selects the template; "slug" uses resources/pages/_slugs
+				// homepage always resolves to the homepage subtype
+				return this.adapter.find({
+					query: { slug: ctx.params.page }
+				})
+					.then(pages => {
+						const subtype = pages && pages[0] ? pages[0].subtype : null;
+						const tv = this.getTemplateVars(lang, ctx.params.page, subtype);
+						return this.getPageDetail(ctx, tv)
+							.catch(err => {
+								this.logger.error("pages.detail error:", err);
+								return err;
+							});
 					});
 			}
 		},

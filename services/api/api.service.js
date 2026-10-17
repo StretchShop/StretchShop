@@ -409,11 +409,10 @@ module.exports = {
 					return denied;
 				}
 				const business = SettingsMixin.getSiteSettings("business", true);
+				const coreEditable = business?.editableSettings?.core === true;
 				this.logger.info("settings: ", business, ctx.meta.user.type == "admin",
-					business.editableSettings !== "undefined",
-					business.editableSettings.core === true, ctx);
-				if (business.editableSettings !== "undefined" &&
-					business.editableSettings.core === true) {
+					coreEditable, ctx);
+				if (coreEditable) {
 					return SettingsMixin.getSiteSettings(ctx.params.type);
 				}
 				return this.Promise.reject(new MoleculerClientError("Forbidden", 403, "ERR_FORBIDDEN", []));
@@ -434,13 +433,12 @@ module.exports = {
 					return denied;
 				}
 				const business = SettingsMixin.getSiteSettings("business", true);
+				const coreEditable = business?.editableSettings?.core === true;
 				this.logger.info("settings: ", business, ctx.meta.user.type == "admin",
-					business.editableSettings !== "undefined",
-					business.editableSettings === true, ctx);
-				if (business.editableSettings !== "undefined" &&
-					business.editableSettings === true) {
+					coreEditable, ctx);
+				if (coreEditable) {
 					// if data is set, update and return
-					if (typeof ctx.params.data !== "undefined" && ctx.params.data.constructor === Object) {
+					if (ctx.params.data !== undefined && ctx.params.data.constructor === Object) {
 						return SettingsMixin.setSiteSettings(ctx.params.type, ctx.params.data);
 					} else { // if data not set, just return setting
 						return SettingsMixin.getSiteSettings(ctx.params.type);

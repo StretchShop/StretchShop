@@ -29,25 +29,74 @@ module.exports = {
 					this.updatePaidOrderData(updatedOrder, paymentData);
 				}
 			}
-			if (order.dates?.emailPaidSent && order.invoice?.id) {
-				this.logger.info("orders.orderPaymentReceived() - skip invoice/email, already sent", { orderId: order._id });
+			const saveOrder = () => {
 				return this.adapter.updateById(order._id, this.prepareForUpdate(order))
 					.then(orderUpdated => {
 						this.entityChanged("updated", orderUpdated, ctx);
-						return orderUpdated.invoice;
+						return orderUpdated;
 					});
+			};
+			if (order.dates?.emailPaidSent && order.invoice?.id) {
+				this.logger.info("orders.orderPaymentReceived() - skip invoice/email, already sent", { orderId: order._id });
+				return saveOrder().then(orderUpdated => orderUpdated.invoice);
 			}
-			// order should already have updated amount paid in 
-			return this.generateInvoice(order, ctx)
+			// Write `paid` before the invoice. PDF and e-invoice failures must
+			// not leave a captured Stripe charge on status `saved`.
+			const paidNow = order.status === "paid" && order.dates?.datePaid;
+			const persistPaid = paidNow ? saveOrder() : Promise.resolve();
+			return persistPaid
+				.then(() => this.generateInvoice(order, ctx))
 				.then(invoice => {
-					order.invoice["html"] = invoice.html;
-					order.invoice["path"] = invoice.path;
-					return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-						.then(orderUpdated => {
-							this.entityChanged("updated", orderUpdated, ctx);
-							return orderUpdated.invoice;
-						});
+					if (invoice) {
+						order.invoice = order.invoice || {};
+						order.invoice.html = invoice.html;
+						order.invoice.path = invoice.path;
+						if (invoice.einvoice) {
+							order.invoice.einvoice = invoice.einvoice;
+						}
+					}
+					return saveOrder().then(orderUpdated => orderUpdated.invoice);
 				});
+		},
+
+
+		/**
+		 * Amount the product PaymentIntent was created for.
+		 * priceTotal already includes item quantities, delivery and the payment fee.
+		 * Fall back to those parts when an older order has no total stored.
+		 */
+		expectedProductCharge(order) {
+			const total = Number(order?.prices?.priceTotal);
+			if (Number.isFinite(total) && total > 0) {
+				return total;
+			}
+			let sum = 0;
+			for (const item of order?.items || []) {
+				if (!item || item.type === "subscription") {
+					continue;
+				}
+				const unit = Number(item.price);
+				if (!Number.isFinite(unit)) {
+					continue;
+				}
+				const qty = Number(item.amount);
+				sum += unit * (Number.isFinite(qty) && qty > 0 ? qty : 1);
+			}
+			sum += Number(order?.prices?.priceDelivery) || 0;
+			sum += Number(order?.prices?.pricePayment) || 0;
+			return sum;
+		},
+
+
+		/**
+		 * Webhook amounts are already in major units. Allow one cent for
+		 * the PaymentIntent having been truncated with parseInt.
+		 */
+		stripeChargeMatches(expected, paid) {
+			if (!Number.isFinite(expected) || !Number.isFinite(paid)) {
+				return false;
+			}
+			return Math.abs(Math.round(expected * 100) - Math.round(paid * 100)) <= 1;
 		},
 
 
@@ -55,19 +104,17 @@ module.exports = {
 			// get payment data and compare it with order data
 			// according to it, update order status
 			const expectedAmounts = {
-				"products": 0,
+				"products": this.expectedProductCharge(order),
 				"subscriptions": {}
 			};
 			if (order?.items?.length > 0) {
 				order.items.forEach(item => {
-					const itemId = item._id ? item._id : item.id;
 					if (item.type === "subscription") {
+						const itemId = item._id ? item._id : item.id;
 						expectedAmounts.subscriptions[itemId] = {
 							amount: item.price,
 							status: order?.data
 						};
-					} else {
-						expectedAmounts.products += item.price;
 					}
 				});
 			}
@@ -76,38 +123,30 @@ module.exports = {
 			// ---- STRIPE SPECIFIC
 			// by default we consider it's payment for "products"
 			// that means all products in the order except subscriptions
+			const paidAmount = Number(paymentData?.amount);
 			if (action === "subscription") {
 				// get subscription price and compare it to order price
-				const expectedAmount = expectedAmounts.subscriptions[paymentData?.metadata?.productId]?.amount;
-				this.logger.info("orders.updateOrderPaymentState() - paymentData.amount:", paymentData.amount, " expectedAmount:", expectedAmount);
-				if (
-					((expectedAmount * 10) < paymentData.amount && paymentData.amount/100 >= expectedAmount) || 
-					((expectedAmount * 10) > paymentData.amount && paymentData.amount >= expectedAmount) // in case stripe sends amount without decimals
-				) {
+				const expectedAmount = Number(expectedAmounts.subscriptions[paymentData?.metadata?.productId]?.amount);
+				this.logger.info("orders.updateOrderPaymentState() - paymentData.amount:", paidAmount, " expectedAmount:", expectedAmount);
+				if (this.stripeChargeMatches(expectedAmount, paidAmount)) {
 					this.updateOrderStatePaidStripe(ctx, order, paymentData, action);
 				} else {
 					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
 						provider: paymentProvider,
-						expected: expectedAmounts.subscriptions[paymentData?.metadata?.subscriptionId], 
-						actual: paymentData.amount,
+						expected: expectedAmount, 
+						actual: paidAmount,
 						order: order._id
 					});
 				}
+			} else if (this.stripeChargeMatches(expectedAmounts.products, paidAmount)) {
+				this.updateOrderStatePaidStripe(ctx, order, paymentData, action);
 			} else {
-				// get product price and compare it to order price
-				// if price fits, update order status
-				if ( 
-					((expectedAmounts.products * 10) < paymentData.amount && paymentData.amount/100 >= expectedAmounts.products) ||  
-					((expectedAmounts.products * 10) > paymentData.amount && paymentData.amount >= expectedAmounts.products) ) { // in case stripe sends amount without decimals
-					this.updateOrderStatePaidStripe(ctx, order, paymentData, action);
-				} else {
-					this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
-						provider: paymentProvider,
-						expected: expectedAmounts.products, 
-						actual: paymentData.amount,
-						order: order._id
-					});
-				}
+				this.logger.warn("orders.updateOrderPaymentState() - payment amount does not fit order amount", { 
+					provider: paymentProvider,
+					expected: expectedAmounts.products, 
+					actual: paidAmount,
+					order: order._id
+				});
 			}
 
 			return order;

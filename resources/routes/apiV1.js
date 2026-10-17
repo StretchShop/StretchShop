@@ -102,6 +102,7 @@ module.exports = {
 		"POST /order/invoice/pay/:orderId": "orders.paid",
 		"POST /order/invoice/cancel/:orderId": "orders.cancel",
 		"POST /order/invoice/expeded/:orderId": "orders.expede",
+		"POST /order/delivery/label/:orderId": "orders.deliveryLabel",
 		"POST /order/batch": "orders.batch",
 		// Subscriptions
 		"POST /subscription/list": "subscriptions.listSubscriptions",

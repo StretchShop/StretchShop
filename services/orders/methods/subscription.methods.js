@@ -280,6 +280,9 @@ module.exports = {
 					// set invoices into order
 					order.invoice["html"] = invoice.html;
 					order.invoice["path"] = invoice.path;
+					if (invoice?.einvoice) {
+						order.invoice.einvoice = invoice.einvoice;
+					}
 					// set related subscription product and data as paid
 					if (order.items && order.items.length>0) {
 						for (const element of order.items) {

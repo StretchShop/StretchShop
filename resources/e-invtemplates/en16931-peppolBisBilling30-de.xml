@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:CustomizationID>{{einvoice.customizationId}}</cbc:CustomizationID>
+  <cbc:ProfileID>{{einvoice.profileId}}</cbc:ProfileID>
+  <cbc:ID>{{einvoice.id}}</cbc:ID>
+  <cbc:IssueDate>{{einvoice.issueDate}}</cbc:IssueDate>
+  <cbc:DueDate>{{einvoice.dueDate}}</cbc:DueDate>
+  <cbc:InvoiceTypeCode>{{einvoice.invoiceTypeCode}}</cbc:InvoiceTypeCode>
+  <cbc:Note>Rechnung {{einvoice.id}} zur Bestellung {{einvoice.orderReference}}.</cbc:Note>
+  {{#if einvoice.paidInFull}}
+  <cbc:Note>Bezahlt am {{einvoice.paidDate}}.</cbc:Note>
+  {{/if}}
+  {{#unless einvoice.seller.vatRegistered}}
+  <cbc:Note>Der Lieferant ist nicht umsatzsteuerpflichtig.</cbc:Note>
+  {{/unless}}
+  <cbc:TaxPointDate>{{einvoice.issueDate}}</cbc:TaxPointDate>
+  <cbc:DocumentCurrencyCode>{{einvoice.currency}}</cbc:DocumentCurrencyCode>
+  <cbc:BuyerReference>{{einvoice.buyerReference}}</cbc:BuyerReference>
+  <cac:OrderReference>
+    <cbc:ID>{{einvoice.orderReference}}</cbc:ID>
+  </cac:OrderReference>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cbc:EndpointID schemeID="{{einvoice.seller.endpointScheme}}">{{einvoice.seller.endpointId}}</cbc:EndpointID>
+      <cac:PartyName>
+        <cbc:Name>{{einvoice.seller.name}}</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>{{einvoice.seller.street}}</cbc:StreetName>
+        <cbc:CityName>{{einvoice.seller.city}}</cbc:CityName>
+        <cbc:PostalZone>{{einvoice.seller.zip}}</cbc:PostalZone>
+        <cac:Country>
+          <cbc:IdentificationCode>{{einvoice.seller.country}}</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      {{#if einvoice.seller.vatRegistered}}
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>{{einvoice.seller.vatId}}</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      {{/if}}
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>{{einvoice.seller.name}}</cbc:RegistrationName>
+        {{#if einvoice.seller.legalId}}
+        <cbc:CompanyID{{#if einvoice.seller.legalScheme}} schemeID="{{einvoice.seller.legalScheme}}"{{/if}}>{{einvoice.seller.legalId}}</cbc:CompanyID>
+        {{/if}}
+        {{#if einvoice.seller.registration}}
+        <cbc:CompanyLegalForm>{{einvoice.seller.registration}}</cbc:CompanyLegalForm>
+        {{/if}}
+      </cac:PartyLegalEntity>
+      {{#if einvoice.seller.email}}
+      <cac:Contact>
+        {{#if einvoice.seller.phone}}
+        <cbc:Telephone>{{einvoice.seller.phone}}</cbc:Telephone>
+        {{/if}}
+        <cbc:ElectronicMail>{{einvoice.seller.email}}</cbc:ElectronicMail>
+      </cac:Contact>
+      {{/if}}
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cbc:EndpointID schemeID="{{einvoice.buyer.endpointScheme}}">{{einvoice.buyer.endpointId}}</cbc:EndpointID>
+      <cac:PartyName>
+        <cbc:Name>{{einvoice.buyer.name}}</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>{{einvoice.buyer.street}}</cbc:StreetName>
+        {{#if einvoice.buyer.street2}}
+        <cbc:AdditionalStreetName>{{einvoice.buyer.street2}}</cbc:AdditionalStreetName>
+        {{/if}}
+        <cbc:CityName>{{einvoice.buyer.city}}</cbc:CityName>
+        <cbc:PostalZone>{{einvoice.buyer.zip}}</cbc:PostalZone>
+        <cac:Country>
+          <cbc:IdentificationCode>{{einvoice.buyer.country}}</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      {{#if einvoice.buyer.vatId}}
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>{{einvoice.buyer.vatId}}</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      {{/if}}
+      {{#if einvoice.buyer.legalName}}
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>{{einvoice.buyer.legalName}}</cbc:RegistrationName>
+        {{#if einvoice.buyer.legalId}}
+        <cbc:CompanyID>{{einvoice.buyer.legalId}}</cbc:CompanyID>
+        {{/if}}
+      </cac:PartyLegalEntity>
+      {{/if}}
+      {{#if einvoice.buyer.hasContact}}
+      <cac:Contact>
+        {{#if einvoice.buyer.contactName}}
+        <cbc:Name>{{einvoice.buyer.contactName}}</cbc:Name>
+        {{/if}}
+        {{#if einvoice.buyer.phone}}
+        <cbc:Telephone>{{einvoice.buyer.phone}}</cbc:Telephone>
+        {{/if}}
+        {{#if einvoice.buyer.email}}
+        <cbc:ElectronicMail>{{einvoice.buyer.email}}</cbc:ElectronicMail>
+        {{/if}}
+      </cac:Contact>
+      {{/if}}
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>{{einvoice.payment.meansCode}}</cbc:PaymentMeansCode>
+    <cbc:PaymentID>{{einvoice.id}}</cbc:PaymentID>
+    {{#if einvoice.payment.iban}}
+    <cac:PayeeFinancialAccount>
+      <cbc:ID>{{einvoice.payment.iban}}</cbc:ID>
+      {{#if einvoice.payment.accountName}}
+      <cbc:Name>{{einvoice.payment.accountName}}</cbc:Name>
+      {{/if}}
+      {{#if einvoice.payment.bic}}
+      <cac:FinancialInstitutionBranch>
+        <cbc:ID>{{einvoice.payment.bic}}</cbc:ID>
+      </cac:FinancialInstitutionBranch>
+      {{/if}}
+    </cac:PayeeFinancialAccount>
+    {{/if}}
+  </cac:PaymentMeans>
+  <cac:PaymentTerms>
+    <cbc:Note>{{#if einvoice.paidInFull}}Rechnung ist beglichen.{{else}}Zahlbar bis {{einvoice.dueDate}}.{{/if}}</cbc:Note>
+  </cac:PaymentTerms>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="{{einvoice.currency}}">{{einvoice.taxAmount}}</cbc:TaxAmount>
+    {{#each einvoice.taxSubtotals}}
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="{{../einvoice.currency}}">{{taxableAmount}}</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="{{../einvoice.currency}}">{{taxAmount}}</cbc:TaxAmount>
+      <cac:TaxCategory>
+        <cbc:ID>{{category}}</cbc:ID>
+        <cbc:Percent>{{percent}}</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:TaxCategory>
+    </cac:TaxSubtotal>
+    {{/each}}
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="{{einvoice.currency}}">{{einvoice.lineExtensionAmount}}</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="{{einvoice.currency}}">{{einvoice.taxExclusiveAmount}}</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="{{einvoice.currency}}">{{einvoice.taxInclusiveAmount}}</cbc:TaxInclusiveAmount>
+    {{#if einvoice.hasPrepaid}}
+    <cbc:PrepaidAmount currencyID="{{einvoice.currency}}">{{einvoice.prepaidAmount}}</cbc:PrepaidAmount>
+    {{/if}}
+    <cbc:PayableAmount currencyID="{{einvoice.currency}}">{{einvoice.payableAmount}}</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+  {{#each einvoice.lines}}
+  <cac:InvoiceLine>
+    <cbc:ID>{{id}}</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="{{unitCode}}">{{quantity}}</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="{{../einvoice.currency}}">{{lineExtensionAmount}}</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Name>{{name}}</cbc:Name>
+      {{#if sellersItemId}}
+      <cac:SellersItemIdentification>
+        <cbc:ID>{{sellersItemId}}</cbc:ID>
+      </cac:SellersItemIdentification>
+      {{/if}}
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID>{{taxCategory}}</cbc:ID>
+        <cbc:Percent>{{taxPercent}}</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="{{../einvoice.currency}}">{{priceAmount}}</cbc:PriceAmount>
+    </cac:Price>
+  </cac:InvoiceLine>
+  {{/each}}
+</Invoice>
