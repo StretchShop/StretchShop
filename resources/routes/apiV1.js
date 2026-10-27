@@ -95,9 +95,14 @@ module.exports = {
 		},
 
 		// Order
+		"GET /dev/bank-transfer-qr/:orderId": {
+			openapi: false,
+			action: "orders.bankTransferQrDev",
+		},
 		"GET /order/progress": "orders.progress",
 		"POST /order/progress": "orders.progress",
 		"POST /order/list": "orders.listOrders",
+		"POST /order/invoice/download/xml/:invoice": "orders.invoiceDownloadXml",
 		"POST /order/invoice/download/:invoice": "orders.invoiceDownload",
 		"POST /order/invoice/pay/:orderId": "orders.paid",
 		"POST /order/invoice/cancel/:orderId": "orders.cancel",

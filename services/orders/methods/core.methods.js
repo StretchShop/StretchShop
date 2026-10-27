@@ -6,6 +6,7 @@ const OrderMethodsPricing = require("./order-pricing.methods");
 const OrderMethodsFlow = require("./order-flow.methods");
 const OrderMethodsFulfillment = require("./order-fulfillment.methods");
 const OrderMethodsPayment = require("./order-payment.methods");
+const OrderMethodsBankTransfer = require("./bank-transfer.methods");
 
 module.exports = {
 	mixins: [
@@ -14,6 +15,7 @@ module.exports = {
 		OrderMethodsPricing,
 		OrderMethodsFlow,
 		OrderMethodsFulfillment,
-		OrderMethodsPayment
+		OrderMethodsPayment,
+		OrderMethodsBankTransfer
 	]
 };

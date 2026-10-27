@@ -14,6 +14,7 @@ const { productStatuses } = require("../constants/product.constants");
 const { orderStatuses } = require("../constants/order.constants");
 const { update } = require("lodash");
 const { publicDeliveryMethod, applyOrderDestination } = require("../delivery/registry");
+const { isBankTransferConfigured } = require("../../../modules/payments/bank-transfer-qr");
 
 const calcExcludedTypes = ["subscription"];
 
@@ -221,8 +222,16 @@ module.exports = {
 					}
 				}
 
+				if (paymentMethodExists && paymentType === "bank_transfer" && !isBankTransferConfigured(businessSettings)) {
+					paymentMethodExists = false;
+				}
+
 				if (!paymentMethodExists) {
-					this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Payment type", "desc": "not found"});
+					const bankTransferBlocked = paymentType === "bank_transfer" && !isBankTransferConfigured(businessSettings);
+					this.getOrderWork(ctx).orderErrors.orderErrors.push({
+						"value": "Payment type",
+						"desc": bankTransferBlocked ? "bank account not configured" : "not found"
+					});
 				}
 			} else {
 				this.getOrderWork(ctx).orderErrors.orderErrors.push({"value": "Payment type", "desc": "not set"});
@@ -443,7 +452,16 @@ module.exports = {
 			if ( typeof this.getOrderWork(ctx).orderTemp.settings === "undefined" ) {
 				this.getOrderWork(ctx).orderTemp.settings = {};
 			}
-			this.getOrderWork(ctx).orderTemp.settings.paymentMethods = this.settings.order.paymentMethods;
+			const paymentMethods = Array.isArray(this.settings.order.paymentMethods)
+				? this.settings.order.paymentMethods
+				: [];
+			const businessSettings = SettingsMixin.getSiteSettings("business");
+			this.getOrderWork(ctx).orderTemp.settings.paymentMethods = paymentMethods.filter((method) => {
+				if (method?.codename !== "bank_transfer") {
+					return true;
+				}
+				return isBankTransferConfigured(businessSettings);
+			});
 			if (this.getOrderWork(ctx).orderTemp.data && this.getOrderWork(ctx).orderTemp.data.paymentData && 
 				this.getOrderWork(ctx).orderTemp.data.paymentData.codename && 
 				this.getOrderWork(ctx).orderTemp.data.paymentData.codename.indexOf("online_stripe") > -1

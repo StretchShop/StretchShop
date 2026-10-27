@@ -20,6 +20,12 @@
         "phone": "+012 987 654 321",
         "email": "support@stretchshop.app",
         "web": "https://stretchshop.app/"
+      },
+      "bankAccount": {
+        "iban": "SK8975000000000012345671",
+        "name": "StretchShop s.r.o.",
+        "bankName": "CESKOSLOVENSKA OBCHODNA BANKA, A.S.",
+        "bankCode": "CEKOSKBXXXX"
       }
     }
   },

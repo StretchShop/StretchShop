@@ -24185,6 +24185,10 @@
                     "translation": "Pickup selection is not configured"
                   },
                   {
+                    "langCode": "sk",
+                    "translation": "Nástroj na zvolenie miesta vyzdvihnutia nie je nastavený"
+                  },
+                  {
                     "langCode": "de",
                     "translation": "Abholauswahl ist nicht konfiguriert"
                   },
@@ -24753,6 +24757,330 @@
                   {
                     "langCode": "es",
                     "translation": "Establecer entrega y pago"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Pay by bank transfer",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Platba bankovým prevodom"
+          },
+          {
+            "langCode": "de",
+            "translation": "Zahlung per Banküberweisung"
+          },
+          {
+            "langCode": "es",
+            "translation": "Pago por transferencia bancaria"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Pay by bank transfer",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e h3.title.is-3",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Pay by bank transfer"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Platba bankovým prevodom"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Zahlung per Banküberweisung"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Pago por transferencia bancaria"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Scan the QR code in your banking app to pay this order",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Naskenujte QR kód v bankovej aplikácii a uhraďte objednávku"
+          },
+          {
+            "langCode": "de",
+            "translation": "Scannen Sie den QR-Code in Ihrer Banking-App, um diese Bestellung zu bezahlen"
+          },
+          {
+            "langCode": "es",
+            "translation": "Escanee el código QR en su aplicación bancaria para pagar este pedido"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Scan the QR code in your banking app to pay this order",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e p",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Scan the QR code in your banking app to pay this order"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Naskenujte QR kód v bankovej aplikácii a uhraďte objednávku"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Scannen Sie den QR-Code in Ihrer Banking-App, um diese Bestellung zu bezahlen"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Escanee el código QR en su aplicación bancaria para pagar este pedido"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Account name",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Názov účtu"
+          },
+          {
+            "langCode": "de",
+            "translation": "Kontoname"
+          },
+          {
+            "langCode": "es",
+            "translation": "Nombre de la cuenta"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Account name",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e dl.bank-transfer-details \u003e div:nth-child(1) \u003e dt",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Account name"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Názov účtu"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Kontoname"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Nombre de la cuenta"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "IBAN",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "IBAN"
+          },
+          {
+            "langCode": "de",
+            "translation": "IBAN"
+          },
+          {
+            "langCode": "es",
+            "translation": "IBAN"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "IBAN",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e dl.bank-transfer-details \u003e div:nth-child(2) \u003e dt",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "IBAN"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "IBAN"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "IBAN"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "IBAN"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Bank",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Banka"
+          },
+          {
+            "langCode": "de",
+            "translation": "Bank"
+          },
+          {
+            "langCode": "es",
+            "translation": "Banco"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Bank",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e dl.bank-transfer-details \u003e div:nth-child(3) \u003e dt",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Bank"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Banka"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Bank"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Banco"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Bank code",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Kód banky"
+          },
+          {
+            "langCode": "de",
+            "translation": "Bankleitzahl"
+          },
+          {
+            "langCode": "es",
+            "translation": "Código bancario"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Bank code",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e dl.bank-transfer-details \u003e div:nth-child(4) \u003e dt",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Bank code"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Kód banky"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Bankleitzahl"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Código bancario"
                   }
                 ]
               }
