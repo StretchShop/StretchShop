@@ -112,6 +112,43 @@ describe("pages wysiwyg detail processing", () => {
 		expect(result.body).toContain("Hi");
 		expect(result.data.functions).toEqual([]);
 	});
+
+	it("returns homepage data when category and page lists are blank placeholders", async () => {
+		const pageHelpers = require("../../../services/pages/methods/helpers.methods");
+		const html = "<p>mrkva</p>";
+		const call = jest.fn();
+		const service = {
+			logger: { info() {}, warn() {}, error() {} },
+			Promise,
+			checkAndRunPageFunctions: jest.fn().mockReturnValue([]),
+			pageGlobalResultHelper_ParentCat: pageHelpers.methods.pageGlobalResultHelper_ParentCat,
+			adapter: {
+				find: jest.fn().mockResolvedValue([{
+					slug: "homepage",
+					subtype: "homepage",
+					publisher: "ed@example.com",
+					categories: [""],
+					pages: [""],
+					data: {
+						blocks: [{ en: html }],
+						requirements: { userdata: [] },
+					},
+				}]),
+			},
+			...pageCore.methods,
+		};
+		const result = await service.processPageWysiwygContent({
+			params: { page: "homepage", category: "-", lang: "en" },
+			meta: {},
+			call,
+		}, {
+			body: "<html><!-- {{editor_WYSIWYG}} //--></html>",
+			staticData: {},
+		});
+		expect(call).not.toHaveBeenCalled();
+		expect(result.body).toContain("mrkva");
+		expect(result.data.slug).toBe("homepage");
+	});
 });
 
 describe("categories admin import", () => {
