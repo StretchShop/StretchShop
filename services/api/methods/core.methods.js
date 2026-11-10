@@ -533,6 +533,9 @@ module.exports = {
 		afterCallAction(actionData) {
 			if (actionData) {
 				this.logger.info("api afterCallAction() actionData: ", actionData);
+				if (actionData.type === "render") {
+					require("../ssr-cache").invalidateSsrCache();
+				}
 			}
 		}
 

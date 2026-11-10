@@ -20,6 +20,7 @@ const ApiMethodsHelpers = require("./methods/helpers.methods");
 const ApiMethodsSettings = require("./methods/settings.methods");
 const openApiActionMetadata = require("../../mixins/openapi.action-metadata.mixin");
 const { isOpenApiEnabled } = require("../../mixins/openapi.enabled");
+const { serveStorefrontHtml } = require("./ssr-html");
 
 // settings
 const sppf = require("../../mixins/subproject.helper");
@@ -36,6 +37,41 @@ try {
 	pathModif = require(resourcesDirectory + "/routes/path.modificator");
 } catch (err) {
 	console.warn("api pathModif import error: ", err);
+}
+
+function handleStorefrontRequest(req, res) {
+	if (!req.__stretchshopPath) {
+		req.__stretchshopPath = req.originalUrl || req.url || "/";
+	}
+	let publicPath = process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public");
+	let publicPathReady = publicPath;
+	if (pathModif && typeof pathModif.updatePath === "function") {
+		publicPathReady = pathModif.updatePath(publicPath, req);
+	}
+	serveStorefrontHtml(req, res, {
+		indexPath: publicPathReady + "/index.html",
+		fallbackPath: publicPath + "/index.html",
+	}).catch((error) => {
+		console.error("Router storefront error: ", error);
+		if (!res.headersSent) {
+			res.setHeader("Content-Type", "text/plain");
+			res.statusCode = 404;
+			res.end("Page index.html not found");
+		}
+	});
+}
+
+/**
+ * Moleculer resolves aliases against the original URL before middlewares run.
+ * History fallback then rewrites /en → /index.html, so an /index.html alias
+ * never matches /en. Handle the rewritten document here instead.
+ */
+function storefrontAfterHistory(req, res, next) {
+	const pathOnly = String(req.url || "").split("?")[0];
+	if (pathOnly === "/" || pathOnly === "/index.html") {
+		return handleStorefrontRequest(req, res);
+	}
+	return next();
 }
 
 
@@ -232,6 +268,8 @@ module.exports = {
 								from: /^[^.]*$/, // only requests without dot (.) in url
 								to: function (context) {
 									const pathname = context.parsedUrl.pathname || "";
+									const search = context.parsedUrl.search || "";
+									context.request.__stretchshopPath = pathname + search;
 									if (pathname.startsWith("/openapi")) {
 										return pathname;
 									}
@@ -245,39 +283,11 @@ module.exports = {
 							}
 						]
 					}),
+					storefrontAfterHistory,
 				],
-				// Action aliases
-				aliases: {
-					"/": {
-						openapi: false,
-						handler(req, res) {
-							let publicPath = process.env.PATH_PUBLIC || sppf.subprojectPathFix(__dirname, "/../../public");
-
-							// if available, update path as required by business
-							let publicPathReady = publicPath;
-							if (pathModif && typeof pathModif.updatePath === "function") {
-								publicPathReady = pathModif.updatePath(publicPath, req);
-							}
-
-							let indexPath = publicPathReady + "/index.html";
-							if (!fs.existsSync(indexPath)) {
-								indexPath = publicPath + "/index.html";
-							}
-							// read index file
-							fs.readFile(indexPath)
-								.then(index => {
-									res.setHeader("Content-Type", "text/html; charset=utf-8");
-									res.end(index);
-								})
-								.catch((error) => {
-									console.error("Router / error: ", error);
-									res.set("Content-Type", "text/plain")
-										.status(404)
-										.send({ message: "Page index.html not found" });
-								});
-						}
-					},
-				},
+				// No HTML aliases: moleculer matches aliases before history rewrite,
+				// so /en would never hit /index.html. storefrontAfterHistory serves it.
+				aliases: {},
 				openapi: false,
 				mappingPolicy: "restrict",
 			}

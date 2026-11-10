@@ -594,7 +594,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Name",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.field.productName \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.field.productName \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -7390,7 +7390,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Price",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.field.productPrice \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.field.productPrice \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -9546,7 +9546,7 @@
             "translationStrings": [
               {
                 "stringOrig": "In stock",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(5) \u003e div.column.is-6:nth-child(2) \u003e div.field.stockAmount \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(5) \u003e div.column.is-6:nth-child(2) \u003e div.field.stockAmount \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -9714,7 +9714,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Add to Cart",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(5) \u003e div.column.is-6:nth-child(2) \u003e button.button.add-to-cart.is-primary \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(5) \u003e div.column.is-6:nth-child(2) \u003e button.button.add-to-cart.is-primary \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10056,7 +10056,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Click to upload",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-7.pt-6 \u003e div.product-image-wrapper \u003e div.page-image-actions \u003e div.file.is-primary.action.edit \u003e label.file-label \u003e span.file-cta \u003e span.file-label.show-on-hover",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-8.pt-6 \u003e div.product-image-wrapper \u003e div.page-image-actions \u003e div.file.is-primary.action.edit \u003e label.file-label \u003e span.file-cta \u003e span.file-label.show-on-hover",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10140,7 +10140,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Click to remove",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-7.pt-6 \u003e div.product-image-wrapper \u003e div.page-image-actions \u003e a.action.remove.button.is-danger.has-text-white \u003e span.show-on-hover",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-8.pt-6 \u003e div.product-image-wrapper \u003e div.page-image-actions \u003e a.action.remove.button.is-danger.has-text-white \u003e span.show-on-hover",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10254,7 +10254,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Order code",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(1) \u003e div.columns \u003e div.column.is-4 \u003e div.field.orderCode \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(1) \u003e div.columns \u003e div.column.is-4 \u003e div.field.orderCode \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10308,7 +10308,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Changing OrderCode may disable images and other external dependecies",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(1) \u003e div.columns \u003e div.column.is-6 \u003e p.help.is-danger",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(1) \u003e div.columns \u003e div.column.is-6 \u003e p.help.is-danger",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10362,7 +10362,7 @@
             "translationStrings": [
               {
                 "stringOrig": "trial",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10446,7 +10446,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Without Tax",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10476,7 +10476,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Without Tax",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left \u003e div.price-wrapper \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left \u003e div.price-wrapper \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10530,7 +10530,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Allow decimal amounts",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field.productDecimalAmount.is-block \u003e label.checkbox \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field.productDecimalAmount.is-block \u003e label.checkbox \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10584,7 +10584,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Decimals",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field.productDecimalMaxDepth \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field.productDecimalMaxDepth \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10638,7 +10638,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Recalculate Price Levels",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns.product-hidden-pricelevels \u003e div.column.is-12 \u003e o-collapse \u003e div:nth-child(3) \u003e button.button.add-to-cart",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns.product-hidden-pricelevels \u003e div.column.is-12 \u003e o-collapse \u003e div:nth-child(3) \u003e button.button.add-to-cart",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10692,7 +10692,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Description Short",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(3) \u003e div.column \u003e div.field.descriptionShort \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(3) \u003e div.column \u003e div.field.descriptionShort \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10998,7 +10998,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Properties",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-descriptions.reversed-desktop \u003e div.column.is-7 \u003e div.columns.product-properties \u003e div.column.is-12 \u003e h3.title.is-3.has-text-left",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-8.pt-6 \u003e div.columns.product-descriptions \u003e div.column \u003e div.columns.product-properties \u003e div.column.is-12 \u003e h3.title.is-3.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13248,7 +13248,7 @@
             "translationStrings": [
               {
                 "stringOrig": "days trial",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left \u003e div.price-wrapper \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left \u003e div.price-wrapper \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13302,7 +13302,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Requirements",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.product-requirements \u003e h3.title.is-3 \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main \u003e div.product-requirements \u003e h3.title.is-3 \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13356,7 +13356,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Description",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-descriptions.reversed-desktop \u003e div.column.is-5.pl-6 \u003e h3.title.is-3.has-text-left",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-8.pt-6 \u003e div.columns:nth-child(2) \u003e div.column.pl-6 \u003e h3.title.is-3.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13410,7 +13410,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Gallery",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.mt-6.product-gallery \u003e div.column \u003e h3.title.is-3.has-text-left",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-8.pt-6 \u003e div.columns.mt-6.product-gallery \u003e div.column \u003e h3.title.is-3.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13494,7 +13494,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Related",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.mt-6.product-related \u003e div.column.is-12 \u003e h3.title.is-3.has-text-left",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-8.pt-6 \u003e div.columns.mt-6.product-related \u003e div.column \u003e h3.title.is-3.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",

@@ -22,4 +22,5 @@ copyToDemoData.sh
 *.log
 .temp/
 .temp/webhook.log
+.ssr-cache/
 docs/openapi/generated.json
