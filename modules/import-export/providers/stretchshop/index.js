@@ -10,7 +10,7 @@ function parse(buffer) {
 	try {
 		data = JSON.parse(text);
 	} catch (err) {
-		throw new Error("Invalid StretchShop JSON: " + err.message);
+		throw new Error("Invalid StretchShop JSON: " + err.message, { cause: err });
 	}
 	if (!data || typeof data !== "object" || Array.isArray(data)) {
 		throw new Error("StretchShop export must be a JSON object");

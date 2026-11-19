@@ -36,7 +36,7 @@ function parse(buffer, opts = {}) {
 	try {
 		parsed = parser.parse(text);
 	} catch (err) {
-		throw new Error("Invalid Shoptet XML: " + err.message);
+		throw new Error("Invalid Shoptet XML: " + err.message, { cause: err });
 	}
 
 	const shop = parsed.SHOP || parsed.shop || parsed;

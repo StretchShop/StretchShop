@@ -92,7 +92,7 @@ function parseWxr(buf, opts, entities) {
 	try {
 		parsed = wxrParser.parse(buf.toString("utf8"));
 	} catch (err) {
-		throw new Error("Invalid WooCommerce/WordPress WXR: " + err.message);
+		throw new Error("Invalid WooCommerce/WordPress WXR: " + err.message, { cause: err });
 	}
 	const items = mapPage.extractItems(parsed);
 	const pages = items
@@ -106,7 +106,7 @@ function parseJsonBundle(buf, opts, entities) {
 	try {
 		data = JSON.parse(buf.toString("utf8"));
 	} catch (err) {
-		throw new Error("Invalid WooCommerce JSON bundle: " + err.message);
+		throw new Error("Invalid WooCommerce JSON bundle: " + err.message, { cause: err });
 	}
 	const result = { products: [], categories: [], pages: [] };
 	if (data.productsCsv && (entities.includes("products") || entities.includes("categories"))) {
