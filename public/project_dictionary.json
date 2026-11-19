@@ -10358,7 +10358,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Sub-Categories",
-                "selector": "html \u003e head \u003e template \u003e div.container.category-list \u003e div.columns \u003e div.column.is-3.pr-6 \u003e nav.mt-6 \u003e aside.menu.toggle-menu \u003e p.menu-label.subcategories",
+                "selector": "html \u003e head \u003e template \u003e div.container.category-list \u003e div.columns \u003e div.column.is-3.pr-6.grey-alt \u003e nav.pb-4.grey-alt.sticky-menu.categories-nav \u003e aside.menu.toggle-menu \u003e p.menu-label.subcategories",
                 "translations": [
                   {
                     "langCode": "en",
@@ -11036,7 +11036,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Without Tax",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left \u003e div.price-wrapper \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main.grey-alt \u003e div.has-text-left \u003e div.price-wrapper \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13410,7 +13410,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Filter",
-                "selector": "html \u003e head \u003e template \u003e nav.mt-6 \u003e aside.menu \u003e p.menu-label.filter",
+                "selector": "html \u003e head \u003e template \u003e nav.sticky-filter-menu \u003e aside.menu \u003e p.menu-label.filter",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13624,7 +13624,7 @@
               },
               {
                 "stringOrig": "Sort by",
-                "selector": "html \u003e head \u003e template \u003e nav.mt-6 \u003e aside.menu \u003e ul.menu-list \u003e li.panel-block.py-4:nth-child(6) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label \u003e span",
+                "selector": "html \u003e head \u003e template \u003e nav.sticky-filter-menu \u003e aside.menu \u003e ul.menu-list \u003e li.panel-block.py-4:nth-child(6) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13808,7 +13808,7 @@
             "translationStrings": [
               {
                 "stringOrig": "days trial",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left \u003e div.price-wrapper \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main.grey-alt \u003e div.has-text-left \u003e div.price-wrapper \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13862,7 +13862,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Requirements",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main \u003e div.product-requirements \u003e h3.title.is-3 \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main.grey-alt \u003e div.product-requirements \u003e h3.title.is-3 \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -26380,7 +26380,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Related Pages",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.page-detail \u003e div.columns \u003e div.column.is-3.pr-6 \u003e nav.mt-6 \u003e aside.menu \u003e p.menu-label",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.page-detail \u003e div.columns \u003e div.column.is-3.pr-6 \u003e nav.mt-6.sticky-menu \u003e aside.menu \u003e p.menu-label",
                 "translations": [
                   {
                     "langCode": "en",

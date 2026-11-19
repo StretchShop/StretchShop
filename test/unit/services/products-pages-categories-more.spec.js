@@ -156,6 +156,7 @@ describe("categories admin import", () => {
 		const service = {
 			logger: { info() {}, warn() {}, error() {} },
 			Promise,
+			resolveImportEntity: HelpersMixin.methods.resolveImportEntity,
 			fixEntityDates: categoryHelpers.methods.fixEntityDates,
 			validateEntity: jest.fn((entity) => Promise.resolve(entity)),
 			transformDocuments: jest.fn((ctx, params, doc) => doc),
