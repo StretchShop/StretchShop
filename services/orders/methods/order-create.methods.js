@@ -106,40 +106,42 @@ module.exports = {
 							this.logger.info("order.progress - updateResult: ", updateResult);
 							this.getAvailableOrderSettings(ctx);
 							this.logger.info("order.progress - cart order found updated (COFU):", updateResult, "\n\n");
-							// if no allowed params (eg. only refreshed), return original order
-							if (!hasAllowedOrderParamUpdates(ctx.params.orderParams)) {
-								let orderProcessedResult = {};
-								orderProcessedResult.order = order;
-								orderProcessedResult.result = updateResult;
-								if (!updateResult.success) {
-									orderProcessedResult.errors = this.getOrderWork(ctx).orderErrors;
-								}
-								return orderProcessedResult;
-							}
-							// if order check returns success, order can be saved
-							// otherwise remains in cart status
-							if (updateResult.success) {
-								this.getOrderWork(ctx).orderTemp.status = "saved";
-							}
-							// order ready to save and send - update order data in related variables
 							order = this.getOrderWork(ctx).orderTemp;
-							this.logger.info("order.progress - cart: ", cart);
-							return ctx.call("cart.updateMyCart", { cartNew: { order: this.idToString(order._id) } })
-								.then(() => { //(cart2)
-									return this.adapter.updateById(this.idToString(order._id), this.prepareForUpdate(order))
-										.then(orderUpdated => {
-											this.entityChanged("updated", orderUpdated, ctx);
-											// if order was processed with errors, add them to result for frontend
-											let orderProcessedResult = {};
-											orderProcessedResult.order = orderUpdated;
-											orderProcessedResult.result = updateResult;
-											if (!updateResult.success) {
-												orderProcessedResult.errors = this.getOrderWork(ctx).orderErrors;
-											} else {
-												// order was processed without errors, run afterSaveActions
-												orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
-											}
-											return orderProcessedResult;
+							return this.generateBankTransferQr(order)
+								.then(() => {
+									// if no allowed params (eg. only refreshed), return original order
+									if (!hasAllowedOrderParamUpdates(ctx.params.orderParams)) {
+										let orderProcessedResult = {};
+										orderProcessedResult.order = order;
+										orderProcessedResult.result = updateResult;
+										if (!updateResult.success) {
+											orderProcessedResult.errors = this.getOrderWork(ctx).orderErrors;
+										}
+										return orderProcessedResult;
+									}
+									// if order check returns success, order can be saved
+									// otherwise remains in cart status
+									if (updateResult.success) {
+										order.status = "saved";
+									}
+									this.logger.info("order.progress - cart: ", cart);
+									return ctx.call("cart.updateMyCart", { cartNew: { order: this.idToString(order._id) } })
+										.then(() => { //(cart2)
+											return this.adapter.updateById(this.idToString(order._id), this.prepareForUpdate(order))
+												.then(orderUpdated => {
+													this.entityChanged("updated", orderUpdated, ctx);
+													// if order was processed with errors, add them to result for frontend
+													let orderProcessedResult = {};
+													orderProcessedResult.order = orderUpdated;
+													orderProcessedResult.result = updateResult;
+													if (!updateResult.success) {
+														orderProcessedResult.errors = this.getOrderWork(ctx).orderErrors;
+													} else {
+														// order was processed without errors, run afterSaveActions
+														orderProcessedResult = this.orderAfterSaveActions(ctx, orderProcessedResult);
+													}
+													return orderProcessedResult;
+												});
 										});
 								});
 							// order updated
@@ -204,21 +206,24 @@ module.exports = {
 					order = this.getOrderWork(ctx).orderTemp;
 					this.logger.info("orders.createOrderAction() - order before save: ", order);
 					cart.order = this.idToString(order._id);
-					// save new order
+					// save new order, then attach a bank-transfer QR once the id exists
 					return adapter.insert(order)
 						.then(orderNew => {
-							this.entityChanged("updated", orderNew, ctx);
-							cart.order = this.idToString(orderNew._id); // order id is not saved to cart
-							this.logger.info("orders.createOrderAction() - order after save: ", orderNew);
-							return ctx.call("cart.updateMyCart", { "cartNew": cart })
-								.then(() => { //(cart2)
-									let orderProcessedResult = {};
-									orderProcessedResult.order = orderNew;
-									orderProcessedResult.result = updateResult;
-									if (!updateResult.success) {
-										orderProcessedResult.errors = this.getOrderWork(ctx).orderErrors;
-									}
-									return orderProcessedResult;
+							return this.generateBankTransferQr(orderNew)
+								.then((orderWithQr) => {
+									this.entityChanged("updated", orderWithQr, ctx);
+									cart.order = this.idToString(orderWithQr._id); // order id is not saved to cart
+									this.logger.info("orders.createOrderAction() - order after save: ", orderWithQr);
+									return ctx.call("cart.updateMyCart", { "cartNew": cart })
+										.then(() => { //(cart2)
+											let orderProcessedResult = {};
+											orderProcessedResult.order = orderWithQr;
+											orderProcessedResult.result = updateResult;
+											if (!updateResult.success) {
+												orderProcessedResult.errors = this.getOrderWork(ctx).orderErrors;
+											}
+											return orderProcessedResult;
+										});
 								});
 						});
 				});

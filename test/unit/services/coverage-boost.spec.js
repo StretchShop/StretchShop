@@ -45,6 +45,7 @@ describe("products mutation import/delete", () => {
 		const service = {
 			logger: { info() {}, warn() {}, error() {} },
 			Promise,
+			resolveImportEntity: HelpersMixin.methods.resolveImportEntity,
 			importProductAction: jest.fn().mockResolvedValue({ slug: "gadget" }),
 			adapter: { findById: jest.fn().mockResolvedValue(null) },
 		};

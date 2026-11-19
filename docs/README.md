@@ -12,6 +12,7 @@ Deep guides live in the **[GitHub wiki](https://github.com/StretchShop/StretchSh
 | [../CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) | Community standards |
 | [openapi/README.md](openapi/README.md) | Runtime Swagger UI, OpenAPI build/export |
 | [../services/orders/README.order-statuses.md](../services/orders/README.order-statuses.md) | `order.status` vs payment/product/subscription statuses |
+| [ssr.md](ssr.md) | Cached Vue SSR HTML for anonymous public pages |
 | [../resources/settings/README.md](../resources/settings/README.md) | Pointers to business / orders / locals JSON |
 
 ## Wiki map

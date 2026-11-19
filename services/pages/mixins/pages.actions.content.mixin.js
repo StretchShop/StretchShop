@@ -126,9 +126,12 @@ module.exports = {
 						// loop pages to import
 						pages.forEach(function (entity) {
 							promises.push(
-								// add page results into result variable
-								self.adapter.findById(entity.id)
+								// resolve by Mongo id, then by externalId for platform sync
+								self.resolveImportEntity(entity)
 									.then(found => {
+										if (found && !entity.id) {
+											entity.id = found._id ? found._id.toString() : found.id;
+										}
 										return self.importPageAction(ctx, entity, found);
 									})
 									.catch(err => {

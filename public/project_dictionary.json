@@ -594,7 +594,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Name",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.field.productName \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.field.productName \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -1425,6 +1425,90 @@
                   {
                     "langCode": "es",
                     "translation": "Traducciones"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Import \u0026 Export",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Import a export"
+          },
+          {
+            "langCode": "de",
+            "translation": "Import \u0026 Export"
+          },
+          {
+            "langCode": "es",
+            "translation": "Importación y exportación"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/Settings.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import \u0026 Export",
+                "selector": "html \u003e head \u003e template \u003e div.container.settings \u003e div.columns.is-variable.has-text-left \u003e div.column.is-3.pr-6 \u003e nav.mt-6.user-settings-nav \u003e aside.menu \u003e ul.menu-list \u003e li:nth-child(7) \u003e router-link",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import \u0026 Export"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Import a export"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Import \u0026 Export"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importación y exportación"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import \u0026 Export",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e h2.title.is-2",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import \u0026 Export"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Import a export"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Import \u0026 Export"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importación y exportación"
                   }
                 ]
               }
@@ -7390,7 +7474,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Price",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.field.productPrice \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.field.productPrice \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -9487,6 +9571,482 @@
         ]
       },
       {
+        "phrase": "Import catalog data from Shoptet or WooCommerce exports, or export StretchShop data.",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Importujte katalógové dáta z exportov Shoptet alebo WooCommerce, alebo exportujte dáta StretchShop."
+          },
+          {
+            "langCode": "de",
+            "translation": "Importieren Sie Katalogdaten aus Shoptet- oder WooCommerce-Exporten, oder exportieren Sie StretchShop-Daten."
+          },
+          {
+            "langCode": "es",
+            "translation": "Importe datos del catálogo desde exportaciones de Shoptet o WooCommerce, o exporte datos de StretchShop."
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import catalog data from Shoptet or WooCommerce exports, or export StretchShop data.",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e p.mb-4",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import catalog data from Shoptet or WooCommerce exports, or export StretchShop data."
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Importujte katalógové dáta z exportov Shoptet alebo WooCommerce, alebo exportujte dáta StretchShop."
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Importieren Sie Katalogdaten aus Shoptet- oder WooCommerce-Exporten, oder exportieren Sie StretchShop-Daten."
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importe datos del catálogo desde exportaciones de Shoptet o WooCommerce, o exporte datos de StretchShop."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Provider",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Poskytovateľ"
+          },
+          {
+            "langCode": "de",
+            "translation": "Anbieter"
+          },
+          {
+            "langCode": "es",
+            "translation": "Proveedor"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Provider",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(1) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Provider"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Poskytovateľ"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Anbieter"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Proveedor"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Provider",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(2) \u003e div.box.mt-4 \u003e div.field:nth-child(1) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Provider"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Poskytovateľ"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Anbieter"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Proveedor"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Entities",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Entity"
+          },
+          {
+            "langCode": "de",
+            "translation": "Entitäten"
+          },
+          {
+            "langCode": "es",
+            "translation": "Entidades"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Entities",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(2) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Entities"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Entity"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Entitäten"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Entidades"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Entities",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(2) \u003e div.box.mt-4 \u003e div.field:nth-child(2) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Entities"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Entity"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Entitäten"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Entidades"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "File",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Súbor"
+          },
+          {
+            "langCode": "de",
+            "translation": "Datei"
+          },
+          {
+            "langCode": "es",
+            "translation": "Archivo"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "File",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(3) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "File"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Súbor"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Datei"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Archivo"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Choose a file…",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Vyberte súbor…"
+          },
+          {
+            "langCode": "de",
+            "translation": "Datei auswählen…"
+          },
+          {
+            "langCode": "es",
+            "translation": "Elegir un archivo…"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Choose a file…",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(3) \u003e div.file.has-name.is-fullwidth \u003e label.file-label \u003e span.file-cta \u003e span.file-label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Choose a file…"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Vyberte súbor…"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Datei auswählen…"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Elegir un archivo…"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Import",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Importovať"
+          },
+          {
+            "langCode": "de",
+            "translation": "Importieren"
+          },
+          {
+            "langCode": "es",
+            "translation": "Importar"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(4) \u003e button.button.is-primary",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Importovať"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Importieren"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importar"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Import finished",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Import dokončený"
+          },
+          {
+            "langCode": "de",
+            "translation": "Import abgeschlossen"
+          },
+          {
+            "langCode": "es",
+            "translation": "Importación finalizada"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import finished",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.notification.is-success.is-light.mt-3 \u003e p",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import finished"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Import dokončený"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Import abgeschlossen"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importación finalizada"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Export",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Exportovať"
+          },
+          {
+            "langCode": "de",
+            "translation": "Exportieren"
+          },
+          {
+            "langCode": "es",
+            "translation": "Exportar"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Export",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(2) \u003e div.box.mt-4 \u003e div.field:nth-child(3) \u003e button.button.is-primary",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Export"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Exportovať"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Exportieren"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Exportar"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "In stock",
         "language": {
           "code": "en",
@@ -9546,7 +10106,7 @@
             "translationStrings": [
               {
                 "stringOrig": "In stock",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(5) \u003e div.column.is-6:nth-child(2) \u003e div.field.stockAmount \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(5) \u003e div.column.is-6:nth-child(2) \u003e div.field.stockAmount \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -9714,7 +10274,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Add to Cart",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(5) \u003e div.column.is-6:nth-child(2) \u003e button.button.add-to-cart.is-primary \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(5) \u003e div.column.is-6:nth-child(2) \u003e button.button.add-to-cart.is-primary \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -9798,7 +10358,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Sub-Categories",
-                "selector": "html \u003e head \u003e template \u003e div.container.category-list \u003e div.columns \u003e div.column.is-3.pr-6 \u003e nav.mt-6 \u003e aside.menu.toggle-menu \u003e p.menu-label.subcategories",
+                "selector": "html \u003e head \u003e template \u003e div.container.category-list \u003e div.columns \u003e div.column.is-3.pr-6.grey-alt \u003e nav.pb-4.grey-alt.sticky-menu.categories-nav \u003e aside.menu.toggle-menu \u003e p.menu-label.subcategories",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10056,7 +10616,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Click to upload",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-7.pt-6 \u003e div.product-image-wrapper \u003e div.page-image-actions \u003e div.file.is-primary.action.edit \u003e label.file-label \u003e span.file-cta \u003e span.file-label.show-on-hover",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-8.pt-6 \u003e div.product-image-wrapper \u003e div.page-image-actions \u003e div.file.is-primary.action.edit \u003e label.file-label \u003e span.file-cta \u003e span.file-label.show-on-hover",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10140,7 +10700,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Click to remove",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-7.pt-6 \u003e div.product-image-wrapper \u003e div.page-image-actions \u003e a.action.remove.button.is-danger.has-text-white \u003e span.show-on-hover",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-8.pt-6 \u003e div.product-image-wrapper \u003e div.page-image-actions \u003e a.action.remove.button.is-danger.has-text-white \u003e span.show-on-hover",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10254,7 +10814,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Order code",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(1) \u003e div.columns \u003e div.column.is-4 \u003e div.field.orderCode \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(1) \u003e div.columns \u003e div.column.is-4 \u003e div.field.orderCode \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10308,7 +10868,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Changing OrderCode may disable images and other external dependecies",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(1) \u003e div.columns \u003e div.column.is-6 \u003e p.help.is-danger",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(1) \u003e div.columns \u003e div.column.is-6 \u003e p.help.is-danger",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10362,7 +10922,7 @@
             "translationStrings": [
               {
                 "stringOrig": "trial",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10446,7 +11006,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Without Tax",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(1) \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10476,7 +11036,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Without Tax",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left \u003e div.price-wrapper \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main.grey-alt \u003e div.has-text-left \u003e div.price-wrapper \u003e div.detail-price.is-size-7.has-text-grey-light \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10530,7 +11090,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Allow decimal amounts",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field.productDecimalAmount.is-block \u003e label.checkbox \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field.productDecimalAmount.is-block \u003e label.checkbox \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10584,7 +11144,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Decimals",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field.productDecimalMaxDepth \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(1) \u003e div.column.is-6:nth-child(2) \u003e div.field.productDecimalMaxDepth \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10638,7 +11198,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Recalculate Price Levels",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns.product-hidden-pricelevels \u003e div.column.is-12 \u003e o-collapse \u003e div:nth-child(3) \u003e button.button.add-to-cart",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns.product-hidden-pricelevels \u003e div.column.is-12 \u003e o-collapse \u003e div:nth-child(3) \u003e button.button.add-to-cart",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10692,7 +11252,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Description Short",
-                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(3) \u003e div.column \u003e div.field.descriptionShort \u003e label.label \u003e span:nth-child(1)",
+                "selector": "html \u003e head \u003e template \u003e div.columns.reversed \u003e div.column.is-4.pl-6.data-main \u003e div.has-text-left.product-basic-info \u003e div.content:nth-child(3) \u003e div.columns:nth-child(3) \u003e div.column \u003e div.field.descriptionShort \u003e label.label \u003e span:nth-child(1)",
                 "translations": [
                   {
                     "langCode": "en",
@@ -10998,7 +11558,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Properties",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-descriptions.reversed-desktop \u003e div.column.is-7 \u003e div.columns.product-properties \u003e div.column.is-12 \u003e h3.title.is-3.has-text-left",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-8.pt-6 \u003e div.columns.product-descriptions \u003e div.column \u003e div.columns.product-properties \u003e div.column.is-12 \u003e h3.title.is-3.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",
@@ -12850,7 +13410,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Filter",
-                "selector": "html \u003e head \u003e template \u003e nav.mt-6 \u003e aside.menu \u003e p.menu-label.filter",
+                "selector": "html \u003e head \u003e template \u003e nav.sticky-filter-menu \u003e aside.menu \u003e p.menu-label.filter",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13064,7 +13624,7 @@
               },
               {
                 "stringOrig": "Sort by",
-                "selector": "html \u003e head \u003e template \u003e nav.mt-6 \u003e aside.menu \u003e ul.menu-list \u003e li.panel-block.py-4:nth-child(6) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label \u003e span",
+                "selector": "html \u003e head \u003e template \u003e nav.sticky-filter-menu \u003e aside.menu \u003e ul.menu-list \u003e li.panel-block.py-4:nth-child(6) \u003e div.panel-block-multiwrapper \u003e div:nth-child(1) \u003e label.label \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13248,7 +13808,7 @@
             "translationStrings": [
               {
                 "stringOrig": "days trial",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.has-text-left \u003e div.price-wrapper \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main.grey-alt \u003e div.has-text-left \u003e div.price-wrapper \u003e div.is-size-7:nth-child(2) \u003e span \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13302,7 +13862,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Requirements",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.reversed \u003e div.column.is-5.pl-6.data-main \u003e div.product-requirements \u003e h3.title.is-3 \u003e span",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-4.pl-6.data-main.grey-alt \u003e div.product-requirements \u003e h3.title.is-3 \u003e span",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13356,7 +13916,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Description",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-descriptions.reversed-desktop \u003e div.column.is-5.pl-6 \u003e h3.title.is-3.has-text-left",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-8.pt-6 \u003e div.columns:nth-child(2) \u003e div.column.pl-6 \u003e h3.title.is-3.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13410,7 +13970,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Gallery",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.mt-6.product-gallery \u003e div.column \u003e h3.title.is-3.has-text-left",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-8.pt-6 \u003e div.columns.mt-6.product-gallery \u003e div.column \u003e h3.title.is-3.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",
@@ -13494,7 +14054,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Related",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.mt-6.product-related \u003e div.column.is-12 \u003e h3.title.is-3.has-text-left",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.product-detail \u003e div.columns.product-detail-columns.reversed-desktop \u003e div.column.is-8.pt-6 \u003e div.columns.mt-6.product-related \u003e div.column \u003e h3.title.is-3.has-text-left",
                 "translations": [
                   {
                     "langCode": "en",
@@ -24185,6 +24745,10 @@
                     "translation": "Pickup selection is not configured"
                   },
                   {
+                    "langCode": "sk",
+                    "translation": "Nástroj na zvolenie miesta vyzdvihnutia nie je nastavený"
+                  },
+                  {
                     "langCode": "de",
                     "translation": "Abholauswahl ist nicht konfiguriert"
                   },
@@ -24753,6 +25317,330 @@
                   {
                     "langCode": "es",
                     "translation": "Establecer entrega y pago"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Pay by bank transfer",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Platba bankovým prevodom"
+          },
+          {
+            "langCode": "de",
+            "translation": "Zahlung per Banküberweisung"
+          },
+          {
+            "langCode": "es",
+            "translation": "Pago por transferencia bancaria"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Pay by bank transfer",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e h3.title.is-3",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Pay by bank transfer"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Platba bankovým prevodom"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Zahlung per Banküberweisung"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Pago por transferencia bancaria"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Scan the QR code in your banking app to pay this order",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Naskenujte QR kód v bankovej aplikácii a uhraďte objednávku"
+          },
+          {
+            "langCode": "de",
+            "translation": "Scannen Sie den QR-Code in Ihrer Banking-App, um diese Bestellung zu bezahlen"
+          },
+          {
+            "langCode": "es",
+            "translation": "Escanee el código QR en su aplicación bancaria para pagar este pedido"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Scan the QR code in your banking app to pay this order",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e p",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Scan the QR code in your banking app to pay this order"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Naskenujte QR kód v bankovej aplikácii a uhraďte objednávku"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Scannen Sie den QR-Code in Ihrer Banking-App, um diese Bestellung zu bezahlen"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Escanee el código QR en su aplicación bancaria para pagar este pedido"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Account name",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Názov účtu"
+          },
+          {
+            "langCode": "de",
+            "translation": "Kontoname"
+          },
+          {
+            "langCode": "es",
+            "translation": "Nombre de la cuenta"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Account name",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e dl.bank-transfer-details \u003e div:nth-child(1) \u003e dt",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Account name"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Názov účtu"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Kontoname"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Nombre de la cuenta"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "IBAN",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "IBAN"
+          },
+          {
+            "langCode": "de",
+            "translation": "IBAN"
+          },
+          {
+            "langCode": "es",
+            "translation": "IBAN"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "IBAN",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e dl.bank-transfer-details \u003e div:nth-child(2) \u003e dt",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "IBAN"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "IBAN"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "IBAN"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "IBAN"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Bank",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Banka"
+          },
+          {
+            "langCode": "de",
+            "translation": "Bank"
+          },
+          {
+            "langCode": "es",
+            "translation": "Banco"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Bank",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e dl.bank-transfer-details \u003e div:nth-child(3) \u003e dt",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Bank"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Banka"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Bank"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Banco"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Bank code",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Kód banky"
+          },
+          {
+            "langCode": "de",
+            "translation": "Bankleitzahl"
+          },
+          {
+            "langCode": "es",
+            "translation": "Código bancario"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/orders/PaymentBankTransfer.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Bank code",
+                "selector": "html \u003e head \u003e template \u003e div.bank-transfer-payment \u003e dl.bank-transfer-details \u003e div:nth-child(4) \u003e dt",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Bank code"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Kód banky"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Bankleitzahl"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Código bancario"
                   }
                 ]
               }
@@ -25492,7 +26380,7 @@
             "translationStrings": [
               {
                 "stringOrig": "Related Pages",
-                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.page-detail \u003e div.columns \u003e div.column.is-3.pr-6 \u003e nav.mt-6 \u003e aside.menu \u003e p.menu-label",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.container.page-detail \u003e div.columns \u003e div.column.is-3.pr-6 \u003e nav.mt-6.sticky-menu \u003e aside.menu \u003e p.menu-label",
                 "translations": [
                   {
                     "langCode": "en",

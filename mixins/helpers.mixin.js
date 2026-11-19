@@ -16,6 +16,33 @@ module.exports = {
 		},
 
 		/**
+		 * Resolve an import entity by Mongo id, or by externalId when id is missing.
+		 * Used by products/categories/pages import for platform sync.
+		 *
+		 * @param {Object} entity
+		 * @returns {Promise<Object|null>}
+		 */
+		resolveImportEntity(entity) {
+			if (!entity) {
+				return Promise.resolve(null);
+			}
+			if (entity.id) {
+				return this.adapter.findById(entity.id)
+					.then((found) => found || null)
+					.catch(() => null);
+			}
+			if (entity.externalId) {
+				return this.adapter.find({
+					query: { externalId: entity.externalId },
+					limit: 1
+				})
+					.then((rows) => (rows && rows[0]) ? rows[0] : null)
+					.catch(() => null);
+			}
+			return Promise.resolve(null);
+		},
+
+		/**
 		 * simple function to split string into
 		 */
 		stringChunk(str, chunkSize, separator) {

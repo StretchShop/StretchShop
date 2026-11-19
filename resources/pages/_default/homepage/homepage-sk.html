@@ -1,35 +1,71 @@
-<div class="bg-grey">
+<!-- {{editor_WYSIWYG}} //-->
+
+<div class="hp-os">
+  <section class="section hp-os-hero">
+    <div class="container has-text-centered">
+      <img class="hp-os-logo" src="/assets/_site/logo.svg" alt="StretchShop" />
+      <h1 class="title hp-os-title">Sloboda pre<br class="is-hidden-tablet" /> <span class="hp-os-title-accent">tvoje podnikanie</span></h1>
+      <p class="hp-os-lead">E-shop na Node.js a Vue, ktorý si môžeš naklonovať, upraviť a prevádzkovať sám.</p>
+      <div class="buttons is-centered hp-os-actions">
+        <a class="button is-primary" href="https://github.com/StretchShop/StretchShop">Zobraziť na GitHube</a>
+        <a class="button is-primary is-outlined" href="https://github.com/StretchShop/StretchShop/wiki">Prečítať dokumentáciu</a>
+      </div>
+      <p class="hp-os-hosted is-hidden-mobile"><a href="https://stretchshop.org/sk">Nechceš si to spúšťať sám? Necháme to bežať u nás →</a></p>
+      <p class="hp-os-hosted is-hidden-tablet"><a href="https://stretchshop.org/sk">Alebo to necháme bežať u nás →</a></p>
+    </div>
+  </section>
+
+  <section class="section hp-os-paths">
     <div class="container">
-      <div class="columns">
-        <div class="column is-4 hp-question">
-          <h1 class="title is-1" translate="yes">Je Vaše podnikanie<br />pripravené na rast?</h1>
+      <div class="columns is-variable is-4">
+        <div class="column is-12-mobile is-4-tablet">
+          <div class="box hp-os-path hp-os-path-self">
+            <h2 class="title is-4">Vlastný hosting</h2>
+            <p class="hp-os-price">Zadarmo</p>
+            <p>Backend pod licenciou GPL-3.0, so skompilovaným frontendom v cene.</p>
+            <p class="hp-os-cta"><a href="https://github.com/StretchShop/StretchShop">Začni →</a></p>
+          </div>
         </div>
-        <div class="column is-4">
-          <img alt="StretchShop logo" src="/assets/_site/logo.svg" />
+        <div class="column is-12-mobile is-4-tablet">
+          <div class="box hp-os-path hp-os-path-fe">
+            <h2 class="title is-4">Kúpiť frontend</h2>
+            <p class="hp-os-price">500 € / 1&nbsp;000 €</p>
+            <p>Zdrojáky frontendu ako zip, alebo rok prístupu k repozitáru.</p>
+            <p class="hp-os-cta"><a href="https://stretchshop.app/sk">Pozrieť možnosti →</a></p>
+          </div>
         </div>
-        <div class="column is-4 hp-words">
-          <img alt="StretchShop words" src="/assets/_site/words.svg" />
+        <div class="column is-12-mobile is-4-tablet">
+          <div class="box hp-os-path hp-os-path-saas">
+            <h2 class="title is-4">Prevádzku necháme na nás</h2>
+            <p class="hp-os-price">Od 15 €/mes., s DPH</p>
+            <p>Hostovať to budeme my, s white-labelom pre agentúry.</p>
+            <p class="hp-os-cta"><a href="https://stretchshop.org/sk">Prejsť na StretchShop SaaS →</a></p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  
-  <div class="container hp-topics">
-    <div class="columns">
-      <div class="column is-4">
-        <img src="/assets/_site/home/fast.png" alt="Fast" />
-        <h2 class="title is-2">Rýchlosť</h2>
-        <p class="is-size-4">Jednoduchý základ <br />Robustný výkon</p>
-      </div>
-      <div class="column is-4">
-        <img src="/assets/_site/home/scalable.png" alt="Scalable" />
-        <h2 class="title is-2">Škálovateľnosť</h2>
-        <p class="is-size-4">Microservisy aj monolit <br />pre veľké i malé riešenia</p>
-      </div>
-      <div class="column is-4">
-        <img src="/assets/_site/home/easy.png" alt="Easy" />
-        <h2 class="title is-2">Jednoduchosť</h2>
-        <p class="is-size-4">Lepší zážitok pre všetky role: <br />návštevník, užívateľ, admin, vývojár</p>
-      </div>
+  </section>
+
+  <section class="section hp-os-start">
+    <div class="container">
+      <p class="hp-os-kicker">RÝCHLY ŠTART</p>
+      <pre class="hp-os-pre is-hidden-mobile"><code>git clone https://github.com/StretchShop/StretchShop.git
+cd StretchShop
+cp .env.example .env
+npm install &amp;&amp; npm run dev    # http://localhost:3000</code></pre>
+      <pre class="hp-os-pre is-hidden-tablet"><code>git clone …/StretchShop.git
+cd StretchShop
+cp .env.example .env
+npm install &amp;&amp; npm run dev
+# http://localhost:3000</code></pre>
+      <p class="hp-os-hint is-hidden-mobile">Potrebuje Node.js 22.23+ a MongoDB 7. Príkaz npm install načíta demo dáta.</p>
+      <p class="hp-os-hint is-hidden-tablet">Node.js 22.23+ a MongoDB 7.</p>
     </div>
-  </div>
+  </section>
+
+  <section class="section hp-os-close">
+    <div class="container has-text-centered">
+      <p>Staviaš eshopy pre klientov? <a href="https://stretchshop.app/sk">Staň sa naším partnerom →</a></p>
+    </div>
+  </section>
+</div>

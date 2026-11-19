@@ -1,6 +1,6 @@
 {
   "name": "stretchshop",
-  "version": "0.7.11",
+  "version": "0.7.12",
   "description": "Fast & scalable e-commerce",
   "license": "GPL-3.0",
   "repository": {
@@ -39,6 +39,7 @@
     "@stretchshop/moleculer-cron": "^0.0.7",
     "base-64": "^1.0.0",
     "bcryptjs": "^3.0.3",
+    "bysquare": "^4.1.0",
     "connect-history-api-fallback": "^2.0.0",
     "cookie": "^2.0.1",
     "cookies": "^0.9.2",
@@ -67,6 +68,7 @@
     "nodemailer": "^10.1.1",
     "pdfmake": "^0.3.11",
     "promise-each": "^2.2.0",
+    "qrcode": "^1.5.4",
     "saslprep": "^1.0.3",
     "slug": "^12.0.1",
     "stripe": "^23.0.0",

@@ -324,11 +324,14 @@ module.exports = {
 						}
 					}
 
-					// if WYSIWYG found, place first block
+					// if WYSIWYG found, place first block for requested language
 					if (page && page.data && page.data.blocks && page.data.blocks.length > 0) {
+						const wysiwygContent = page.data.blocks[0][ctx.params.lang];
 						result.body = result.body.replace(
 							"<!-- {{editor_WYSIWYG}} //-->",
-							"<div data-editable data-name=\"content\">" + page.data.blocks[0][ctx.params.lang] + "</div>"
+							wysiwygContent
+								? "<div data-editable data-name=\"content\">" + wysiwygContent + "</div>"
+								: ""
 						);
 					} else {
 						result.body = result.body.replace(
@@ -374,16 +377,25 @@ module.exports = {
 		 * @param {Object} result 
 		 */
 		processPageDetailResult(ctx, result) {
+			const nonBlank = (list) => {
+				if (!Array.isArray(list)) {
+					return [];
+				}
+				return list.filter((item) => typeof item === "string" && item.trim() !== "");
+			};
+
 			// preparing to get parent category for breadcrumbs
+			// blank placeholders such as [""] are not categories
 			let category = null;
-			// check what data for categories will be used
-			let hasStaticCategories = (result.staticData && result.staticData.categories && result.staticData.categories.length > 0);
+			const staticCategories = nonBlank(result.staticData && result.staticData.categories);
+			const hasStaticCategories = staticCategories.length > 0;
 			if (hasStaticCategories) {
-				category = result.staticData.categories[0];
+				category = staticCategories[0];
 			}
-			let hasCategories = (result.data && result.data.categories && result.data.categories.length > 0);
+			const dynamicCategories = nonBlank(result.data && result.data.categories);
+			const hasCategories = dynamicCategories.length > 0;
 			if (hasCategories) {
-				category = result.data.categories[0];
+				category = dynamicCategories[0];
 			}
 			if (typeof result.global === "undefined") {
 				result.global = {};
@@ -392,14 +404,16 @@ module.exports = {
 			result.global.parentCategorySlug = category;
 			//
 			let pagesTemp = [];
-			// check what pages will be used
-			let hasStaticPages = (result.staticData && result.staticData.pages && result.staticData.pages.length > 0);
+			// check what pages will be used; blank placeholders are not related pages
+			const staticPages = nonBlank(result.staticData && result.staticData.pages);
+			const hasStaticPages = staticPages.length > 0;
 			if (hasStaticPages) {
-				pagesTemp = result.staticData.pages;
+				pagesTemp = staticPages;
 			}
-			let hasPages = (result.data && result.data.pages && result.data.pages.length > 0);
+			const dynamicPages = nonBlank(result.data && result.data.pages);
+			const hasPages = dynamicPages.length > 0;
 			if (hasPages) {
-				pagesTemp = result.data.pages;
+				pagesTemp = dynamicPages;
 			}
 			// fill related items
 			let pages = [];
@@ -417,9 +431,11 @@ module.exports = {
 				});
 			}
 			//
-			if (ctx.params.category && (hasStaticCategories || hasCategories)) {
+			const categoryPath = typeof category === "string" ? category.trim() : "";
+			// categories.detail requires a path of at least 3 characters
+			if (ctx.params.category && categoryPath.length >= 3 && (hasStaticCategories || hasCategories)) {
 				return ctx.call("categories.detail", {
-					categoryPath: category,
+					categoryPath,
 					type: "pages"
 				})
 					.then(parentCategoryDetail => {

@@ -11,6 +11,7 @@ const pathResolve = require("path").resolve;
 const { getSupplier, physicalCodename } = require("../delivery/registry");
 const SettingsMixin = require("../../../mixins/settings.mixin");
 const PdfPrintMixin = require("../../../mixins/pdfprint.mixin");
+const { injectPaymentQr } = require("../../../modules/payments/bank-transfer-qr");
 const einvoiceModule = require("../../../modules/einvoice");
 const { subscriptionPaymentStatuses } = require("../constants/subscription.constants");
 const { productStatuses } = require("../constants/product.constants");
@@ -330,16 +331,22 @@ module.exports = {
 									id: newInvoiceIdCode
 								};
 								order.dates["dateInvoiceIssued"] = new Date();
-								if (!needToUpdate) {
-									// update order
-									return this.adapter.updateById(order._id, this.prepareForUpdate(order))
-										.then(orderUpdated => {
-											this.entityChanged("updated", orderUpdated, ctx);
-											return template;
-										});
+								if (order.prices) {
+									order.prices.priceTotalToPay = (order.prices.priceTotal ?? 0) - (order.data?.paymentData?.paidAmountTotal ?? 0);
 								}
-								// no need to update
-								return template;
+								return this.generateBankTransferQr(order)
+									.then(() => {
+										if (!needToUpdate) {
+											// update order
+											return this.adapter.updateById(order._id, this.prepareForUpdate(order))
+												.then(orderUpdated => {
+													this.entityChanged("updated", orderUpdated, ctx);
+													return template;
+												});
+										}
+										// no need to update
+										return template;
+									});
 							});
 					})
 					.then((html) => {
@@ -366,11 +373,12 @@ module.exports = {
 						return this.readFile(logo1)
 							.then((logoCode) => {
 								logoCode = logoCode.replace(/(width\s*=\s*["'](.*?)["'])/, "width=\"240\"").replace(/(height\s*=\s*["'](.*?)["'])/, "height=\"53\"");
-								return html.toString().replace("<!-- company_logo //-->", logoCode);
+								const withLogo = html.toString().replace("<!-- company_logo //-->", logoCode);
+								return injectPaymentQr(withLogo, order);
 							})
 							.catch(logoCodeErr => {
 								self.logger.error("orders.generateInvoice() - logo error:", logoCodeErr);
-								return html;
+								return injectPaymentQr(html, order);
 							});
 					})
 					.then((html) => {

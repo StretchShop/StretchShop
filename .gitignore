@@ -11,6 +11,7 @@ db
 .env
 public/**/*
 !public/index.html
+resources/invoices/**/*
 
 # Email layouts, nested templates, navigation, and pages are required at
 # runtime (Docker image + service boot). Keep them in git; public media
@@ -21,4 +22,5 @@ copyToDemoData.sh
 *.log
 .temp/
 .temp/webhook.log
+.ssr-cache/
 docs/openapi/generated.json

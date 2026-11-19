@@ -7,6 +7,44 @@ const { ReadStream } = require("fs");
 const jwt = require("jsonwebtoken");
 const fetch = require("cross-fetch");
 
+function openInvoiceDownload(service, ctx, extension) {
+	service.logger.info("orders.invoiceDownload - id #" + ctx.params.invoice + " request by user: ", ctx.meta.user);
+	const sepIndex = ctx.params.invoice.indexOf(".");
+	if (sepIndex < 1) {
+		return Promise.reject(new MoleculerClientError("Invalid invoice", 400));
+	}
+	const userId = ctx.params.invoice.slice(0, sepIndex);
+	const invoiceId = ctx.params.invoice.slice(sepIndex + 1);
+	const isAdmin = ctx.meta.user.type === "admin";
+	const isOwner = ctx.meta.user._id && ctx.meta.user._id.toString() === userId;
+
+	if (!isAdmin && !isOwner) {
+		return Promise.reject(new MoleculerClientError("Forbidden", 403));
+	}
+	if (!userId || !/^[\w-]+$/.test(userId) || !invoiceId || !/^[\w-]+$/.test(invoiceId)) {
+		return Promise.reject(new MoleculerClientError("Invalid invoice", 400));
+	}
+
+	const { dir } = service.getInvoiceFilePaths({
+		user: { id: userId },
+		invoice: { id: invoiceId }
+	});
+	const filePath = path.resolve(dir, invoiceId + "." + extension);
+	const rootWithSep = dir.endsWith(path.sep) ? dir : dir + path.sep;
+
+	if (filePath !== dir && !filePath.startsWith(rootWithSep)) {
+		return Promise.reject(new MoleculerClientError("Invalid invoice", 400));
+	}
+
+	service.logger.info("orders.invoiceDownload - path:", { path: filePath, resolvedPath: filePath });
+	try {
+		return createReadStream(filePath);
+	} catch (e) {
+		service.logger.error("orders.invoiceDownload - id #" + ctx.params.invoice + " error:", JSON.stringify(e));
+		return null;
+	}
+}
+
 module.exports = {
 	actions: {
 		cleanOrders: {
@@ -67,41 +105,28 @@ module.exports = {
 				invoice: { type: "string", min: 3 }
 			},
 			handler(ctx) {
-				this.logger.info("orders.invoiceDownload - id #" + ctx.params.invoice + " request by user: ", ctx.meta.user);
-				const sepIndex = ctx.params.invoice.indexOf(".");
-				if (sepIndex < 1) {
-					return Promise.reject(new MoleculerClientError("Invalid invoice", 400));
-				}
-				const userId = ctx.params.invoice.slice(0, sepIndex);
-				const invoiceId = ctx.params.invoice.slice(sepIndex + 1);
-				const isAdmin = ctx.meta.user.type === "admin";
-				const isOwner = ctx.meta.user._id && ctx.meta.user._id.toString() === userId;
+				return openInvoiceDownload(this, ctx, "pdf");
+			}
+		},
 
-				if (!isAdmin && !isOwner) {
-					return Promise.reject(new MoleculerClientError("Forbidden", 403));
-				}
-				if (!userId || !/^[\w-]+$/.test(userId) || !invoiceId || !/^[\w-]+$/.test(invoiceId)) {
-					return Promise.reject(new MoleculerClientError("Invalid invoice", 400));
-				}
 
-				const { pdfPath, dir } = this.getInvoiceFilePaths({
-					user: { id: userId },
-					invoice: { id: invoiceId }
-				});
-				const root = dir;
-				const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
-
-				if (pdfPath !== root && !pdfPath.startsWith(rootWithSep)) {
-					return Promise.reject(new MoleculerClientError("Invalid invoice", 400));
-				}
-
-				this.logger.info("orders.invoiceDownload - path:", { path: pdfPath, resolvedPath: pdfPath });
-				try {
-					return createReadStream(pdfPath);
-				} catch (e) {
-					this.logger.error("orders.invoiceDownload - id #" + ctx.params.invoice + " error:", JSON.stringify(e));
-					return null;
-				}
+		/**
+		 * Download the structured e-invoice stored beside the PDF.
+		 *
+		 * @actions
+		 *
+		 * @param {String} invoice - user id and invoice id, separated by a dot
+		 *
+		 * @returns {ReadStream} Stream of the e-invoice XML file
+		 */
+		invoiceDownloadXml: {
+			cache: false,
+			auth: "required",
+			params: {
+				invoice: { type: "string", min: 3 }
+			},
+			handler(ctx) {
+				return openInvoiceDownload(this, ctx, "xml");
 			}
 		},
 

@@ -1,35 +1,71 @@
-<div class="bg-grey">
-  <div class="container">
-    <div class="columns">
-      <div class="column is-4 hp-question">
-        <h1 class="title is-1" translate="yes">Ist Ihr Unternehmen<br />bereit zu wachsen?</h1>
-      </div>
-      <div class="column is-4">
-        <img alt="StretchShop logo" src="/assets/_site/logo.svg" />
-      </div>
-      <div class="column is-4 hp-words">
-        <img alt="StretchShop words" src="/assets/_site/words.svg" />
-      </div>
-    </div>
-  </div>
-</div>
+<!-- {{editor_WYSIWYG}} //-->
 
-<div class="container hp-topics">
-  <div class="columns">
-    <div class="column is-4">
-      <img src="/assets/_site/home/fast.png" alt="Schnell" />
-      <h2 class="title is-2">Schnell</h2>
-      <p class="is-size-4">Leichtgewichtige Basis <br />Robuste Leistung</p>
+<div class="hp-os">
+  <section class="section hp-os-hero">
+    <div class="container has-text-centered">
+      <img class="hp-os-logo" src="/assets/_site/logo.svg" alt="StretchShop" />
+      <h1 class="title hp-os-title">Freiheit für<br class="is-hidden-tablet" /> <span class="hp-os-title-accent">Ihr Unternehmen</span></h1>
+      <p class="hp-os-lead">Ein Shop auf Node.js und Vue, den Sie selbst klonen, anpassen und hosten können.</p>
+      <div class="buttons is-centered hp-os-actions">
+        <a class="button is-primary" href="https://github.com/StretchShop/StretchShop">Auf GitHub ansehen</a>
+        <a class="button is-primary is-outlined" href="https://github.com/StretchShop/StretchShop/wiki">Dokumentation lesen</a>
+      </div>
+      <p class="hp-os-hosted is-hidden-mobile"><a href="https://stretchshop.org">Möchten Sie es nicht selbst betreiben? Dann hosten wir es für Sie →</a></p>
+      <p class="hp-os-hosted is-hidden-tablet"><a href="https://stretchshop.org">Oder wir hosten es für Sie →</a></p>
     </div>
-    <div class="column is-4">
-      <img src="/assets/_site/home/scalable.png" alt="Skalierbar" />
-      <h2 class="title is-2">Skalierbar</h2>
-      <p class="is-size-4">Microservices & Monolith <br />ob groß oder klein</p>
+  </section>
+
+  <section class="section hp-os-paths">
+    <div class="container">
+      <div class="columns is-variable is-4">
+        <div class="column is-12-mobile is-4-tablet">
+          <div class="box hp-os-path hp-os-path-self">
+            <h2 class="title is-4">Selbst hosten</h2>
+            <p class="hp-os-price">Kostenlos</p>
+            <p>Das GPL-3.0-Backend, inklusive kompiliertem Frontend.</p>
+            <p class="hp-os-cta"><a href="https://github.com/StretchShop/StretchShop">Loslegen →</a></p>
+          </div>
+        </div>
+        <div class="column is-12-mobile is-4-tablet">
+          <div class="box hp-os-path hp-os-path-fe">
+            <h2 class="title is-4">Frontend kaufen</h2>
+            <p class="hp-os-price">500 € / 1.000 €</p>
+            <p>Frontend-Quellcode als ZIP oder ein Jahr Zugriff auf das Repository.</p>
+            <p class="hp-os-cta"><a href="https://stretchshop.app/en">Optionen ansehen →</a></p>
+          </div>
+        </div>
+        <div class="column is-12-mobile is-4-tablet">
+          <div class="box hp-os-path hp-os-path-saas">
+            <h2 class="title is-4">Wir betreiben es für Sie</h2>
+            <p class="hp-os-price">Ab 15 €/Monat, inkl. MwSt.</p>
+            <p>Wir hosten es für Sie, mit White-Label für Agenturen.</p>
+            <p class="hp-os-cta"><a href="https://stretchshop.org">Zu StretchShop SaaS →</a></p>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="column is-4">
-      <img src="/assets/_site/home/easy.png" alt="Einfach" />
-      <h2 class="title is-2">Einfach zu bedienen</h2>
-      <p class="is-size-4">Bessere Erfahrung für alle Rollen: <br />Besucher, Nutzer, Admin, Entwickler</p>
+  </section>
+
+  <section class="section hp-os-start">
+    <div class="container">
+      <p class="hp-os-kicker">SCHNELLSTART</p>
+      <pre class="hp-os-pre is-hidden-mobile"><code>git clone https://github.com/StretchShop/StretchShop.git
+cd StretchShop
+cp .env.example .env
+npm install &amp;&amp; npm run dev    # http://localhost:3000</code></pre>
+      <pre class="hp-os-pre is-hidden-tablet"><code>git clone …/StretchShop.git
+cd StretchShop
+cp .env.example .env
+npm install &amp;&amp; npm run dev
+# http://localhost:3000</code></pre>
+      <p class="hp-os-hint is-hidden-mobile">Benötigt Node.js 22.23+ und MongoDB 7. npm install lädt die Demodaten.</p>
+      <p class="hp-os-hint is-hidden-tablet">Node.js 22.23+ und MongoDB 7.</p>
     </div>
-  </div>
+  </section>
+
+  <section class="section hp-os-close">
+    <div class="container has-text-centered">
+      <p>Sie bauen Shops für Kunden? <a href="https://stretchshop.app/en">Werden Sie unser Partner →</a></p>
+    </div>
+  </section>
 </div>

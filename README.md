@@ -40,6 +40,7 @@ MongoDB 7 must be running (`MONGO_URI`, default `mongodb://localhost:27017/stret
 | Environment variables | [Environment setup](https://github.com/StretchShop/StretchShop/wiki/Environment-setup) and [`.env.example`](.env.example) |
 | Live OpenAPI (off in production) | `/openapi/ui` — see [docs/openapi](docs/openapi/README.md) |
 | Order status values | [services/orders/README.order-statuses.md](services/orders/README.order-statuses.md) |
+| Server-rendered public pages | [docs/ssr.md](docs/ssr.md) |
 | Tests, lint, pull requests | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Vulnerabilities | [SECURITY.md](SECURITY.md) |
 

@@ -10,6 +10,7 @@ module.exports = {
 		// ESM-only packages — Jest's CJS loader cannot parse their `export` syntax
 		"^slug$": "<rootDir>/test/mocks/slug.js",
 		"^cookie$": "<rootDir>/test/mocks/cookie.js",
+		"^bysquare/pay$": "<rootDir>/test/mocks/bysquare-pay.js",
 	},
 	collectCoverageFrom: [
 		"services/**/*.js",

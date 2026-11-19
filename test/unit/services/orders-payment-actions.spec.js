@@ -1,5 +1,8 @@
 "use strict";
 
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const { MoleculerClientError } = require("moleculer").Errors;
 const jwt = require("jsonwebtoken");
 const paymentMixin = require("../../../services/orders/mixins/order-actions.payment.mixin");
@@ -154,6 +157,48 @@ describe("orders fulfillment actions", () => {
 			params: { orderId: "ord-1" },
 			meta: { user: { type: "user" } },
 		})).rejects.toMatchObject({ code: 403 });
+	});
+
+	it("streams the invoice pdf and e-invoice xml for the owner", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "einvoice-dl-"));
+		const invoiceId = "INV-1";
+		fs.writeFileSync(path.join(dir, invoiceId + ".pdf"), "pdf");
+		fs.writeFileSync(path.join(dir, invoiceId + ".xml"), "<Invoice/>");
+		const service = {
+			logger: { info() {}, warn() {}, error() {} },
+			getInvoiceFilePaths() {
+				return { dir, pdfPath: path.join(dir, invoiceId + ".pdf") };
+			},
+		};
+		const ctx = {
+			params: { invoice: "user1." + invoiceId },
+			meta: { user: { type: "user", _id: "user1" } },
+		};
+		const pdfStream = fulfillmentMixin.actions.invoiceDownload.handler.call(service, ctx);
+		const xmlStream = fulfillmentMixin.actions.invoiceDownloadXml.handler.call(service, ctx);
+		expect(pdfStream.path).toBe(path.join(dir, invoiceId + ".pdf"));
+		expect(xmlStream.path).toBe(path.join(dir, invoiceId + ".xml"));
+		const chunks = [];
+		await new Promise((resolve, reject) => {
+			xmlStream.on("data", (chunk) => chunks.push(chunk));
+			xmlStream.on("end", resolve);
+			xmlStream.on("error", reject);
+		});
+		expect(Buffer.concat(chunks).toString()).toBe("<Invoice/>");
+		pdfStream.destroy();
+		fs.rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("rejects an e-invoice download from another user", async () => {
+		const service = {
+			logger: { info() {}, warn() {}, error() {} },
+			getInvoiceFilePaths: jest.fn(),
+		};
+		await expect(fulfillmentMixin.actions.invoiceDownloadXml.handler.call(service, {
+			params: { invoice: "owner.INV-1" },
+			meta: { user: { type: "user", _id: "other" } },
+		})).rejects.toMatchObject({ code: 403 });
+		expect(service.getInvoiceFilePaths).not.toHaveBeenCalled();
 	});
 
 	it("marks an order paid as admin", async () => {

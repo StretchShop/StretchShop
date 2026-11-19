@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wp="http://wordpress.org/export/1.2/">
+  <channel>
+    <title>Woo pages</title>
+    <item>
+      <title>About Us</title>
+      <guid>page-10</guid>
+      <content:encoded><![CDATA[<p>About our shop</p>]]></content:encoded>
+      <wp:post_id>10</wp:post_id>
+      <wp:post_name>about-us</wp:post_name>
+      <wp:post_type>page</wp:post_type>
+      <wp:status>publish</wp:status>
+    </item>
+  </channel>
+</rss>
