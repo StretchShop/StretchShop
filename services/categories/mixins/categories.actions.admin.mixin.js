@@ -24,9 +24,12 @@ module.exports = {
 						// loop categories to import
 						categories.forEach(function (entity) {
 							promises.push(
-								// add category results into result variable
-								self.adapter.findById(entity.id)
+								// resolve by Mongo id, then by externalId for platform sync
+								self.resolveImportEntity(entity)
 									.then(found => {
+										if (found && !entity.id) {
+											entity.id = found._id ? found._id.toString() : found.id;
+										}
 										if (found) { // category found, update it
 											if (entity) {
 												entity = self.fixEntityDates(entity);

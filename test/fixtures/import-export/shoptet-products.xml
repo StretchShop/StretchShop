@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SHOP>
+  <SHOPITEM>
+    <CODE>ABC123</CODE>
+    <NAME>Test Shirt</NAME>
+    <SHORT_DESCRIPTION>Soft cotton shirt</SHORT_DESCRIPTION>
+    <DESCRIPTION>A nice shirt for everyday wear</DESCRIPTION>
+    <PRICE_VAT>19.90</PRICE_VAT>
+    <VAT>20</VAT>
+    <STOCK>5</STOCK>
+    <CATEGORIES>
+      <CATEGORY>Fashion &gt; Shirts</CATEGORY>
+    </CATEGORIES>
+  </SHOPITEM>
+</SHOP>

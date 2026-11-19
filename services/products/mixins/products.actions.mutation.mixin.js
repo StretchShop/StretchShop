@@ -21,9 +21,12 @@ module.exports = {
 						// loop products to import
 						products.forEach(function (entity) {
 							promises.push(
-								// add product results into result variable
-								self.adapter.findById(entity.id)
+								// resolve by Mongo id, then by externalId for platform sync
+								self.resolveImportEntity(entity)
 									.then(found => {
+										if (found && !entity.id) {
+											entity.id = found._id ? found._id.toString() : found.id;
+										}
 										return self.importProductAction(ctx, entity, found);
 									})
 									.catch(err => {

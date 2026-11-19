@@ -1702,5 +1702,87 @@ module.exports = {
         }
       ]
     }
+  },
+  "import-export": {
+    "providers": {
+      "summary": "List import/export providers",
+      "operationId": "importExportProviders",
+      "tags": [
+        "admin"
+      ],
+      "responses": {
+        "200": {
+          "description": "Available providers",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "CookieAuth": []
+        }
+      ]
+    },
+    "import": {
+      "summary": "Import catalog from Shoptet, WooCommerce, or StretchShop file",
+      "operationId": "importExportImport",
+      "tags": [
+        "admin"
+      ],
+      "responses": {
+        "200": {
+          "description": "Import summary",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "CookieAuth": []
+        }
+      ]
+    },
+    "export": {
+      "summary": "Export catalog to a provider format",
+      "operationId": "importExportExport",
+      "tags": [
+        "admin"
+      ],
+      "responses": {
+        "200": {
+          "description": "Base64-encoded export file",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filename": { "type": "string" },
+                  "contentType": { "type": "string" },
+                  "contentBase64": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "security": [
+        {
+          "CookieAuth": []
+        }
+      ]
+    }
   }
 };

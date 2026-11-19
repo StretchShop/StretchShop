@@ -1433,6 +1433,90 @@
         ]
       },
       {
+        "phrase": "Import \u0026 Export",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Import a export"
+          },
+          {
+            "langCode": "de",
+            "translation": "Import \u0026 Export"
+          },
+          {
+            "langCode": "es",
+            "translation": "Importación y exportación"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/Settings.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import \u0026 Export",
+                "selector": "html \u003e head \u003e template \u003e div.container.settings \u003e div.columns.is-variable.has-text-left \u003e div.column.is-3.pr-6 \u003e nav.mt-6.user-settings-nav \u003e aside.menu \u003e ul.menu-list \u003e li:nth-child(7) \u003e router-link",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import \u0026 Export"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Import a export"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Import \u0026 Export"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importación y exportación"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import \u0026 Export",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e h2.title.is-2",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import \u0026 Export"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Import a export"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Import \u0026 Export"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importación y exportación"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "phrase": "Settings",
         "language": {
           "code": "en",
@@ -9479,6 +9563,482 @@
                   {
                     "langCode": "es",
                     "translation": "Actualizar configuración de localización"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Import catalog data from Shoptet or WooCommerce exports, or export StretchShop data.",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Importujte katalógové dáta z exportov Shoptet alebo WooCommerce, alebo exportujte dáta StretchShop."
+          },
+          {
+            "langCode": "de",
+            "translation": "Importieren Sie Katalogdaten aus Shoptet- oder WooCommerce-Exporten, oder exportieren Sie StretchShop-Daten."
+          },
+          {
+            "langCode": "es",
+            "translation": "Importe datos del catálogo desde exportaciones de Shoptet o WooCommerce, o exporte datos de StretchShop."
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import catalog data from Shoptet or WooCommerce exports, or export StretchShop data.",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e p.mb-4",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import catalog data from Shoptet or WooCommerce exports, or export StretchShop data."
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Importujte katalógové dáta z exportov Shoptet alebo WooCommerce, alebo exportujte dáta StretchShop."
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Importieren Sie Katalogdaten aus Shoptet- oder WooCommerce-Exporten, oder exportieren Sie StretchShop-Daten."
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importe datos del catálogo desde exportaciones de Shoptet o WooCommerce, o exporte datos de StretchShop."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Provider",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Poskytovateľ"
+          },
+          {
+            "langCode": "de",
+            "translation": "Anbieter"
+          },
+          {
+            "langCode": "es",
+            "translation": "Proveedor"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Provider",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(1) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Provider"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Poskytovateľ"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Anbieter"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Proveedor"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Provider",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(2) \u003e div.box.mt-4 \u003e div.field:nth-child(1) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Provider"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Poskytovateľ"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Anbieter"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Proveedor"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Entities",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Entity"
+          },
+          {
+            "langCode": "de",
+            "translation": "Entitäten"
+          },
+          {
+            "langCode": "es",
+            "translation": "Entidades"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Entities",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(2) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Entities"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Entity"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Entitäten"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Entidades"
+                  }
+                ]
+              },
+              {
+                "stringOrig": "Entities",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(2) \u003e div.box.mt-4 \u003e div.field:nth-child(2) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Entities"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Entity"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Entitäten"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Entidades"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "File",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Súbor"
+          },
+          {
+            "langCode": "de",
+            "translation": "Datei"
+          },
+          {
+            "langCode": "es",
+            "translation": "Archivo"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "File",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(3) \u003e label.label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "File"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Súbor"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Datei"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Archivo"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Choose a file…",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Vyberte súbor…"
+          },
+          {
+            "langCode": "de",
+            "translation": "Datei auswählen…"
+          },
+          {
+            "langCode": "es",
+            "translation": "Elegir un archivo…"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Choose a file…",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(3) \u003e div.file.has-name.is-fullwidth \u003e label.file-label \u003e span.file-cta \u003e span.file-label",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Choose a file…"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Vyberte súbor…"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Datei auswählen…"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Elegir un archivo…"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Import",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Importovať"
+          },
+          {
+            "langCode": "de",
+            "translation": "Importieren"
+          },
+          {
+            "langCode": "es",
+            "translation": "Importar"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.field:nth-child(4) \u003e button.button.is-primary",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Importovať"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Importieren"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importar"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Import finished",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Import dokončený"
+          },
+          {
+            "langCode": "de",
+            "translation": "Import abgeschlossen"
+          },
+          {
+            "langCode": "es",
+            "translation": "Importación finalizada"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Import finished",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(1) \u003e div.box.mt-4 \u003e div.notification.is-success.is-light.mt-3 \u003e p",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Import finished"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Import dokončený"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Import abgeschlossen"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Importación finalizada"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phrase": "Export",
+        "language": {
+          "code": "en",
+          "lang": "en",
+          "name": "en"
+        },
+        "translates": [
+          {
+            "langCode": "sk",
+            "translation": "Exportovať"
+          },
+          {
+            "langCode": "de",
+            "translation": "Exportieren"
+          },
+          {
+            "langCode": "es",
+            "translation": "Exportar"
+          }
+        ],
+        "occurrences": [
+          {
+            "path": "/Users/marthol/Documents/GitHub/stretchshop-front-vue/src/components/settings/SettingsImportExport.vue",
+            "selector": "[translate]",
+            "type": "text",
+            "blockName": "texts",
+            "translationStrings": [
+              {
+                "stringOrig": "Export",
+                "selector": "html \u003e head \u003e template \u003e div \u003e div.columns.is-variable.is-2 \u003e div.column.is-10 \u003e o-tabs \u003e o-tab-item:nth-child(2) \u003e div.box.mt-4 \u003e div.field:nth-child(3) \u003e button.button.is-primary",
+                "translations": [
+                  {
+                    "langCode": "en",
+                    "translation": "Export"
+                  },
+                  {
+                    "langCode": "sk",
+                    "translation": "Exportovať"
+                  },
+                  {
+                    "langCode": "de",
+                    "translation": "Exportieren"
+                  },
+                  {
+                    "langCode": "es",
+                    "translation": "Exportar"
                   }
                 ]
               }

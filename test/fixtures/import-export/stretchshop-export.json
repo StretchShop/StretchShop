@@ -1,0 +1,38 @@
+{
+  "products": [
+    {
+      "externalId": "SS-1",
+      "orderCode": "SS-1",
+      "type": "product",
+      "subtype": "physical",
+      "slug": "stretch-mug",
+      "name": { "en": "Stretch Mug" },
+      "price": 9.5,
+      "tax": 0.2,
+      "categories": ["drinkware"],
+      "publisher": "admin@example.com"
+    }
+  ],
+  "categories": [
+    {
+      "externalId": "cat-drinkware",
+      "type": "category",
+      "slug": "drinkware",
+      "pathSlug": "drinkware",
+      "parentPath": [],
+      "name": { "en": "Drinkware" },
+      "publisher": "admin@example.com"
+    }
+  ],
+  "pages": [
+    {
+      "externalId": "page-info",
+      "type": "page",
+      "subtype": "default",
+      "slug": "info",
+      "name": { "en": "Info" },
+      "publisher": "admin@example.com",
+      "data": { "blocks": [] }
+    }
+  ]
+}

@@ -324,11 +324,14 @@ module.exports = {
 						}
 					}
 
-					// if WYSIWYG found, place first block
+					// if WYSIWYG found, place first block for requested language
 					if (page && page.data && page.data.blocks && page.data.blocks.length > 0) {
+						const wysiwygContent = page.data.blocks[0][ctx.params.lang];
 						result.body = result.body.replace(
 							"<!-- {{editor_WYSIWYG}} //-->",
-							"<div data-editable data-name=\"content\">" + page.data.blocks[0][ctx.params.lang] + "</div>"
+							wysiwygContent
+								? "<div data-editable data-name=\"content\">" + wysiwygContent + "</div>"
+								: ""
 						);
 					} else {
 						result.body = result.body.replace(

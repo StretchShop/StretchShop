@@ -472,6 +472,120 @@ module.exports = {
 
 
 		/**
+		 * Multipart handler for catalog import/export uploads.
+		 * Accepts XML/CSV/JSON/ZIP (larger than image uploads) and calls import-export.import.
+		 */
+		processImportExportUpload(req, res) {
+			req["$action"] = {
+				auth: "required"
+			};
+			return Promise.resolve()
+				.then(() => this.authenticate(req.$ctx, req.$route, req, res))
+				.then(() => {
+					if (req.$ctx.meta.user?.type !== "admin") {
+						this.respondUploadError(res, 403, "Forbidden");
+						return;
+					}
+
+					const ALLOWED_MIME = new Set([
+						"application/xml",
+						"text/xml",
+						"text/csv",
+						"application/csv",
+						"application/json",
+						"application/zip",
+						"application/x-zip-compressed",
+						"application/octet-stream",
+						"text/plain"
+					]);
+					const self = this;
+					const form = formidable.formidable({
+						multiples: false,
+						maxFileSize: 50 * 1024 * 1024,
+						filter({ mimetype }) {
+							if (!mimetype) {
+								return true;
+							}
+							return ALLOWED_MIME.has(mimetype);
+						}
+					});
+
+					return new Promise((resolve) => {
+						form.parse(req, (err, fields, files) => {
+							if (err) {
+								self.logger.error("api.processImportExportUpload parse ERROR", err);
+								self.respondUploadError(res, 400, "Upload failed");
+								resolve(null);
+								return;
+							}
+
+							const firstField = (name) => {
+								const v = fields?.[name];
+								if (Array.isArray(v)) {
+									return v[0];
+								}
+								return v;
+							};
+
+							const provider = firstField("provider");
+							let entities = firstField("entities");
+							if (typeof entities === "string") {
+								try {
+									entities = JSON.parse(entities);
+								} catch {
+									entities = String(entities).split(",").map((s) => s.trim()).filter(Boolean);
+								}
+							}
+
+							let uploaded = files?.file || files?.upload || null;
+							if (Array.isArray(uploaded)) {
+								uploaded = uploaded[0];
+							}
+							if (!uploaded?.filepath) {
+								self.respondUploadError(res, 400, "No file uploaded");
+								resolve(null);
+								return;
+							}
+
+							fs.readFile(uploaded.filepath)
+								.then((buffer) => {
+									return req.$ctx.call("import-export.import", {
+										provider,
+										entities,
+										filename: uploaded.originalFilename || uploaded.name || "",
+										_fileBuffer: buffer
+									});
+								})
+								.then((result) => {
+									if (res.headersSent || res.writableEnded) {
+										resolve(result);
+										return;
+									}
+									res.writeHead(200, { "content-type": "application/json" });
+									res.end(JSON.stringify(result));
+									resolve(result);
+								})
+								.catch((callErr) => {
+									self.logger.error("api.processImportExportUpload call ERROR", callErr);
+									const status = callErr?.code || 400;
+									self.respondUploadError(res, status, callErr?.message || "Import failed");
+									resolve(null);
+								})
+								.finally(() => {
+									fs.remove(uploaded.filepath).catch(() => {});
+								});
+						});
+					});
+				})
+				.catch((err) => {
+					this.logger.error("api.processImportExportUpload ERROR", err);
+					const status = err?.code === 401 ? 401 : 400;
+					this.respondUploadError(res, status, "Upload failed");
+				});
+		},
+
+
+		/**
 		 * 
 		 * @param {*} req 
 		 * @param {*} res 

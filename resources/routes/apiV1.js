@@ -18,6 +18,21 @@ function handleUpload(req, res) {
 	}
 }
 
+function handleImportExportUpload(req, res) {
+	try {
+		const result = this.processImportExportUpload(req, res);
+		if (result && typeof result.catch === "function") {
+			result.catch((err) => {
+				this.logger.error("import-export upload handler ERROR", err);
+				this.respondUploadError(res, 400, "Upload failed");
+			});
+		}
+	} catch (err) {
+		this.logger.error("import-export upload handler ERROR", err);
+		this.respondUploadError(res, 400, "Upload failed");
+	}
+}
+
 
 module.exports = {
 	path: "/api/v1",
@@ -151,6 +166,14 @@ module.exports = {
 		"PUT /settings": "api.settingsUpdate",
 		// "POST /settings/users": "users.list",
 		// "PUT /settings/users": "users.manage",
+
+		// Import & Export (admin catalog migration)
+		"GET /import-export/providers": "import-export.providers",
+		"POST /import-export/export": "import-export.export",
+		"POST /import-export/import": {
+			openapi: false,
+			handler: handleImportExportUpload
+		},
 
 		// Helpers
 		"POST /helpers/recaptcha": "users.recaptcha"

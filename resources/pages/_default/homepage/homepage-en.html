@@ -1,37 +1,71 @@
 <!-- {{editor_WYSIWYG}} //-->
 
-<div class="bg-grey">
-  <div class="container">
-    <div class="columns">
-      <div class="column is-4 hp-question">
-        <h1 class="title is-1" translate="yes">Is your business <br />ready to grow?</h1>
+<div class="hp-os">
+  <section class="section hp-os-hero">
+    <div class="container has-text-centered">
+      <img class="hp-os-logo" src="/assets/_site/logo.svg" alt="StretchShop" />
+      <h1 class="title hp-os-title">Freedom for<br class="is-hidden-tablet" /> <span class="hp-os-title-accent">your business</span></h1>
+      <p class="hp-os-lead">A Node.js and Vue shop you can clone, change and host yourself.</p>
+      <div class="buttons is-centered hp-os-actions">
+        <a class="button is-primary" href="https://github.com/StretchShop/StretchShop">View on GitHub</a>
+        <a class="button is-primary is-outlined" href="https://github.com/StretchShop/StretchShop/wiki">Read the docs</a>
       </div>
-      <div class="column is-4">
-        <img alt="StretchShop logo" src="/assets/_site/logo.svg" />
-      </div>
-      <div class="column is-4 hp-words">
-        <img alt="StretchShop words" src="/assets/_site/words.svg" />
-      </div>
+      <p class="hp-os-hosted is-hidden-mobile"><a href="https://stretchshop.org">Prefer not to run it yourself? Let us host it →</a></p>
+      <p class="hp-os-hosted is-hidden-tablet"><a href="https://stretchshop.org">Or let us host it →</a></p>
     </div>
-  </div>
-</div>
+  </section>
 
-<div class="container hp-topics">
-  <div class="columns">
-    <div class="column is-4">
-      <img src="/assets/_site/home/fast.png" alt="Fast" />
-      <h2 class="title is-2">Fast</h2>
-      <p class="is-size-4">Lightweight base <br />Robust performance</p>
+  <section class="section hp-os-paths">
+    <div class="container">
+      <div class="columns is-variable is-4">
+        <div class="column is-12-mobile is-4-tablet">
+          <div class="box hp-os-path hp-os-path-self">
+            <h2 class="title is-4">Self-host</h2>
+            <p class="hp-os-price">Free</p>
+            <p>The GPL-3.0 backend, with a compiled front end included.</p>
+            <p class="hp-os-cta"><a href="https://github.com/StretchShop/StretchShop">Get started →</a></p>
+          </div>
+        </div>
+        <div class="column is-12-mobile is-4-tablet">
+          <div class="box hp-os-path hp-os-path-fe">
+            <h2 class="title is-4">Buy the front end</h2>
+            <p class="hp-os-price">€500 / €1,000</p>
+            <p>Front-end source as a zip, or a year of repo access.</p>
+            <p class="hp-os-cta"><a href="https://stretchshop.app/en">See options →</a></p>
+          </div>
+        </div>
+        <div class="column is-12-mobile is-4-tablet">
+          <div class="box hp-os-path hp-os-path-saas">
+            <h2 class="title is-4">Let us run it</h2>
+            <p class="hp-os-price">From €15/mo, incl. VAT</p>
+            <p>We'll host it for you, with white-label for agencies.</p>
+            <p class="hp-os-cta"><a href="https://stretchshop.org">Go to StretchShop SaaS →</a></p>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="column is-4">
-      <img src="/assets/_site/home/scalable.png" alt="Scalable" />
-      <h2 class="title is-2">Scalable</h2>
-      <p class="is-size-4">Microservices & monolith <br />whether you're large or small</p>
+  </section>
+
+  <section class="section hp-os-start">
+    <div class="container">
+      <p class="hp-os-kicker">QUICK START</p>
+      <pre class="hp-os-pre is-hidden-mobile"><code>git clone https://github.com/StretchShop/StretchShop.git
+cd StretchShop
+cp .env.example .env
+npm install &amp;&amp; npm run dev    # http://localhost:3000</code></pre>
+      <pre class="hp-os-pre is-hidden-tablet"><code>git clone …/StretchShop.git
+cd StretchShop
+cp .env.example .env
+npm install &amp;&amp; npm run dev
+# http://localhost:3000</code></pre>
+      <p class="hp-os-hint is-hidden-mobile">Needs Node.js 22.23+ and MongoDB 7. npm install loads the demo data.</p>
+      <p class="hp-os-hint is-hidden-tablet">Node.js 22.23+ and MongoDB 7.</p>
     </div>
-    <div class="column is-4">
-      <img src="/assets/_site/home/easy.png" alt="Easy" />
-      <h2 class="title is-2">Easy to use</h2>
-      <p class="is-size-4">Better experience for all roles: <br />visitor, user, admin, developer</p>
+  </section>
+
+  <section class="section hp-os-close">
+    <div class="container has-text-centered">
+      <p>Building shops for clients? <a href="https://stretchshop.app/en">Become our partner →</a></p>
     </div>
-  </div>
+  </section>
 </div>
